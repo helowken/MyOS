@@ -1,3 +1,22 @@
+; This code may be placed in the first sector (the boot sector) of a floppy,
+; hard disk or hard disk primary partition.  There it will perform the
+; following actions at boot time:
+;
+; - If the booted device is a hard disk and one of the partitions is active
+;   then the active partition is booted.
+;
+; - Otherwise the next floppy or hard disk device is booted, trying them one
+;   by one.
+;
+; To make things a little clearer, the boot path might be:
+;	/dev/fd0	- Floppy disk containing data, tries fd1 then d0
+;	[/dev/fd1]	- Drive empty
+;	/dev/c0d0	- Master boot block, selects active partition 2
+;	/dev/c0d0p2	- Submaster, selects active subpartition 0
+;	/dev/c0d0p2s0	- Minix bootblock, reads Boot Monitor /boot
+;	Minix		- Started by /boot from a kernel image in /minix
+
+
 [bits 16]
 
 section .text
@@ -18,8 +37,13 @@ master:
 	mov di, BUFFER					; Buffer area 
 	mov cx, 512						; One sector
 	cld					
-	rep movsb						; copy this code from LOAD_OFF to BUFFER
-	jmp word 0x0:BUFFER+migrate     ; take a far jump to safety
+	rep movsb						; Copy this code from LOAD_OFF to BUFFER.
+									; When finished, area [LOAD_OFF, LOAD_OFF + 512) and [BUFFER, BUFFER + 512) have the same code.
+
+	jmp word 0x0:BUFFER+migrate     ; Take a far jump to safety.
+									; When finished, the CPU will be directed from 'jmp' in [LOAD_OFF, LOAD_OFF + 512)
+									; to the 'migrate' in [BUFFER, BUFFER + 512).
+									; Then [LOAD_OFF, LOAD_OFF + 512) can be used as an area for loading boot block code.
 migrate:
 
 ; Find the active partition
@@ -258,16 +282,14 @@ LOW_SECTOR	equ	8		; LBA (logical block addressing) of first absolute sector in t
 
 
 ; Messages to display
-MSG_REBOOT:
-		db	'Hit any key to reboot.', 0
+MSG_REBOOT	db	'Hit any key to reboot.', 0
+ERR_READ	db	'Read failed: ', 0
 ERR_BOOT_DISK:
-		db	'Not hard disk', 0
-ERR_READ:
-		db	'Read failed: ', 0
+		db 'Not HDD.', 0
 ERR_NO_ACTIVE_PART:
-		db	'No active partition', 0
+		db 'No active part.', 0
 ERR_NO_SIGNATURE:
-		db	'No bootable', 0
+		db 'No bootable.', 0
 
 
 section .data
