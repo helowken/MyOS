@@ -96,7 +96,7 @@ retry:
 	mul	dh				; ax = al * dh = sectors * heads
 	mov	bx, ax			; bx = sectors per cylinder = sectors * heads
 
-	mov ax,	[si+LOW_SECTOR]			; Get LBA in partition entry.
+	mov ax,	[si+LOW_SECTOR]			; Get LBA of first absolute sector in the partition.
 	mov dx, [si+LOW_SECTOR+2]		; Now si points to the partition entry, 
 									; and [si+LOW_SECTOR] points to the LBA which has 4 bytes,
 									; so make DX:AX to represent the LBA: AX=bytes[0,1], DX=bytes[2,3].
@@ -105,6 +105,7 @@ retry:
 	cmp	dx, (1024*255*63)>>16	; Near 8G limit? 
 								; BIOS disk I/O uses 24-bit CHS (cylinder-head-sector) 
 								; which scheme is 10:8:6, or 1024 cylinders, 256 heads, and 63 sectors.
+								; Since sector size is 512 bytes (= 9 bits), then 24 + 9 = 33 bits = 8 GB. 
 								; (Note: cylinder and head index start with 0 while sector index starts with 1)
 								;
 								; ATA uses 28-bit CHS which scheme is 16:4:8.
