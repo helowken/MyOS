@@ -111,10 +111,7 @@ readEval:
 done:
 	pop si							; Restore es:si = partition table entry
 	pop es							; Now dl is still loaded with device
-	;jmp word BOOT_SEG:BOOT_OFF		; Jump to the boot code.
-	mov bx, LOAD_OFF + MSG
-	call println_string
-	jmp $
+	jmp word BOOT_SEG:BOOT_OFF		; Jump to the boot code.
 readError:
 	mov bx, LOAD_OFF+ERR_READ
 	call print_string
@@ -134,7 +131,8 @@ readError:
 
 LOAD_OFF	equ 0x7C00	; 0x0000:LOAD_OFF is where this code is loaded
 BOOT_SEG	equ	0x1000	; Secondary boot code segment
-BOOT_OFF	equ	0x0030	; Offset into /boot above header
+;BOOT_OFF	equ	0x0030	; Offset into /boot above header for Minix
+BOOT_OFF	equ	0x0		; Offset into /boot 
 LOW_SECTOR	equ	8		; LBA (logical block addressing) of first absolute sector in the partition
 
 
@@ -144,7 +142,6 @@ LOW_SEC_OFF	equ	2
 SEC_PER_CYL	equ	6
 
 
-MSG			db	'Starting from boot block.', 0
 ERR_READ	db	'Read failed: ', 0
 
 

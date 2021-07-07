@@ -1,11 +1,14 @@
 #include <fcntl.h>
+#include <sys/stat.h>
 #include "tlpi_hdr.h"
 
-#define MASTER_BOOT_LEN 440
-#define BOOT_BLOCK_LEN	512
-#define SIGNATURE_POS	510
-#define SIGNATURE		0XAA55
-
+#define MASTER_BOOT_LEN		440
+#define BOOT_BLOCK_LEN		512
+#define SIGNATURE_POS		510
+#define SIGNATURE			0XAA55
+#define SECTOR_SIZE			512
+#define TESTBOOT_SEC_OFF	8
+#define TESTBOOT_SEC_COUNT	1
 
 static void usage() {
 	fprintf(stderr,
@@ -14,19 +17,24 @@ static void usage() {
 	exit(1);
 }
 
-static void copyTo(char *dest, char *src, char *buf, int len) {
+typedef void (*preCopyFunc)(int destFd, int srcFd);
+
+static void copyTo(char *dest, char *src, char *buf, int len, preCopyFunc func) {
 	int destFd, srcFd;
 
 	srcFd = open(src, O_RDONLY);
 	if (srcFd == -1)
 	  errExit("open src");
 
-	if (read(srcFd, buf, len) < 0)
-	  errExit("read");
-
 	destFd = open(dest, O_WRONLY);
 	if (destFd == -1)
 	  errExit("open dest");
+
+	if (func != NULL)
+	  func(destFd, srcFd);
+
+	if (read(srcFd, buf, len) < 0)
+	  errExit("read");
 
 	if (write(destFd, buf, len) != len)
 	  errExit("write");
@@ -35,22 +43,52 @@ static void copyTo(char *dest, char *src, char *buf, int len) {
 	close(destFd);
 }
 
+static off_t getFileSize(char *pathName) {
+	struct stat sb;
+	if (stat(pathName, &sb) == -1)
+	  errExit("stat");
+	return sb.st_size;
+}
+
 static void install_masterboot(char *device, char *masterboot) {
 	int len = MASTER_BOOT_LEN;
 	char buf[len];
 	memset(buf, 0, len);
-	copyTo(device, masterboot, buf, len);
+	copyTo(device, masterboot, buf, len, NULL);
 	printf("Install %s to %s successfully.\n", masterboot, device);
 }
 
 static void install_bootable(char *device, char *bootblock) {
+	int addr = TESTBOOT_SEC_OFF;
 	int len = BOOT_BLOCK_LEN;
 	char buf[len];
 	memset(buf, 0, len);
 	buf[SIGNATURE_POS] = SIGNATURE & 0xFF;
 	buf[SIGNATURE_POS + 1] = (SIGNATURE >> 8) & 0xFF;
-	copyTo(device, bootblock, buf, len - 2);
+
+	off_t size = getFileSize(bootblock);
+	char *ap = &buf[size];
+	*ap++ = TESTBOOT_SEC_COUNT;
+	*ap++ = addr & 0xFF;
+	*ap++ = (addr >> 8) & 0xFF;
+	*ap++ = (addr >> 16) & 0xFF;
+
+	copyTo(device, bootblock, buf, len - 2, NULL);
 	printf("Install %s to %s successfully.\n", bootblock, device);
+}
+
+static void install_testBoot(char *device, char *testBoot) {
+	int len = SECTOR_SIZE * TESTBOOT_SEC_COUNT;
+	char buf[len];
+	memset(buf, 0, len);
+
+	void func(int destFd, int srcFd) {
+		off_t pos = SECTOR_SIZE * TESTBOOT_SEC_OFF;
+		if (lseek(destFd, pos, SEEK_SET) == -1)
+		  errExit("lseek dest fd");
+	}
+
+	copyTo(device, testBoot, buf, len, func);
 }
 
 static Boolean isOpt(char *opt, char *test) {
@@ -68,6 +106,10 @@ int main(int argc, char *argv[]) {
 	  install_masterboot(argv[2], argv[3]);
 	else if (isOpt(argv[1], "-bootable"))
 	  install_bootable(argv[2], argv[3]);
+	else if (isOpt(argv[1], "-testBoot"))
+	  install_testBoot(argv[2], argv[3]);
+	else 
+	  usage();
 
 	exit(EXIT_SUCCESS);
 }
