@@ -1,0 +1,15 @@
+#!/bin/bash
+
+img=testOS.img
+size=1M
+
+qemu-img create -f raw $img $size
+
+fdisk $img<<EOF
+I
+partition.script
+p
+w
+EOF
+
+

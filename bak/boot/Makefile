@@ -14,20 +14,23 @@ all: clean install run
 
 ARGS="file=$(diskImg),format=raw,index=0,media=disk"
 
-%.o: %.asm
-	nasm -f elf $< -o $@
+masterboot.bin: masterboot.asm
+	nasm -f bin $< -o $@
 
-%.bin: %.asm
+bootblock.bin: bootblock.asm
 	nasm -f bin $< -o $@
 
 testboot.o : testboot.c code16gcc.h
 	gcc -c -g -Os -m16 -march=i686 -ffreestanding -Wall -Werror -I. -o $@ $<
 
-testboot.elf: testboot.o bootentry.o 
-	ld -static -m elf_i386 -Tlinker.ld -nostdlib --nmagic -o $@ $^
+testboot.elf: testboot.o
+	ld -static -m elf_i386 -Tlinker.ld -nostdlib --nmagic -o $@ $<
 
 testboot.bin: testboot.elf
 	objcopy -O binary $< $@ 
+
+boothead.bin: boothead.asm
+	nasm -f bin $< -o $@
 
 installboot: installboot.c 
 	gcc -o $@ $< -I$(lib) $(lib)/*.o
@@ -51,4 +54,4 @@ mount:
 	sudo qemu-nbd --format=raw --connect=$(diskMount) $(diskImg)
 
 clean:
-	rm -f *.s *.o *.bin *.elf instasllboot
+	rm -f *.s *.o *.bin instasllboot

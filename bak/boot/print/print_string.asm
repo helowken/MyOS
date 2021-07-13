@@ -1,6 +1,6 @@
 print_string:
 	pusha
-	mov ah, 0x0E
+	mov ah, 0xE
 
 print_string_loop:
 	mov al, [bx]
@@ -25,7 +25,7 @@ println_string:
 println:
 	pusha
 
-	mov ah, 0x0E
+	mov ah, 0xE
 	mov al, 0xa
 	int 0x10
 	mov al, 0xd
