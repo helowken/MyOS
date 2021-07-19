@@ -5,18 +5,16 @@
 print:
 	pushl	%ebp
 	movl	%esp, %ebp
-	pushl	%ebx
-	movl	8(%ebp), %ebx
+	movl	8(%ebp), %ecx
 .print_loop:
-	movb	(%ebx), %al
+	movb	(%ecx), %al
 	testb	%al, %al
 	je	.print_end
 	movb	$0xe, %ah
 	int	$0x10
-	inc	%ebx
+	inc	%ecx
 	jmp	.print_loop
 .print_end:
-	popl	%ebx
 	leave
 	retl
 

@@ -7,8 +7,7 @@
 #define SIGNATURE_POS		510
 #define SIGNATURE			0XAA55
 #define SECTOR_SIZE			512
-#define TESTBOOT_SEC_OFF	8
-#define TESTBOOT_SEC_COUNT	1
+#define BOOT_SEC_OFF	8
 
 static void usage() {
 	fprintf(stderr,
@@ -50,6 +49,12 @@ static off_t getFileSize(char *pathName) {
 	return sb.st_size;
 }
 
+static off_t getSectorCount(char *pathName) {
+	off_t size;
+	size = getFileSize(pathName);
+	return (size + SECTOR_SIZE - 1) / SECTOR_SIZE;
+}
+
 static void install_masterboot(char *device, char *masterboot) {
 	int len = MASTER_BOOT_LEN;
 	char buf[len];
@@ -58,8 +63,8 @@ static void install_masterboot(char *device, char *masterboot) {
 	//printf("Install %s to %s successfully.\n", masterboot, device);
 }
 
-static void install_bootable(char *device, char *bootblock) {
-	int addr = TESTBOOT_SEC_OFF;
+static void install_device(char *device, char *bootblock, char *boot) {
+	int addr = BOOT_SEC_OFF;
 	int len = BOOT_BLOCK_LEN;
 	char buf[len];
 	memset(buf, 0, len);
@@ -68,7 +73,7 @@ static void install_bootable(char *device, char *bootblock) {
 
 	off_t size = getFileSize(bootblock);
 	char *ap = &buf[size];
-	*ap++ = TESTBOOT_SEC_COUNT;
+	*ap++ = getSectorCount(boot);
 	*ap++ = addr & 0xFF;
 	*ap++ = (addr >> 8) & 0xFF;
 	*ap++ = (addr >> 16) & 0xFF;
@@ -77,18 +82,18 @@ static void install_bootable(char *device, char *bootblock) {
 	//printf("Install %s to %s successfully.\n", bootblock, device);
 }
 
-static void install_testboot(char *device, char *testboot) {
-	int len = SECTOR_SIZE * TESTBOOT_SEC_COUNT;
+static void install_bootable(char *device, char *boot) {
+	int len = SECTOR_SIZE * getSectorCount(boot);
 	char buf[len];
 	memset(buf, 0, len);
 
 	void func(int destFd, int srcFd) {
-		off_t pos = SECTOR_SIZE * TESTBOOT_SEC_OFF;
+		off_t pos = SECTOR_SIZE * BOOT_SEC_OFF;
 		if (lseek(destFd, pos, SEEK_SET) == -1)
 		  errExit("lseek dest fd");
 	}
 
-	copyTo(device, testboot, buf, len, func);
+	copyTo(device, boot, buf, len, func);
 }
 
 static Boolean isOpt(char *opt, char *test) {
@@ -104,10 +109,10 @@ int main(int argc, char *argv[]) {
 
 	if (isOpt(argv[1], "-master"))
 	  install_masterboot(argv[2], argv[3]);
-	else if (isOpt(argv[1], "-bootable"))
+	else if (argc >= 5 && isOpt(argv[1], "-device"))
+	  install_device(argv[2], argv[3], argv[4]);
+	else if (isOpt(argv[1], "-boot"))
 	  install_bootable(argv[2], argv[3]);
-	else if (isOpt(argv[1], "-testboot"))
-	  install_testboot(argv[2], argv[3]);
 	else 
 	  usage();
 

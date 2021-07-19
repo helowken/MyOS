@@ -6,36 +6,33 @@ DISK_IMAGE = device/testOS.img
 MOUNT_POINT = /dev/nbd0
 DEVICE = $(MOUNT_POINT)p1
 LIB = ../lib
+INCLUDE = include
 ARGS = "file=$(DISK_IMAGE),format=raw,index=0,media=disk"
+# Floppy: ARGS = "file=$(BIN),format=raw,index=0,if=floppy"
 
 C_SOURCE = $(wildcard *.c)
-HEADERS = $(wildcard *.h)
+HEADERS = $(wildcard $(INCLUDE)/*.h)
 OBJ = ${C_SOURCE : .c = .o}
 
 
-all: install
+all: install run
 
 run: all
 	qemu-system-i386 -drive $(ARGS)
 
-# for floppy:  ARGS="file=$(BIN),format=raw,index=0,if=floppy"
-
 %.o: %.c $(HEADERS)
-	gcc -c -m32 -ffreestanding -Wall -Werror $< -o $@
+	gcc -c -m32 -ffreestanding -Wall -Werror -I$(INCLUDE) $< -o $@
 
 %.o: %.s
 	as --32 $< -o $@
 
-%.o: %.asm
-	nasm -f elf $< -o $@
-
 %.bin: %.asm
 	nasm -f bin $< -o $@
 
-testboot.elf: boothead.o print/print_string.o testboot.o 
+boot.elf: boothead.o print/print_string.o util.o boot.o 
 	ld -Ttext 0x0 -m elf_i386 -nostdLIB -nmagic $^ -o $@ 
 
-testboot.bin: testboot.elf
+boot.bin: boot.elf
 	objcopy -O binary -j .text -j .rodata $< $@ 
 
 installboot: installboot.c 
@@ -43,24 +40,17 @@ installboot: installboot.c
 
 install: \
 	install_masterboot \
-	install_bootable \
-	install_testboot
+	install_device \
+	install_boot
 
 install_masterboot: masterboot.bin installboot 
 	./installboot -m $(DISK_IMAGE) $<
 
-install_bootable: bootblock.bin installboot 
+install_device: bootblock.bin boot.bin installboot 
+	sudo ./installboot -d $(DEVICE) $< boot.bin
+
+install_boot: boot.bin installboot
 	sudo ./installboot -b $(DEVICE) $<
-
-install_testboot: testboot.bin installboot
-	sudo ./installboot -t $(DEVICE) $<
-
-install_testboot2:
-	gcc -c -m32 test_code16.c 
-	as --32 ttt.s -o ttt.o
-	ld -Ttext 0x0 -m elf_i386 ttt.o test_code16.o -o test.elf
-	objcopy -j .text -j .rodata -O binary test.elf test.bin
-	sudo ./installboot -t $(DEVICE) test.bin
 
 mount:
 	sudo modprobe nbd
