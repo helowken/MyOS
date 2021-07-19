@@ -2,7 +2,7 @@ ENTRY(main);
 SECTIONS
 {
     . = 0x7e00;
-    .text : AT(0x7e00)
+    .text : 
     {
         _text = .;
         *(.text);

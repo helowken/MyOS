@@ -1,33 +1,21 @@
 #include "code16gcc.h"
-asm ("jmpl $0x0, $main\n\t");
 
 #define __NOINLINE  __attribute__((noinline))
 #define __REGPARM   __attribute__ ((regparm(3)))
 #define __NORETURN  __attribute__((noreturn))
 
-void __NOINLINE __REGPARM print(char *s) {
-	char *c = s;
-	//char *c = "ABCD";
-	while (*c) {
-		asm volatile (
-			"int $0x10" 
-			: 
-			: "a"(0x0e00 | *c)
-		);
-		c++;
-	}
+extern void print(char *str);
+extern void println(char *str);
+
+void main2(char *str) {
+	print(str);
+	print(" *** ");
+	println(str);
 }
 
-void __NORETURN main(){
-	//print("Hello22, world!\n");
-	
-	//test('y');
-	asm volatile (
-		"call test"
-		:
-		: "b"('y')
-	);
-	while(1);
+void main(){
+	println("Hello, world!");
+	println("aaabbbccc");
+
+	main2("xyz-xyz");
 }
-
-

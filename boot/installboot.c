@@ -55,7 +55,7 @@ static void install_masterboot(char *device, char *masterboot) {
 	char buf[len];
 	memset(buf, 0, len);
 	copyTo(device, masterboot, buf, len, NULL);
-	printf("Install %s to %s successfully.\n", masterboot, device);
+	//printf("Install %s to %s successfully.\n", masterboot, device);
 }
 
 static void install_bootable(char *device, char *bootblock) {
@@ -74,7 +74,7 @@ static void install_bootable(char *device, char *bootblock) {
 	*ap++ = (addr >> 16) & 0xFF;
 
 	copyTo(device, bootblock, buf, len - 2, NULL);
-	printf("Install %s to %s successfully.\n", bootblock, device);
+	//printf("Install %s to %s successfully.\n", bootblock, device);
 }
 
 static void install_testboot(char *device, char *testboot) {

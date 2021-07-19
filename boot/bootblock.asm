@@ -130,7 +130,7 @@ readError:
 
 
 LOAD_OFF	equ 0x7C00	; 0x0000:LOAD_OFF is where this code is loaded
-BOOT_SEG	equ	0x07e0	; Secondary boot code segment
+BOOT_SEG	equ	0x1000	; Secondary boot code segment
 BOOT_OFF	equ	0x0000	; Offset into /boot 
 LOW_SECTOR	equ	8		; LBA (logical block addressing) of first absolute sector in the partition
 
