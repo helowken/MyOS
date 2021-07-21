@@ -2,24 +2,14 @@
 	.text
 movw	%cs, %ax
 movw	%ax, %ds
-movw	%ax, %es
-cld
+movw	%ax, %es		# Set es = ds = cs
+cld						
 
+#calll	printLowMem
+#calll	detectE820Mem
 
-pushl	g
-calll	printIntHex
-addl	$4, %esp
-
-
-calll	test	
-
+calll	boot
 
 halt:
 	jmp halt
 
-	.section	.rodata
-	.align	4
-	.type	g, @object
-	.size	g, 4
-g:
-	.long	305441741

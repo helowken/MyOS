@@ -29,6 +29,10 @@ char* num2Hex(int num, int len, bool withPrefix) {
 }
 
 void printNumHex(int num, int len) {
+	print(num2Hex(num, len, true));
+}
+
+void printlnNumHex(int num, int len) {
 	println(num2Hex(num, len, true));
 }
 
@@ -48,10 +52,22 @@ void printByteHex(char num) {
 	printNumHex(num, BYTE_BITS);
 }
 
+void printlnByteHex(char num) {
+	printlnNumHex(num, BYTE_BITS);
+}
+
 void printShortHex(short num) {
 	printNumHex(num, SHORT_BITS);
 }
 
+void printlnShortHex(short num) {
+	printlnNumHex(num, SHORT_BITS);
+}
+
 void printIntHex(int num) {
 	printNumHex(num, INT_BITS);
+}
+
+void printlnIntHex(int num) {
+	printlnNumHex(num, INT_BITS);
 }

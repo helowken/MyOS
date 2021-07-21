@@ -35,3 +35,12 @@ println:
 	leave
 	retl
 
+	.globl	derefSp
+	.type	text, @function
+derefSp:
+	pushl	%ebp
+	movl	%esp, %ebp
+	movl	8(%ebp), %eax
+	movl	%ss:(%eax), %eax
+	leave
+	retl
