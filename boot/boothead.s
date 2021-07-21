@@ -5,8 +5,10 @@ movw	%ax, %ds
 movw	%ax, %es		# Set es = ds = cs
 cld						
 
-#calll	printLowMem
-#calll	detectE820Mem
+calll	printLowMem
+calll	printSepLine
+calll	printE820Mem
+calll	printSepLine
 
 calll	boot
 
@@ -14,12 +16,12 @@ calll	boot
 halt:
 	jmp halt
 
+
+# Functions:
 	.globl	kputc
 	.type	text, @function
 kputc:
-	pushl	%ebp
-	movl	%esp, %ebp
-	movb	8(%ebp), %al
+	movb	4(%esp), %al
 	testb	%al, %al
 	jz	.noChar
 	movb	$0xe, %ah
@@ -31,14 +33,12 @@ kputc:
 .putChar:
 	int	$0x10
 .noChar:
-	leave
 	retl
+
 	.globl	print
 	.type	text, @function
 print:
-	pushl	%ebp
-	movl	%esp, %ebp
-	movl	8(%ebp), %ecx
+	movl	4(%esp), %ecx
 .print_loop:
 	movb	(%ecx), %al
 	testb	%al, %al
@@ -48,8 +48,8 @@ print:
 	inc	%ecx
 	jmp	.print_loop
 .end:
-	leave
 	retl
+
 	.globl	println
 	.type	text, @function
 println:
@@ -65,13 +65,11 @@ println:
 	int	$0x10
 	leave
 	retl
+
 	.globl	derefSp
 	.type	text, @function
 derefSp:
-	pushl	%ebp
-	movl	%esp, %ebp
-	movl	8(%ebp), %eax
+	movl	4(%esp), %eax
 	movl	%ss:(%eax), %eax
-	leave
 	retl
 	

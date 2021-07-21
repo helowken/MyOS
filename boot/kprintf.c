@@ -1,5 +1,6 @@
-#include "code16gcc.h"
+#include "code.h"
 #include "stdarg.h"
+#include "stddef.h"
 
 #define isdigit(c)	((unsigned) ((c) - '0') < (unsigned) 10)
 #define count_kputc(c)	do { charCount++; kputc(c); } while(0)
@@ -104,7 +105,7 @@ int2ascii:
 				p = temp + sizeof(temp) - 1;
 				*p = 0;
 				do {
-					*--p = x2c[(int) (u % base)];
+					*--p = x2c[(ptrdiff_t) (u % base)];
 				} while ((u /= base) > 0);
 				goto string_length;
 

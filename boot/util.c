@@ -1,9 +1,10 @@
-#include "code16gcc.h"
+#include "code.h"
 #include "util.h"
 
 static char hexBuf[HEX_BUF_LEN]; 
 
-char* num2Hex(int num, int len, bool withPrefix) {
+char * 
+num2Hex(int num, int len, bool withPrefix) {
 	int i, j;
 	int n;
 
@@ -28,6 +29,10 @@ char* num2Hex(int num, int len, bool withPrefix) {
 	return hexBuf;
 }
 
+void printSepLine() {
+	printf("-------------------------\n");
+}
+
 void printNumHex(int num, int len) {
 	print(num2Hex(num, len, true));
 }
@@ -36,15 +41,18 @@ void printlnNumHex(int num, int len) {
 	println(num2Hex(num, len, true));
 }
 
-char* byte2Hex(char num) {
+char * 
+byte2Hex(char num) {
 	return num2Hex(num, BYTE_BITS, false);
 }
 
-char* short2Hex(short num) {
+char * 
+short2Hex(short num) {
 	return num2Hex(num, SHORT_BITS, false);
 }
 
-char* int2Hex(int num) {
+char * 
+int2Hex(int num) {
 	return num2Hex(num, INT_BITS, false);
 }
 

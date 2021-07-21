@@ -5,22 +5,32 @@
 DISK_IMAGE = device/testOS.img
 MOUNT_POINT = /dev/nbd0
 DEVICE = $(MOUNT_POINT)p1
-LIB = ../lib
 ARGS = "file=$(DISK_IMAGE),format=raw,index=0,media=disk"
 # Floppy: ARGS = "file=$(BIN),format=raw,index=0,if=floppy"
 
+LINUX_LIB = ../linuxLib
+LIB_DIR = ../lib
+LIBS = -lc
+INC = ../include
+INC_SYS = $(INC)/sys
+INCLUDE = -I$(INC) -I$(INC_SYS)
+C_FLAGS = -c -m32 -D_M16 -ffreestanding -Wall -Werror
+LD_FLAGS = -Ttext 0x0 -m elf_i386 -nostdLIB -nmagic $(LIBS) -L$(LIB_DIR)
+OC_FLAGS = -O binary -j .text -j .rodata -j .data
+
 C_SOURCE = $(wildcard *.c)
-HEADERS = $(wildcard *.h)
+HEADERS = $(wildcard *.h, $(INC)/*.h, $(INC_SYS)/*.h)
 OBJ = ${C_SOURCE : .c = .o}
+
 
 
 all: install run
 
-run: all
+run: 
 	qemu-system-i386 -drive $(ARGS)
 
 %.o: %.c $(HEADERS)
-	gcc -c -m32 -ffreestanding -Wall -Werror $< -o $@
+	gcc $(C_FLAGS) $(INCLUDE) $< -o $@
 
 %.o: %.s
 	as --32 $< -o $@
@@ -28,14 +38,20 @@ run: all
 %.bin: %.asm
 	nasm -f bin $< -o $@
 
-boot.elf: boothead.o util.o kprintf.o detectMem.o detectMemUtil.o boot.o 
-	ld -Ttext 0x0 -m elf_i386 -nostdLIB -nmagic $^ -o $@ 
+boot.elf: \
+		boothead.o \
+		util.o \
+		kprintf.o \
+		memory.o \
+		memUtil.o \
+		boot.o 
+	ld $^ $(LD_FLAGS) -o $@ 
 
 boot.bin: boot.elf
-	objcopy -O binary -j .text -j .rodata -j .data $< $@ 
+	objcopy $(OC_FLAGS) $< $@ 
 
 installboot: installboot.c 
-	gcc -o $@ $< -I$(LIB) $(LIB)/*.o
+	gcc -o $@ $< -I$(LINUX_LIB) $(LINUX_LIB)/*.o
 
 install: \
 	install_masterboot \

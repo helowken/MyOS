@@ -12,10 +12,17 @@ typedef char *va_list;
 void va_end (va_list);
 #define va_end(AP)
 
-extern void* derefSp(void *);
-
+#ifdef _M16	
+// Real mode need to use SS:SP to dereference the address
+extern void * 
+derefSp(void *);
 #define va_arg(AP, TYPE) \
 	(AP += __va_rounded_size (TYPE), \
 	 ((TYPE) derefSp((TYPE *) (AP - __va_rounded_size (TYPE)))))
+#else	// not _M16
+#define va_arg(AP, TYPE) \
+	(AP += __va_rounded_size (TYPE), \
+	 *(TYPE *) (AP - __va_rounded_size (TYPE)))
+#endif  // end _M16
 
 #endif

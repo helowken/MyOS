@@ -10,18 +10,24 @@ typedef enum { false, true } bool;
 
 extern int printf(char *fmt, ...);
 
+void printSepLine();
+
 // Below functions are for debug
 extern void print(char *str);
 
 extern void println(char *str);
 
-char* num2Hex(int num, int len, bool withPrefix);
+char * 
+num2Hex(int num, int len, bool withPrefix);
 
-char* byte2Hex(char num);
+char * 
+byte2Hex(char num);
 
-char* short2Hex(short num);
+char * 
+short2Hex(short num);
 
-char* int2Hex(int num);
+char * 
+int2Hex(int num);
 
 void printNumHex(int num, int len);
 
