@@ -7,7 +7,8 @@ LIBRARY = ../libc.a
 all: $(LIBRARY)
 
 clean: 
-	rm $(LIBRARY)
+	rm -f $(LIBRARY) 
+	rm *.o
 
 OBJECTS = \
 	  $(LIBRARY)(memcpy.o)
@@ -17,6 +18,5 @@ OBJECTS = \
 
 $(LIBRARY): $(OBJECTS)
 	ar rv U $@ *.o
-	rm *.o
 
 
