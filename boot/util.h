@@ -8,11 +8,12 @@
 
 typedef enum { false, true } bool;
 
+extern int printf(char *fmt, ...);
+
+// Below functions are for debug
 extern void print(char *str);
 
 extern void println(char *str);
-
-extern char* derefSp(void *spAddr);
 
 char* num2Hex(int num, int len, bool withPrefix);
 

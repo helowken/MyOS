@@ -28,11 +28,11 @@ run: all
 %.bin: %.asm
 	nasm -f bin $< -o $@
 
-boot.elf: boothead.o utilFunc.o util.o detectMem.o detectMemUtil.o boot.o 
+boot.elf: boothead.o util.o kprintf.o detectMem.o detectMemUtil.o boot.o 
 	ld -Ttext 0x0 -m elf_i386 -nostdLIB -nmagic $^ -o $@ 
 
 boot.bin: boot.elf
-	objcopy -O binary -j .text -j .rodata $< $@ 
+	objcopy -O binary -j .text -j .rodata -j .data $< $@ 
 
 installboot: installboot.c 
 	gcc -o $@ $< -I$(LIB) $(LIB)/*.o

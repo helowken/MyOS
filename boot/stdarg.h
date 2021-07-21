@@ -12,11 +12,10 @@ typedef char *va_list;
 void va_end (va_list);
 #define va_end(AP)
 
-void* va_derefSp(void *);
-//#define va_derefSp(ARGP) (*(ARGP))
+extern void* derefSp(void *);
 
 #define va_arg(AP, TYPE) \
 	(AP += __va_rounded_size (TYPE), \
-	 ((TYPE) va_derefSp((TYPE *) (AP - __va_rounded_size (TYPE)))))
+	 ((TYPE) derefSp((TYPE *) (AP - __va_rounded_size (TYPE)))))
 
 #endif
