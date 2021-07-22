@@ -1,9 +1,9 @@
-LIB_NAME = myc
+LIB_NAME = mysysutil
 
 OBJS_M32 = \
-	  memcpy.o
+	  kprintf.o
 
 OBJS_M16 = \
-	  memcpy.o
+	  kprintf.o
 
 include ../commonlib.mk

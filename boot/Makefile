@@ -1,39 +1,19 @@
-# $@ = target file
-# $< = first dependency
-# $^ = all dependencies
-
+MY_HOME = ..
+MODE = M16
+include $(MY_HOME)/common.mk
+LIB_DIR = $(MY_HOME)/lib/m16
+LIBS = -lmyc -lmysysutil
 DISK_IMAGE = device/testOS.img
 MOUNT_POINT = /dev/nbd0
 DEVICE = $(MOUNT_POINT)p1
-ARGS = "file=$(DISK_IMAGE),format=raw,index=0,media=disk"
 # Floppy: ARGS = "file=$(BIN),format=raw,index=0,if=floppy"
-
-LINUX_LIB = ../linuxLib
-LIB_DIR = ../lib
-LIBS = -lc
-INC = ../include
-INC_SYS = $(INC)/sys
-INCLUDE = -I$(INC) -I$(INC_SYS)
-C_FLAGS = -c -m32 -D_M16 -ffreestanding -Wall -Werror
-LD_FLAGS = -Ttext 0x0 -m elf_i386 -nostdLIB -nmagic $(LIBS) -L$(LIB_DIR)
-OC_FLAGS = -O binary -j .text -j .rodata -j .data
-
-C_SOURCE = $(wildcard *.c)
-HEADERS = $(wildcard *.h, $(INC)/*.h, $(INC_SYS)/*.h)
-OBJ = ${C_SOURCE : .c = .o}
-
+LINUX_LIB = $(MY_HOME)/linuxLib
 
 
 all: install run
 
 run: 
-	qemu-system-i386 -drive $(ARGS)
-
-%.o: %.c $(HEADERS)
-	gcc $(C_FLAGS) $(INCLUDE) $< -o $@
-
-%.o: %.s
-	as --32 $< -o $@
+	qemu-system-i386 -drive "file=$(DISK_IMAGE),format=raw,index=0,media=disk"
 
 %.bin: %.asm
 	nasm -f bin $< -o $@
@@ -41,17 +21,16 @@ run:
 boot.elf: \
 		boothead.o \
 		util.o \
-		kprintf.o \
 		memory.o \
 		memUtil.o \
 		boot.o 
-	ld $^ $(LD_FLAGS) -o $@ 
+	$(LD) $^ -Ttext 0x0 -m elf_i386 -nostdLIB -nmagic -L$(LIB_DIR) $(LIBS) -o $@ 
 
 boot.bin: boot.elf
-	objcopy $(OC_FLAGS) $< $@ 
+	objcopy -O binary -j .text -j .rodata -j .data $< $@ 
 
 installboot: installboot.c 
-	gcc -o $@ $< -I$(LINUX_LIB) $(LINUX_LIB)/*.o
+	$(CC) -o $@ $< -I$(LINUX_LIB) $(LINUX_LIB)/*.o
 
 install: \
 	install_masterboot \
