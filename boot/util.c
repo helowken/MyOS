@@ -1,7 +1,33 @@
 #include "code.h"
 #include "util.h"
 
+const char *destE820 = (char *) 0x8000;
 static char hexBuf[HEX_BUF_LEN]; 
+
+void printLowMem() {
+	printf("Low Memory: %d KB\n", detectLowMem());
+}
+
+void printE820Mem() {
+	int i, count;
+
+	count = detectE820Mem();
+	printf("E820 Memory Entries: %d\n\n", count);
+
+	E820MemEntry entries[count];
+	memcpy(entries, destE820, sizeof(E820MemEntry) * count);
+
+	printf("%-20s%-20s%-8s%8s\n", "Base", "Length", "Type", "ExAttrs");
+	for (i = 0; i < count; ++i) {
+		printf("%08x%08x    %08x%08x    %4d    %8d\n", 
+					entries[i].base._[1], 
+					entries[i].base._[0],
+					entries[i].len._[1],
+					entries[i].len._[0],
+					entries[i].type,
+					entries[i].exAttrs);
+	}
+}
 
 char * 
 num2Hex(int num, int len, bool withPrefix) {

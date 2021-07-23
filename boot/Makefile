@@ -21,8 +21,6 @@ run:
 boot.elf: \
 		boothead.o \
 		util.o \
-		memory.o \
-		memUtil.o \
 		boot.o 
 	$(LD) $^ -Ttext 0x0 -m elf_i386 -nostdLIB -nmagic -L$(LIB_DIR) $(LIBS) -o $@ 
 

@@ -67,12 +67,15 @@ static void install_device(char *device, char *bootblock, char *boot) {
 	int addr = BOOT_SEC_OFF;
 	int len = BOOT_BLOCK_LEN;
 	char buf[len];
+	off_t size;
+	char *ap;
+
 	memset(buf, 0, len);
 	buf[SIGNATURE_POS] = SIGNATURE & 0xFF;
 	buf[SIGNATURE_POS + 1] = (SIGNATURE >> 8) & 0xFF;
 
-	off_t size = getFileSize(bootblock);
-	char *ap = &buf[size];
+	size = getFileSize(bootblock);
+	ap = &buf[size];
 	*ap++ = getSectorCount(boot);
 	*ap++ = addr & 0xFF;
 	*ap++ = (addr >> 8) & 0xFF;
