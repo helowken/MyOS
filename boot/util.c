@@ -12,7 +12,7 @@ void printE820Mem() {
 	int i, count;
 
 	count = detectE820Mem();
-	printf("E820 Memory Entries: %d\n\n", count);
+	printf("E820 Memory Entries: %d\n", count);
 
 	E820MemEntry entries[count];
 	memcpy(entries, destE820, sizeof(E820MemEntry) * count);
@@ -27,6 +27,12 @@ void printE820Mem() {
 					entries[i].type,
 					entries[i].exAttrs);
 	}
+}
+
+void printE801Mem() {
+	int low = 0, high = 0;	
+	detectE801Mem(&low, &high);
+	printf("Extended mem between 1-16M: %d (K), above 16M: %d (64K)\n", low, high);
 }
 
 char * 

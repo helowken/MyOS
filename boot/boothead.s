@@ -81,6 +81,37 @@ detectLowMem:
 	jnc	.detectEnd
 	jmp	.detectError
 
+	.globl	detectE801Mem
+	.type	text, @function
+detectE801Mem:
+	pushl	%ebp
+	movl	%esp, %ebp
+	xor	%ecx, %ecx
+	xor %edx, %edx
+	mov $0xE801, %ax
+	int $0x15
+	jc	.detectError
+	cmpb	$0x86, %ah
+	je	.detectError
+	cmpb	$0x80, %ah
+	je	.detectError
+	testw	%cx, %cx
+	jz .detectError
+
+	pushl	%edx
+	pushl	%ecx
+
+	popl	%ebx
+	movl	8(%ebp), %eax
+	movl	%ebx, %ss:(%eax)
+
+	popl	%ebx
+	movl	12(%ebp), %eax
+	movl	%ebx, %ss:(%eax)
+
+
+	jmp .detectEnd
+
 	.globl	detectE820Mem
 	.type	text, @function
 detectE820Mem:	
@@ -132,7 +163,7 @@ detectE820Mem:
 	jmp	.detectEnd
 
 .detectError:
-	pushl	$.errMsg
+	pushl	$.detectErrMsg
 	calll	println
 	addl	$4, %esp
 	movl	$-1, %eax
@@ -141,5 +172,5 @@ detectE820Mem:
 	retl
 
 	.section	.rodata
-.errMsg:
+.detectErrMsg:
 	.string	"Detect Memory Failed."

@@ -24,6 +24,7 @@ extern void print(char *str);
 extern void println(char *str);
 extern int detectLowMem();
 extern int detectE820Mem();
+extern void detectE801Mem(int *low, int *high);
 
 
 char* num2Hex(int num, int len, bool withPrefix);
@@ -41,6 +42,6 @@ void printIntHex(int num);
 void printlnIntHex(int num);
 void printLowMem();
 void printE820Mem();
-
+void printE801Mem();
 
 #endif

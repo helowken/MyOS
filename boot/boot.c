@@ -17,6 +17,7 @@ static void test() {
 	
 	printf("========== Test: Memory Detection ===============\n");
 	printLowMem();
+	printE801Mem();
 	printE820Mem();
 
 	println("========== Test end ===============\n");
