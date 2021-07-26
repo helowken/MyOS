@@ -31,7 +31,7 @@ void printE820Mem() {
 
 void printE801Mem() {
 	int low = 0, high = 0;	
-	detectE801Mem(&low, &high);
+	detectE801Mem(&low, &high, true);
 	printf("Extended mem between 1-16M: %d (K), above 16M: %d (64K)\n", low, high);
 }
 

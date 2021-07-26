@@ -97,19 +97,18 @@ detectE801Mem:
 	je	.detectError
 	testw	%cx, %cx
 	jz .detectError
-
-	pushl	%edx
-	pushl	%ecx
-
-	popl	%ebx
+	movl	16(%ebp), %ebx
 	movl	8(%ebp), %eax
-	movl	%ebx, %ss:(%eax)
-
-	popl	%ebx
+	testl	%ebx, %ebx
+	jz	.useDS
+	movl	%ecx, %ss:(%eax)
 	movl	12(%ebp), %eax
-	movl	%ebx, %ss:(%eax)
-
-
+	movl	%edx, %ss:(%eax)
+	jmp .detectEnd
+.useDS:
+	movl	%ecx, (%eax)
+	movl	12(%ebp), %eax
+	movl	%edx, (%eax)
 	jmp .detectEnd
 
 	.globl	detectE820Mem
