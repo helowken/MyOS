@@ -5,6 +5,16 @@ movw	%ax, %ds
 movw	%ax, %es		# Set es = ds = cs
 cld						
 
+# Clear bss
+xorb	%al, %al
+movw	edata, %di
+movw	end, %cx
+subw	%di, %cx
+rep
+stosb
+
+
+calll	test
 calll	boot
 
 
@@ -34,15 +44,15 @@ kputc:
 	.type	text, @function
 print:
 	movl	4(%esp), %ecx
-.print_loop:
+.printLoop:
 	movb	(%ecx), %al
 	testb	%al, %al
-	je	.end
+	je	.printEnd
 	movb	$0xe, %ah
 	int	$0x10
 	inc	%ecx
-	jmp	.print_loop
-.end:
+	jmp	.printLoop
+.printEnd:
 	retl
 
 	.globl	println
@@ -68,7 +78,7 @@ derefSp:
 	movl	4(%esp), %eax
 	movl	%ss:(%eax), %eax
 	retl
-	
+
 #========== Detect Memory Functions ==========
 	.globl	detectLowMem
 	.type	text, @function
@@ -80,6 +90,20 @@ detectLowMem:
 	int	$0x12			# Switch to the BIOS (= request low memory size)
 	jnc	.detectEnd
 	jmp	.detectError
+
+	.globl	detect88Mem
+	.type	text, @function
+detect88Mem:
+	pushl	%ebp
+	movl	%esp, %ebp
+	clc
+	xor	%eax, %eax
+	movb	$0x88, %ah
+	int		$0x15
+	jc	.detectError
+	testw	%ax, %ax
+	je	.detectError
+	jmp	.detectEnd
 
 	.globl	detectE801Mem
 	.type	text, @function
@@ -104,11 +128,13 @@ detectE801Mem:
 	movl	%ecx, %ss:(%eax)
 	movl	12(%ebp), %eax
 	movl	%edx, %ss:(%eax)
-	jmp .detectEnd
+	jmp .E801End
 .useDS:
 	movl	%ecx, (%eax)
 	movl	12(%ebp), %eax
 	movl	%edx, (%eax)
+.E801End:
+	movl	$0, %eax
 	jmp .detectEnd
 
 	.globl	detectE820Mem

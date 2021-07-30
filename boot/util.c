@@ -5,34 +5,46 @@ const char *destE820 = (char *) 0x8000;
 static char hexBuf[HEX_BUF_LEN]; 
 
 void printLowMem() {
-	printf("Low Memory: %d KB\n", detectLowMem());
+	int memSize;
+	memSize = detectLowMem();
+	if (memSize >= 0)
+	  printf("Low Memory: %d KB\n", memSize);
+}
+
+void print88Mem() {
+	int memSize;
+	memSize = detect88Mem();
+	if (memSize >= 0)
+	  printf("88 Memory: %d KB\n", memSize);
 }
 
 void printE820Mem() {
 	int i, count;
 
 	count = detectE820Mem();
-	printf("E820 Memory Entries: %d\n", count);
+	if (count > 0) {
+		printf("E820 Memory Entries: %d\n", count);
 
-	E820MemEntry entries[count];
-	memcpy(entries, destE820, sizeof(E820MemEntry) * count);
+		E820MemEntry entries[count];
+		memcpy(entries, destE820, sizeof(E820MemEntry) * count);
 
-	printf("%-20s%-20s%-8s%8s\n", "Base", "Length", "Type", "ExAttrs");
-	for (i = 0; i < count; ++i) {
-		printf("%08x%08x    %08x%08x    %4d    %8d\n", 
-					entries[i].base._[1], 
-					entries[i].base._[0],
-					entries[i].len._[1],
-					entries[i].len._[0],
-					entries[i].type,
-					entries[i].exAttrs);
+		printf("%-20s%-20s%-8s%8s\n", "Base", "Length", "Type", "ExAttrs");
+		for (i = 0; i < count; ++i) {
+			printf("%08x%08x    %08x%08x    %4d    %8d\n", 
+						entries[i].base._[1], 
+						entries[i].base._[0],
+						entries[i].len._[1],
+						entries[i].len._[0],
+						entries[i].type,
+						entries[i].exAttrs);
+		}
 	}
 }
 
 void printE801Mem() {
 	int low = 0, high = 0;	
-	detectE801Mem(&low, &high, true);
-	printf("Extended mem between 1-16M: %d (K), above 16M: %d (64K)\n", low, high);
+	if (detectE801Mem(&low, &high, true) == 0)
+	  printf("Extended mem between 1-16M: %d (K), above 16M: %d (64K)\n", low, high);
 }
 
 char * 
