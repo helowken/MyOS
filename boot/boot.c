@@ -58,26 +58,29 @@ static void determineAvailableMemory() {
 }
 
 static void initialize() {
-	u32_t memEnd, newAddr, dma64k, runSize;
+	u32_t memEnd, newAddr, dma64k, runSize, oldAddr;
 
 	runSize = (u32_t) &end;
 	runSize += STACK_SIZE;
 
+	oldAddr = caddr;
 	memEnd = mem[0].base + mem[0].size;
 	newAddr = (memEnd - runSize) & ~0x0000FL;
 	dma64k = (memEnd - 1) & ~0x0FFFFL;
 
-	printf("%d,%d,%d\n", memEnd, newAddr, dma64k);
 	if (newAddr < dma64k) 
 	  newAddr = dma64k - runSize;
 
-	printf("%d,%d,%d\n", memEnd, newAddr, dma64k);
+	caddr = newAddr;
+
+	printf("%x,%x,%x\n", newAddr, oldAddr, runSize);
+
+	rawCopy(newAddr, oldAddr, runSize);
+
 }
 
 void boot() {
-
 	determineAvailableMemory();
 	initialize();
-
 }
 

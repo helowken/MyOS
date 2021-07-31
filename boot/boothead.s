@@ -14,8 +14,19 @@ rep
 stosb
 
 
+xorw	%ax, %ax
+movw	%cs, %dx
+callw	seg2Abs
+leaw	caddr, %bx
+movw	%ax, (%bx)
+movw	%dx, 2(%bx)
+
+
 calll	test
 calll	boot
+
+
+
 
 
 halt:
@@ -24,15 +35,15 @@ halt:
 
 #========== Print Functions ==========
 	.globl	kputc
-	.type	text, @function
-kputc:
-	movb	4(%esp), %al
-	testb	%al, %al
+	.type	kputc, @function
+kputc:							# Called by C printf()
+	movb	4(%esp), %al		# al = char 
+	testb	%al, %al			# if al == 0, do nothing.
 	jz	.noChar
-	movb	$0xe, %ah
-	cmpb	$0xA, %al
+	movb	$0xe, %ah			# Call BIOS ah=0xE
+	cmpb	$0xA, %al			# if al = 'LF' (new line)
 	jnz	.putChar
-	movb	$0xD, %al
+	movb	$0xD, %al			# then output 'CR' + 'LF'
 	int	$0x10
 	movb	$0xA, %al
 .putChar:
@@ -41,47 +52,91 @@ kputc:
 	retl
 
 	.globl	print
-	.type	text, @function
+	.type	print, @function
 print:
-	movl	4(%esp), %ecx
+	movl	4(%esp), %ecx		# ecx = address of string
 .printLoop:
-	movb	(%ecx), %al
-	testb	%al, %al
+	movb	(%ecx), %al			# al = char of string
+	testb	%al, %al			# if al == 0 => ends of string
 	je	.printEnd
-	movb	$0xe, %ah
+	movb	$0xe, %ah			# Call BIOS ah=0xE
 	int	$0x10
-	inc	%ecx
+	inc	%ecx					# Go to the next char
 	jmp	.printLoop
 .printEnd:
 	retl
 
 	.globl	println
-	.type	text, @function
+	.type	println, @function
 println:
 	pushl	%ebp
 	movl	%esp, %ebp
 	movl	0x8(%ebp), %eax
 	pushl	%eax
-	calll	print
-	movb	$0xe, %ah
-	movb	$0xa, %al
+	calll	print				# Call print
+	movb	$0xe, %ah			
+	movb	$0xd, %al			# Output 'CR'
 	int	$0x10
-	movb	$0xd, %al
+	movb	$0xa, %al			# Output 'LF'
 	int	$0x10
+	leave
+	retl
+
+#========== Copy Functions ==========
+	.globl	rawCopy
+	.type	rawCopy, @function
+rawCopy:
+	pushl	%ebp
+	movl	%esp, %ebp
+	pushw	%si
+	pushw	%di
+.copy:
+	cmpl	$0, 18(%ebp)		# high 16 bits of runSize
+	jnz	.bigCopy
+
+.bigCopy:
+	movw	$0xFFF0, %cx
 	leave
 	retl
 
 #========== Addr Functions ==========
 	.globl	derefSp
-	.type	text, @function
-derefSp:
+	.type	derefSp, @function
+derefSp:								# Get value from SS instead of DS. Value is got from DS by default.
 	movl	4(%esp), %eax
 	movl	%ss:(%eax), %eax
 	retl
 
+	.type	abs2Seg, @function
+abs2Seg:								# Transfer the 32 bit address dx-ax to dx:ax
+	pushw	%cx
+	movb	%dl, %ch
+	movw	%ax, %dx
+	andw	$0x000F, %ax
+	movb	$4, %cl
+	shrw	%cl, %dx
+	shlb	%cl, %ch
+	orb	%ch, %dh
+	popw	%cx
+	retw
+
+	.type seg2Abs, @function
+seg2Abs:
+	pushw	%cx
+	movb	%dh, %ch
+	movb	$4, %cl
+	shlw	%cl, %dx
+	shrb	%cl, %ch
+	addw	%dx, %ax
+	adcb	$0, %ch
+	movb	%ch, %dl
+	xorb	%dh, %dh
+	popw	%cx
+	retw
+
 #========== Detect Memory Functions ==========
 	.globl	detectLowMem
-	.type	text, @function
+	.type	detectLowMem, @function
 detectLowMem:
 	pushl	%ebp
 	movl	%esp, %ebp
@@ -92,7 +147,7 @@ detectLowMem:
 	jmp	.detectError
 
 	.globl	detect88Mem
-	.type	text, @function
+	.type	detect88Mem, @function
 detect88Mem:
 	pushl	%ebp
 	movl	%esp, %ebp
@@ -106,7 +161,7 @@ detect88Mem:
 	jmp	.detectEnd
 
 	.globl	detectE801Mem
-	.type	text, @function
+	.type	detectE801Mem, @function
 detectE801Mem:
 	pushl	%ebp
 	movl	%esp, %ebp
@@ -138,7 +193,7 @@ detectE801Mem:
 	jmp .detectEnd
 
 	.globl	detectE820Mem
-	.type	text, @function
+	.type	detectE820Mem, @function
 detectE820Mem:	
 	pushl	%ebp
 	movl	%esp, %ebp

@@ -14,6 +14,10 @@
  */
 extern char etext, edata, end;
 
+extern void rawCopy(u32_t newAddr, u32_t oldAddr, u32_t runSize);
+
+u32_t caddr;
+
 typedef struct {
 	u32_t base;
 	u32_t size;
