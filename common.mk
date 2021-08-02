@@ -9,7 +9,7 @@ ifeq ($(MODE), M16)
 endif
 
 C_SOURCE = $(wildcard *.c)
-HEADERS = $(wildcard *.h, $(INC)/*.h, $(INC_SYS)/*.h)
+HEADERS = $(wildcard *.h $(INC)/*.h $(INC_SYS)/*.h)
 
 
 %.o: %.c $(HEADERS)
@@ -18,5 +18,5 @@ HEADERS = $(wildcard *.h, $(INC)/*.h, $(INC_SYS)/*.h)
 %.o: %.s
 	$(AS) --32 $< -o $@
   
-
+.PHONY:	clean
 

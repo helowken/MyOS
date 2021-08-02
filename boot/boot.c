@@ -3,12 +3,13 @@
 #include "util.h"
 #include "boot.h"
 
+extern char x_gdt[48];
 
 void test() {
 	printf("========== Test: printf ===============\n");
 	printf("etext: 0x%x, edata: 0x%x, end: 0x%x\n", &etext, &edata, &end);
 	printf("%s, %d, 0x%x, %s, %c, 0x%X\n", "abc", 333, 0x9876ABCD, "xxx-yyy", 'a', 0xabcd9876);
-	printf("%04X, 0x%x, 0x%x\n", 0xF,0xaa55, 0x11112222);
+	printf("%x, %04X, 0x%x, 0x%x\n", 0xA, 0xF,0xaa55, 0x11112222);
 
 	printf("========== Test: print..Hex ===============\n");
 	printByteHex(0xA1);
@@ -73,14 +74,26 @@ static void initialize() {
 
 	caddr = newAddr;
 
+	printf("caddr: 0x%x\n", &oldAddr);
 	printf("%x,%x,%x\n", newAddr, oldAddr, runSize);
 
-	rawCopy(newAddr, oldAddr, runSize);
-
+	rawCopy(newAddr, oldAddr, runSize); 
+	printf("============\n");
 }
 
 void boot() {
+	//int i;
+
 	determineAvailableMemory();
 	initialize();
+
+	/*
+	for (i = 0; i < 48; ++i) {
+		if (i % 8 == 0)
+			printf("\n");
+		printByteHex(x_gdt[i]);
+		printf(" ");
+	}
+	*/
 }
 

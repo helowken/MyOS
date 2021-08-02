@@ -1,8 +1,11 @@
 	.code16gcc
 	.text
+cli
 movw	%cs, %ax
+movw	%ax, %ss
 movw	%ax, %ds
-movw	%ax, %es		# Set es = ds = cs
+movw	%ax, %es		# Set es = ds = ss = cs
+sti
 cld						
 
 # Clear bss
@@ -13,7 +16,7 @@ subw	%di, %cx
 rep
 stosb
 
-
+# Transfer segment addr to 32 bits addr and put it into caddr
 xorw	%ax, %ax
 movw	%cs, %dx
 callw	seg2Abs
@@ -24,9 +27,6 @@ movw	%dx, 2(%bx)
 
 calll	test
 calll	boot
-
-
-
 
 
 halt:
@@ -91,22 +91,70 @@ rawCopy:
 	pushw	%si
 	pushw	%di
 .copy:
-	cmpl	$0, 18(%ebp)		# high 16 bits of runSize
+	cmpw	$0, 18(%ebp)		# High 16 bits of runSize
 	jnz	.bigCopy
-
+	movw	16(%ebp), %cx		# Low 16 bits of runSize (because high 16 bits == 0)
+	test	%cx, %cx
+	jz	.copyDone			# If low 16 bits == 0 => runSize = 0
+	cmpw	$0xFFF0, %cx
+	jb	.smallCopy
 .bigCopy:
-	movw	$0xFFF0, %cx
+	movw	$0xFFF0, %cx		# Don't copy more than about 64K at once
+.smallCopy:
+	push	%cx
+	movw	8(%ebp), %ax		# Low 16 bits of dest addr
+	movw	10(%ebp), %dx		# High 16 bits of dest addr
+	cmpw	$0x0010, %dx		# Copy to extended memory?
+								# Base addr of extended memory between 1M and 16M is 0x100000
+								# See: BIOS Function: INT 0x15, AX = 0xE801
+	jae	.extendCopy
+	cmpw	$0x0010, 14(%ebp)	# Copy from extended memory? (High 16 bits of src addr)
+	jae .extendCopy
+	callw	abs2Seg				# (32 bits addr) dx-ax = (segment addr) dx:ax
+	movw	%ax, %di
+	movw	%dx, %es			# es:di = dx:ax = dest addr
+	movw	12(%ebp), %ax		# Low 16 bits of src addr
+	movw	14(%ebp), %dx		# High 16 bits of dest addr
+	callw	abs2Seg				# (32 bits addr) dx-ax = (segment addr) dx:ax
+	movw	%ax, %si
+	movw	%dx, %ds			# ds:si = dx:ax = src addr
+	shrw	$1,	%cx				# cx / 2 = words to move
+	rep
+	movsw						# Do the word copy
+	adcw	%cx, %cx			# if (cx % 2 != 0) then cx = 1
+	rep
+	movsb						# Do one more byte copy
+	movw	%ss, %ax			# Restore ds and es from the remaining ss
+	movw	%ax, %ds
+	movw	%ax, %es			# es = ds = ss
+	jmp	.copyAdjust
+.extendCopy:
+	movw	%ax, x_dst_desc+2	# Low word of 24-bit destination address
+	movb	%dl, x_dst_desc+4	# High byte of 24-bit destination address
+	movw	12(%ebp), %ax		
+	movw	14(%ebp), %dx		
+	movw	%ax, x_src_desc+2	# Low word of 24-bit source address
+	movb	%dl, x_src_desc+4	# High byte of 24-bit source address
+	movw	$x_gdt, %si			# es:si = global descriptor table
+	shrw	$1, %cx				# Words to move
+	movb	$0x87, %ah	
+	int	$0x15
+.copyAdjust:
+	popw	%cx
+	addw	%cx, 8(%ebp)		# dstAddr += copyCount
+	adcw	$0, 10(%ebp)		# if cx + 8(%ebp) > 0xFFFF, then 10(%ebp) += 1
+	addw	%cx, 12(%ebp)		# srcAddr += copyCount
+	adcw	$0,	14(%ebp)		# if cx + 12(%ebp) > 0xFFFF, then 14(%ebp) += 1
+	subw	%cx, 16(%ebp)		# count -= copyCount
+	sbbw	$0, 18(%ebp)		# if 16(%ebp) - cx < 0, then 18(%ebp) -= 1
+	jmp	.copy
+.copyDone:
+	popw	%di
+	popw	%si
 	leave
 	retl
 
 #========== Addr Functions ==========
-	.globl	derefSp
-	.type	derefSp, @function
-derefSp:								# Get value from SS instead of DS. Value is got from DS by default.
-	movl	4(%esp), %eax
-	movl	%ss:(%eax), %eax
-	retl
-
 	.type	abs2Seg, @function
 abs2Seg:								# Transfer the 32 bit address dx-ax to dx:ax
 	pushw	%cx
@@ -251,6 +299,48 @@ detectE820Mem:
 	leave
 	retl
 
+
 	.section	.rodata
 .detectErrMsg:
 	.string	"Detect Memory Failed."
+
+
+	.section	.data
+	.globl	x_gdt
+# For "Extended Memory Block Move".
+	.align	2
+	.type	x_gdt, @object
+	.size	x_gdt, 48
+x_gdt:						
+x_null_desc:				# Dummy Descriptor. 
+							# Initialized by user to 0.
+	.zero	8				
+x_gdt_desc:					# Descriptor of this GDT. 
+							# Initialized by user to 0. 
+							# Modified by BIOS.
+	.zero	8
+x_src_desc:					# Descriptor of Source block.
+							# Initialized by user.
+	.value	0xFFFF			# Word containing segment limit
+	.value	0				# Low word of 24-bit address
+	.zero	1				# High byte of 24-bit address
+	.byte	0x93			# Access rights byte
+	.zero	2				# Reserved (must be 0)
+x_dst_desc:					# Descriptor of Destination block.
+							# Initialized by user.
+	.value	0xFFFF			# Similar as x_src_desc
+	.value	0
+	.zero	1
+	.byte	0x93
+	.zero	2
+x_bios_desc:				# Descriptor for Protected Mode Code Segment.
+							# Initialized by user to 0. 
+							# Modified by BIOS.
+	.zero	8		
+x_ss_desc:					# Descriptor for Protected Mode Stack Segment.
+							# Initialized by user to 0. 
+							# Modified by BIOS.
+	.zero	8
+
+
+
