@@ -71,29 +71,22 @@ static void initialize() {
 
 	if (newAddr < dma64k) 
 	  newAddr = dma64k - runSize;
+	newAddr = newAddr & ~0xFFFFL;
 
 	caddr = newAddr;
 
-	printf("caddr: 0x%x\n", &oldAddr);
-	printf("%x,%x,%x\n", newAddr, oldAddr, runSize);
+	printf("%x,%x,%x,%x\n", caddr, oldAddr, runSize, memEnd);
 
 	rawCopy(newAddr, oldAddr, runSize); 
+
+	relocate();
+
 	printf("============\n");
 }
 
 void boot() {
-	//int i;
-
 	determineAvailableMemory();
 	initialize();
-
-	/*
-	for (i = 0; i < 48; ++i) {
-		if (i % 8 == 0)
-			printf("\n");
-		printByteHex(x_gdt[i]);
-		printf(" ");
-	}
-	*/
+	printRangeHex((char *) &x_gdt, 48, 8);
 }
 

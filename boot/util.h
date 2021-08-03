@@ -45,5 +45,6 @@ void printLowMem();
 void print88Mem();
 void printE820Mem();
 void printE801Mem();
+void printRangeHex(char *pos, int num, int col);
 
 #endif

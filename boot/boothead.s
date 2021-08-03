@@ -91,11 +91,11 @@ rawCopy:
 	pushw	%si
 	pushw	%di
 .copy:
-	cmpw	$0, 18(%ebp)		# High 16 bits of runSize
-	jnz	.bigCopy
-	movw	16(%ebp), %cx		# Low 16 bits of runSize (because high 16 bits == 0)
+	cmpw	$0, 18(%ebp)		# High 16 bits of remaining size (init value is runSize)
+	jnz	.bigCopy				# if remaining size >= 64K
+	movw	16(%ebp), %cx		# Low 16 bits of remaining size (init value is runSize)
 	test	%cx, %cx
-	jz	.copyDone			# If low 16 bits == 0 => runSize = 0
+	jz	.copyDone				# If low 16 bits == 0 => remaining size = 0
 	cmpw	$0xFFF0, %cx
 	jb	.smallCopy
 .bigCopy:
@@ -140,7 +140,7 @@ rawCopy:
 	movb	$0x87, %ah	
 	int	$0x15
 .copyAdjust:
-	popw	%cx
+	popw	%cx					# Restore copyCount
 	addw	%cx, 8(%ebp)		# dstAddr += copyCount
 	adcw	$0, 10(%ebp)		# if cx + 8(%ebp) > 0xFFFF, then 10(%ebp) += 1
 	addw	%cx, 12(%ebp)		# srcAddr += copyCount
@@ -149,10 +149,31 @@ rawCopy:
 	sbbw	$0, 18(%ebp)		# if 16(%ebp) - cx < 0, then 18(%ebp) -= 1
 	jmp	.copy
 .copyDone:
-	popw	%di
+	popw	%di					# Restore di and si
 	popw	%si
 	leave
 	retl
+
+	.globl	relocate
+	.type	relocate, @function
+relocate:
+	popl	%ebx				# Save return address
+	movw	caddr, %ax
+	movw	caddr+2, %dx
+	callw	abs2Seg				# Transfer 32 bits dx-ax to segment dx:ax
+	movw	%dx, %cx			# cx = new code segment
+	movw	%cs, %ax			# ax = old code segment
+	movswl	%cx, %ecx
+	movswl	%ax, %eax
+	subl	%ecx, %eax			# ax = ax - cx = old - new = -(moving offset)
+	movw	%ds, %dx			# dx = ds
+	subl	%eax, %edx			# dx - ax => dx - -(moving offset) => dx += moving offset
+	movw	%dx, %ds			
+	movw	%dx, %es			
+	movw	%dx, %ss			# ds = es = ss = dx
+	pushw	%dx					# New text segment
+	pushw	%bx					# Return offset of this function
+	retfw
 
 #========== Addr Functions ==========
 	.type	abs2Seg, @function

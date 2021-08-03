@@ -15,6 +15,7 @@
 extern char etext, edata, end;
 
 extern void rawCopy(u32_t newAddr, u32_t oldAddr, u32_t runSize);
+extern void relocate();
 
 u32_t caddr;
 

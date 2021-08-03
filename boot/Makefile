@@ -13,7 +13,7 @@ LINUX_LIB = $(MY_HOME)/linuxLib
 all: install run
 
 run: 
-	qemu-system-i386 -drive "file=$(DISK_IMAGE),format=raw,index=0,media=disk" 
+	qemu-system-i386 -drive "file=$(DISK_IMAGE),format=raw,index=0,media=disk"
 
 %.bin: %.asm
 	nasm -f bin $< -o $@

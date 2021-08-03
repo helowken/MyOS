@@ -123,3 +123,16 @@ void printIntHex(int num) {
 void printlnIntHex(int num) {
 	printlnNumHex(num, INT_BITS);
 }
+
+void printRangeHex(char *pos, int num, int col) {
+	int i;
+	for (i = 0; i < num; ++i) {
+		if (i > 0 && i % col == 0)
+			printf("\n");
+		printByteHex(pos[i]);
+		printf(" ");
+	}
+	printf("\n");
+}
+
+
