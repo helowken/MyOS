@@ -7,7 +7,11 @@
 #define SIGNATURE_POS		510
 #define SIGNATURE			0XAA55
 #define SECTOR_SIZE			512
-#define BOOT_SEC_OFF	8
+#define BOOT_MAX_SECTORS	80			// bootable max size must be <= 64K
+#define BOOT_SEC_OFF		8
+#define	BOOT_STACK_SIZE		0x2800		// Assume boot code using 10K stack
+
+#define sectorCount(size)	((size + SECTOR_SIZE - 1) / SECTOR_SIZE)
 
 static void usage() {
 	fprintf(stderr,
@@ -49,12 +53,6 @@ static off_t getFileSize(char *pathName) {
 	return sb.st_size;
 }
 
-static off_t getSectorCount(char *pathName) {
-	off_t size;
-	size = getFileSize(pathName);
-	return (size + SECTOR_SIZE - 1) / SECTOR_SIZE;
-}
-
 static void install_masterboot(char *device, char *masterboot) {
 	int len = MASTER_BOOT_LEN;
 	char buf[len];
@@ -67,7 +65,7 @@ static void install_device(char *device, char *bootblock, char *boot) {
 	int addr = BOOT_SEC_OFF;
 	int len = BOOT_BLOCK_LEN;
 	char buf[len];
-	off_t size;
+	off_t size, bootSize;
 	char *ap;
 
 	memset(buf, 0, len);
@@ -75,8 +73,9 @@ static void install_device(char *device, char *bootblock, char *boot) {
 	buf[SIGNATURE_POS + 1] = (SIGNATURE >> 8) & 0xFF;
 
 	size = getFileSize(bootblock);
+	bootSize = getFileSize(boot);
 	ap = &buf[size];
-	*ap++ = getSectorCount(boot);
+	*ap++ = sectorCount(bootSize);
 	*ap++ = addr & 0xFF;
 	*ap++ = (addr >> 8) & 0xFF;
 	*ap++ = (addr >> 16) & 0xFF;
@@ -86,7 +85,11 @@ static void install_device(char *device, char *bootblock, char *boot) {
 }
 
 static void install_bootable(char *device, char *boot) {
-	int len = SECTOR_SIZE * getSectorCount(boot);
+	off_t size = getFileSize(boot) + BOOT_STACK_SIZE;
+	int sectors = sectorCount(size);
+	if (sectors > BOOT_MAX_SECTORS)
+	  fatal("Bootable size > 64K.");
+	int len = SECTOR_SIZE * sectors;
 	char buf[len];
 	memset(buf, 0, len);
 

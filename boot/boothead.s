@@ -1,36 +1,58 @@
 	.code16gcc
 	.text
-cli
 movw	%cs, %ax
-movw	%ax, %ss
-movw	%ax, %ds
-movw	%ax, %es		# Set es = ds = ss = cs
+movw	%ax, %ds		# Set ds = cs to make boot run correctly
+
+
+# Clear bss (we need to do it by ourselves)
+xorb	%al, %al		# Fill bss with zero
+movw	$edata, %di		# bss: [edata, end)
+movw	$end, %cx
+subw	%di, %cx		# cx = end - edata = bss size
+rep
+stosb
+
+
+# Calculate boot run size (text + data + bss + stack)
+movw	$end, %ax			# ax = text + data + bss
+addw	.stackSize, %ax		# ax += stack
+andw	$0xFFFE, %ax		# Round down to even (for sp)
+movw	%ax, runSize
+
+
+# Setup stack segment and stack pointer
+cli
+movw	%ax, %sp		# sp = runSize (stack is downward)
+movw	%cs, %ax		
+movw	%ax, %ss		# Set ss = cs
+pushw	%es				# Save es, we need it for the partition table
+movw	%ax, %es		# Set es = cs (now cs, ds, es and ss all overlap)
 sti
 cld						
 
-# Clear bss
-xorb	%al, %al
-movw	edata, %di
-movw	end, %cx
-subw	%di, %cx
-rep
-stosb
+
+# Copy primary boot parameters to variables
+xorb	%dh, %dh
+movw	%dx, device			# Boot device (probably 0x00 or 0x80)
+movw	%si, rem_part		# Remote partition table offset
+popw	rem_part+2			# and segment (saved es)
+
 
 # Transfer segment addr to 32 bits addr and put it into caddr
 xorw	%ax, %ax
 movw	%cs, %dx
 callw	seg2Abs
-leaw	caddr, %bx
-movw	%ax, (%bx)
-movw	%dx, 2(%bx)
+#leaw	caddr, %bx
+movw	%ax, caddr
+movw	%dx, caddr+2
 
 
-calll	test
 calll	boot
 
 
 halt:
 	jmp halt
+
 
 
 #========== Print Functions ==========
@@ -101,7 +123,7 @@ rawCopy:
 .bigCopy:
 	movw	$0xFFF0, %cx		# Don't copy more than about 64K at once
 .smallCopy:
-	push	%cx
+	pushw	%cx
 	movw	8(%ebp), %ax		# Low 16 bits of dest addr
 	movw	10(%ebp), %dx		# High 16 bits of dest addr
 	cmpw	$0x0010, %dx		# Copy to extended memory?
@@ -163,17 +185,19 @@ relocate:
 	callw	abs2Seg				# Transfer 32 bits dx-ax to segment dx:ax
 	movw	%dx, %cx			# cx = new code segment
 	movw	%cs, %ax			# ax = old code segment
-	movswl	%cx, %ecx
-	movswl	%ax, %eax
-	subl	%ecx, %eax			# ax = ax - cx = old - new = -(moving offset)
+	movswl	%cx, %ecx			# if cx == 0x9000 && ax == 0x1000,
+	movswl	%ax, %eax			# Without signed extension: ax - cx = 0x8000,
+								# With signed extension: eax - ecx = 0xFFFF8000
+	subl	%ecx, %eax			# eax = eax - ecx = old - new = -(moving offset)
 	movw	%ds, %dx			# dx = ds
-	subl	%eax, %edx			# dx - ax => dx - -(moving offset) => dx += moving offset
-	movw	%dx, %ds			
+	movswl	%dx, %edx
+	subl	%eax, %edx			# edx - eax => edx - -(moving offset) => edx += moving offset
+	movw	%dx, %ds			# We just need low 16 bits of edx
 	movw	%dx, %es			
 	movw	%dx, %ss			# ds = es = ss = dx
-	pushw	%dx					# New text segment
+	pushw	%cx					# New text segment
 	pushw	%bx					# Return offset of this function
-	retfw
+	retfw						# Return far with cs = cx and ip = bx
 
 #========== Addr Functions ==========
 	.type	abs2Seg, @function
@@ -324,7 +348,8 @@ detectE820Mem:
 	.section	.rodata
 .detectErrMsg:
 	.string	"Detect Memory Failed."
-
+.stackSize:
+	.long	0x2800
 
 	.section	.data
 	.globl	x_gdt

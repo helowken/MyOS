@@ -50,19 +50,17 @@ static void determineAvailableMemory() {
 			mem[1].base = 0x100000;
 			mem[1].size = memSize << 10;
 		}
-	
-		for (i = 0; i < 3; ++i) {
-			if (i == 0 || mem[i].base != 0) 
-			  printf("Mme[%d] base: 0x%08x, size: %d B\n", i, mem[i].base, mem[i].size);
+		if (debug) {
+			for (i = 0; i < 3; ++i) {
+				if (i == 0 || mem[i].base != 0) 
+				  printf("Mme[%d] base: 0x%08x, size: %d B\n", i, mem[i].base, mem[i].size);
+			}
 		}
 	}
 }
 
 static void initialize() {
-	u32_t memEnd, newAddr, dma64k, runSize, oldAddr;
-
-	runSize = (u32_t) &end;
-	runSize += STACK_SIZE;
+	u32_t memEnd, newAddr, dma64k, oldAddr;
 
 	oldAddr = caddr;
 	memEnd = mem[0].base + mem[0].size;
@@ -75,18 +73,22 @@ static void initialize() {
 
 	caddr = newAddr;
 
-	printf("%x,%x,%x,%x\n", caddr, oldAddr, runSize, memEnd);
+	printf("%d, %x,%x,%x,%x,%x\n", &end, caddr, oldAddr, newAddr, runSize, memEnd);
 
 	rawCopy(newAddr, oldAddr, runSize); 
 
 	relocate();
-
 	printf("============\n");
 }
 
 void boot() {
+	printf("device addr: %x, device: %x\n", &device, device);
 	determineAvailableMemory();
 	initialize();
-	printRangeHex((char *) &x_gdt, 48, 8);
+	//test();
+	if (debug) {
+		printRangeHex((char *) &x_gdt, 48, 8);
+	}
+	printf("device: 0x%x\n", device);
 }
 

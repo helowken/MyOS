@@ -1,7 +1,5 @@
 #include "sys/types.h"
 
-#define STACK_SIZE 0x2800	// Assumed this code needs 10K stack
-
 /**
  * etext  This is the first address past the end of the text segment (the program code).
  *
@@ -14,14 +12,25 @@
  */
 extern char etext, edata, end;
 
-extern void rawCopy(u32_t newAddr, u32_t oldAddr, u32_t runSize);
+extern void rawCopy(u32_t newAddr, u32_t oldAddr, u32_t size);
 extern void relocate();
 
-u32_t caddr;
+bool debug = false;
 
-typedef struct {
-	u32_t base;
-	u32_t size;
+u32_t caddr;
+u16_t runSize, device;
+
+typedef struct {		// 8086 vector
+	u16_t offset;
+	u16_t segment;
+} vector;
+
+vector rem_part;		// Boot partition table entry.
+
+typedef struct {		// One chunk of free memory.
+	u32_t base;			// Start byte.
+	u32_t size;			// Number of bytes.
 } memory;
 
-memory mem[3];
+memory mem[3];			// List of available memory.
+
