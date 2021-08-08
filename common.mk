@@ -1,5 +1,6 @@
 export ARFLAGS = rvU
 
+TARGET_DIR = target
 INC = $(MY_HOME)/include
 INC_SYS = $(INC)/sys
 INCLUDE = -I$(INC) -I$(INC_SYS)
