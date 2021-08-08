@@ -2,6 +2,7 @@
 #include "stdarg.h"
 #include "util.h"
 #include "boot.h"
+#include "partition.h"
 
 extern char x_gdt[48];
 
@@ -50,7 +51,7 @@ static void determineAvailableMemory() {
 			mem[1].base = 0x100000;
 			mem[1].size = memSize << 10;
 		}
-		if (debug) {
+		if (DEBUG) {
 			for (i = 0; i < 3; ++i) {
 				if (i == 0 || mem[i].base != 0) 
 				  printf("Mme[%d] base: 0x%08x, size: %d B\n", i, mem[i].base, mem[i].size);
@@ -59,7 +60,7 @@ static void determineAvailableMemory() {
 	}
 }
 
-static void initialize() {
+static void copyToFarAway() {
 	u32_t memEnd, newAddr, dma64k, oldAddr;
 
 	oldAddr = caddr;
@@ -67,17 +68,51 @@ static void initialize() {
 	newAddr = (memEnd - runSize) & ~0x0000FL;
 	dma64k = (memEnd - 1) & ~0x0FFFFL;
 
+	/* Check if code and data segment cross a 64K boundary. */
 	if (newAddr < dma64k) 
 	  newAddr = dma64k - runSize;
+
+	/* Keep pc concurrent. */
 	newAddr = newAddr & ~0xFFFFL;
 
+	/* Set the new caddr for relocate. */
 	caddr = newAddr;
 
-	printf("%d, %x,%x,%x,%x,%x\n", &end, caddr, oldAddr, newAddr, runSize, memEnd);
+	/* Copy code and data. */
+	rawCopy((char *) newAddr, (char *) oldAddr, runSize); 
 
-	rawCopy(newAddr, oldAddr, runSize); 
-
+	/* Make the copy running. */
 	relocate();
+}
+
+/*
+static int getMaster(char *master, struct partitionEntry **table, u32_t pos) {
+	int r, n;
+	struct partitionEntry *pe, **pt;
+	if ((r = readSectors(mon2Abs(master), pos, 1)) != 0)
+	  return r;
+	return 0;
+}
+*/
+
+static void initialize() {
+	//char master[SECTOR_SIZE];
+	//struct partitionEntry *table[NR_PARTITIONS];
+	//u32_t masterPos;
+
+	copyToFarAway();
+
+	if (device < 0x80) {
+		printf("Device is not a hard disk.\n");
+		return;
+	}
+
+	rawCopy(mon2Abs(&lowSector),
+		vec2Abs(&bootPartEntry) + offsetof(struct partitionEntry, lowSector),
+		sizeof(lowSector));
+
+	printf("low sector: %x\n", lowSector);
+
 	printf("============\n");
 }
 
@@ -85,8 +120,8 @@ void boot() {
 	printf("device addr: %x, device: %x\n", &device, device);
 	determineAvailableMemory();
 	initialize();
-	//test();
-	if (debug) {
+	if (DEBUG) {
+		test();
 		printRangeHex((char *) &x_gdt, 48, 8);
 	}
 	printf("device: 0x%x\n", device);

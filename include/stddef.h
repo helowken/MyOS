@@ -3,6 +3,8 @@
 
 #define NULL ((void *)0)
 
+#define offsetof(type, ident) ((size_t) (unsigned long) &((type *)0)->ident)
+
 typedef long ptrdiff_t;
 
 #ifndef _SIZE_T
