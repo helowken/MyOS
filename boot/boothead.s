@@ -138,6 +138,7 @@ openDev:
 	movb	$1, devState		# Device state is "open"
 	xorw	%ax, %ax			# Return code for success
 .devDone:
+	andl	$0xFFFF, %eax	# Clear high word
 	popw	%di				# Restore di and es registers
 	popw	%es
 	retw
@@ -164,7 +165,7 @@ readSectors:
 								# ebp[16..19] = sectors to transfer, we just use one byte for sectors (ebp[16]),
 								# so we can use ebp[17] to store the op code (read or write)
 .rwSectors:
-	pushw	%si
+	pushw	%si					# Save registers
 	pushw	%di
 	pushw	%es
 	cmpb	$0, devState		# if device is opened?

@@ -1,6 +1,8 @@
 #ifndef _TYPE_H
 #define _TYPE_H
 
+typedef unsigned long	off_t;
+
 typedef unsigned char	u8_t;
 typedef unsigned short	u16_t;
 typedef unsigned long	u32_t;

@@ -17,10 +17,11 @@
  * The symbols must have some type, or "gcc -Wall" complains.
  */
 extern char etext, edata, end;
-
+extern char x_gdt[48];
 
 extern void rawCopy(char *newAddr, char *oldAddr, u32_t size);
 extern void relocate();
+extern int readSectors(char *buf, u32_t pos, int count);
 
 u32_t caddr;
 u16_t runSize, device;

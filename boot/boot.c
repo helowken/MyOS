@@ -4,9 +4,67 @@
 #include "boot.h"
 #include "partition.h"
 
-extern char x_gdt[48];
+#define arraySize(a)		(sizeof(a) / sizeof((a)[0]))
+#define arrayLimit(a)		((a) + arraySize(a))
 
-void test() {
+/* BIOS INT 13h errors */
+static char *biosDiskError(int err) {
+	static struct errEntry {
+		int err;
+		char *what;
+	} errList[] = {
+		{ 0x00, "No error" },
+		{ 0x01, "Invalid command" },
+		{ 0x02, "Address mark not found" },
+		{ 0x03, "Disk write protected (floppy)" },
+		{ 0x04, "Request sector not found" },
+		{ 0x05, "Reset failed (hard disk)" },
+		{ 0x06, "Floppy disk removed/Disk changeline (floppy)" },
+		{ 0x07, "Bad parameter table (hard disk)/Initialization failed" },
+		{ 0x08, "DMA overrun (floppy)" },
+		{ 0x09, "DMA crossed 64K boundary" },
+		{ 0x0A, "Bas sector flag (hard disk)" },
+		{ 0x0B, "Bad track flag (hard disk)" },
+		{ 0x0C, "Media type not found (floppy)" },
+		{ 0x0D, "Invalid number of sectors on format (hard disk)" },
+		{ 0x0E, "Control data address mark detected (hard disk)" },
+		{ 0x0F, "DMA arbitration level out of range (hard error - retry failed)" },
+		{ 0x10, "Uncorrectable CRC or ECC data error (hard error - retry failed)" },
+		{ 0x11, "ECC corrected data error (soft error - retried OK ) (hard disk)" },
+		{ 0x20, "Controller failure" },
+		{ 0x40, "Seek failure" },
+		{ 0x80, "Disk timout (failed to respond)" },
+		{ 0xAA, "Drive not ready (hard disk)" },
+		{ 0xBB, "Undefined error (hard disk)" },
+		{ 0xCC, "Write fault (hard disk)" },
+		{ 0xE0, "Statur register error (hard disk)" },
+		{ 0xFF, "Sense operation failed (hard disk)" }
+	};
+	struct errEntry *ep;
+
+	for (ep = errList; ep < arrayLimit(errList); ++ep) {
+		if (ep->err == err)
+		  return ep->what;
+	}
+	return "Unknown error";
+}
+
+static void rwDiskError(char *rw, off_t sector, int err) {
+	printf("\n%s error 0x%02x (%s) at sector %ld absolute\n",
+				rw, err, biosDiskError(err), sector);
+}
+
+static void readDiskError(off_t sector, int err) {
+	rwDiskError("Read", sector, err);
+}
+
+/*
+static void writeDiskError(off_t sector, int err) {
+	rwDiskError("Write", sector, err);
+}
+*/
+
+static void test() {
 	printf("========== Test: printf ===============\n");
 	printf("etext: 0x%x, edata: 0x%x, end: 0x%x\n", &etext, &edata, &end);
 	printf("%s, %d, 0x%x, %s, %c, 0x%X\n", "abc", 333, 0x9876ABCD, "xxx-yyy", 'a', 0xabcd9876);
@@ -26,7 +84,6 @@ void test() {
 	printE820Mem();
 
 	println("========== Test end ===============\n");
-
 }
 
 static void determineAvailableMemory() {
@@ -85,20 +142,54 @@ static void copyToFarAway() {
 	relocate();
 }
 
-/*
+static void printPartitionEntry(struct partitionEntry **table) {
+	struct partitionEntry **pt, *pe;
+
+	printf("  Status  StHead  StSec  StCyl  Type  EdHead  EdSec  EdCyl  LowSec  Count\n");
+	for (pt = table; pt < table + NR_PARTITIONS; ++pt) {
+		pe = *pt;
+		printf("  0x%-4x  %6d  %5d  %5d  %3xh  %6d  %5d  %5d  0x%04x  %5d\n", 
+					pe->status, pe->startHead, pe->startSector, pe->startCylinder, 
+					pe->type, pe->lastHead, pe->lastSector, pe->lastCylinder,
+					pe->lowSector, pe->sectorCount);
+	}
+}
+
 static int getMaster(char *master, struct partitionEntry **table, u32_t pos) {
 	int r, n;
 	struct partitionEntry *pe, **pt;
 	if ((r = readSectors(mon2Abs(master), pos, 1)) != 0)
 	  return r;
+
+	pe = (struct partitionEntry *) (master + PART_TABLE_OFF);
+	for (pt = table; pt < table + NR_PARTITIONS; ++pt) {
+		*pt = pe++;
+	}
+	if (true) {
+		printPartitionEntry(table);
+	}
+
+	// Sort partition entries
+	n = NR_PARTITIONS;
+	do {
+		for (pt = table; pt < table + NR_PARTITIONS - 1; ++pt) {
+			if (pt[0]->status == INACTIVE_PART || 
+						pt[0]->lowSector < pt[1]->lowSector) {
+				pe = pt[0];
+				pt[0] = pt[1];
+				pt[1] = pe;
+			}
+		}
+	} while(--n > 0);
+
 	return 0;
 }
-*/
 
 static void initialize() {
-	//char master[SECTOR_SIZE];
-	//struct partitionEntry *table[NR_PARTITIONS];
-	//u32_t masterPos;
+	int r;
+	char master[SECTOR_SIZE];
+	struct partitionEntry *table[NR_PARTITIONS];
+	u32_t masterPos;
 
 	copyToFarAway();
 
@@ -111,7 +202,17 @@ static void initialize() {
 		vec2Abs(&bootPartEntry) + offsetof(struct partitionEntry, lowSector),
 		sizeof(lowSector));
 
-	printf("low sector: %x\n", lowSector);
+	if (true) {
+		printf("device: 0x%x\n", device);
+		printf("low sector: %x\n", lowSector);
+	}
+
+	masterPos = 0;
+	
+	if ((r = getMaster(master, table, masterPos)) != 0) {
+		readDiskError(masterPos, r);
+	}
+
 
 	printf("============\n");
 }
@@ -124,6 +225,5 @@ void boot() {
 		test();
 		printRangeHex((char *) &x_gdt, 48, 8);
 	}
-	printf("device: 0x%x\n", device);
 }
 
