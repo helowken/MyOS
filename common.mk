@@ -4,7 +4,7 @@ TARGET_DIR = target
 INC = $(MY_HOME)/include
 INC_SYS = $(INC)/sys
 INCLUDE = -I$(INC) -I$(INC_SYS)
-CFLAGS = -c -m32 -ffreestanding -Wall -Werror $(INCLUDE)
+CFLAGS = -c -m32 -ffreestanding -nostdinc -nodefaultlibs -Wall -Werror $(INCLUDE)
 ifeq ($(MODE), M16)
 	CFLAGS += -D_M16
 endif

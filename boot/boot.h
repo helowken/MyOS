@@ -22,6 +22,7 @@ extern char x_gdt[48];
 extern void rawCopy(char *newAddr, char *oldAddr, u32_t size);
 extern void relocate();
 extern int readSectors(char *buf, u32_t pos, int count);
+extern void exit(int status);
 
 u32_t caddr;
 u16_t runSize, device;

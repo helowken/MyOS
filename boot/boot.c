@@ -155,6 +155,11 @@ static void printPartitionEntry(struct partitionEntry **table) {
 	}
 }
 
+static struct biosDev {
+	char name[8];
+	int device, primary, secondary;
+} bootDev;
+
 static int getMaster(char *master, struct partitionEntry **table, u32_t pos) {
 	int r, n;
 	struct partitionEntry *pe, **pt;
@@ -186,12 +191,17 @@ static int getMaster(char *master, struct partitionEntry **table, u32_t pos) {
 }
 
 static void initialize() {
-	int r;
+	int r, p;
 	char master[SECTOR_SIZE];
 	struct partitionEntry *table[NR_PARTITIONS];
 	u32_t masterPos;
 
 	copyToFarAway();
+
+	bootDev.name[0] = 0;
+	bootDev.device = device;
+	bootDev.primary = -1;
+	bootDev.secondary = -1;
 
 	if (device < 0x80) {
 		printf("Device is not a hard disk.\n");
@@ -209,12 +219,50 @@ static void initialize() {
 
 	masterPos = 0;
 	
-	if ((r = getMaster(master, table, masterPos)) != 0) {
-		readDiskError(masterPos, r);
+	while (true) {
+		// Extract the partition table from the master boot sector.
+		if ((r = getMaster(master, table, masterPos)) != 0) {
+			readDiskError(masterPos, r);
+			exit(1);
+		}
+	
+		// See if we can find "lowSector" back.
+		for (p = 0; p < NR_PARTITIONS; ++p) {
+			if (lowSector - table[p]->lowSector < table[p]->sectorCount) 
+			  break;
+		}
+
+		// Found!
+		if (lowSector == table[p]->lowSector) {
+			if (bootDev.primary < 0)
+			  bootDev.primary = p;
+			else
+			  bootDev.secondary = p;
+			break;
+		}
+		
+		if (p == NR_PARTITIONS || 
+					bootDev.primary >= 0 ||
+					table[p]->status != ACTIVE_PART) {
+			bootDev.device = -1;
+			return;
+		}
+	
+		// See if the primary partition is sub-partitioned.
+		bootDev.primary = p;
+		masterPos = table[p]->lowSector;
 	}
 
-
-	printf("============\n");
+	strcpy(bootDev.name, "d0p0");
+	bootDev.name[1] += (device - 0x80);
+	bootDev.name[3] += bootDev.primary;
+	if (bootDev.secondary >= 0) {
+		strcat(bootDev.name, "s0");
+		bootDev.name[5] += bootDev.secondary;
+	}
+	if (true) {
+		printf("bootDev name: %s\n", bootDev.name);
+	}
 }
 
 void boot() {

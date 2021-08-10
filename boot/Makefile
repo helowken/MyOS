@@ -23,7 +23,7 @@ boot.elf: \
 		boothead.o \
 		util.o \
 		boot.o 
-	$(LD) $^ -Ttext 0x0 -m elf_i386 -nostdLIB -nmagic -L$(LIB_DIR) $(LIBS) -o $@ 
+	$(LD) $^ -Ttext 0x0 -m elf_i386 -nostdlib -nmagic -L$(LIB_DIR) $(LIBS) -o $@ 
 
 boot.bin: boot.elf
 	objcopy -O binary -j .text -j .rodata -j .data $< $@ 

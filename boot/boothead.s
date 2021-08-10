@@ -1,5 +1,7 @@
 	.code16gcc
 	.text
+.equ	.stackSize, 0x2800
+
 movw	%cs, %ax
 movw	%ax, %ds		# Set ds = cs to make boot run correctly
 
@@ -15,12 +17,12 @@ stosb
 
 # Calculate boot run size (text + data + bss + stack)
 movw	$end, %ax			# ax = text + data + bss
-addw	.stackSize, %ax		# ax += stack
+addw	$.stackSize, %ax		# ax += stack
 andw	$0xFFFE, %ax		# Round down to even (for sp)
 movw	%ax, runSize
 
 
-# Setup stack segment and stack pointer
+# Setup stack segment and stack pointer.
 cli
 movw	%ax, %sp		# sp = runSize (stack is downward)
 movw	%cs, %ax		
@@ -31,11 +33,19 @@ sti
 cld						
 
 
-# Copy primary boot parameters to variables
+# Copy primary boot parameters to variables.
 xorb	%dh, %dh
 movw	%dx, device				# Boot device (probably 0x00 or 0x80)
 movw	%si, bootPartEntry		# Remote partition table offset
 popw	bootPartEntry+2			# and segment (saved es)
+
+
+# Remember the current video mode for restoration on exit.
+movb	$0x0F, %ah				# Get current video mode
+int	$0x10
+andb	$0x7F, %al				# Mask off bit 7 (no blanking)
+movb	%al, oldVideoMode
+movb	%al, currVideoMode
 
 
 # Transfer segment addr to 32 bits addr and put it into caddr
@@ -113,11 +123,11 @@ resetDev:
 	int	$0x13
 	movb	$0, devState	# Set state as "closed"
 .resetDevEnd:
-	retw
+	retl
 
 	.type	openDev, @function
 openDev:
-	callw	resetDev		# Optionally reset the disks
+	calll	resetDev		# Optionally reset the disks
 	movb	$0, devState	# Set state as "closed"
 	pushw	%es				# Save registers used by BIOS calls
 	pushw	%di
@@ -141,7 +151,7 @@ openDev:
 	andl	$0xFFFF, %eax	# Clear high word
 	popw	%di				# Restore di and es registers
 	popw	%es
-	retw
+	retl
 .devErr:
 	movb	%ah, %al		
 	xorb	%ah, %ah		# ax = BIOS error code
@@ -170,7 +180,7 @@ readSectors:
 	pushw	%es
 	cmpb	$0, devState		# if device is opened?
 	jg	.devOpened
-	callw	openDev				# else then initialize
+	calll	openDev				# else then initialize
 	testw	%ax, %ax			# if return code != 0, then go error
 	jnz	.rwSectorsEnd			
 .devOpened:
@@ -395,6 +405,36 @@ seg2Abs:
 	popw	%cx
 	retw
 
+#========== Video mode Functions ==========
+	.type	restoreVideoMode, @function
+restoreVideoMode:
+	pushl	oldVideoMode
+	calll	setVideoMode
+	addl	$4, %esp
+	retl
+
+	.type	setVideoMode, @function
+setVideoMode:
+#TODO
+	retl
+
+#========== Exit Functions ==========
+	.globl	exit
+	.type	exit, @function
+exit:
+	movl	%esp, %ebx
+	cmpb	$0, 4(%ebx)			# Good exit status?
+	jz	reboot
+quit:
+	pushl	$anyKey
+	calll	printf
+	xorb	%ah, %ah			# Read character from keyboard
+	int	$0x16
+reboot:
+	calll	resetDev	
+	calll	restoreVideoMode
+	int	$0x19					# Reboot the system#
+
 #========== Detect Memory Functions ==========
 	.globl	detectLowMem
 	.type	detectLowMem, @function
@@ -504,7 +544,7 @@ detectE820Mem:
 	jmp	.detectEnd
 
 .detectError:
-	pushl	$.detectErrMsg
+	pushl	$detectErrMsg
 	calll	println
 	addl	$4, %esp
 	movl	$-1, %eax
@@ -514,20 +554,13 @@ detectE820Mem:
 
 
 	.section	.rodata
-.detectErrMsg:
+detectErrMsg:
 	.string	"Detect Memory Failed."
-.stackSize:
-	.long	0x2800
+anyKey:
+	.string	"\nHit any key to reboot\n"
 
 
 	.section	.data
-	.local	devState		# Device state: reset (-1), closed (0), open (1)
-	.comm	devState,1,1
-	.local	sectors			# Sectors of current device
-	.comm	sectors,1,1
-	.local	secsPerCyl		# Sectors per cylinder: (sectors * heads) of current device
-	.comm	secsPerCyl,2,2	
-	
 	.globl	x_gdt			# For "Extended Memory Block Move".
 	.align	2
 	.type	x_gdt, @object
@@ -554,5 +587,12 @@ x_bios_desc:				# Descriptor for Protected Mode Code Segment. Initialized by use
 x_ss_desc:					# Descriptor for Protected Mode Stack Segment. Initialized by user to 0. Modified by BIOS.
 	.zero	8
 
+
+	.section	.bss
+	.lcomm	oldVideoMode, 1		# Video mode at startup
+	.lcomm	currVideoMode, 1	# Current video mode
+	.lcomm	devState, 1			# Device state: reset (-1), closed (0), open (1)
+	.lcomm	sectors, 1			# Sectors of current device
+	.lcomm	secsPerCyl, 2		# Sectors per cylinder: (sectors * heads) of current device
 
 
