@@ -113,7 +113,48 @@ println:
 	leave
 	retl
 
+#========== Allocate Functions ==========
+	.globl	brk
+	.type	brk, @function
+brk:
+	xor	%ax, %ax
+	jmp	.sbrk
+
+	.globl	sbrk
+	.type	sbrk, @function
+sbrk:
+	xorl	%eax, %eax
+	movw	memBreak, %ax		# ax = current break
+.sbrk:
+	pushl	%eax					# Save it as future return value
+	movl	%esp, %ebx			# Stack is now: (retValue(0), retAddr(4), increment(8))
+	addw	8(%ebx), %ax		# ax = break + increment
+	movw	%ax, memBreak			# Set new break
+	leaw	-1024(%ebx), %dx		
+	cmpw	%ax, %dx			# Compare with the new break
+	jb	.heapErr
+	leaw	-4096(%ebx), %dx
+	cmpw	%ax, %dx			
+	jae	.plenty
+	pushl	$memWarn
+	calll	printf				# Warn about memory running low
+	addl	$4, %esp
+	movb	$0, memWarn			# No more warnings
+.plenty:
+	popl	%eax				# Return old break (0 for brk)
+	retl
+.heapErr:
+	pushl	$chmem
+	pushl	$noMem
+	calll	printf
+	jmp	quit
+
 #========== Dev Functions ==========
+	.globl	getBus
+	.type	getBus, @function
+getBus:
+#TODO	
+
 	.type	resetDev, @function
 resetDev:
 	cmpb	$0, devState	# Need reset if devState < 0
@@ -221,7 +262,17 @@ readSectors:
 	popw	%cx							# Restore al in cl
 	jmp .rwSectorsEval
 .rwSectorsBigDisk:
-
+	movw	$rwDAP, %si					# si = extended read/write DAP
+	movb	16(%ebp), %cl
+	movb	%cl, 2(%si)					# Fill in DAP's sectors to transfer
+	movw	%bx, 4(%si)					# Buffer address offset = bx
+	movw	%es, 6(%si)					# Buffer address segment = es
+	movw	%ax, 8(%si)					# Starting block number low 32 bits
+	movw	%dx, 10(%si)				# Starting block number high 32 bits
+	movb	device, %dl					# dl = device to use
+	movw	$0x4000, %ax				# Or-ed 0x02 becomes read (0x42), 0x03 becomes write (0x43)
+	orw	17(%ebp), %ax					# Or-ed code for disk read (0x02) or write (0x03)
+	int $0x13							# Call bios extended read/write.
 .rwSectorsEval:
 	jc	.rwSectorsIoErr					# if there is I/O error, then go error, else means ah = 0
 	movb	%cl, %al					# Restore al = cl = sectors to transfer
@@ -558,6 +609,13 @@ detectErrMsg:
 	.string	"Detect Memory Failed."
 anyKey:
 	.string	"\nHit any key to reboot\n"
+noMem:
+	.string "\nOut of%s"
+memWarn:
+	.ascii	"\nLow on"
+chmem:
+	.string " memory, use chmem to increase the heap\n"
+	
 
 
 	.section	.data
@@ -586,6 +644,24 @@ x_bios_desc:				# Descriptor for Protected Mode Code Segment. Initialized by use
 	.zero	8		
 x_ss_desc:					# Descriptor for Protected Mode Stack Segment. Initialized by user to 0. Modified by BIOS.
 	.zero	8
+# ------------------
+	.type	rwDAP, @object	# Disk Address Packet
+	.size	rwDAP, 16
+	.align	4
+rwDAP:
+	.byte	0x10			# Length of extended r/w packet
+	.zero	1				# Reserved
+	.zero	2				# Number of sectors to be transferred
+	.zero	2				# Buffer address offset
+	.zero	2				# Buffer address segment
+	.zero	4				# Starting block number low 32 bits (LBA)
+	.zero	4				# Starting block number high 32 bits (LBA)
+# ------------------
+	.type	memBreak, @object	# A fake heap pointer
+	.size	memBreak, 2
+	.align	2
+memBreak:
+	.value	end
 
 
 	.section	.bss

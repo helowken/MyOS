@@ -3,7 +3,6 @@
 
 #include "sys/types.h"
 
-#define DEBUG			false
 #define	SECTOR_SIZE		512
 
 /**
@@ -45,5 +44,14 @@ typedef struct {		// One chunk of free memory.
 memory mem[3];			// List of available memory.
 
 u32_t lowSector;
+
+typedef struct environment {
+	struct environment *next;
+	char flags;
+	char *name;		
+	char *arg;
+	char *value;
+	char *defVal;
+} environment;
 
 #endif

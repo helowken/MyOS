@@ -1,11 +1,85 @@
 #include "code.h"
+#include "debug.h"
 #include "stdarg.h"
+#include "stdlib.h"
 #include "util.h"
 #include "boot.h"
 #include "partition.h"
 
 #define arraySize(a)		(sizeof(a) / sizeof((a)[0]))
 #define arrayLimit(a)		((a) + arraySize(a))
+
+#if DEBUG
+static void testPrint() {
+	printf("========== Test: printf ===============\n");
+	printf("etext: 0x%x, edata: 0x%x, end: 0x%x\n", &etext, &edata, &end);
+	printf("%s, %d, 0x%x, %s, %c, 0x%X\n", "abc", 333, 0x9876ABCD, "xxx-yyy", 'a', 0xabcd9876);
+	printf("%x, %04X, 0x%x, 0x%x\n", 0xA, 0xF,0xaa55, 0x11112222);
+
+	printf("========== Test: print..Hex ===============\n");
+	printByteHex(0xA1);
+	print("    ");
+	printShortHex(0xA1B2);
+	print("    ");
+	printlnIntHex(0xA1B2C8D9);
+	
+	printf("========== Test: Memory Detection ===============\n");
+	printLowMem();
+	print88Mem();
+	printE801Mem();
+	printE820Mem();
+
+	println("========== Test end ===============\n");
+}
+
+static void printPartitionEntry(struct partitionEntry **table) {
+	struct partitionEntry **pt, *pe;
+
+	printf("  Status  StHead  StSec  StCyl  Type  EdHead  EdSec  EdCyl  LowSec  Count\n");
+	for (pt = table; pt < table + NR_PARTITIONS; ++pt) {
+		pe = *pt;
+		printf("  0x%-4x  %6d  %5d  %5d  %3xh  %6d  %5d  %5d  0x%04x  %5d\n", 
+					pe->status, pe->startHead, pe->startSector, pe->startCylinder, 
+					pe->type, pe->lastHead, pe->lastSector, pe->lastCylinder,
+					pe->lowSector, pe->sectorCount);
+	}
+}
+
+static void testMalloc() {
+	typedef struct {
+		char a1;
+		short a2;
+		int a3;
+		long a4;
+		char *a5;
+	} AA;
+
+	AA *pp[10], *p;
+	for (int i = 0; i < 10; ++i) {
+		p = malloc(sizeof(AA));
+		p->a1 = 'a' + i;
+		p->a2 = 1 + i;
+		p->a3 = 10 + i;
+		p->a4 = 100 + i;
+		p->a5 = "abcdefg";
+		pp[i] = p;
+	}
+	for (int i = 0; i < 10; ++i) {
+		p = pp[i];
+		printf("a1: %c, a2: %d, a3: %d, a4: %d, a5: %s\n",
+			p->a1, p->a2, p->a3, p->a4, p-> a5);
+	}
+	for (int i = 0; i < 10; ++i) {
+		p = realloc(pp[i], sizeof(AA));
+		pp[i] = p;
+		printf("a1: %c, a2: %d, a3: %d, a4: %d, a5: %s\n",
+			p->a1, p->a2, p->a3, p->a4, p-> a5);
+	}
+	for (int i = 0; i < 10; ++i) {
+		free(pp[i]);
+	}
+}
+#endif
 
 /* BIOS INT 13h errors */
 static char *biosDiskError(int err) {
@@ -64,28 +138,6 @@ static void writeDiskError(off_t sector, int err) {
 }
 */
 
-static void test() {
-	printf("========== Test: printf ===============\n");
-	printf("etext: 0x%x, edata: 0x%x, end: 0x%x\n", &etext, &edata, &end);
-	printf("%s, %d, 0x%x, %s, %c, 0x%X\n", "abc", 333, 0x9876ABCD, "xxx-yyy", 'a', 0xabcd9876);
-	printf("%x, %04X, 0x%x, 0x%x\n", 0xA, 0xF,0xaa55, 0x11112222);
-
-	printf("========== Test: print..Hex ===============\n");
-	printByteHex(0xA1);
-	print("    ");
-	printShortHex(0xA1B2);
-	print("    ");
-	printlnIntHex(0xA1B2C8D9);
-	
-	printf("========== Test: Memory Detection ===============\n");
-	printLowMem();
-	print88Mem();
-	printE801Mem();
-	printE820Mem();
-
-	println("========== Test end ===============\n");
-}
-
 static void determineAvailableMemory() {
 	int i, memSize, low, high;
 
@@ -142,19 +194,6 @@ static void copyToFarAway() {
 	relocate();
 }
 
-static void printPartitionEntry(struct partitionEntry **table) {
-	struct partitionEntry **pt, *pe;
-
-	printf("  Status  StHead  StSec  StCyl  Type  EdHead  EdSec  EdCyl  LowSec  Count\n");
-	for (pt = table; pt < table + NR_PARTITIONS; ++pt) {
-		pe = *pt;
-		printf("  0x%-4x  %6d  %5d  %5d  %3xh  %6d  %5d  %5d  0x%04x  %5d\n", 
-					pe->status, pe->startHead, pe->startSector, pe->startCylinder, 
-					pe->type, pe->lastHead, pe->lastSector, pe->lastCylinder,
-					pe->lowSector, pe->sectorCount);
-	}
-}
-
 static struct biosDev {
 	char name[8];
 	int device, primary, secondary;
@@ -170,9 +209,7 @@ static int getMaster(char *master, struct partitionEntry **table, u32_t pos) {
 	for (pt = table; pt < table + NR_PARTITIONS; ++pt) {
 		*pt = pe++;
 	}
-	if (true) {
-		printPartitionEntry(table);
-	}
+	debug(printPartitionEntry(table));
 
 	// Sort partition entries
 	n = NR_PARTITIONS;
@@ -212,10 +249,8 @@ static void initialize() {
 		vec2Abs(&bootPartEntry) + offsetof(struct partitionEntry, lowSector),
 		sizeof(lowSector));
 
-	if (true) {
-		printf("device: 0x%x\n", device);
-		printf("low sector: %x\n", lowSector);
-	}
+	debug(printf("device: 0x%x\n", device));
+	debug(printf("low sector: %x\n", lowSector));
 
 	masterPos = 0;
 	
@@ -260,18 +295,25 @@ static void initialize() {
 		strcat(bootDev.name, "s0");
 		bootDev.name[5] += bootDev.secondary;
 	}
-	if (true) {
-		printf("bootDev name: %s\n", bootDev.name);
-	}
+	debug(printf("bootDev name: %s\n", bootDev.name));
 }
 
+/*
+static void getParameters() {
+	
+}
+*/
+
 void boot() {
-	printf("device addr: %x, device: %x\n", &device, device);
+	debug(printf("device addr: %x, device: %x\n", &device, device));
+
 	determineAvailableMemory();
 	initialize();
-	if (DEBUG) {
-		test();
-		printRangeHex((char *) &x_gdt, 48, 8);
-	}
+
+	debug(testPrint());
+	debug(printRangeHex((char *) &x_gdt, 48, 8));
+	debug(testMalloc());
+
+
 }
 
