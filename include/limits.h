@@ -1,6 +1,8 @@
 #ifndef _LIMITS_H
 #define _LIMITS_H
 
+#define CHAR_BIT	8	// bits in a char
+
 #define INT_MIN		(-2147483647-1)
 #define INT_MAX		2147483647
 #define UINT_MAX	0xFFFFFFFF

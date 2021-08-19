@@ -9,13 +9,13 @@
 extern void *sbrk(size_t size);
 extern int printf(char *fmt, ...);
 
-typedef struct cell {
+typedef struct Cell {
 	size_t		size;
 #if DEBUG
 	unsigned	magic;
 #endif
-	struct	cell *next;
-} cell_t;
+	struct	Cell *next;
+} Cell_t;
 
 #if UNIT_MAX <= 0xFFFF
 #define MAGIC	0x537B
@@ -23,21 +23,21 @@ typedef struct cell {
 #define MAGIC	0x537BC0D8
 #endif
 
-#define HDR_SIZE	offsetof(cell_t, next)
+#define HDR_SIZE	offsetof(Cell_t, next)
 
-#define offset(cp, size)	((cell_t *) ((char *) (cp) + (size)))
+#define offset(cp, size)	((Cell_t *) ((char *) (cp) + (size)))
 
 #define cell2obj(cp)		((void *) ((char *) (cp) + HDR_SIZE))
-#define obj2cell(op)		((cell_t *) ((char *) (op) - HDR_SIZE))
+#define obj2cell(op)		((Cell_t *) ((char *) (op) - HDR_SIZE))
 
-static cell_t *freeList;
+static Cell_t *freeList;
 
 void *malloc(size_t size) {
-	cell_t **pcp, *cp, *next;
+	Cell_t **pcp, *cp, *next;
 
 	size += HDR_SIZE;
-	if (size < sizeof(cell_t))
-	  size = sizeof(cell_t);
+	if (size < sizeof(Cell_t))
+	  size = sizeof(Cell_t);
 
 	// Align
 	size = (size + sizeof(int) - 1) & ~(sizeof(int) - 1);
@@ -69,7 +69,7 @@ void *malloc(size_t size) {
 		  break;
 
 		// Allocate a new chunk at the break.
-		if ((cp = (cell_t *) sbrk(size)) == (cell_t *) -1)
+		if ((cp = (Cell_t *) sbrk(size)) == (Cell_t *) -1)
 		  return NULL;
 
 		cp->size = size;
@@ -80,7 +80,7 @@ void *malloc(size_t size) {
 	}
 
 	// if it is big enough, break it up.
-	if (cp->size >= size + sizeof(cell_t)) {
+	if (cp->size >= size + sizeof(Cell_t)) {
 		next = offset(cp, cp->size);
 		next->size = cp->size - size;
 		next->next = cp->next;
@@ -98,7 +98,7 @@ void *malloc(size_t size) {
 }
 
 void free(void *op) {
-	cell_t **prev, *next, *cp;
+	Cell_t **prev, *next, *cp;
 
 	if (op == NULL)
 	  return;

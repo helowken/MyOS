@@ -5,6 +5,8 @@
 
 #define	SECTOR_SIZE		512
 
+#define PARAM_SECTOR	1		// Sector containing boot parameters.
+
 /**
  * etext  This is the first address past the end of the text segment (the program code).
  *
@@ -22,6 +24,8 @@ extern void rawCopy(char *newAddr, char *oldAddr, u32_t size);
 extern void relocate();
 extern int readSectors(char *buf, u32_t pos, int count);
 extern void exit(int status);
+extern int getBus();
+extern int getVideoMode();
 
 u32_t caddr;
 u16_t runSize, device;
@@ -29,29 +33,41 @@ u16_t runSize, device;
 typedef struct {		// 8086 vector
 	u16_t offset;
 	u16_t segment;
-} vector;
+} Vector;
 
-vector bootPartEntry;		// Boot partition table entry.
+Vector bootPartEntry;		// Boot partition table entry.
 
 extern char* mon2Abs(void *pos);
-extern char* vec2Abs(vector *vec);
+extern char* vec2Abs(Vector *vec);
 
 typedef struct {		// One chunk of free memory.
 	u32_t base;			// Start byte.
 	u32_t size;			// Number of bytes.
-} memory;
+} Memory;
 
-memory mem[3];			// List of available memory.
+Memory memList[3];			// List of available memory.
 
 u32_t lowSector;
 
-typedef struct environment {
-	struct environment *next;
+// Sticky attributes.
+#define E_SPECIAL	0x01
+#define E_DEV		0x02	
+#define E_RESERVED	0x04	
+#define E_STICKY	0x08	
+
+// Volatile attributes
+#define E_VAR		0x08	// Valirable
+#define E_FUNCTION	0x10	// Function definition.
+
+typedef struct Environment {
+	struct Environment *next;
 	char flags;
 	char *name;		
 	char *arg;
 	char *value;
-	char *defVal;
-} environment;
+	char *defValue;
+} Environment;
+
+Environment *env;		// Lists the environment.
 
 #endif

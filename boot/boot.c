@@ -2,6 +2,7 @@
 #include "debug.h"
 #include "stdarg.h"
 #include "stdlib.h"
+#include "limits.h"
 #include "util.h"
 #include "boot.h"
 #include "partition.h"
@@ -142,28 +143,28 @@ static void determineAvailableMemory() {
 	int i, memSize, low, high;
 
 	if ((memSize = detectLowMem()) >= 0) {
-		mem[0].base = 0;
-		mem[0].size = memSize << 10;
+		memList[0].base = 0;
+		memList[0].size = memSize << 10;
 
 		if (detectE801Mem(&low, &high, true) == 0) {
-			mem[1].base = 0x100000;
-			mem[1].size = low << 10;
+			memList[1].base = 0x100000;
+			memList[1].size = low << 10;
 
 			// if adjacent
 			if (low == (15 << 10)) {
-				mem[1].size += high << 16;	
+				memList[1].size += high << 16;	
 			} else {
-				mem[2].base = 0x1000000;
-				mem[2].size = high << 16;
+				memList[2].base = 0x1000000;
+				memList[2].size = high << 16;
 			}
 		} else if ((memSize = detect88Mem()) >= 0) {
-			mem[1].base = 0x100000;
-			mem[1].size = memSize << 10;
+			memList[1].base = 0x100000;
+			memList[1].size = memSize << 10;
 		}
 		if (DEBUG) {
 			for (i = 0; i < 3; ++i) {
-				if (i == 0 || mem[i].base != 0) 
-				  printf("Mme[%d] base: 0x%08x, size: %d B\n", i, mem[i].base, mem[i].size);
+				if (i == 0 || memList[i].base != 0) 
+				  printf("Mme[%d] base: 0x%08x, size: %d B\n", i, memList[i].base, memList[i].size);
 			}
 		}
 	}
@@ -173,7 +174,7 @@ static void copyToFarAway() {
 	u32_t memEnd, newAddr, dma64k, oldAddr;
 
 	oldAddr = caddr;
-	memEnd = mem[0].base + mem[0].size;
+	memEnd = memList[0].base + memList[0].size;
 	newAddr = (memEnd - runSize) & ~0x0000FL;
 	dma64k = (memEnd - 1) & ~0x0FFFFL;
 
@@ -295,24 +296,209 @@ static void initialize() {
 		strcat(bootDev.name, "s0");
 		bootDev.name[5] += bootDev.secondary;
 	}
+
 	debug(printf("bootDev name: %s\n", bootDev.name));
+	debug(testPrint());
+	debug(printRangeHex((char *) &x_gdt, 48, 8));
+	debug(testMalloc());
+}
+
+enum ReservedNameEnum {
+	R_NULL, R_ROOT, R_CTTY, R_DELAY, R_ECHO, R_EXIT, R_HELP,
+	R_LS, R_MENU, R_OFF, R_SAVE, R_SET, R_TRAP, R_UNSET
+};
+
+char ReservedNames[][6] = {
+	"", "boot", "ctty", "delay", "echo", "exit", "help",
+	"ls", "menu", "off", "save", "set", "trap", "unset"
+};
+
+int isReserved(char *s) {
+	int r;
+	for (r = R_ROOT; r <= R_UNSET; ++r) {
+		if (strcmp(ReservedNames[r], s) == 0)
+		  return true;
+	}
+	return false;
+}
+
+static char *copyStr(char *s) {
+	char *c;
+
+	if (*s == '\0')
+	  return NULL;
+	c = malloc((strlen(s) + 1) * sizeof(char));
+	strcpy(c, s);
+	return c;
+}
+
+static void sfree(char *s) {
+	if (s != NULL)
+	  free(s);
+}
+
+static Environment **searchEnv(char *name) {
+	Environment **aenv = &env;
+	while (*aenv != NULL && strcmp((*aenv)->name, name) != 0) {
+		aenv = &(*aenv)->next;
+	}
+	return aenv;
+}
+
+static bool isDefault(Environment *e) {
+	return (e->flags & E_SPECIAL) && e->defValue == NULL;
 }
 
 /*
-static void getParameters() {
-	
+ *	Change the value of an environment variable.
+ *	Returns the flags of the variable if you are not allowed to change it, 0 otherwise.
+ */
+static int setEnv(int flags, char *name, char *arg, char *value) {
+	Environment **aenv, *e;
+	if (*(aenv = searchEnv(name)) == NULL) {
+		if (isReserved(name))
+		  return E_RESERVED;
+		e = malloc(sizeof(*e));
+		e->name = copyStr(name);
+		e->flags = flags;
+		e->defValue = NULL;
+		e->next = NULL;
+		*aenv = e;
+	} else {
+		e = *aenv;
+		if ((e->flags & E_SPECIAL) &&
+					(e->flags & E_FUNCTION) != (flags & E_FUNCTION))
+		  return e->flags;
+
+		e->flags = (e->flags | E_STICKY) & flags;
+		if (isDefault(e)) 
+		  e->defValue = e->value;
+		else
+		  sfree(e->value);
+
+		sfree(e->arg);
+	}
+	e->arg = copyStr(arg);
+	e->value = copyStr(value);
+
+	return 0;
 }
-*/
+
+static int setVar(int flags, char *name, char *value) {
+	return setEnv(flags, name, NULL, value);
+}
+
+/*
+ * Remove a variable from the environment.
+ * A special variable is reset to its default value.
+static void unset(char *name) {
+	environment **aenv, *e;
+
+	if ((e = *(aenv = searchEnv(name))) == NULL)
+	  return;
+
+	if (e->flags & E_SPECIAL) {
+		if (e->defValue != NULL) {
+			sfree(e->arg);
+			e->arg = NULL;
+			sfree(e->value);
+			e->value = e->defValue;
+			e->defValue = NULL;
+		}
+	} else {
+		sfree(e->name);
+		sfree(e->arg);
+		sfree(e->value);
+		*aenv = e->next;
+		free(e);
+	}
+}
+ */
+
+/*
+ * Transform a long number to ascii at base b, (b >= 8).
+ */
+static char *ul2a(u32_t n, unsigned b) {
+	static char num[(CHAR_BIT * sizeof(n) + 2) / 3 + 1];
+	char *a = arrayLimit(num) - 1;
+	static char hex[16] = "0123456789ABCDEF";
+	do {
+		*--a = hex[n % b];	
+	} while ((n/=b) > 0);
+	return a;
+}
+
+/*
+ * Transform a long number to ascii at base 10.
+static char *ul2a10(u32_t n) {
+	return ul2a(n, 10);
+}
+ */
+
+static void getParameters() {
+	char params[SECTOR_SIZE + 1];
+	int r, videoMode;
+	Memory *mp, *mpEnd;
+	static char busType[][4] = {
+		"xt", "at", "mc"
+	};
+	static char videoType[][4] = {
+		"mda", "cga", "ega", "ega", "vga", "vga"
+	};
+	static char videoChrome[][6] = {
+		"mono", "color"
+	};
+	videoMode = getVideoMode();
+
+	debug(printf("Bus type: %x\n", getBus()));
+	debug(printf("Video mode: %d\n", getVideoMode()));
+
+	setVar(E_SPECIAL|E_VAR|E_DEV, "rootdev", "ram");
+	setVar(E_SPECIAL|E_VAR|E_DEV, "ramimagedev", "bootdev");
+	setVar(E_SPECIAL|E_VAR, "ramsize", "0");
+	//setVar(E_SPECIAL|E_VAR, "processor", );
+	setVar(E_SPECIAL|E_VAR, "bus", busType[getBus()]);
+	setVar(E_SPECIAL|E_VAR, "video", videoType[videoMode]);
+	setVar(E_SPECIAL|E_VAR, "chrome", videoChrome[videoMode]);
+	params[0] = 0;
+	for (mp = memList, mpEnd = arrayLimit(memList); mp < mpEnd; ++mp) {
+		if (mp->size > 0) {
+			if (params[0] != 0)
+			  strcat(params, ",");
+			strcat(params, ul2a(mp->base, 0x10));
+			strcat(params, ":");
+			strcat(params, ul2a(mp->size, 0x10));
+		}
+	}
+	setVar(E_SPECIAL|E_VAR, "memory", params);
+
+	setVar(E_SPECIAL|E_VAR, "label", "AT");
+	setVar(E_SPECIAL|E_VAR, "controller", "c0");
+	
+	// Variables boot needs:
+	setVar(E_SPECIAL|E_VAR, "image", "boot/image");
+	setVar(E_SPECIAL|E_FUNCTION, "leader", 
+		"echo --- Welcome to MINIX3. This is the boot monitor. ---\\n");
+	setVar(E_SPECIAL|E_FUNCTION, "main", "menu");
+	setVar(E_SPECIAL|E_FUNCTION, "trailer", "");
+
+	setEnv(E_RESERVED|E_FUNCTION, NULL, "=,Start MINIX", "boot");
+	
+	// Tokneize boot params sector.
+	if ((r = readSectors(mon2Abs(params), lowSector + PARAM_SECTOR, 1)) != 0) {
+		readDiskError(lowSector + PARAM_SECTOR, r);
+		exit(1);
+	}
+	params[SECTOR_SIZE] = 0;
+
+}
 
 void boot() {
 	debug(printf("device addr: %x, device: %x\n", &device, device));
 
 	determineAvailableMemory();
 	initialize();
-
-	debug(testPrint());
-	debug(printRangeHex((char *) &x_gdt, 48, 8));
-	debug(testMalloc());
+	getParameters();
 
 
 }

@@ -152,8 +152,29 @@ sbrk:
 #========== Dev Functions ==========
 	.globl	getBus
 	.type	getBus, @function
-getBus:
-#TODO	
+getBus:							# Bus type: XT, AT, MCA
+	xorw	%dx, %dx
+	incw	%dx					# Assume AT
+	movb	$0xC0, %ah			# Code for get configuration
+	int	$0x15
+	jc	.gotBus					# Carry clear and ah = 00h if supported
+	testb	%ah, %ah			# Result is in: ES:BX -> ROM table
+	jne	.gotBus
+	movb	%es:5(%bx), %al		# al = Feature byte 1
+	incw	%dx					# Assume MCA
+	testb	$0x02, %al			# Test bit 1 - "Bus is Micro Channel"
+	jnz	.gotBus
+	decw	%dx					# Assume AT
+	testb	$0x40, %al			# Test bit 6 - "2nd 8259 PIC installed"
+	jnz .gotBus
+	decw	%dx					# It is an XT
+.gotBus:
+	pushw	%ds
+	popw	%es					# Restore es
+	xorl	%eax, %eax	
+	movw	%dx, %ax			# Return bus code
+	movw	%ax, bus			# Keep bus code, A20 handler likes to know
+	retl	
 
 	.type	resetDev, @function
 resetDev:
@@ -464,6 +485,49 @@ restoreVideoMode:
 	addl	$4, %esp
 	retl
 
+	.globl	getVideoMode
+	.type	getVideoMode, @function
+getVideoMode:
+	movw	$0x1A00, %ax		# Get Video Display Combination
+	int	$0x10
+	cmpb	$0x1A, %al			# If a valid function was requested in ah?
+	jnz	.noDisplayCode			
+
+	xorl	%eax, %eax
+	movw	$2, %ax
+	cmpb	$5, %bl				# If EGA with mnochrome display?
+	jz	.gotVideo
+	incw	%ax
+	cmpb	$4, %bl				# If EGA with color display?
+	jz	.gotVideo
+	incw	%ax
+	cmpb	$7, %bl				# If VGA with analog monochrome display?
+	jz	.gotVideo
+	incw	%ax
+	cmpb	$8, %bl				# If VGA with analog color display?
+	jz	.gotVideo
+.noDisplayCode:
+	movb	$0x12, %ah			# Get Video Subsystem Configuration
+	movb	$0x10, %bl			# Return video configuration information
+	int $0x10
+	cmpb	$0x10, %bl			# Did it come back as 0x10? (No EGA)
+	jz .noEGA
+
+	xorl	%eax, %eax
+	movw	$2, %ax
+	cmpb	$1, %bh				# If mono mode in effect?
+	jz	.gotVideo
+	incw	%ax					# It's color mode in effect.
+	jmp	.gotVideo
+.noEGA:
+	int $0x11					# Read Equipment-List
+	andw	$0x30, %ax			# Initial video mode
+	subw	$0x30, %ax			
+	jz	.gotVideo				# It's monochrome (MDA).
+	movw	$1, %ax				# It's color (CGA).
+.gotVideo:
+	retl
+
 	.type	setVideoMode, @function
 setVideoMode:
 #TODO
@@ -617,7 +681,6 @@ chmem:
 	.string " memory, use chmem to increase the heap\n"
 	
 
-
 	.section	.data
 	.globl	x_gdt			# For "Extended Memory Block Move".
 	.align	2
@@ -670,5 +733,6 @@ memBreak:
 	.lcomm	devState, 1			# Device state: reset (-1), closed (0), open (1)
 	.lcomm	sectors, 1			# Sectors of current device
 	.lcomm	secsPerCyl, 2		# Sectors per cylinder: (sectors * heads) of current device
+	.lcomm	bus, 2				# Saved retrun value of getBus
 
 
