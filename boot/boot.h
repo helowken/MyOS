@@ -7,6 +7,8 @@
 
 #define PARAM_SECTOR	1		// Sector containing boot parameters.
 
+#define ESC		'\33'	// Escape key.
+
 /**
  * etext  This is the first address past the end of the text segment (the program code).
  *
@@ -26,6 +28,10 @@ extern int readSectors(char *buf, u32_t pos, int count);
 extern void exit(int status);
 extern int getBus();
 extern int getVideoMode();
+extern void putch(int ch);
+extern int getch();
+extern void ungetch();
+extern int escape();
 
 u32_t caddr;
 u16_t runSize, device;

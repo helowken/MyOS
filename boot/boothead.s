@@ -1,6 +1,7 @@
 	.code16gcc
 	.text
-.equ	.stackSize, 0x2800
+.equ	STACK_SIZE, 0x2800
+.equ	ESC,		0x1B	
 
 movw	%cs, %ax
 movw	%ax, %ds		# Set ds = cs to make boot run correctly
@@ -17,7 +18,7 @@ stosb
 
 # Calculate boot run size (text + data + bss + stack)
 movw	$end, %ax			# ax = text + data + bss
-addw	$.stackSize, %ax		# ax += stack
+addw	$STACK_SIZE, %ax		# ax += stack
 andw	$0xFFFE, %ax		# Round down to even (for sp)
 movw	%ax, runSize
 
@@ -63,8 +64,25 @@ halt:
 	jmp halt
 
 
+#========== I/O Functions ==========
+	.globl	getch
+	.type	getch, @function
+getch:
+	xorl	%eax, %eax
+	int $0x16
+# TODO
+	retl
 
-#========== Print Functions ==========
+	.globl	ungetch
+	.type	ungetch, @function
+ungetch:
+	movw	4(%esp), %ax
+	movw	%ax, unchar
+	retl
+
+	.globl	putch
+	.type	putch, @function	# Same as kputc
+putch:
 	.globl	kputc
 	.type	kputc, @function
 kputc:							# Called by C printf()
@@ -82,6 +100,23 @@ kputc:							# Called by C printf()
 .noChar:
 	retl
 
+	.globl	escape
+	.type	escape, @function	# True if ESC has been typed
+escape:
+	movb	$0x01, %ah			# Keybord Status
+	int	$0x16
+	jz	.escEnd					# If no keypress
+	cmpb	ESC, %al			
+	jne	.escEnd					# If not escape typed
+	xorb	%ah, %ah			# Read the escape from the keyboard buffer and discard it.
+	int $0x16
+	incw	escFlag
+.escEnd:
+	xorl	%eax, %eax
+	xchgw	escFlag, %ax		# Return and reset the escape flag
+	retl
+
+#========== Print Functions ==========
 	.globl	print
 	.type	print, @function
 print:
@@ -734,5 +769,6 @@ memBreak:
 	.lcomm	sectors, 1			# Sectors of current device
 	.lcomm	secsPerCyl, 2		# Sectors per cylinder: (sectors * heads) of current device
 	.lcomm	bus, 2				# Saved retrun value of getBus
-
+	.lcomm	unchar, 2			# Char returned by ungetch(c)
+	.lcomm	escFlag, 2			# Escape typed?
 
