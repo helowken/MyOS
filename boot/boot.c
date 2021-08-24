@@ -476,7 +476,6 @@ static char *ul2a10(u32_t n) {
 	return ul2a(n, 10);
 }
  */
-/*
 static long a2l(char *a) {
 	int sign = 1;
 	int n;
@@ -489,7 +488,6 @@ static long a2l(char *a) {
 	}
 	return n * sign;
 }
-*/
 
 static bool numPrefix(char *s, char **ps) {
 	char *n = s;
@@ -704,6 +702,37 @@ static void voidToken() {
 	free(popToken());
 }
 
+static u32_t milliTime() {
+	return getTick() * MSEC_PER_TICK;
+}
+
+static u32_t milliTimeSince(u32_t base) {
+	u32_t msecOfDay = TICKS_PER_DAY * MSEC_PER_TICK;
+	return (milliTime() + msecOfDay - base) % msecOfDay;
+}
+
+static char *timerHandler;
+static u32_t timeBase, timeout;
+
+static void unschedule() {
+	if (timerHandler != NULL) {
+		free(timerHandler);
+		timerHandler = NULL;
+	}
+}
+
+static void schedule(long msec, char *cmd) {
+	unschedule();
+	timerHandler = cmd;
+	timeBase = milliTime();
+	timeout = msec;
+}
+
+static bool expired() {
+	return timerHandler != NULL && 
+		milliTimeSince(timeBase) >= timeout;
+}
+
 static void execute() {
 	Token *second, *third, *fourth, *sep;
 	char *name;
@@ -716,12 +745,10 @@ static void execute() {
 		return;
 	}
 
-	/* TODO
 	if (expired()) {
-		parseCode(thandler);
+		//TODO parseCode(thandler);
 		unschedule();
 	}
-	*/
 
 	for (sep = cmds; sep != NULL && sep->token[0] != ';'; sep = sep->next) {
 		++n;
@@ -925,10 +952,10 @@ static void execute() {
 				res == R_TRAP &&
 				numeric(second->token)) {
 		// trap msec command
-		// TODO long msec = a2l(second->token);
+		long msec = a2l(second->token);
 		voidToken();
 		voidToken();
-		// TODO schedule(msec, popToken());
+		schedule(msec, popToken());
 		return;
 	} else if (n == 1) {
 		// Simple command.
@@ -1010,7 +1037,7 @@ static char *readLine() {
 static void monitor() {
 	char *line;
 	
-	// TODO unschedule();
+	unschedule();
 	tokErr = false;
 
 	printf("%s>", bootDev.name);
@@ -1034,6 +1061,12 @@ void boot() {
 		}
 		monitor();
 	}
-	
+
+	/*
+	int i = 0;
+	while (i++<5) {
+		printf("key: %x\n", getch());
+	}
+	*/
 }
 

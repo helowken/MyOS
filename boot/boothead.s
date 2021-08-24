@@ -64,13 +64,47 @@ halt:
 	jmp halt
 
 
+#========== Timer Functions ==========
+	.globl	getTick
+	.type	getTick, @function
+getTick:
+	pushl	%ecx
+	xorb	%ah, %ah			# ah = 0, Read System-Timer Time Counter
+	int $0x1A
+	pushw	%cx
+	pushw	%dx
+	popl	%eax				# eax = cx:dx = tick count
+	popl	%ecx
+	retl
+
 #========== I/O Functions ==========
 	.globl	getch
 	.type	getch, @function
 getch:
-	xorl	%eax, %eax
+	xorl	%eax, %eax			# Is there a ungotten character? (previously called ungetch)
+	xchgw	unchar, %ax
+	testw	%ax, %ax
+	jnz	.gotch
+
+	hlt							# Play dead until interrupted (see pause())
+	movb	$0x01, %ah			# Keyboard status
 	int $0x16
-# TODO
+	jz	.noKeyTyped
+	xorb	%ah, %ah			# Read character from keyboard
+	int $0x16
+	jmp .keyPressed		
+.noKeyTyped:
+.keyPressed:
+	cmpb	$0x0D, %al			# Is carriage typed?
+	jnz	.noCarriage
+	movb	$0x0A, %al			# Change carriage to newline
+.noCarriage:
+	cmpb	ESC, %al			# Is ESC typed?
+	jne	.noEsc
+	incw	escFlag				# Set esc flag
+.noEsc:
+	xorb	%ah, %ah			# Make ax = al
+.gotch:
 	retl
 
 	.globl	ungetch
