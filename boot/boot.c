@@ -300,9 +300,7 @@ static void showEnv() {
 		  continue;
 
 		if (e->flags & E_FUNCTION) {
-			printf("%s(%s) %s\n", e->name, 
-						e->arg == NULL ? "" : e->arg, 
-						e->value == NULL ? "" : e->value);
+			printf("%s(%s) %s\n", e->name, e->arg, e->value);
 		} else {
 			printf(isDefault(e) ? "%s = (%s)\n" : "%s = %s\n", 
 						e->name, e->value);
@@ -317,7 +315,14 @@ static void showEnv() {
 				  ungetch(c);
 				break;
 			}
-			printf("\b\b\b\b\b\b");		// Delete previous displayed "More? "
+			/*
+			 * Delete previous displayed "More? "
+			 * 1. "More? " length: 6
+			 * 2. "\b\b\b\b\b\b":	go back to the start position
+			 * 3. "      ":			output 6 whitespaces to replace "More? "
+			 * 4. "\b\b\b\b\b\b":	go back to the start position again
+			 */
+			printf("\b\b\b\b\b\b      \b\b\b\b\b\b");		
 		}
 	}
 }
@@ -413,12 +418,12 @@ static char *ul2a10(u32_t n) {
  */
 static long a2l(char *a) {
 	int sign = 1;
-	int n;
+	int n = 0;
 	if (*a == '-') {
 		sign = -1;
 		++a;
 	}
-	while (between('0', a, '9')) {
+	while (between('0', *a, '9')) {
 		n = n * 10 + (*a++ - '0');
 	}
 	return n * sign;
@@ -569,7 +574,8 @@ static void getParameters() {
 		params[SECTOR_SIZE] = 0;
 	}
 	
-	acmds = tokenize(&cmds, params);
+	//acmds = tokenize(&cmds, params);
+	acmds = &cmds;
 
 	// Stuff the default action into the command chain.
 	tokenize(acmds, ":;leader;main");
@@ -657,6 +663,26 @@ static bool expired() {
 		milliTimeSince(timeBase) >= timeout;
 }
 
+static bool interrupt() {
+	if (escape()) {
+		printf("[ESC]\n");
+		tokErr = true;
+		return true;
+	}
+	return false;
+}
+
+static void delay(u32_t msec) {
+	u32_t base;
+
+	if (msec == 0)
+	  return;
+	base = milliTime();
+	do {
+		pause();
+	} while (!interrupt() && !expired() && milliTimeSince(base) < msec);
+}
+
 static void execute() {
 	Token *second, *third, *fourth, *sep;
 	char *name;
@@ -709,7 +735,8 @@ static void execute() {
 				flags & E_RESERVED ? "reserved word" : "special function");
 			tokErr = true;
 		}
-		while (cmds != sep) {
+		int i = 0;
+		while (cmds != sep && i++<6) {
 			voidToken();
 		}
 		return;
@@ -784,10 +811,8 @@ static void execute() {
 		}
 		voidToken();
 		return;
-		/* TODO
 	} else if (interrupt()) {
 		return;
-		*/
 	} else if (n >= 1 && 
 				(res == R_UNSET || res == R_ECHO)) {
 		// unset name ..., echo word ...
@@ -825,10 +850,8 @@ static void execute() {
 								break;
 							case 'w':
 								while (true) {
-									/* TODO
 									if (interrupt())
 									  return;
-									  */
 									if (getch() == '\n')
 									  break;
 								}
@@ -859,16 +882,17 @@ static void execute() {
 				 res == R_CTTY ||	// ctty
 				 res == R_DELAY ||	// delay msec
 				 res == R_LS)) {	// ls dir
-		/*TODO
+		/*
 		if (res == R_BOOT)
 		  bootDevice(second->token);
 		else if (res == R_CTTY)
 		  ctty(second->token);
-		else if (res == R_DELAY)
-		  delay(second->token);
 		else if (res == R_LS)
-		  ls(secondi->token);
-		  */
+		  ls(second->token);
+		else 
+		*/
+		if (res == R_DELAY)
+		  delay(a2l(second->token));
 		voidToken();
 		voidToken();
 		return;
@@ -893,7 +917,7 @@ static void execute() {
 				ok = true;
 				break;
 			case R_DELAY:
-				//TODO delay("500");
+				delay(500);
 				ok = true;
 				break;
 			case R_LS:

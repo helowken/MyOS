@@ -125,7 +125,12 @@ int2ascii:
 				p = va_arg(argp, char *);
 
 string_length:
-				for (len = 0; p[len] != 0 && len < max; ++len) {}
+				len = 0;
+				if (p != NULL) {
+					while (p[len] != 0 && len < max) {
+						++len;
+					}
+				}
 
 string_print:
 				width -= len;

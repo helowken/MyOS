@@ -77,6 +77,12 @@ getTick:
 	popl	%ecx
 	retl
 
+	.globl	pause				
+	.type	pause, @function
+pause:
+	hlt							# Either saves power, or tells an x86 emulator that nothing is happening right now.
+	retl
+	
 #========== I/O Functions ==========
 	.globl	getch
 	.type	getch, @function

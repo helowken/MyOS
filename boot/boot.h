@@ -104,4 +104,7 @@ extern char* mon2Abs(void *pos);
 // Vector to absolute address.
 extern char* vec2Abs(Vector *vec);
 
+// Wait for an interrupt.
+extern void pause();
+
 #endif

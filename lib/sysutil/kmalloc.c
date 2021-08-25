@@ -7,7 +7,6 @@
 #include "assert.h"
 
 extern void *sbrk(size_t size);
-extern int printf(char *fmt, ...);
 
 typedef struct Cell {
 	size_t		size;
@@ -30,7 +29,7 @@ typedef struct Cell {
 #define cell2obj(cp)		((void *) ((char *) (cp) + HDR_SIZE))
 #define obj2cell(op)		((Cell_t *) ((char *) (op) - HDR_SIZE))
 
-static Cell_t *freeList;
+static Cell_t *freeList = NULL;
 
 void *malloc(size_t size) {
 	Cell_t **pcp, *cp, *next;
@@ -48,7 +47,9 @@ void *malloc(size_t size) {
 	for (;;) {
 		// Do a first fit search.
 		pcp = &freeList;
-		while ((cp = *pcp) != NULL) {
+
+		int i = 0;
+		while ((cp = *pcp) != NULL && i++<6) {
 			next = cp->next;
 			assert(cp->magic == MAGIC);
 			
@@ -81,7 +82,7 @@ void *malloc(size_t size) {
 
 	// if it is big enough, break it up.
 	if (cp->size >= size + sizeof(Cell_t)) {
-		next = offset(cp, cp->size);
+		next = offset(cp, size);
 		next->size = cp->size - size;
 		next->next = cp->next;
 		debug(next->magic = MAGIC);
@@ -98,9 +99,6 @@ void *malloc(size_t size) {
 }
 
 void free(void *op) {
-	if (1)
-	  return;
-
 	Cell_t **prev, *next, *cp;
 
 	if (op == NULL)
