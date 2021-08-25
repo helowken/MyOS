@@ -1,6 +1,6 @@
 	.code16gcc
 	.text
-.equ	STACK_SIZE, 0x2800
+.equ	STACK_SIZE, 0x4800
 .equ	ESC,		0x1B	
 
 movw	%cs, %ax
@@ -85,7 +85,7 @@ getch:
 	xchgw	unchar, %ax
 	testw	%ax, %ax
 	jnz	.gotch
-
+.waitKey:
 	hlt							# Play dead until interrupted (see pause())
 	movb	$0x01, %ah			# Keyboard status
 	int $0x16
@@ -94,6 +94,7 @@ getch:
 	int $0x16
 	jmp .keyPressed		
 .noKeyTyped:
+	jmp .waitKey
 .keyPressed:
 	cmpb	$0x0D, %al			# Is carriage typed?
 	jnz	.noCarriage
@@ -195,10 +196,10 @@ sbrk:
 	xorl	%eax, %eax
 	movw	memBreak, %ax		# ax = current break
 .sbrk:
-	pushl	%eax					# Save it as future return value
+	pushl	%eax				# Save it as future return value
 	movl	%esp, %ebx			# Stack is now: (retValue(0), retAddr(4), increment(8))
 	addw	8(%ebx), %ax		# ax = break + increment
-	movw	%ax, memBreak			# Set new break
+	movw	%ax, memBreak		# Set new break
 	leaw	-1024(%ebx), %dx		
 	cmpw	%ax, %dx			# Compare with the new break
 	jb	.heapErr

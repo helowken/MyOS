@@ -98,6 +98,9 @@ void *malloc(size_t size) {
 }
 
 void free(void *op) {
+	if (1)
+	  return;
+
 	Cell_t **prev, *next, *cp;
 
 	if (op == NULL)

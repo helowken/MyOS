@@ -11,79 +11,15 @@
 #define arrayLimit(a)		((a) + arraySize(a))
 #define between(a, c, z)	((unsigned) ((c) - (a)) <= ((z) - (a)))
 
-#if DEBUG
-static void testPrint() {
-	printf("========== Test: printf ===============\n");
-	printf("etext: 0x%x, edata: 0x%x, end: 0x%x\n", &etext, &edata, &end);
-	printf("%s, %d, 0x%x, %s, %c, 0x%X\n", "abc", 333, 0x9876ABCD, "xxx-yyy", 'a', 0xabcd9876);
-	printf("%x, %04X, 0x%x, 0x%x\n", 0xA, 0xF,0xaa55, 0x11112222);
-
-	printf("========== Test: print..Hex ===============\n");
-	printByteHex(0xA1);
-	print("    ");
-	printShortHex(0xA1B2);
-	print("    ");
-	printlnIntHex(0xA1B2C8D9);
-	
-	printf("========== Test: Memory Detection ===============\n");
-	printLowMem();
-	print88Mem();
-	printE801Mem();
-	printE820Mem();
-
-	println("========== Test end ===============\n");
-}
-
-static void printPartitionEntry(struct partitionEntry **table) {
-	struct partitionEntry **pt, *pe;
-
-	printf("  Status  StHead  StSec  StCyl  Type  EdHead  EdSec  EdCyl  LowSec  Count\n");
-	for (pt = table; pt < table + NR_PARTITIONS; ++pt) {
-		pe = *pt;
-		printf("  0x%-4x  %6d  %5d  %5d  %3xh  %6d  %5d  %5d  0x%04x  %5d\n", 
-					pe->status, pe->startHead, pe->startSector, pe->startCylinder, 
-					pe->type, pe->lastHead, pe->lastSector, pe->lastCylinder,
-					pe->lowSector, pe->sectorCount);
-	}
-}
-
-static void testMalloc() {
-	typedef struct {
-		char a1;
-		short a2;
-		int a3;
-		long a4;
-		char *a5;
-	} AA;
-
-	AA *pp[10], *p;
-	for (int i = 0; i < 10; ++i) {
-		p = malloc(sizeof(AA));
-		p->a1 = 'a' + i;
-		p->a2 = 1 + i;
-		p->a3 = 10 + i;
-		p->a4 = 100 + i;
-		p->a5 = "abcdefg";
-		pp[i] = p;
-	}
-	for (int i = 0; i < 10; ++i) {
-		p = pp[i];
-		printf("a1: %c, a2: %d, a3: %d, a4: %d, a5: %s\n",
-			p->a1, p->a2, p->a3, p->a4, p-> a5);
-	}
-	for (int i = 0; i < 10; ++i) {
-		p = realloc(pp[i], sizeof(AA));
-		pp[i] = p;
-		printf("a1: %c, a2: %d, a3: %d, a4: %d, a5: %s\n",
-			p->a1, p->a2, p->a3, p->a4, p-> a5);
-	}
-	for (int i = 0; i < 10; ++i) {
-		free(pp[i]);
-	}
-}
-#endif
-
 static char *version = "1.0.0";
+
+typedef struct Token {
+	struct Token *next;
+	char	*token;
+} Token;
+
+static Token *cmds;
+static bool tokErr = false;
 
 /* BIOS INT 13h errors */
 static char *biosDiskError(int err) {
@@ -328,7 +264,7 @@ int reserved(char *s) {
 static char *copyStr(char *s) {
 	char *c;
 
-	if (*s == '\0')
+	if (s == NULL || *s == 0)
 	  return NULL;
 	c = malloc((strlen(s) + 1) * sizeof(char));
 	strcpy(c, s);
@@ -353,7 +289,7 @@ static Environment **searchEnv(char *name) {
 static bool isDefault(Environment *e) {
 	return (e->flags & E_SPECIAL) && e->defValue == NULL;
 }
-/*
+
 static void showEnv() {
 	Environment *e;
 	unsigned more = 0;
@@ -362,11 +298,11 @@ static void showEnv() {
 	for (e = env; e != NULL; e = e->next) {
 		if (e->flags & E_RESERVED)
 		  continue;
-		if (isDefault(e))
-		  continue;
 
 		if (e->flags & E_FUNCTION) {
-			printf("%s(%s) %s\n", e->name, e->arg, e->value);
+			printf("%s(%s) %s\n", e->name, 
+						e->arg == NULL ? "" : e->arg, 
+						e->value == NULL ? "" : e->value);
 		} else {
 			printf(isDefault(e) ? "%s = (%s)\n" : "%s = %s\n", 
 						e->name, e->value);
@@ -385,7 +321,7 @@ static void showEnv() {
 		}
 	}
 }
-*/
+
 static char *getBody(char *name) {
 	Environment *e = getEnv(name);
 	return e == NULL || !(e->flags & E_FUNCTION) ? NULL : e->value;
@@ -422,7 +358,6 @@ static int setEnv(int flags, char *name, char *arg, char *value) {
 	}
 	e->arg = copyStr(arg);
 	e->value = copyStr(value);
-
 	return 0;
 }
 
@@ -511,15 +446,13 @@ static bool sugar(char *tok) {
 	return strchr("=(){};\n", tok[0]) != NULL;
 }
 
-
-typedef struct Token {
-	struct Token *next;
-	char	*token;
-} Token;
-
-Token *cmds;
-bool tokErr = false;
-
+static void printTokens() {
+	Token *p = cmds;
+	while (p != NULL) {
+		printf("%s, next: %x\n", p->token, p->next);
+		p = p->next;
+	}
+}
 
 static char *oneToken(char **aline) {
 	char *line = *aline;
@@ -559,7 +492,6 @@ static char *oneToken(char **aline) {
 	tok[n] = 0;
 	if (tok[0] == '\n')		// ';' same as '\n'
 	  tok[0] = ';';
-
 	*aline = line;
 	return tok;
 }
@@ -603,7 +535,7 @@ static void getParameters() {
 	//setVar(E_SPECIAL|E_VAR, "processor", );
 	setVar(E_SPECIAL|E_VAR, "bus", busType[getBus()]);
 	setVar(E_SPECIAL|E_VAR, "video", videoType[videoMode]);
-	setVar(E_SPECIAL|E_VAR, "chrome", videoChrome[videoMode]);
+	setVar(E_SPECIAL|E_VAR, "chrome", videoChrome[videoMode & 1]);
 	params[0] = 0;
 	for (mp = memList, mpEnd = arrayLimit(memList); mp < mpEnd; ++mp) {
 		if (mp->size > 0) {
@@ -629,19 +561,20 @@ static void getParameters() {
 	setEnv(E_RESERVED|E_FUNCTION, NULL, "=,Start MINIX", "boot");
 
 	if (false) {
-	// Tokneize boot params sector.
-	if ((r = readSectors(mon2Abs(params), lowSector + PARAM_SECTOR, 1)) != 0) {
-		readDiskError(lowSector + PARAM_SECTOR, r);
-		exit(1);
+		// Tokneize boot params sector.
+		if ((r = readSectors(mon2Abs(params), lowSector + PARAM_SECTOR, 1)) != 0) {
+			readDiskError(lowSector + PARAM_SECTOR, r);
+			exit(1);
+		}
+		params[SECTOR_SIZE] = 0;
 	}
-	}
-	params[SECTOR_SIZE] = 0;
+	
 	acmds = tokenize(&cmds, params);
 
 	// Stuff the default action into the command chain.
 	tokenize(acmds, ":;leader;main");
 }
-/*
+
 static void help() {
 	struct help {
 		char *thing;
@@ -680,15 +613,6 @@ static void help() {
 		printf("%s\n", pi->help);
 	}
 }
-
-static void printTokens() {
-	Token *p = cmds;
-	while (p != NULL) {
-		printf("%s\n", p->token);
-		p = p->next;
-	}
-}
-*/
 
 static char *popToken() {
 	Token *cmd = cmds;
@@ -780,7 +704,6 @@ static void execute() {
 			value = fourth->token;
 			flags |= E_DEV;
 		}
-
 		if ((flags = setVar(flags, name, value)) != 0) {
 			printf("%s is a %s\n", name,
 				flags & E_RESERVED ? "reserved word" : "special function");
@@ -789,6 +712,7 @@ static void execute() {
 		while (cmds != sep) {
 			voidToken();
 		}
+		return;
 	} else if (n >= 3 && 
 				!sugar(name) &&
 				second->token[0] == '(') {
@@ -868,7 +792,7 @@ static void execute() {
 				(res == R_UNSET || res == R_ECHO)) {
 		// unset name ..., echo word ...
 		char *arg, *p;
-		arg = popToken(); // arg = name token
+		arg = popToken(); // arg = "unset" or "echo"
 		
 		while (true) {
 			free(arg);
@@ -912,8 +836,8 @@ static void execute() {
 							default:
 								putch(*p);
 						}
-						++p;
 					}
+					++p;
 				}
 				putch(cmds != sep ? ' ' : '\n');
 			}
@@ -963,26 +887,25 @@ static void execute() {
 		bool ok = false;
 		
 		name = popToken();
-		/*
 		switch (res) {
 			case R_BOOT:
-				bootMinix();
+				//TODO bootMinix();
 				ok = true;
 				break;
 			case R_DELAY:
-				delay("500");
+				//TODO delay("500");
 				ok = true;
 				break;
 			case R_LS:
-				ls(NULL);
+				//TODO ls(NULL);
 				ok = true;
 				break;
 			case R_MENU:
-				menu();
+				//TODO menu();
 				ok = true;
 				break;
 			case R_SAVE:
-				saveParameters();
+				//TODO saveParameters();
 				ok = true;
 				break;
 			case R_SET:
@@ -998,11 +921,10 @@ static void execute() {
 				ok = true;
 				break;
 			case R_OFF:
-				off();
+				//TODO off();
 				ok = true;
 				break;
 		}
-		*/
 
 		if (strcmp(name, ":") == 0)
 		  ok = true;
@@ -1025,13 +947,57 @@ static void execute() {
 		}
 	}
 	// Getting here means that the command is not understand.
-	printf("Try 'help'\n");
+	printf("\nTry 'help'\n");
 	tokErr = true;
 }
 
 static char *readLine() {
-	// TODO
-	return NULL;
+	char *line;
+	size_t i, z;
+	int c;
+
+	i = 0;
+	z = 20;
+	line = malloc(z * sizeof(char));
+
+	do {
+		c = getch();
+		/*
+		 * '\b':	backspace
+		 * '\177':	DEL
+		 * '\25':	Ctrl+U (Scan code: 0x15) 
+		 * '\30':	Ctrl+X (Scan code: 0x18)
+		 *
+		 * See Keyboard codes for more.
+		 */
+		if (strchr("\b\177\25\30", c) != NULL) {
+			do {
+				if (i == 0)
+				  break;
+				/*
+				 * The first '\b': move cursor backward 1 character.
+				 * The second ' ': output a whitespace to replace the original character
+				 *				   and move cursor forward 1 char.
+				 * The third '\b': move cursor backward 1 character.
+				 *				   Now the cursor is under the whitespace and it looks good.
+				 */
+				printf("\b \b");
+				--i;
+			} while (c == '\25' || c == '\30');
+		} else if (c < ' ' && c != '\n') {
+			// Send a bell
+			putch('\7');
+		} else {
+			putch(c);
+			line[i++] = c;
+			if (i == z) {
+				z *= 2;
+				line = realloc(line, z * sizeof(char));
+			}
+		}
+	} while (c != '\n');
+	line[i] = 0;
+	return line;
 }
 
 static void monitor() {
@@ -1044,7 +1010,7 @@ static void monitor() {
 	line = readLine();
 	tokenize(&cmds, line);
 	free(line);
-	escape();
+	escape();		// Reset esc flag if ESC was pressed.
 }
 
 void boot() {
@@ -1054,19 +1020,12 @@ void boot() {
 	initialize();
 	getParameters();
 	
-	debug(printTokens());
-	while (false) {
+	while (true) {
 		while (cmds != NULL) {
 			execute();
 		}
 		monitor();
 	}
-
-	/*
-	int i = 0;
-	while (i++<5) {
-		printf("key: %x\n", getch());
-	}
-	*/
+	if(false)printTokens();
 }
 

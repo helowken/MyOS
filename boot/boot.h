@@ -62,7 +62,7 @@ typedef struct Environment {
 	char *defValue;
 } Environment;
 
-Environment *env;			// Lists the environment.
+Environment *env = NULL;	// Lists the environment.
 
 
 // Copy bytes from anywhere to anywhere.
