@@ -4,6 +4,7 @@
 
 #define MASTER_BOOT_LEN		440
 #define BOOT_BLOCK_LEN		512
+#define PARAM_LEN			512
 #define SIGNATURE_POS		510
 #define SIGNATURE			0XAA55
 #define SECTOR_SIZE			512
@@ -12,6 +13,20 @@
 #define	BOOT_STACK_SIZE		0x2800		// Assume boot code using 10K stack
 
 #define sectorCount(size)	((size + SECTOR_SIZE - 1) / SECTOR_SIZE)
+
+static char *paramsTpl = 
+	"rootdev=%s; "
+	"ramimagedev=%s; "
+	"minix(1,Start MINIX 3 (requires at least 16 MB RAM)) { "
+		"unset image; boot; "
+	"} "
+	"main() { "
+		"echo By default, MINIX 3 will automatically load in 3 seconds.; "
+		"echo Press ESC to enter the monitor for special configuration.; "
+		"trap 3000 boot; "
+		"menu; "
+	"} ";
+
 
 static void usage() {
 	fprintf(stderr,
@@ -63,7 +78,7 @@ static void install_masterboot(char *device, char *masterboot) {
 
 static void install_device(char *device, char *bootblock, char *boot) {
 	int addr = BOOT_SEC_OFF;
-	int len = BOOT_BLOCK_LEN;
+	int len = BOOT_BLOCK_LEN + PARAM_LEN;
 	char buf[len];
 	off_t size, bootSize;
 	char *ap;
@@ -79,6 +94,9 @@ static void install_device(char *device, char *bootblock, char *boot) {
 	*ap++ = addr & 0xFF;
 	*ap++ = (addr >> 8) & 0xFF;
 	*ap++ = (addr >> 16) & 0xFF;
+
+	if (snprintf(&buf[BOOT_BLOCK_LEN], PARAM_LEN, paramsTpl, device, device) < 0)
+		  errExit("snprintf params");
 
 	copyTo(device, bootblock, buf, len - 2, NULL);
 	//printf("Install %s to %s successfully.\n", bootblock, device);
@@ -117,7 +135,7 @@ int main(int argc, char *argv[]) {
 	  install_masterboot(argv[2], argv[3]);
 	else if (argc >= 5 && isOpt(argv[1], "-device"))
 	  install_device(argv[2], argv[3], argv[4]);
-	else if (isOpt(argv[1], "-boot"))
+	else if (isOpt(argv[1], "-bootable"))
 	  install_bootable(argv[2], argv[3]);
 	else 
 	  usage();

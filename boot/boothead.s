@@ -399,10 +399,11 @@ readSectors:
 	jl	.rwSectorsFinish				# No, report error
 	xorb	%ah, %ah
 	int $0x13
-	jnc	.rwMoreSectors					# Success reset, try again
+	jnc	.rwMoreSectors					# Success reset, try again.
 .rwSectorsFinish:
 	movb	%ah, %al
 	xorb	%ah, %ah
+	andl	$0xFF, %eax					# Return value = al.
 .rwSectorsEnd:
 	popw %si
 	popw %di

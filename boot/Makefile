@@ -28,22 +28,24 @@ boot.elf: \
 boot.bin: boot.elf
 	objcopy -O binary -j .text -j .rodata -j .data $< $@ 
 
-$(INSTALL_BOOT): installboot.c 
-	mkdir $(TARGET_DIR)
-	$(CC) -o $@ $< -I$(LINUX_LIB) $(LINUX_LIB)/*.o
+$(TARGET_DIR): 
+	mkdir -p $@
+
+installboot: installboot.c $(TARGET_DIR) 
+	$(CC) -o $(INSTALL_BOOT) $< -I$(LINUX_LIB) $(LINUX_LIB)/*.o
 
 install: \
 	install_masterboot \
 	install_device \
-	install_boot
+	install_bootable
 
-install_masterboot: masterboot.bin $(INSTALL_BOOT)
+install_masterboot: masterboot.bin installboot
 	$(INSTALL_BOOT) -m $(DISK_IMAGE) $<
 
-install_device: bootblock.bin boot.bin $(INSTALL_BOOT)
+install_device: bootblock.bin boot.bin installboot
 	sudo $(INSTALL_BOOT) -d $(DEVICE) $< boot.bin
 
-install_boot: boot.bin $(INSTALL_BOOT)
+install_bootable: boot.bin installboot
 	sudo $(INSTALL_BOOT) -b $(DEVICE) $<
 
 mount:

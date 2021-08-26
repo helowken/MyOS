@@ -48,8 +48,7 @@ void *malloc(size_t size) {
 		// Do a first fit search.
 		pcp = &freeList;
 
-		int i = 0;
-		while ((cp = *pcp) != NULL && i++<6) {
+		while ((cp = *pcp) != NULL) {
 			next = cp->next;
 			assert(cp->magic == MAGIC);
 			

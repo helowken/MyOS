@@ -454,9 +454,10 @@ static bool sugar(char *tok) {
 static void printTokens() {
 	Token *p = cmds;
 	while (p != NULL) {
-		printf("%s, next: %x\n", p->token, p->next);
+		printf("%s,\t", p->token);
 		p = p->next;
 	}
+	printf("\n");
 }
 
 static char *oneToken(char **aline) {
@@ -565,17 +566,13 @@ static void getParameters() {
 
 	setEnv(E_RESERVED|E_FUNCTION, NULL, "=,Start MINIX", "boot");
 
-	if (false) {
-		// Tokneize boot params sector.
-		if ((r = readSectors(mon2Abs(params), lowSector + PARAM_SECTOR, 1)) != 0) {
-			readDiskError(lowSector + PARAM_SECTOR, r);
-			exit(1);
-		}
-		params[SECTOR_SIZE] = 0;
+	// Tokneize boot params sector.
+	if ((r = readSectors(mon2Abs(params), lowSector + PARAM_SECTOR, 1)) != 0) {
+		readDiskError(lowSector + PARAM_SECTOR, r);
+		exit(1);
 	}
-	
-	//acmds = tokenize(&cmds, params);
-	acmds = &cmds;
+	params[SECTOR_SIZE] = 0;
+	acmds = tokenize(&cmds, params);
 
 	// Stuff the default action into the command chain.
 	tokenize(acmds, ":;leader;main");
@@ -691,7 +688,7 @@ typedef enum MenuFuncType {
 /*
  * a()ls	: NOT_FUNC
  * a(aa)ls	: SELECT
- * a(a,b)ls	: USER_FUNC
+ * a(a,b)ls	: USER_FUNC / DEF_FUNC
  */
 static MenuFuncType getMenuFuncType(Environment *e) {
 	if (!(e->flags & E_FUNCTION) || 
