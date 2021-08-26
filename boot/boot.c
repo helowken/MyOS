@@ -479,7 +479,7 @@ static char *oneToken(char **aline) {
 		while ((unsigned) *line >= ' ') {
 			if (*line == '(') 
 			  ++depth;
-			if (*line == ')' && --depth == 0)
+			if (*line++ == ')' && --depth == 0)
 			  break;
 		}
 	} else if (sugar(line)) {
@@ -683,6 +683,90 @@ static void delay(u32_t msec) {
 	} while (!interrupt() && !expired() && milliTimeSince(base) < msec);
 }
 
+
+typedef enum MenuFuncType {
+	NOT_FUNC, SELECT, DEF_FUNC, USER_FUNC 
+} MenuFuncType;
+
+/*
+ * a()ls	: NOT_FUNC
+ * a(aa)ls	: SELECT
+ * a(a,b)ls	: USER_FUNC
+ */
+static MenuFuncType getMenuFuncType(Environment *e) {
+	if (!(e->flags & E_FUNCTION) || 
+				e->arg == NULL || 
+				e->arg[0] == 0)
+	  return NOT_FUNC;
+	if (e->arg[1] != ',')
+	  return SELECT;
+	return e->flags & E_RESERVED ? DEF_FUNC : USER_FUNC;
+}
+
+static void menu() {
+	int c;
+	bool defaultMenu = true;
+	char *choose = NULL;
+	Environment *e;
+
+	for (e = env; e != NULL; e = e->next) {
+		if (getMenuFuncType(e) == USER_FUNC) {
+			defaultMenu = false;
+			break;
+		}
+	}
+
+	printf("\nHit a key as follows:\n\n");
+
+	for (e = env; e != NULL; e = e->next) {
+		switch (getMenuFuncType(e)) {
+			case NOT_FUNC:
+				break;
+			case DEF_FUNC:
+				if (!defaultMenu)
+				  break;
+			case USER_FUNC:
+				printf("	%c  %s\n", e->arg[0], &e->arg[2]);
+				break;
+			case SELECT:
+				printf("	%c  Select %s kernel\n", e->arg[0], e->name);
+				break;
+		}
+	}
+
+	do {
+		c = getch();
+		if (interrupt() || expired())
+		  return;
+		unschedule();
+		for (e = env; e != NULL; e = e->next) {
+			switch (getMenuFuncType(e)) {
+				case NOT_FUNC:
+					break;
+				case DEF_FUNC:
+					if (!defaultMenu)
+					  break;
+				case USER_FUNC:
+				case SELECT:
+					if (c == e->arg[0])
+					  choose = e->value;
+					break;
+			}
+			if (choose != NULL)
+			  break;
+		}
+	} while (choose == NULL);
+
+	printf("%c\n", c);
+	tokenize(&cmds, choose);
+}
+
+static void parseCode(char *code) {
+	if (cmds != NULL && cmds->token[0] != ';')
+	  tokenize(&cmds, ";");
+	tokenize(&cmds, code);
+}
+
 static void execute() {
 	Token *second, *third, *fourth, *sep;
 	char *name;
@@ -696,7 +780,7 @@ static void execute() {
 	}
 
 	if (expired()) {
-		//TODO parseCode(thandler);
+		parseCode(timerHandler);
 		unschedule();
 	}
 
@@ -735,15 +819,13 @@ static void execute() {
 				flags & E_RESERVED ? "reserved word" : "special function");
 			tokErr = true;
 		}
-		int i = 0;
-		while (cmds != sep && i++<6) {
+		while (cmds != sep) {
 			voidToken();
 		}
 		return;
 	} else if (n >= 3 && 
 				!sugar(name) &&
 				second->token[0] == '(') {
-
 		 // Function definition.
 		 // For example: 
 		 // 1. a() ls 
@@ -777,12 +859,16 @@ static void execute() {
 			  strcat(body, " ");
 			func = func->next;
 		}
-		second->token[strlen(second->token) - 1] = 0;
+		// remove ')' from the second token "(...)"
+		second->token[strlen(second->token) - 1] = 0;	
 
 		if (depth != 0) {
-			printf("Missing '}'\n");
+			printf("Missing '%c'\n", depth < 0 ? '{' : '}');
 			tokErr = true;
-		} else if ((flags = setEnv(E_FUNCTION, name, second->token + 1, body)) != 0) {
+		} else if (
+				// remove '(' from the second token "(..."
+				(flags = setEnv(E_FUNCTION, name, second->token + 1, body)) != 0
+		) {	
 			printf("%s is a %s\n", name, 
 						flags & E_RESERVED ? "reserved word" : "special variable");
 			tokErr = true;
@@ -925,7 +1011,7 @@ static void execute() {
 				ok = true;
 				break;
 			case R_MENU:
-				//TODO menu();
+				menu();
 				ok = true;
 				break;
 			case R_SAVE:
@@ -1027,9 +1113,8 @@ static char *readLine() {
 static void monitor() {
 	char *line;
 	
-	unschedule();
+	//unschedule();
 	tokErr = false;
-
 	printf("%s>", bootDev.name);
 	line = readLine();
 	tokenize(&cmds, line);

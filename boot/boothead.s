@@ -106,7 +106,7 @@ getch:
 	jnz	.noCarriage
 	movb	$0x0A, %al			# Change carriage to newline
 .noCarriage:
-	cmpb	ESC, %al			# Is ESC typed?
+	cmpb	$ESC, %al			# Is ESC typed?
 	jne	.noEsc
 	incw	escFlag				# Set esc flag
 .noEsc:
@@ -130,7 +130,15 @@ kputc:							# Called by C printf()
 	movb	4(%esp), %al		# al = char 
 	testb	%al, %al			# if al == 0, do nothing.
 	jz	.noChar
-	movb	$0xe, %ah			# Call BIOS ah=0xE
+	movb	$0xe, %ah			# BIOS ah=0xE
+	cmpb	$0x9, %al			# Check tab key
+	jnz	.LFKey
+	movb	$0x20, %al
+	int	$0x10
+	int	$0x10
+	int	$0x10
+	jmp .putChar
+.LFKey:					
 	cmpb	$0xA, %al			# if al = 'LF' (new line)
 	jnz	.putChar
 	movb	$0xD, %al			# then output 'CR' + 'LF'
@@ -147,7 +155,7 @@ escape:
 	movb	$0x01, %ah			# Keybord Status
 	int	$0x16
 	jz	.escEnd					# If no keypress
-	cmpb	ESC, %al			
+	cmpb	$ESC, %al			
 	jne	.escEnd					# If not escape typed
 	xorb	%ah, %ah			# Read the escape from the keyboard buffer and discard it.
 	int $0x16
