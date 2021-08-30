@@ -72,11 +72,9 @@ static void readDiskError(off_t sector, int err) {
 	rwDiskError("Read", sector, err);
 }
 
-/*
 static void writeDiskError(off_t sector, int err) {
 	rwDiskError("Write", sector, err);
 }
-*/
 
 static void determineAvailableMemory() {
 	int i, memSize, low, high;
@@ -290,6 +288,55 @@ static bool isDefault(Environment *e) {
 	return (e->flags & E_SPECIAL) && e->defValue == NULL;
 }
 
+static char *addPtr;
+
+static void addParam(char *n) {
+	while (n != NULL && *n != 0 && *addPtr != 0) {
+		*addPtr++ = *n++;
+	}
+}
+
+static void saveParameters() {
+	Environment *e;
+	char params[SECTOR_SIZE + 1];
+	int r;
+
+	memset(params, ';', SECTOR_SIZE);
+	params[SECTOR_SIZE] = 0;
+	addPtr = params;
+
+	for (e = env; e != NULL; e = e->next) {
+		if (e->flags & E_RESERVED || isDefault(e))
+		  continue;
+		
+		addParam(e->name);
+		if (e->flags & E_FUNCTION) {
+			addParam("(");
+			addParam(e->arg);
+			addParam(")");
+		} else {
+			/*
+			 * if e == DEV | SPECIAL: then 'd' is no need to save
+			 * if e != DEV: then 'd' is no need to save
+			 * if e == DEV: then 'd' is needed to save
+			 */
+			addParam((e->flags & (E_DEV | E_SPECIAL)) != E_DEV ? "=" : "=d ");
+		}
+		addParam(e->value);
+		if (*addPtr == 0) {
+			printf("The environment is too big\n");
+			return;
+		}
+		*addPtr++ = ';';
+	}
+
+	// Save the parameters on disk.
+	if ((r = writeSectors(mon2Abs(params), lowSector + PARAM_SECTOR, 1)) != 0) {
+		writeDiskError(lowSector + PARAM_SECTOR, r);
+		printf("Can't save environment\n");
+	}
+}
+
 static void showEnv() {
 	Environment *e;
 	unsigned more = 0;
@@ -353,7 +400,7 @@ static int setEnv(int flags, char *name, char *arg, char *value) {
 					(e->flags & E_FUNCTION) != (flags & E_FUNCTION))
 		  return e->flags;
 
-		e->flags = (e->flags | E_STICKY) & flags;
+		e->flags = (e->flags & E_STICKY) | flags;
 		if (isDefault(e)) 
 		  e->defValue = e->value;
 		else
@@ -900,6 +947,7 @@ static void execute() {
 				(res == R_UNSET || res == R_ECHO)) {
 		// unset name ..., echo word ...
 		char *arg, *p;
+		Environment *e;
 		arg = popToken(); // arg = "unset" or "echo"
 		
 		while (true) {
@@ -913,37 +961,51 @@ static void execute() {
 			} else {
 				// echo arg
 				p = arg;
-				while (*p != 0) {
-					if (*p != '\\') {
-					  putch(*p);
+				if (*p == '$') {
+					if (*++p == 0)  {
+						putch('$');
 					} else {
-						switch (*++p) {
-							case 0:
-								if (cmds == sep)
-								  return;
-								continue;
-							case 'n':
-								putch('\n');
-								break;
-							case 'v':
-								printf(version);
-								break;
-							case 'c':
-								// TODO clearScreen();
-								break;
-							case 'w':
-								while (true) {
-									if (interrupt())
-									  return;
-									if (getch() == '\n')
-									  break;
-								}
-								break;
-							default:
-								putch(*p);
+						e = getEnv(p);
+						if (e != NULL)  {
+							if (e->flags & E_FUNCTION)
+							  printf("%s(%s) %s", e->name, e->arg, e->value);
+							else
+							  printf("%s", e->value);
 						}
 					}
-					++p;
+				} else {
+					while (*p != 0) {
+						if (*p != '\\') {
+						  putch(*p);
+						} else {
+							switch (*++p) {
+								case 0:
+									if (cmds == sep)
+									  return;
+									continue;
+								case 'n':
+									putch('\n');
+									break;
+								case 'v':
+									printf(version);
+									break;
+								case 'c':
+									// TODO clearScreen();
+									break;
+								case 'w':
+									while (true) {
+										if (interrupt())
+										  return;
+										if (getch() == '\n')
+										  break;
+									}
+									break;
+								default:
+									putch(*p);
+							}
+						}
+						++p;
+					}
 				}
 				putch(cmds != sep ? ' ' : '\n');
 			}
@@ -1012,7 +1074,7 @@ static void execute() {
 				ok = true;
 				break;
 			case R_SAVE:
-				//TODO saveParameters();
+				saveParameters();
 				ok = true;
 				break;
 			case R_SET:

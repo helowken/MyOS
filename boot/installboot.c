@@ -15,17 +15,17 @@
 #define sectorCount(size)	((size + SECTOR_SIZE - 1) / SECTOR_SIZE)
 
 static char *paramsTpl = 
-	"rootdev=%s; "
-	"ramimagedev=%s; "
+	"rootdev=%s;"
+	"ramimagedev=%s;"
 	"minix(1,Start MINIX 3 (requires at least 16 MB RAM)) { "
 		"unset image; boot; "
-	"} "
+	"};"
 	"main() { "
 		"echo By default, MINIX 3 will automatically load in 3 seconds.; "
 		"echo Press ESC to enter the monitor for special configuration.; "
 		"trap 3000 boot; "
 		"menu; "
-	"} ";
+	"};";
 
 
 static void usage() {
@@ -83,7 +83,8 @@ static void install_device(char *device, char *bootblock, char *boot) {
 	off_t size, bootSize;
 	char *ap;
 
-	memset(buf, 0, len);
+	memset(buf, 0, BOOT_BLOCK_LEN);
+	memset(&buf[BOOT_BLOCK_LEN], ';', PARAM_LEN);
 	buf[SIGNATURE_POS] = SIGNATURE & 0xFF;
 	buf[SIGNATURE_POS + 1] = (SIGNATURE >> 8) & 0xFF;
 

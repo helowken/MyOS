@@ -47,7 +47,7 @@ u32_t lowSector;			// Offset to the file system on the boot device.
 #define E_SPECIAL	0x01
 #define E_DEV		0x02	
 #define E_RESERVED	0x04	
-#define E_STICKY	0x08	
+#define E_STICKY	0x07	
 
 // Volatile attributes
 #define E_VAR		0x08	// Valirable
@@ -73,6 +73,9 @@ extern void relocate();
 
 // Read 1 or more sectors from "device".
 extern int readSectors(char *buf, u32_t pos, int count);
+
+// Write 1 or more sectors to "device".
+extern int writeSectors(char *buf, u32_t pos, int count);
 
 // Exit the monitor.
 extern void exit(int status);
