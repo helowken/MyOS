@@ -4,12 +4,11 @@
 #include "stdlib.h"
 #include "limits.h"
 #include "util.h"
-#include "boot.h"
 #include "partition.h"
 
-#define arraySize(a)		(sizeof(a) / sizeof((a)[0]))
-#define arrayLimit(a)		((a) + arraySize(a))
-#define between(a, c, z)	((unsigned) ((c) - (a)) <= ((z) - (a)))
+#undef EXTERN
+#define EXTERN		// Empty, allocate space for variables
+#include "boot.h"
 
 static char *version = "1.0.0";
 
@@ -374,7 +373,12 @@ static void showEnv() {
 	}
 }
 
-static char *getBody(char *name) {
+char *getVarValue(char *name) {
+	Environment *e = getEnv(name);		
+	return e == NULL || !(e->flags & E_VAR) ? NULL : e->value;
+}
+
+static char *getFuncBody(char *name) {
 	Environment *e = getEnv(name);
 	return e == NULL || !(e->flags & E_FUNCTION) ? NULL : e->value;
 }
@@ -442,56 +446,6 @@ static void unset(char *name) {
 		*aenv = e->next;
 		free(e);
 	}
-}
-
-/*
- * Transform a long number to ascii at base b, (b >= 8).
- */
-static char *ul2a(u32_t n, unsigned b) {
-	static char num[(CHAR_BIT * sizeof(n) + 2) / 3 + 1];
-	char *a = arrayLimit(num) - 1;
-	static char hex[16] = "0123456789ABCDEF";
-	do {
-		*--a = hex[n % b];	
-	} while ((n/=b) > 0);
-	return a;
-}
-
-/*
- * Transform a long number to ascii at base 10.
-static char *ul2a10(u32_t n) {
-	return ul2a(n, 10);
-}
- */
-static long a2l(char *a) {
-	int sign = 1;
-	int n = 0;
-	if (*a == '-') {
-		sign = -1;
-		++a;
-	}
-	while (between('0', *a, '9')) {
-		n = n * 10 + (*a++ - '0');
-	}
-	return n * sign;
-}
-
-static bool numPrefix(char *s, char **ps) {
-	char *n = s;
-	while (between('0', *n, '9')) {
-		++n;
-	}
-	if (n == s)
-	  return false;
-	if (ps == NULL)
-	  return *n == 0;
-
-	*ps = n;
-	return true;
-}
-
-static bool numeric(char *s) {
-	return numPrefix(s, (char **) NULL);
 }
 
 static bool sugar(char *tok) {
@@ -1019,7 +973,7 @@ static void execute() {
 		setVar(E_VAR, optsVar, second->token);
 		voidToken();
 		voidToken();
-		// TODO bootMinix();
+		bootMinix();
 		unset(optsVar);
 		return;
 	} else if (n == 2 && 
@@ -1027,7 +981,7 @@ static void execute() {
 				 res == R_CTTY ||	// ctty
 				 res == R_DELAY ||	// delay msec
 				 res == R_LS)) {	// ls dir
-		/*
+		/*TODO
 		if (res == R_BOOT)
 		  bootDevice(second->token);
 		else if (res == R_CTTY)
@@ -1058,7 +1012,7 @@ static void execute() {
 		name = popToken();
 		switch (res) {
 			case R_BOOT:
-				//TODO bootMinix();
+				bootMinix();
 				ok = true;
 				break;
 			case R_DELAY:
@@ -1098,7 +1052,7 @@ static void execute() {
 		if (strcmp(name, ":") == 0)
 		  ok = true;
 
-		if (!ok && (body = getBody(name)) != NULL) {
+		if (!ok && (body = getFuncBody(name)) != NULL) {
 			tokenize(&cmds, body);
 			ok = true;
 		}

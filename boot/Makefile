@@ -22,7 +22,8 @@ run:
 boot.elf: \
 		boothead.o \
 		util.o \
-		boot.o 
+		boot.o \
+		bootimage.o
 	$(LD) $^ -Ttext 0x0 -m elf_i386 -nostdlib -nmagic -L$(LIB_DIR) $(LIBS) -o $@ 
 
 boot.bin: boot.elf

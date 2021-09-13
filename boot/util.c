@@ -1,8 +1,62 @@
 #include "code.h"
+#include "sys/types.h"
+#include "limits.h"
 #include "util.h"
 
 const char *destE820 = (char *) 0x8000;
 static char hexBuf[HEX_BUF_LEN]; 
+
+
+bool numPrefix(char *s, char **ps) {
+	char *n = s;
+	while (between('0', *n, '9')) {
+		++n;
+	}
+	if (n == s)
+	  return false;
+	if (ps == NULL)
+	  return *n == 0;
+
+	*ps = n;
+	return true;
+}
+
+bool numeric(char *s) {
+	return numPrefix(s, (char **) NULL);
+}
+
+/*
+ * Transform a long number to ascii at base b, (b >= 8).
+ */
+char *ul2a(u32_t n, unsigned b) {
+	static char num[(CHAR_BIT * sizeof(n) + 2) / 3 + 1];
+	char *a = arrayLimit(num) - 1;
+	static char hex[16] = "0123456789ABCDEF";
+	do {
+		*--a = hex[n % b];	
+	} while ((n/=b) > 0);
+	return a;
+}
+
+/*
+ * Transform a long number to ascii at base 10.
+ */
+char *ul2a10(u32_t n) {
+	return ul2a(n, 10);
+}
+
+long a2l(char *a) {
+	int sign = 1;
+	int n = 0;
+	if (*a == '-') {
+		sign = -1;
+		++a;
+	}
+	while (between('0', *a, '9')) {
+		n = n * 10 + (*a++ - '0');
+	}
+	return n * sign;
+}
 
 void printLowMem() {
 	int memSize;

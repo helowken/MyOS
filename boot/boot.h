@@ -9,6 +9,10 @@
 #define MSEC_PER_TICK	55			// Clock does 18.2 ticks per second. (1000 / 18.2 is about 55)
 #define TICKS_PER_DAY	0x1800B0L	// After 24 hours it wraps (65543 * 24)
 
+#ifndef EXTERN
+#define EXTERN extern
+#endif
+
 /**
  * etext  This is the first address past the end of the text segment (the program code).
  *
@@ -23,25 +27,25 @@ extern char etext, edata, end;
 
 extern char x_gdt[48];		// Extend Memory Block Move
 
-u32_t caddr;				// Code address of the boot program.
-u16_t runSize;				// Size of this program.
-u16_t device;				// Drive being booted from.
+EXTERN u32_t caddr;				// Code address of the boot program.
+EXTERN u16_t runSize;				// Size of this program.
+EXTERN u16_t device;				// Drive being booted from.
 
 typedef struct {			// 8086 vector
 	u16_t offset;
 	u16_t segment;
 } Vector;
 
-Vector bootPartEntry;		// Boot partition table entry.
+EXTERN Vector bootPartEntry;		// Boot partition table entry.
 
 typedef struct {			// One chunk of free memory.
 	u32_t base;				// Start byte.
 	u32_t size;				// Number of bytes.
 } Memory;
 
-Memory memList[3];			// List of available memory.
+EXTERN Memory memList[3];			// List of available memory.
 
-u32_t lowSector;			// Offset to the file system on the boot device.
+EXTERN u32_t lowSector;			// Offset to the file system on the boot device.
 
 // Sticky attributes.
 #define E_SPECIAL	0x01
@@ -62,8 +66,13 @@ typedef struct Environment {
 	char *defValue;
 } Environment;
 
-Environment *env = NULL;	// Lists the environment.
+EXTERN Environment *env;	// Lists the environment.
 
+// Get value of env variable.
+char *getVarValue(char *name);
+
+// Load and start a Minix image.
+void bootMinix();
 
 // Copy bytes from anywhere to anywhere.
 extern void rawCopy(char *newAddr, char *oldAddr, u32_t size);
