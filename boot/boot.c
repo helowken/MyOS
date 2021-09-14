@@ -517,6 +517,11 @@ static Token **tokenize(Token **acmds, char *line) {
 	return acmds;
 }
 
+static u32_t getProcessor() {
+	// TODO
+	return 386;
+}
+
 static void getParameters() {
 	char params[SECTOR_SIZE + 1];
 	int r, videoMode;
@@ -539,7 +544,7 @@ static void getParameters() {
 	setVar(E_SPECIAL|E_VAR|E_DEV, "rootdev", "ram");
 	setVar(E_SPECIAL|E_VAR|E_DEV, "ramimagedev", "bootdev");
 	setVar(E_SPECIAL|E_VAR, "ramsize", "0");
-	//setVar(E_SPECIAL|E_VAR, "processor", );
+	setVar(E_SPECIAL|E_VAR, "processor", ul2a10(getProcessor()));
 	setVar(E_SPECIAL|E_VAR, "bus", busType[getBus()]);
 	setVar(E_SPECIAL|E_VAR, "video", videoType[videoMode]);
 	setVar(E_SPECIAL|E_VAR, "chrome", videoChrome[videoMode & 1]);
@@ -1148,6 +1153,8 @@ void boot() {
 		}
 		monitor();
 	}
-	if(false)printTokens();
+
+	if(false)
+	  printTokens();
 }
 

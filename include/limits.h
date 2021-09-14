@@ -10,4 +10,7 @@
 #define LONG_MIN	(-2147483647L-1)
 #define LONG_MAX	2147483647L
 #define ULONG_MAX	0xFFFFFFFFL
+
+#define NAME_MAX	DIR_SIZE	// chars in a file name
+
 #endif

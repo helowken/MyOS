@@ -1,7 +1,8 @@
 #ifndef _TYPE_H
 #define _TYPE_H
 
-typedef unsigned long	off_t;
+typedef unsigned long	ino_t;		// i-node number of file system
+typedef unsigned long	off_t;		// offset within a file
 
 typedef unsigned char	u8_t;
 typedef unsigned short	u16_t;

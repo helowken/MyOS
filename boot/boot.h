@@ -4,6 +4,7 @@
 #include "sys/types.h"
 
 #define	SECTOR_SIZE		512
+#define	SECTOR_SHIFT	9			// 2^9 = 512
 #define PARAM_SECTOR	1			// Sector containing boot parameters.
 #define ESC				'\33'		// Escape key.
 #define MSEC_PER_TICK	55			// Clock does 18.2 ticks per second. (1000 / 18.2 is about 55)
@@ -74,11 +75,17 @@ char *getVarValue(char *name);
 // Load and start a Minix image.
 void bootMinix();
 
+// Report a read error.
+void readDiskError(off_t sector, int err);
+
 // Copy bytes from anywhere to anywhere.
 extern void rawCopy(char *newAddr, char *oldAddr, u32_t size);
 
 // Switch to a copy of this program.
 extern void relocate();
+
+// True if sector is on a track boundary.
+extern int isDevBoundary(u32_t sector);
 
 // Read 1 or more sectors from "device".
 extern int readSectors(char *buf, u32_t pos, int count);

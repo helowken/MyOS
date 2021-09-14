@@ -1,12 +1,11 @@
 #include "code.h"
 #include "debug.h"
+#include "unistd.h"
 #include "stddef.h"
 #include "stdlib.h"
 #include "string.h"
 #include "limits.h"
 #include "assert.h"
-
-extern void *sbrk(size_t size);
 
 typedef struct Cell {
 	size_t		size;

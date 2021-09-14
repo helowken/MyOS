@@ -65,6 +65,7 @@ halt:
 
 
 #========== Timer Functions ==========
+# u32_t getTick();
 	.globl	getTick
 	.type	getTick, @function
 getTick:
@@ -77,6 +78,7 @@ getTick:
 	popl	%ecx
 	retl
 
+# void pause();
 	.globl	pause				
 	.type	pause, @function
 pause:
@@ -84,6 +86,7 @@ pause:
 	retl
 	
 #========== I/O Functions ==========
+# int getch();
 	.globl	getch
 	.type	getch, @function
 getch:
@@ -114,6 +117,7 @@ getch:
 .gotch:
 	retl
 
+# void ungetch();
 	.globl	ungetch
 	.type	ungetch, @function
 ungetch:
@@ -121,9 +125,11 @@ ungetch:
 	movw	%ax, unchar
 	retl
 
+# void putch(int ch);
 	.globl	putch
 	.type	putch, @function	# Same as kputc
 putch:
+# void kputc(int ch);
 	.globl	kputc
 	.type	kputc, @function
 kputc:							# Called by C printf()
@@ -149,6 +155,7 @@ kputc:							# Called by C printf()
 .noChar:
 	retl
 
+# int escape();
 	.globl	escape
 	.type	escape, @function	# True if ESC has been typed
 escape:
@@ -234,6 +241,7 @@ sbrk:
 	jmp	quit
 
 #========== Dev Functions ==========
+# int getBus();
 	.globl	getBus
 	.type	getBus, @function
 getBus:							# Bus type: XT, AT, MCA
@@ -260,32 +268,49 @@ getBus:							# Bus type: XT, AT, MCA
 	movw	%ax, bus			# Keep bus code, A20 handler likes to know
 	retl	
 
+# int isDevBoundary(u32_t sector);
+	.globl	isDevBoundary
+	.type	isDevBoundary, @function
+isDevBoundary:
+	xorl	%eax, %eax
+	movw	%sp, %bx
+	xorw	%dx, %dx
+	movw	6(%bx), %ax			# Divide high half of sector number (16..31 bits)
+	divw	sectors				# DX:AX % sectors (sectors must be a word so that 
+								# we can place remainder in dx)
+	movw	4(%bx), %ax			# Divide low half of sector number (0..15 bits)
+	divw	sectors				# If dx != 0, it means there is remainder for high half or low half.
+	subw	$1, %dx				# If dx == 0, then CF = 1; else CF = 0
+	sbbw	%ax, %ax			# ax = ax - (ax + CF) = -CF
+	negw	%eax
+	retl
+
 	.type	resetDev, @function
 resetDev:
-	cmpb	$0, devState	# Need reset if devState < 0
+	cmpb	$0, devState		# Need reset if devState < 0
 	jge	.resetDevEnd		
-	xorb	%ah, %ah		# Reset (ah = 0)
-	movb	$0x80, %dl		# All disks (disk starts from 0x80)
+	xorb	%ah, %ah			# Reset (ah = 0)
+	movb	$0x80, %dl			# All disks (disk starts from 0x80)
 	int	$0x13
-	movb	$0, devState	# Set state as "closed"
+	movb	$0, devState		# Set state as "closed"
 .resetDevEnd:
 	retl
 
 	.type	openDev, @function
 openDev:
-	calll	resetDev		# Optionally reset the disks
-	movb	$0, devState	# Set state as "closed"
-	pushw	%es				# Save registers used by BIOS calls
+	calll	resetDev			# Optionally reset the disks
+	movb	$0, devState		# Set state as "closed"
+	pushw	%es					# Save registers used by BIOS calls
 	pushw	%di
-	movb	device, %dl		# dl = the default device
-	cmpb	$0x80, %dl		# Winchester >= 0x80
+	movb	device, %dl			# dl = the default device
+	cmpb	$0x80, %dl			# Winchester >= 0x80
 	jb	.devErr
 .winchester:
-	movb	$0x08, %ah		# Code for drive parameters
-	int	$0x13				# dl still contains drive
+	movb	$0x08, %ah			# Code for drive parameters
+	int	$0x13					# dl still contains drive
 	jc	.devErr				
-	andb	$0x3F, %cl		# cl = max sector number (1-origin)
-	incb	%dh				# dh = 1 + max head number (0-origin)
+	andb	$0x3F, %cl			# cl = max sector number (1-origin)
+	incb	%dh					# dh = 1 + max head number (0-origin)
 .devBoth:
 	movb	%cl, sectors		# sectors per track
 	movb	%cl, %al			# al = sectors per track
@@ -294,16 +319,17 @@ openDev:
 	movb	$1, devState		# Device state is "open"
 	xorw	%ax, %ax			# Return code for success
 .devDone:
-	andl	$0xFFFF, %eax	# Clear high word
-	popw	%di				# Restore di and es registers
+	andl	$0xFFFF, %eax		# Clear high word
+	popw	%di					# Restore di and es registers
 	popw	%es
 	retl
 .devErr:
 	movb	%ah, %al		
-	xorb	%ah, %ah		# ax = BIOS error code
+	xorb	%ah, %ah			# ax = BIOS error code
 	jmp .devDone
 	
 #========== Read/Write Functions ==========
+# int writeSectors(char *buf, u32_t pos, int count);
 	.global	writeSectors
 	.type	writeSectors, @function
 writeSectors:
@@ -312,6 +338,7 @@ writeSectors:
 	movb	$0x03, 17(%ebp)		# Code for a disk write
 	jmp	.rwSectors
 
+# int readSectors(char *buf, u32_t pos, int count);
 	.globl	readSectors
 	.type	readSectors, @function
 readSectors:
@@ -411,7 +438,7 @@ readSectors:
 	leave
 	retl
 
-
+# void rawCopy(char *newAddr, char *oldAddr, u32_t size);
 	.globl	rawCopy
 	.type	rawCopy, @function
 rawCopy:
@@ -484,6 +511,7 @@ rawCopy:
 	leave
 	retl
 
+# void relocate();
 	.globl	relocate
 	.type	relocate, @function
 relocate:
@@ -508,6 +536,7 @@ relocate:
 	retfw						# Return far with cs = cx and ip = bx
 
 #========== Address Functions ==========
+# char* mon2Abs(void *pos);
 	.globl	mon2Abs
 	.type	mon2Abs, @function
 mon2Abs:
@@ -517,6 +546,7 @@ mon2Abs:
 	movw	%ds, %dx
 	jmp	.toAbs
 
+# char* vec2Abs(Vector *vec);
 	.globl	vec2Abs
 	.type	vec2Abs, @function
 vec2Abs:
@@ -570,6 +600,7 @@ restoreVideoMode:
 	addl	$4, %esp
 	retl
 
+# int getVideoMode();
 	.globl	getVideoMode
 	.type	getVideoMode, @function
 getVideoMode:
@@ -619,6 +650,7 @@ setVideoMode:
 	retl
 
 #========== Exit Functions ==========
+# void exit(int status);
 	.globl	exit
 	.type	exit, @function
 exit:
@@ -816,7 +848,7 @@ memBreak:
 	.lcomm	oldVideoMode, 1		# Video mode at startup
 	.lcomm	currVideoMode, 1	# Current video mode
 	.lcomm	devState, 1			# Device state: reset (-1), closed (0), open (1)
-	.lcomm	sectors, 1			# Sectors of current device
+	.lcomm	sectors, 2			# Sectors of current device
 	.lcomm	secsPerCyl, 2		# Sectors per cylinder: (sectors * heads) of current device
 	.lcomm	bus, 2				# Saved retrun value of getBus
 	.lcomm	unchar, 2			# Char returned by ungetch(c)
