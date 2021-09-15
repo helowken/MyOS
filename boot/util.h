@@ -4,7 +4,7 @@
 #include "stdint.h"
 #include "string.h"
 
-#define HEX_BUF_LEN	11	// '0x' + 4B (each byte 2 bits) + '\0'
+#define HEX_BUF_LEN	11		/* '0x' + 4B (each byte 2 bits) + '\0' */
 #define BYTE_BITS	2
 #define SHORT_BITS	4
 #define INT_BITS	8

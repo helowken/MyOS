@@ -8,7 +8,6 @@ MOUNT_POINT = /dev/nbd0
 DEVICE = $(MOUNT_POINT)p1
 # Floppy: ARGS = "file=$(BIN),format=raw,index=0,if=floppy"
 LINUX_LIB = $(MY_HOME)/linuxLib
-INSTALL_BOOT = $(TARGET_DIR)/installboot
 
 
 all: install run
@@ -29,11 +28,8 @@ boot.elf: \
 boot.bin: boot.elf
 	objcopy -O binary -j .text -j .rodata -j .data $< $@ 
 
-$(TARGET_DIR): 
-	mkdir -p $@
-
-installboot: installboot.c $(TARGET_DIR) 
-	$(CC) -o $(INSTALL_BOOT) $< -I$(LINUX_LIB) $(LINUX_LIB)/*.o
+installboot: installboot.c 
+	$(CC) -o $@ $< -I$(LINUX_LIB) $(LINUX_LIB)/*.o
 
 install: \
 	install_masterboot \
@@ -41,18 +37,17 @@ install: \
 	install_bootable
 
 install_masterboot: masterboot.bin installboot
-	$(INSTALL_BOOT) -m $(DISK_IMAGE) $<
+	./installboot -m $(DISK_IMAGE) $<
 
 install_device: bootblock.bin boot.bin installboot
-	sudo $(INSTALL_BOOT) -d $(DEVICE) $< boot.bin
+	sudo ./installboot -d $(DEVICE) $< boot.bin
 
 install_bootable: boot.bin installboot
-	sudo $(INSTALL_BOOT) -b $(DEVICE) $<
+	sudo ./installboot -b $(DEVICE) $<
 
 mount:
 	sudo modprobe nbd
 	sudo qemu-nbd --format=raw --connect=$(MOUNT_POINT) $(DISK_IMAGE)
 
 clean:
-	rm -f *.o *.bin *.elf 
-	rm -rf $(TARGET_DIR)
+	rm -f *.o *.bin *.elf installboot

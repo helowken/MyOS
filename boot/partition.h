@@ -14,11 +14,11 @@ struct partitionEntry {
 	u32_t sectorCount;
 };
 
-#define NR_PARTITIONS		4		// Number of entries in partition table
-#define PART_TABLE_OFF		0x1BE	// Offset of partition table in boot sector
+#define NR_PARTITIONS		4		/* Number of entries in partition table */
+#define PART_TABLE_OFF		0x1BE	/* Offset of partition table in boot sector */
 
 /* Partition types */
-#define INACTIVE_PART		0x00	// Inactive entry
-#define ACTIVE_PART			0x01	// Active entry
+#define INACTIVE_PART		0x00	/* Inactive entry */
+#define ACTIVE_PART			0x01	/* Active entry */
 
 #endif

@@ -1,4 +1,5 @@
 #include "code.h"
+#include "errno.h"
 #include "stdlib.h"
 #include "util.h"
 #include "sys/dir.h"
@@ -11,7 +12,7 @@
 static off_t imageOffset, imageSize;
 static u32_t (*vir2Sec)(u32_t vsec);		
 
-// Simply add an absolute sector offset to vsec.
+/* Simply add an absolute sector offset to vsec. */
 static u32_t flatVir2Sec(u32_t vsec) {
 	return lowSector + imageOffset + vsec;
 }
@@ -23,7 +24,7 @@ static char *selectImage(char *image) {
 	len = (strlen(image) + 1 + NAME_MAX + 1) * sizeof(char);
 	image = strcpy(malloc(len), image);
 
-	// TODO lookup from file system
+	/* TODO lookup from file system */
 	
 	if (numPrefix(image, &size) && 
 				*size++ == ':' &&
@@ -66,39 +67,39 @@ static char *getSector(u32_t vsec) {
 	u32_t sec;
 	int r;
 	static char buf[SECTORS_IN_BUF * SECTOR_SIZE];
-	static size_t count;	// Number of sectors in the buffer.
-	static u32_t bufSec;	// First sector now in the buffer.
+	static size_t count;	/* Number of sectors in the buffer. */
+	static u32_t bufSec;	/* First sector now in the buffer. */
 
 	if (vsec == 0)
-	  count = 0;			// First sector, initialize.
+	  count = 0;			/* First sector, initialize. */
 
 	if ((sec = vir2Sec(vsec)) == -1)
 	  return NULL;
 
 	if (sec == 0) {
-		// There is a hole.
+		/* There is a hole. */
 		count = 0;
 		memset(buf, 0, SECTOR_SIZE);
 		return buf;
 	}
 
 	if (sec - bufSec < count) {
-		// There are still sector(s) in the buffer.
+		/* There are still sector(s) in the buffer. */
 		return buf + ((size_t) (sec - bufSec) << SECTOR_SHIFT);
 	}
 
-	// Not in the buffer.
+	/* Not in the buffer. */
 	count = 0;
 	bufSec = sec;
 
-	// Try to read a whole track if possible.
+	/* Try to read a whole track if possible. */
 	while (++count < SECTORS_IN_BUF && 
 				!isDevBoundary(bufSec + count)) {
 		++vsec;
 		if ((sec = vir2Sec(vsec)) == -1)
 		  break;
 
-		// Consecutive?
+		/* Consecutive? */
 		if (sec != bufSec + count)
 		  break;
 	}
@@ -119,6 +120,7 @@ static void execImage(char *image) {
 	printPrettyImage(image);
 	printf(".\n\n");
 
+	if (false) getSector(0);
 }
 
 void bootMinix() {
@@ -129,8 +131,17 @@ void bootMinix() {
 	  return;
 
 	execImage(image);
-	// TODO handle error
-	
 
+	switch (errno) {
+		case ENOEXEC:
+			printf("%s contains a bad program header\n", image);
+			break;
+		case ENOMEM:
+			printf("Not enough memory to load %s\n", image);
+			break;
+		case EIO:
+			printf("Unsuspected EOF on %s\n", image);
+			break;
+	}
 	free(image);
 }

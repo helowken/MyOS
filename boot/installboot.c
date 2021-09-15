@@ -8,9 +8,9 @@
 #define SIGNATURE_POS		510
 #define SIGNATURE			0XAA55
 #define SECTOR_SIZE			512
-#define BOOT_MAX_SECTORS	80			// bootable max size must be <= 64K
+#define BOOT_MAX_SECTORS	80			/* bootable max size must be <= 64K */
 #define BOOT_SEC_OFF		8
-#define	BOOT_STACK_SIZE		0x2800		// Assume boot code using 10K stack
+#define	BOOT_STACK_SIZE		0x2800		/* Assume boot code using 10K stack */
 
 #define sectorCount(size)	((size + SECTOR_SIZE - 1) / SECTOR_SIZE)
 

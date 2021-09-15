@@ -7,7 +7,7 @@
 #include "partition.h"
 
 #undef EXTERN
-#define EXTERN		// Empty, allocate space for variables
+#define EXTERN			/* Empty, allocate space for variables */
 #include "boot.h"
 
 static char *version = "1.0.0";
@@ -67,7 +67,7 @@ static void rwDiskError(char *rw, off_t sector, int err) {
 				rw, err, biosDiskError(err), sector);
 }
 
-static void readDiskError(off_t sector, int err) {
+void readDiskError(off_t sector, int err) {
 	rwDiskError("Read", sector, err);
 }
 
@@ -86,7 +86,7 @@ static void determineAvailableMemory() {
 			memList[1].base = 0x100000;
 			memList[1].size = low << 10;
 
-			// if adjacent
+			/* if adjacent */
 			if (low == (15 << 10)) {
 				memList[1].size += high << 16;	
 			} else {
@@ -148,7 +148,7 @@ static int getMaster(char *master, struct partitionEntry **table, u32_t pos) {
 	}
 	debug(printPartitionEntry(table));
 
-	// Sort partition entries
+	/* Sort partition entries */
 	n = NR_PARTITIONS;
 	do {
 		for (pt = table; pt < table + NR_PARTITIONS - 1; ++pt) {
@@ -192,19 +192,19 @@ static void initialize() {
 	masterPos = 0;
 	
 	while (true) {
-		// Extract the partition table from the master boot sector.
+		/* Extract the partition table from the master boot sector. */
 		if ((r = getMaster(master, table, masterPos)) != 0) {
 			readDiskError(masterPos, r);
 			exit(1);
 		}
 	
-		// See if we can find "lowSector" back.
+		/* See if we can find "lowSector" back. */
 		for (p = 0; p < NR_PARTITIONS; ++p) {
 			if (lowSector - table[p]->lowSector < table[p]->sectorCount) 
 			  break;
 		}
 
-		// Found!
+		/* Found! */
 		if (lowSector == table[p]->lowSector) {
 			if (bootDev.primary < 0)
 			  bootDev.primary = p;
@@ -220,7 +220,7 @@ static void initialize() {
 			return;
 		}
 	
-		// See if the primary partition is sub-partitioned.
+		/* See if the primary partition is sub-partitioned. */
 		bootDev.primary = p;
 		masterPos = table[p]->lowSector;
 	}
@@ -329,7 +329,7 @@ static void saveParameters() {
 		*addPtr++ = ';';
 	}
 
-	// Save the parameters on disk.
+	/* Save the parameters on disk. */
 	if ((r = writeSectors(mon2Abs(params), lowSector + PARAM_SECTOR, 1)) != 0) {
 		writeDiskError(lowSector + PARAM_SECTOR, r);
 		printf("Can't save environment\n");
@@ -466,7 +466,7 @@ static char *oneToken(char **aline) {
 	size_t n;
 	char *tok;
 
-	// Skip spaces and runs of newlines.
+	/* Skip spaces and runs of newlines. */
 	while (*line == ' ' || (*line == '\n' && line[1] == '\n')) {
 		++line;
 	}
@@ -476,7 +476,7 @@ static char *oneToken(char **aline) {
 	  return NULL;
 
 	if (*line == '(') {
-		// Function argument, anything goes but () must match.
+		/* Function argument, anything goes but () must match. */
 		int depth = 0;
 		while ((unsigned) *line >= ' ') {
 			if (*line == '(') 
@@ -485,10 +485,10 @@ static char *oneToken(char **aline) {
 			  break;
 		}
 	} else if (sugar(line)) {
-		// Single character token.
+		/* Single character token. */
 		++line;	
 	} else {
-		// Multi character token.
+		/* Multi character token. */
 		do {
 			++line;
 		} while ((unsigned) *line > ' ' && !sugar(line));
@@ -497,7 +497,7 @@ static char *oneToken(char **aline) {
 	tok = malloc((n + 1) * sizeof(char));
 	memcpy(tok, *aline, n);
 	tok[n] = 0;
-	if (tok[0] == '\n')		// ';' same as '\n'
+	if (tok[0] == '\n')		/* ';' same as '\n' */
 	  tok[0] = ';';
 	*aline = line;
 	return tok;
@@ -518,7 +518,7 @@ static Token **tokenize(Token **acmds, char *line) {
 }
 
 static u32_t getProcessor() {
-	// TODO
+	/* TODO */
 	return 386;
 }
 
@@ -563,7 +563,7 @@ static void getParameters() {
 	setVar(E_SPECIAL|E_VAR, "label", "AT");
 	setVar(E_SPECIAL|E_VAR, "controller", "c0");
 	
-	// Variables boot needs:
+	/* Variables boot needs: */
 	setVar(E_SPECIAL|E_VAR, "image", "boot/image");
 	setVar(E_SPECIAL|E_FUNCTION, "leader", 
 		"echo --- Welcome to MINIX3. This is the boot monitor. ---\\n");
@@ -572,7 +572,7 @@ static void getParameters() {
 
 	setEnv(E_RESERVED|E_FUNCTION, NULL, "=,Start MINIX", "boot");
 
-	// Tokneize boot params sector.
+	/* Tokneize boot params sector. */
 	if ((r = readSectors(mon2Abs(params), lowSector + PARAM_SECTOR, 1)) != 0) {
 		readDiskError(lowSector + PARAM_SECTOR, r);
 		exit(1);
@@ -580,7 +580,7 @@ static void getParameters() {
 	params[SECTOR_SIZE] = 0;
 	acmds = tokenize(&cmds, params);
 
-	// Stuff the default action into the command chain.
+	/* Stuff the default action into the command chain. */
 	tokenize(acmds, ":;leader;main");
 }
 
@@ -798,7 +798,7 @@ static void execute() {
 	  fourth = third->next;
 
 	if (n == 0) {
-		// Null command.
+		/* Null command. */
 		voidToken();
 		return;
 	} else if ((n == 3 || n == 4) && 
@@ -809,7 +809,7 @@ static void execute() {
 							third->token[0] == 'd' &&
 							!sugar(fourth->token)))
 	) {
-		// name = [device] value.
+		/* name = [device] value. */
 		char *value = third->token;
 		int flags = E_VAR;
 	
@@ -829,10 +829,10 @@ static void execute() {
 	} else if (n >= 3 && 
 				!sugar(name) &&
 				second->token[0] == '(') {
-		 // Function definition.
-		 // For example: 
-		 // 1. a() ls 
-		 // 2. a() {ls /dev}
+		 /* Function definition. */
+		 /* For example: */
+		 /* 1. a() ls */
+		 /* 2. a() {ls /dev} */
 		Token *func;
 		char c;
 		int flags, depth;
@@ -862,14 +862,14 @@ static void execute() {
 			  strcat(body, " ");
 			func = func->next;
 		}
-		// remove ')' from the second token "(...)"
+		/* remove ')' from the second token "(...)" */
 		second->token[strlen(second->token) - 1] = 0;	
 
 		if (depth != 0) {
 			printf("Missing '%c'\n", depth < 0 ? '{' : '}');
 			tokErr = true;
 		} else if (
-				// remove '(' from the second token "(..."
+				/* remove '(' from the second token "(..." */
 				(flags = setEnv(E_FUNCTION, name, second->token + 1, body)) != 0
 		) {	
 			printf("%s is a %s\n", name, 
@@ -882,12 +882,12 @@ static void execute() {
 		free(body);
 		return;
 	} else if (name[0] == '{') {
-		// Grouping
+		/* Grouping */
 		Token *p = cmds->next;
 		char *t;
 		int depth = 1;
 		
-		// Find and remove matching '}'
+		/* Find and remove matching '}' */
 		while (p != NULL) {
 			t = p->token;
 			if (t[0] == '{')
@@ -904,10 +904,10 @@ static void execute() {
 		return;
 	} else if (n >= 1 && 
 				(res == R_UNSET || res == R_ECHO)) {
-		// unset name ..., echo word ...
+		/* unset name ..., echo word ... */
 		char *arg, *p;
 		Environment *e;
-		arg = popToken(); // arg = "unset" or "echo"
+		arg = popToken(); /* arg = "unset" or "echo" */
 		
 		while (true) {
 			free(arg);
@@ -915,10 +915,10 @@ static void execute() {
 			  break;
 			arg = popToken();
 			if (res == R_UNSET) {
-				// unset arg
+				/* unset arg */
 				unset(arg);
 			} else {
-				// echo arg
+				/* echo arg */
 				p = arg;
 				if (*p == '$') {
 					if (*++p == 0)  {
@@ -949,7 +949,7 @@ static void execute() {
 									printf(version);
 									break;
 								case 'c':
-									// TODO clearScreen();
+									/* TODO clearScreen(); */
 									break;
 								case 'w':
 									while (true) {
@@ -973,7 +973,7 @@ static void execute() {
 	} else if (n == 2 && 
 				res == R_BOOT && 
 				second->token[0] == '-') {
-		// boot -opts
+		/* boot -opts */
 		static char *optsVar = "bootopts";
 		setVar(E_VAR, optsVar, second->token);
 		voidToken();
@@ -982,10 +982,10 @@ static void execute() {
 		unset(optsVar);
 		return;
 	} else if (n == 2 && 
-				(res == R_BOOT ||	// boot device
-				 res == R_CTTY ||	// ctty
-				 res == R_DELAY ||	// delay msec
-				 res == R_LS)) {	// ls dir
+				(res == R_BOOT ||	/* boot device */
+				 res == R_CTTY ||	/* ctty */
+				 res == R_DELAY ||	/* delay msec */
+				 res == R_LS)) {	/* ls dir */
 		/*TODO
 		if (res == R_BOOT)
 		  bootDevice(second->token);
@@ -1003,14 +1003,14 @@ static void execute() {
 	} else if (n == 3 && 
 				res == R_TRAP &&
 				numeric(second->token)) {
-		// trap msec command
+		/* trap msec command */
 		long msec = a2l(second->token);
 		voidToken();
 		voidToken();
 		schedule(msec, popToken());
 		return;
 	} else if (n == 1) {
-		// Simple command.
+		/* Simple command. */
 		char *body;
 		bool ok = false;
 		
@@ -1025,7 +1025,7 @@ static void execute() {
 				ok = true;
 				break;
 			case R_LS:
-				//TODO ls(NULL);
+				/* TODO ls(NULL); */
 				ok = true;
 				break;
 			case R_MENU:
@@ -1049,7 +1049,7 @@ static void execute() {
 				ok = true;
 				break;
 			case R_OFF:
-				//TODO off();
+				/* TODO off(); */
 				ok = true;
 				break;
 		}
@@ -1067,14 +1067,14 @@ static void execute() {
 		if (ok)
 		  return;
 	} else {
-		// Syntax error.
+		/* Syntax error. */
 		printf("Can't parse:");
 		while (cmds != sep) {
 			printf(" %s", cmds->token);
 			voidToken();
 		}
 	}
-	// Getting here means that the command is not understand.
+	/* Getting here means that the command is not understand. */
 	printf("\nTry 'help'\n");
 	tokErr = true;
 }
@@ -1113,7 +1113,7 @@ static char *readLine() {
 				--i;
 			} while (c == '\25' || c == '\30');
 		} else if (c < ' ' && c != '\n') {
-			// Send a bell
+			/* Send a bell */
 			putch('\7');
 		} else {
 			putch(c);
@@ -1131,13 +1131,13 @@ static char *readLine() {
 static void monitor() {
 	char *line;
 	
-	//unschedule();
+	/* unschedule(); */
 	tokErr = false;
 	printf("%s>", bootDev.name);
 	line = readLine();
 	tokenize(&cmds, line);
 	free(line);
-	escape();		// Reset esc flag if ESC was pressed.
+	escape();		/* Reset esc flag if ESC was pressed. */
 }
 
 void boot() {
