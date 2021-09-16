@@ -23,7 +23,8 @@ boot.elf: \
 		util.o \
 		boot.o \
 		bootimage.o
-	$(LD) $^ -Ttext 0x0 -m elf_i386 -nostdlib -nmagic -L$(LIB_DIR) $(LIBS) -o $@ 
+	# -nmagic: merge text and data
+	$(LD) $^ -Ttext 0x0 -m elf_i386 -nostdlib -L$(LIB_DIR) $(LIBS) -o $@ 
 
 boot.bin: boot.elf
 	objcopy -O binary -j .text -j .rodata -j .data $< $@ 
@@ -44,6 +45,9 @@ install_device: bootblock.bin boot.bin installboot
 
 install_bootable: boot.bin installboot
 	sudo ./installboot -b $(DEVICE) $<
+
+install_image: installboot
+	sudo ./installboot -i $(ARGS)
 
 mount:
 	sudo modprobe nbd
