@@ -1,7 +1,7 @@
 #!/bin/bash
 
 img=testOS.img
-size=1M
+size=100M
 
 qemu-img create -f raw $img $size
 

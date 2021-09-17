@@ -3,16 +3,15 @@
 
 #include "elf.h"
 
-#define IMAGE_NAME_MAX	63
+#define IMG_NAME_MAX		63
+#define isRX(p)				(((p)->p_flags & PF_R) && ((p)->p_flags & PF_X))
+#define isRW(p)				(((p)->p_flags & PF_R) && ((p)->p_flags & PF_W))
 
 typedef struct {
-	Elf32_Ehdr	elfHeader;				/* ELF header */
-	Elf32_Phdr	progHeaders[2];			/* Program headers, for text and data/bss */
-} Exec;
-
-typedef struct {
-	char	name[IMAGE_NAME_MAX + 1];	/* Null terminated. */
-	Exec	exec;						
+	char	name[IMG_NAME_MAX + 1];		/* Null terminated. */
+	Elf32_Ehdr	ehdr;					/* ELF header */
+	Elf32_Phdr	codeHdr;				/* Program header for text and rodata */
+	Elf32_Phdr	dataHdr;				/* Program header for data and bss */
 } ImageHeader;
 
 #endif

@@ -5,9 +5,19 @@
 #include "sys/dir.h"
 #include "limits.h"
 #include "unistd.h"
+#include "image.h"
 #include "boot.h"
 
-#define SECTORS_IN_BUF	16
+#define BUF_SECTORS	16
+#define PROCESS_MAX	16	
+#define KERNEL		0	/* The first process is the kernel. */	
+
+typedef struct {
+	u32_t	entry;		/* Entry point. */
+	u32_t	cs;			/* Code segment. */
+	u32_t	ds;			/* Data segment. */
+} Process;
+Process procs[PROCESS_MAX];
 
 static off_t imageOffset, imageSize;
 static u32_t (*vir2Sec)(u32_t vsec);		
@@ -66,7 +76,7 @@ static void printPrettyImage(char *image) {
 static char *getSector(u32_t vsec) {
 	u32_t sec;
 	int r;
-	static char buf[SECTORS_IN_BUF * SECTOR_SIZE];
+	static char buf[BUF_SECTORS * SECTOR_SIZE];
 	static size_t count;	/* Number of sectors in the buffer. */
 	static u32_t bufSec;	/* First sector now in the buffer. */
 
@@ -93,7 +103,7 @@ static char *getSector(u32_t vsec) {
 	bufSec = sec;
 
 	/* Try to read a whole track if possible. */
-	while (++count < SECTORS_IN_BUF && 
+	while (++count < BUF_SECTORS && 
 				!isDevBoundary(bufSec + count)) {
 		++vsec;
 		if ((sec = vir2Sec(vsec)) == -1)
@@ -113,14 +123,67 @@ static char *getSector(u32_t vsec) {
 	return buf;
 }
 
+/* Clear "count" bytes at absolute address "addr". */
+static void rawClear(u32_t addr, u32_t count) {
+	static char zeros[128];
+	u32_t dst, zct;
+
+	zct = sizeof(zeros);
+	if (zct > count)
+	  zct = count;
+	rawCopy((char*) addr, mon2Abs(&zeros), zct);
+	count -= zct;
+
+	while (count > 0) {
+		dst = addr + zct;
+		if (zct > count)
+		  zct = count;
+		rawCopy((char *) dst, mon2Abs(&zeros), zct);
+		count -= zct;
+		zct *= 2;
+	}
+}
+
 static void execImage(char *image) {
+	ImageHeader imgHdr;
+	u32_t vsec, addr, limit, imgHdrPos;
+	//Process *procp;
+	size_t hdrLen;
+	int i;
+	char *buf;
+
 	sbrk(0);
 	
 	printf("\nLoading ");
 	printPrettyImage(image);
 	printf(".\n\n");
 
-	if (false) getSector(0);
+	vsec = 0;
+	addr = memList[0].base;
+	limit = addr + memList[0].size;
+	if (limit > caddr)
+	  limit = caddr;
+
+	hdrLen = PROCESS_MAX * sizeof(imgHdr);
+	limit -= hdrLen;
+	imgHdrPos = limit;
+
+	/* Clear the area where the headers will be placed. */
+	rawClear(imgHdrPos, hdrLen);
+	
+	for (i = 0; vsec < imageSize; ++i) {
+		if (i == PROCESS_MAX) {
+			printf("There are more than %d programs in %s\n", PROCESS_MAX, image);
+			errno = 0;
+			return;
+		}
+		//procp = &procs[i];
+
+		while (true) {
+			if ((buf = getSector(vsec++)) == NULL)
+			  return;
+		}
+	}
 }
 
 void bootMinix() {

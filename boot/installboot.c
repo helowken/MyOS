@@ -11,16 +11,16 @@
 #define SIGNATURE			0XAA55
 #define SECTOR_SIZE			512
 #define BOOT_MAX_SECTORS	80			/* bootable max size must be <= 64K */
-#define BOOT_SEC_OFF		8
+#define BOOT_SEC_OFF		8			/* bootable offset in device */
 #define	BOOT_STACK_SIZE		0x2800		/* Assume boot code using 10K stack */
-#define IMAGE_NAME_MAX	63
+#define IMG_NAME_MAX		63
 
-#define sectorCount(size)	((size + SECTOR_SIZE - 1) / SECTOR_SIZE)
+#define align(n)			(((n) + ((SECTOR_SIZE) - 1)) / (SECTOR_SIZE))
 #define isRX(p)				(((p)->p_flags & PF_R) && ((p)->p_flags & PF_X))
 #define isRW(p)				(((p)->p_flags & PF_R) && ((p)->p_flags & PF_W))
 
 typedef struct {
-	char	name[IMAGE_NAME_MAX + 1];	/* Null terminated. */
+	char	name[IMG_NAME_MAX + 1];	/* Null terminated. */
 	Elf32_Ehdr	ehdr;					/* ELF header */
 	Elf32_Phdr	codeHdr;				/* Program header for text and rodata */
 	Elf32_Phdr	dataHdr;				/* Program header for data and bss */
@@ -29,6 +29,7 @@ typedef struct {
 static char *paramsTpl = 
 	"rootdev=%s;"
 	"ramimagedev=%s;"
+	"image=%d:%d;"
 	"minix(1,Start MINIX 3 (requires at least 16 MB RAM)) { "
 		"unset image; boot; "
 	"};"
@@ -52,11 +53,13 @@ static void usage() {
 typedef void (*preCopyFunc)(int destFd, int srcFd);
 
 static void copyTo(char *dest, char *src, char *buf, int len, preCopyFunc func) {
-	int destFd, srcFd;
+	int destFd, srcFd = -1;
 
-	srcFd = open(src, O_RDONLY);
-	if (srcFd == -1)
-	  errExit("open src");
+	if (src != NULL) {
+		srcFd = open(src, O_RDONLY);
+		if (srcFd == -1)
+		  errExit("open src");
+	}
 
 	destFd = open(dest, O_WRONLY);
 	if (destFd == -1)
@@ -65,13 +68,15 @@ static void copyTo(char *dest, char *src, char *buf, int len, preCopyFunc func) 
 	if (func != NULL)
 	  func(destFd, srcFd);
 
-	if (read(srcFd, buf, len) < 0)
-	  errExit("read");
+	if (srcFd != -1) {
+		if (read(srcFd, buf, len) < 0)
+		  errExit("read");
+		close(srcFd);
+	}
 
 	if (write(destFd, buf, len) != len)
 	  errExit("write");
 
-	close(srcFd);
 	close(destFd);
 }
 
@@ -87,39 +92,11 @@ static void installMasterboot(char *device, char *masterboot) {
 	char buf[len];
 	memset(buf, 0, len);
 	copyTo(device, masterboot, buf, len, NULL);
-	//printf("Install %s to %s successfully.\n", masterboot, device);
-}
-
-static void installDevice(char *device, char *bootblock, char *boot) {
-	int addr = BOOT_SEC_OFF;
-	int len = BOOT_BLOCK_LEN + PARAM_LEN;
-	char buf[len];
-	off_t size, bootSize;
-	char *ap;
-
-	memset(buf, 0, BOOT_BLOCK_LEN);
-	memset(&buf[BOOT_BLOCK_LEN], ';', PARAM_LEN);
-	buf[SIGNATURE_POS] = SIGNATURE & 0xFF;
-	buf[SIGNATURE_POS + 1] = (SIGNATURE >> 8) & 0xFF;
-
-	size = getFileSize(bootblock);
-	bootSize = getFileSize(boot);
-	ap = &buf[size];
-	*ap++ = sectorCount(bootSize);
-	*ap++ = addr & 0xFF;
-	*ap++ = (addr >> 8) & 0xFF;
-	*ap++ = (addr >> 16) & 0xFF;
-
-	if (snprintf(&buf[BOOT_BLOCK_LEN], PARAM_LEN, paramsTpl, device, device) < 0)
-		  errExit("snprintf params");
-
-	copyTo(device, bootblock, buf, len - 2, NULL);
-	//printf("Install %s to %s successfully.\n", bootblock, device);
 }
 
 static void installBootable(char *device, char *boot) {
 	off_t size = getFileSize(boot) + BOOT_STACK_SIZE;
-	int sectors = sectorCount(size);
+	int sectors = align(size);
 	if (sectors > BOOT_MAX_SECTORS)
 	  fatal("Bootable size > 64K.");
 	int len = SECTOR_SIZE * sectors;
@@ -180,10 +157,10 @@ static void readHeader(char *procName, FILE *procFile, ImageHeader *imgHdr) {
 	size_t phdrSize, textSize = 0, dataSize = 0, bssSize = 0;
 
 	memset(imgHdr, 0, sizeof(*imgHdr));
-	strncpy(imgHdr->name, procName, IMAGE_NAME_MAX);
+	strncpy(imgHdr->name, procName, IMG_NAME_MAX);
 
-	n = fread(ehdrPtr, sizeof(char), sizeof(*ehdrPtr), procFile);
-	if (ferror(procFile) || n < sizeof(*ehdrPtr))
+	if (fread(ehdrPtr, sizeof(*ehdrPtr), 1, procFile) != 1 || 
+				ferror(procFile))
 	  errExit("fread elf header");
 
 	checkElfHeader(procName, ehdrPtr);
@@ -193,8 +170,8 @@ static void readHeader(char *procName, FILE *procFile, ImageHeader *imgHdr) {
 
 	phdrSize = ehdrPtr->e_phentsize;	
 	for (i = 0; i < ehdrPtr->e_phnum; ++i) {
-		n = fread(&phdr, sizeof(char), phdrSize, procFile);
-		if (ferror(procFile) || n < phdrSize)
+		if (fread(&phdr, phdrSize, 1, procFile) != 1 || 
+					ferror(procFile))
 		  errExit("fread program headers");
 
 		if (phdr.p_type == PT_LOAD) {
@@ -225,14 +202,51 @@ static void readHeader(char *procName, FILE *procFile, ImageHeader *imgHdr) {
 	totalBss += bssSize;
 }
 
-static void makeImage(char *image, char **procNames) {
-	FILE *imageFile, *procFile;
+static char *imgBuf = NULL;
+static size_t bufLen = 3;
+static off_t bufOff = 0;
+
+#define currBuf	(imgBuf + bufOff)
+
+static void adjustBuf(size_t len) {
+	if (bufOff + len > bufLen) {
+		while ((bufLen *= 2) < bufOff + len) {
+		}
+		imgBuf = realloc(imgBuf, bufLen);
+		memset(currBuf, 0, bufLen - bufOff);
+	}
+}
+
+static void bwrite(void *srcBuf, size_t len) {
+	adjustBuf(len);
+	memcpy(currBuf, srcBuf, len);
+	bufOff += len;
+}
+
+static void padImage(size_t len) {
+	adjustBuf(len);
+	memset(currBuf, 0, len);
+	bufOff += len;
+}
+
+static void copyExec(char *procName, FILE *procFile, size_t size) {
+	int padLen = align(size);
+
+	adjustBuf(size);
+	if (fread(currBuf, size, 1, procFile) != 1 || 
+				ferror(procFile))
+		errExit("fread %s", procName);
+	bufOff += size;
+
+	padImage(padLen);
+}
+
+static void makeImage(char *device, off_t offset, char **procNames) {
+	FILE *procFile;
 	char *procName, *file;
 	struct stat st;
+	imgBuf = malloc(bufLen);
 	ImageHeader imgHdr;
-
-	if ((imageFile = fopen(image, "w")) == NULL)
-	  errExit("fopen \"%s\"", image);
 
 	while ((procName = *procNames++) != NULL) {
 		if ((file = strrchr(procName, ':')) != NULL)
@@ -248,7 +262,59 @@ static void makeImage(char *image, char **procNames) {
 		  errExit("fopen \"%s\"", file);
 
 		readHeader(procName, procFile, &imgHdr);
+		bwrite(&imgHdr, sizeof(imgHdr));
+		padImage(SECTOR_SIZE - sizeof(imgHdr));
+
+		if (imgHdr.codeHdr.p_type != PT_NULL)
+		  copyExec(procName, procFile, imgHdr.codeHdr.p_filesz);
+		if (imgHdr.dataHdr.p_type != PT_NULL)
+		  copyExec(procName, procFile, imgHdr.dataHdr.p_filesz);
+
+		fclose(procFile);
 	}
+
+	void func(int destFd, int srcFd) {
+		off_t pos = SECTOR_SIZE * align(offset);
+		if (lseek(destFd, pos, SEEK_SET) == -1)
+		  errExit("lseek dest fd");
+	}
+
+	copyTo(device, NULL, imgBuf, bufOff, func);
+	free(imgBuf);
+
+	printf("   ------   ------   ------   ------\n");
+	printf(" %8ld %8ld %8ld %8ld	total\n", totalText, totalData, totalBss, 
+				totalText + totalData + totalBss);
+}
+
+static void installDevice(char *device, char *bootblock, char *boot, char **procNames) {
+	int addr = BOOT_SEC_OFF;
+	int len = BOOT_BLOCK_LEN + PARAM_LEN;
+	char buf[len];
+	off_t size, bootSize;
+	char *ap;
+
+	memset(buf, 0, BOOT_BLOCK_LEN);
+	memset(&buf[BOOT_BLOCK_LEN], ';', PARAM_LEN);
+	buf[SIGNATURE_POS] = SIGNATURE & 0xFF;
+	buf[SIGNATURE_POS + 1] = (SIGNATURE >> 8) & 0xFF;
+
+	size = getFileSize(bootblock);
+	bootSize = getFileSize(boot);
+	ap = &buf[size];
+	*ap++ = align(bootSize);
+	*ap++ = addr & 0xFF;
+	*ap++ = (addr >> 8) & 0xFF;
+	*ap++ = (addr >> 16) & 0xFF;
+
+	// TODO set image off:size
+	if (snprintf(&buf[BOOT_BLOCK_LEN], PARAM_LEN, paramsTpl, 
+					device, device) < 0)
+		  errExit("snprintf params");
+
+	copyTo(device, bootblock, buf, len, NULL);
+
+	makeImage(device, len, procNames);
 }
 
 static bool isOpt(char *opt, char *test) {
@@ -264,10 +330,8 @@ int main(int argc, char *argv[]) {
 
 	if (isOpt(argv[1], "-master"))
 	  installMasterboot(argv[2], argv[3]);
-	else if (argc >= 4 && isOpt(argv[1], "-image"))
-	  makeImage(argv[2], argv + 3);
 	else if (argc >= 5 && isOpt(argv[1], "-device"))
-	  installDevice(argv[2], argv[3], argv[4]);
+	  installDevice(argv[2], argv[3], argv[4], argv + 5);
 	else if (isOpt(argv[1], "-bootable"))
 	  installBootable(argv[2], argv[3]);
 	else 

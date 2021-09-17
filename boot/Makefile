@@ -41,17 +41,17 @@ install_masterboot: masterboot.bin installboot
 	./installboot -m $(DISK_IMAGE) $<
 
 install_device: bootblock.bin boot.bin installboot
-	sudo ./installboot -d $(DEVICE) $< boot.bin
+	sudo ./installboot -d $(DEVICE) $< boot.bin $(ARGS)
 
 install_bootable: boot.bin installboot
 	sudo ./installboot -b $(DEVICE) $<
 
-install_image: installboot
-	sudo ./installboot -i $(ARGS)
-
 mount:
 	sudo modprobe nbd
 	sudo qemu-nbd --format=raw --connect=$(MOUNT_POINT) $(DISK_IMAGE)
+
+unmount:
+	sudo qemu-nbd -d $(MOUNT_POINT)
 
 clean:
 	rm -f *.o *.bin *.elf installboot
