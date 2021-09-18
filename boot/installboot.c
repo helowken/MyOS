@@ -1,37 +1,35 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <stdio.h>
-#include <elf.h>
+#include <sys/types.h>
+#include "image.h"
+#include "partition.h"
 #include "tlpi_hdr.h"
 
 #define MASTER_BOOT_LEN		440
 #define BOOT_BLOCK_LEN		512
+#define PARAM_SEC_OFF		1
 #define PARAM_LEN			512
 #define SIGNATURE_POS		510
 #define SIGNATURE			0XAA55
 #define SECTOR_SIZE			512
-#define BOOT_MAX_SECTORS	80			/* bootable max size must be <= 64K */
+#define BOOT_MAX_SECTORS	0x80		/* bootable max size must be <= 64K */
 #define BOOT_SEC_OFF		8			/* bootable offset in device */
 #define	BOOT_STACK_SIZE		0x2800		/* Assume boot code using 10K stack */
-#define IMG_NAME_MAX		63
 
-#define align(n)			(((n) + ((SECTOR_SIZE) - 1)) / (SECTOR_SIZE))
+#define SECTORS(n)			(((n) + ((SECTOR_SIZE) - 1)) / (SECTOR_SIZE))
 #define isRX(p)				(((p)->p_flags & PF_R) && ((p)->p_flags & PF_X))
 #define isRW(p)				(((p)->p_flags & PF_R) && ((p)->p_flags & PF_W))
-
-typedef struct {
-	char	name[IMG_NAME_MAX + 1];	/* Null terminated. */
-	Elf32_Ehdr	ehdr;					/* ELF header */
-	Elf32_Phdr	codeHdr;				/* Program header for text and rodata */
-	Elf32_Phdr	dataHdr;				/* Program header for data and bss */
-} ImageHeader;
+#define OFFSET(n)			((n) * (SECTOR_SIZE))
+#define ALIGN(n)			(((n) + ((SECTOR_SIZE) - 1)) & ~((SECTOR_SIZE) - 1))
 
 static char *paramsTpl = 
 	"rootdev=%s;"
 	"ramimagedev=%s;"
-	"image=%d:%d;"
+	"%s"
 	"minix(1,Start MINIX 3 (requires at least 16 MB RAM)) { "
-		"unset image; boot; "
+	//	"unset image; "
+		"boot; "
 	"};"
 	"main() { "
 		"echo By default, MINIX 3 will automatically load in 3 seconds.; "
@@ -40,6 +38,7 @@ static char *paramsTpl =
 		"menu; "
 	"};";
 
+static char *imgTpl = "image=%d:%d;";
 
 static void usage() {
 	fprintf(stderr,
@@ -50,34 +49,50 @@ static void usage() {
 	exit(1);
 }
 
+static uint32_t getLowSector(int deviceFd) {
+	int i, activeCount = 0;
+	PartitionEntry pe;
+	uint32_t lba;
+
+	if (lseek(deviceFd, PART_TABLE_OFF, SEEK_SET) == -1)
+	  errExit("lseek partition table");
+	
+	for (i = 0; i < NR_PARTITIONS; ++i) {
+		if (read(deviceFd, &pe, sizeof(pe)) != sizeof(pe))
+		  errExit("read partition %d from device", i);
+		//printf("%d, %u, %u, %u\n", i, pe.status, pe.type, pe.lowSector);
+		if (BOOTABLE(&pe)) {
+			if (activeCount++ > 0)
+			  fatal("more than 1 active partition");
+			lba = pe.lowSector;
+		}
+	}
+	if (activeCount == 0)
+	  fatal("no active partition found");
+
+	return lba;
+}
+
 typedef void (*preCopyFunc)(int destFd, int srcFd);
 
-static void copyTo(char *dest, char *src, char *buf, int len, preCopyFunc func) {
-	int destFd, srcFd = -1;
+static int Open(char *fileName, int flags) {
+	int fd;
 
-	if (src != NULL) {
-		srcFd = open(src, O_RDONLY);
-		if (srcFd == -1)
-		  errExit("open src");
-	}
+	if ((fd = open(fileName, flags)) == -1)
+	  errExit("open %s", fileName);
+	return fd;
+}
 
-	destFd = open(dest, O_WRONLY);
-	if (destFd == -1)
-	  errExit("open dest");
+static int ROpen(char *fileName) {
+	return Open(fileName, O_RDONLY);
+}
 
-	if (func != NULL)
-	  func(destFd, srcFd);
+static int WOpen(char *fileName) {
+	return Open(fileName, O_WRONLY);
+}
 
-	if (srcFd != -1) {
-		if (read(srcFd, buf, len) < 0)
-		  errExit("read");
-		close(srcFd);
-	}
-
-	if (write(destFd, buf, len) != len)
-	  errExit("write");
-
-	close(destFd);
+static int RWOpen(char *fileName) {
+	return Open(fileName, O_RDWR);
 }
 
 static off_t getFileSize(char *pathName) {
@@ -87,29 +102,65 @@ static off_t getFileSize(char *pathName) {
 	return sb.st_size;
 }
 
+static ssize_t Read(char *fileName, int fd, char *buf, size_t len) {
+	ssize_t count;
+
+	if ((count = read(fd, buf, len)) == -1)
+	  errExit("read %s", fileName);
+	return count;
+}
+
+static void Write(char *fileName, int fd, char *buf, size_t len) {
+	if (write(fd, buf, len) != len)
+	  errExit("write %s", fileName);
+}
+
+static void Lseek(char *fileName, int fd, off_t offset) {
+	if (lseek(fd, offset, SEEK_SET) == -1)
+	  errExit("lseek %s", fileName);
+}
+
+static void Close(char *fileName, int fd) {
+	if (close(fd) == -1)
+	  errExit("close %s", fileName);
+}
+
 static void installMasterboot(char *device, char *masterboot) {
-	int len = MASTER_BOOT_LEN;
-	char buf[len];
-	memset(buf, 0, len);
-	copyTo(device, masterboot, buf, len, NULL);
+	int deviceFd, mbrFd;
+	char buf[MASTER_BOOT_LEN];
+
+	memset(buf, 0, MASTER_BOOT_LEN);
+	deviceFd = WOpen(device);
+	mbrFd = ROpen(masterboot);
+	Read(masterboot, mbrFd, buf, MASTER_BOOT_LEN);
+	Write(device, deviceFd, buf, MASTER_BOOT_LEN);
+	Close(masterboot, mbrFd);
+	Close(device, deviceFd);
 }
 
 static void installBootable(char *device, char *boot) {
-	off_t size = getFileSize(boot) + BOOT_STACK_SIZE;
-	int sectors = align(size);
+	off_t size;
+	int deviceFd, bootFd, sectors;
+	uint32_t lba;
+
+	size = getFileSize(boot) + BOOT_STACK_SIZE;
+	sectors = SECTORS(size);
 	if (sectors > BOOT_MAX_SECTORS)
 	  fatal("Bootable size > 64K.");
-	int len = SECTOR_SIZE * sectors;
+
+	int len = OFFSET(sectors);
 	char buf[len];
+
 	memset(buf, 0, len);
+	bootFd = ROpen(boot);
+	Read(boot, bootFd, buf, len);
+	Close(boot, bootFd);
 
-	void func(int destFd, int srcFd) {
-		off_t pos = SECTOR_SIZE * BOOT_SEC_OFF;
-		if (lseek(destFd, pos, SEEK_SET) == -1)
-		  errExit("lseek dest fd");
-	}
-
-	copyTo(device, boot, buf, len, func);
+	deviceFd = RWOpen(device);
+	lba = getLowSector(deviceFd);
+	Lseek(device, deviceFd, OFFSET(BOOT_SEC_OFF + lba));
+	Write(device, deviceFd, buf, len);
+	Close(device, deviceFd);
 }
 
 static void checkElfHeader(char *procName, Elf32_Ehdr *ehdrPtr) {
@@ -131,21 +182,6 @@ static void checkElfHeader(char *procName, Elf32_Ehdr *ehdrPtr) {
 	if (ehdrPtr->e_type != ET_EXEC)
 	  fatal("%s is not an executable.\n", procName);
 }
-
-/*
-static void printProgramHeader(Elf32_Phdr *phdrPtr) {
-	if (phdrPtr->p_type != PT_NULL) {
-		printf("type: %d\n", phdrPtr->p_type);
-		printf("offset: %d\n", phdrPtr->p_offset);
-		printf("vaddr: %d\n", phdrPtr->p_vaddr);
-		printf("paddr: %d\n", phdrPtr->p_paddr);
-		printf("filesz: %d\n", phdrPtr->p_filesz);
-		printf("memsz: %d\n", phdrPtr->p_memsz);
-		printf("flags: %d\n", phdrPtr->p_flags);
-		printf("type: %d\n", phdrPtr->p_align);
-	}
-}
-*/
 
 static long totalText = 0, totalData = 0, totalBss = 0;
 
@@ -230,23 +266,39 @@ static void padImage(size_t len) {
 }
 
 static void copyExec(char *procName, FILE *procFile, size_t size) {
-	int padLen = align(size);
+	int padLen = ALIGN(size);
 
 	adjustBuf(size);
-	if (fread(currBuf, size, 1, procFile) != 1 || 
-				ferror(procFile))
-		errExit("fread %s", procName);
+
+	if (fread(currBuf, size, 1, procFile) != 1 || ferror(procFile))
+	  errExit("fread %s", procName);
+
 	bufOff += size;
 
 	padImage(padLen);
 }
 
-static void makeImage(char *device, off_t offset, char **procNames) {
+static void installParams(char *device, int deviceFd, uint32_t lba, char *other) {
+	char buf[PARAM_LEN];
+
+	memset(buf, ';', PARAM_LEN);
+	if (snprintf(buf, PARAM_LEN, paramsTpl, device, device, other) < 0)
+	  errExit("snprintf params");
+
+	Lseek(device, deviceFd, OFFSET(lba + PARAM_SEC_OFF));
+	Write(device, deviceFd, buf, PARAM_LEN);
+}
+
+static void installImage(char *device, char **procNames) {
 	FILE *procFile;
-	char *procName, *file;
+#define IMG_STR_LEN	50
+	char *procName, *file, imgStr[IMG_STR_LEN];
 	struct stat st;
 	imgBuf = malloc(bufLen);
 	ImageHeader imgHdr;
+	uint32_t lba;
+	off_t secOff;
+	int deviceFd, n;
 
 	while ((procName = *procNames++) != NULL) {
 		if ((file = strrchr(procName, ':')) != NULL)
@@ -272,49 +324,66 @@ static void makeImage(char *device, off_t offset, char **procNames) {
 
 		fclose(procFile);
 	}
-
-	void func(int destFd, int srcFd) {
-		off_t pos = SECTOR_SIZE * align(offset);
-		if (lseek(destFd, pos, SEEK_SET) == -1)
-		  errExit("lseek dest fd");
-	}
-
-	copyTo(device, NULL, imgBuf, bufOff, func);
-	free(imgBuf);
-
 	printf("   ------   ------   ------   ------\n");
 	printf(" %8ld %8ld %8ld %8ld	total\n", totalText, totalData, totalBss, 
 				totalText + totalData + totalBss);
+
+	deviceFd = RWOpen(device);
+	lba = getLowSector(deviceFd);
+	secOff = lba + BOOT_SEC_OFF + BOOT_MAX_SECTORS;
+	Lseek(device, deviceFd, OFFSET(secOff));
+	Write(device, deviceFd, imgBuf, bufOff);
+	free(imgBuf);
+
+	if ((n = snprintf(imgStr, IMG_STR_LEN, imgTpl, SECTORS(bufOff), secOff)) < 0)
+	  fatal("create image string");
+	imgStr[n] = '\0';
+	installParams(device, deviceFd, lba, imgStr);
+
+	Close(device, deviceFd);
 }
 
-static void installDevice(char *device, char *bootblock, char *boot, char **procNames) {
+static void installDevice(char *device, char *bootblock, char *boot) {
 	int addr = BOOT_SEC_OFF;
-	int len = BOOT_BLOCK_LEN + PARAM_LEN;
-	char buf[len];
-	off_t size, bootSize;
+	char buf[BOOT_BLOCK_LEN];
+	int deviceFd, bootblockFd;
+	ssize_t size;
+	off_t bootSize;
 	char *ap;
+	uint32_t lba;
 
 	memset(buf, 0, BOOT_BLOCK_LEN);
-	memset(&buf[BOOT_BLOCK_LEN], ';', PARAM_LEN);
-	buf[SIGNATURE_POS] = SIGNATURE & 0xFF;
-	buf[SIGNATURE_POS + 1] = (SIGNATURE >> 8) & 0xFF;
 
-	size = getFileSize(bootblock);
+	bootblockFd = ROpen(bootblock);
+	size = Read(bootblock, bootblockFd, buf, BOOT_BLOCK_LEN);
+	Close(bootblock, bootblockFd);
+
+	/* Append boot size and address. */
 	bootSize = getFileSize(boot);
 	ap = &buf[size];
-	*ap++ = align(bootSize);
+	*ap++ = SECTORS(bootSize);
 	*ap++ = addr & 0xFF;
 	*ap++ = (addr >> 8) & 0xFF;
 	*ap++ = (addr >> 16) & 0xFF;
 
-	// TODO set image off:size
-	if (snprintf(&buf[BOOT_BLOCK_LEN], PARAM_LEN, paramsTpl, 
-					device, device) < 0)
-		  errExit("snprintf params");
+	/* The last two bytes is signature. */
+	buf[SIGNATURE_POS] = SIGNATURE & 0xFF;
+	buf[SIGNATURE_POS + 1] = (SIGNATURE >> 8) & 0xFF;
 
-	copyTo(device, bootblock, buf, len, NULL);
+	/* Get the first sector absolute address of the bootable partition. */
+	deviceFd = RWOpen(device);
+	lba = getLowSector(deviceFd);
+	/* Move to LBA. */
+	if (lseek(deviceFd, OFFSET(lba), SEEK_SET) == -1)
+	  errExit("lseek %s", device);
+	/* Write bootblock to device. */
+	if (write(deviceFd, buf, BOOT_BLOCK_LEN) != BOOT_BLOCK_LEN)
+	  errExit("write bootblock to %s", device);
 
-	makeImage(device, len, procNames);
+	/* Install params. */
+	installParams(device, deviceFd, lba, "");
+
+	Close(device, deviceFd);
 }
 
 static bool isOpt(char *opt, char *test) {
@@ -330,8 +399,10 @@ int main(int argc, char *argv[]) {
 
 	if (isOpt(argv[1], "-master"))
 	  installMasterboot(argv[2], argv[3]);
+	else if (isOpt(argv[1], "-image"))
+	  installImage(argv[2], argv + 3);
 	else if (argc >= 5 && isOpt(argv[1], "-device"))
-	  installDevice(argv[2], argv[3], argv[4], argv + 5);
+	  installDevice(argv[2], argv[3], argv[4]);
 	else if (isOpt(argv[1], "-bootable"))
 	  installBootable(argv[2], argv[3]);
 	else 

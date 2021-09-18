@@ -19,12 +19,12 @@ typedef struct {
 } Process;
 Process procs[PROCESS_MAX];
 
-static off_t imageOffset, imageSize;
+static off_t imgOff, imgSize;
 static u32_t (*vir2Sec)(u32_t vsec);		
 
 /* Simply add an absolute sector offset to vsec. */
 static u32_t flatVir2Sec(u32_t vsec) {
-	return lowSector + imageOffset + vsec;
+	return lowSector + imgOff + vsec;
 }
 
 static char *selectImage(char *image) {
@@ -40,8 +40,8 @@ static char *selectImage(char *image) {
 				*size++ == ':' &&
 				numeric(size)) {
 		vir2Sec = flatVir2Sec;
-		imageOffset = a2l(image);
-		imageSize = a2l(size);
+		imgOff = a2l(image);
+		imgSize = a2l(size);
 		strcpy(image, "Minix/3.0.1r10");
 		return image;
 	}
@@ -171,7 +171,7 @@ static void execImage(char *image) {
 	/* Clear the area where the headers will be placed. */
 	rawClear(imgHdrPos, hdrLen);
 	
-	for (i = 0; vsec < imageSize; ++i) {
+	for (i = 0; vsec < imgSize; ++i) {
 		if (i == PROCESS_MAX) {
 			printf("There are more than %d programs in %s\n", PROCESS_MAX, image);
 			errno = 0;
@@ -187,13 +187,16 @@ static void execImage(char *image) {
 }
 
 void bootMinix() {
-	char *imageName, *image;
+	char *imgName, *image;
 
-	imageName = getVarValue("image");
-	if ((image = selectImage(imageName)) == NULL)
+	imgName = getVarValue("image");
+	if ((image = selectImage(imgName)) == NULL)
 	  return;
+	printf("aa: %s, %d, %d\n", image, imgOff, imgSize);
 
+	if (false) {
 	execImage(image);
+	}
 
 	switch (errno) {
 		case ENOEXEC:

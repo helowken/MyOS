@@ -37,14 +37,14 @@ void *malloc(size_t size) {
 	if (size < sizeof(Cell_t))
 	  size = sizeof(Cell_t);
 
-	// Align
+	/* Align */
 	size = (size + sizeof(int) - 1) & ~(sizeof(int) - 1);
 
-	// Space for a magic number at the end of the chunk.
+	/* Space for a magic number at the end of the chunk. */
 	debug(size += sizeof(unsigned));
 
 	for (;;) {
-		// Do a first fit search.
+		/* Do a first fit search. */
 		pcp = &freeList;
 
 		while ((cp = *pcp) != NULL) {
@@ -52,13 +52,13 @@ void *malloc(size_t size) {
 			assert(cp->magic == MAGIC);
 			
 			if (offset(cp, cp->size) == next) {
-				// Join ajacent free cells.
+				/* Join ajacent free cells. */
 				assert(next->magic == MAGIC);
 				cp->size += next->size;
 				cp->next = next->next;
 				continue;
 			}
-			// Big enough?
+			/* Big enough? */
 			if (cp->size >= size)
 			  break;
 			pcp = &cp->next;
@@ -67,18 +67,21 @@ void *malloc(size_t size) {
 		if (cp != NULL)
 		  break;
 
-		// Allocate a new chunk at the break.
+		/* Allocate a new chunk at the break. */
 		if ((cp = (Cell_t *) sbrk(size)) == (Cell_t *) -1)
 		  return NULL;
 
 		cp->size = size;
 		cp->next = NULL;
 		debug(cp->magic = MAGIC);
-		// add to tail, then try to merge this new chunk with adjacent cells at next round.
+		/* 
+		 * add to tail, then try to merge this new chunk 
+		 * with adjacent cells at next round. 
+		 */
 		*pcp = cp;
 	}
 
-	// if it is big enough, break it up.
+	/* if it is big enough, break it up. */
 	if (cp->size >= size + sizeof(Cell_t)) {
 		next = offset(cp, size);
 		next->size = cp->size - size;
@@ -90,7 +93,7 @@ void *malloc(size_t size) {
 
 	*pcp = cp->next;
 	debug(memset(cell2obj(cp), 0xAA, cp->size - HDR_SIZE));
-	// Set magic at the end of the chunk.
+	/* Set magic at the end of the chunk. */
 	debug(((unsigned *) offset(cp, cp->size))[-1] = MAGIC);
 
 	return cell2obj(cp);
@@ -106,14 +109,14 @@ void free(void *op) {
 	assert(cp->magic == MAGIC);
 	assert(((unsigned *) offset(cp, cp->size))[-1] == MAGIC);
 
-	// order by address so that merge can be done the next time.
+	/* order by address so that merge can be done the next time. */
 	prev = &freeList;
 	while ((next = *prev) != NULL && next < cp) {
 		assert(next->magic == MAGIC);
 		prev = &next->next;
 	}
 
-	// Put the new free cell in the list.
+	/* Put the new free cell in the list. */
 	*prev = cp;
 	cp->next = next;
 

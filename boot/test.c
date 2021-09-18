@@ -30,8 +30,8 @@ static void testPrint() {
 	println("========== Test end ===============\n");
 }
 
-static void printPartitionEntry(struct partitionEntry **table) {
-	struct partitionEntry **pt, *pe;
+static void printPartitionEntry(PartitionEntry **table) {
+	PartitionEntry **pt, *pe;
 
 	printf("  Status  StHead  StSec  StCyl  Type  EdHead  EdSec  EdCyl  LowSec  Count\n");
 	for (pt = table; pt < table + NR_PARTITIONS; ++pt) {

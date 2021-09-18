@@ -136,24 +136,22 @@ static struct biosDev {
 	int device, primary, secondary;
 } bootDev;
 
-static int getMaster(char *master, struct partitionEntry **table, u32_t pos) {
+static int getMaster(char *master, PartitionEntry **table, u32_t pos) {
 	int r, n;
-	struct partitionEntry *pe, **pt;
+	PartitionEntry *pe, **pt;
 	if ((r = readSectors(mon2Abs(master), pos, 1)) != 0)
 	  return r;
 
-	pe = (struct partitionEntry *) (master + PART_TABLE_OFF);
+	pe = (PartitionEntry *) (master + PART_TABLE_OFF);
 	for (pt = table; pt < table + NR_PARTITIONS; ++pt) {
 		*pt = pe++;
 	}
-	debug(printPartitionEntry(table));
 
 	/* Sort partition entries */
 	n = NR_PARTITIONS;
 	do {
 		for (pt = table; pt < table + NR_PARTITIONS - 1; ++pt) {
-			if (pt[0]->status == INACTIVE_PART || 
-						pt[0]->lowSector < pt[1]->lowSector) {
+			if (BOOTABLE(pt[0]) || pt[0]->lowSector < pt[1]->lowSector) {
 				pe = pt[0];
 				pt[0] = pt[1];
 				pt[1] = pe;
@@ -167,7 +165,7 @@ static int getMaster(char *master, struct partitionEntry **table, u32_t pos) {
 static void initialize() {
 	int r, p;
 	char master[SECTOR_SIZE];
-	struct partitionEntry *table[NR_PARTITIONS];
+	PartitionEntry *table[NR_PARTITIONS];
 	u32_t masterPos;
 
 	copyToFarAway();
@@ -183,11 +181,8 @@ static void initialize() {
 	}
 
 	rawCopy(mon2Abs(&lowSector),
-		vec2Abs(&bootPartEntry) + offsetof(struct partitionEntry, lowSector),
+		vec2Abs(&bootPartEntry) + offsetof(PartitionEntry, lowSector),
 		sizeof(lowSector));
-
-	debug(printf("device: 0x%x\n", device));
-	debug(printf("low sector: %x\n", lowSector));
 
 	masterPos = 0;
 	
@@ -215,7 +210,7 @@ static void initialize() {
 		
 		if (p == NR_PARTITIONS || 
 					bootDev.primary >= 0 ||
-					table[p]->status != ACTIVE_PART) {
+					BOOTABLE(table[p])) {
 			bootDev.device = -1;
 			return;
 		}
@@ -232,11 +227,6 @@ static void initialize() {
 		strcat(bootDev.name, "s0");
 		bootDev.name[5] += bootDev.secondary;
 	}
-
-	debug(printf("bootDev name: %s\n", bootDev.name));
-	debug(testPrint());
-	debug(printRangeHex((char *) &x_gdt, 48, 8));
-	debug(testMalloc());
 }
 
 enum ReservedNameEnum {
@@ -537,9 +527,6 @@ static void getParameters() {
 		"mono", "color"
 	};
 	videoMode = getVideoMode();
-
-	debug(printf("Bus type: %x\n", getBus()));
-	debug(printf("Video mode: %d\n", getVideoMode()));
 
 	setVar(E_SPECIAL|E_VAR|E_DEV, "rootdev", "ram");
 	setVar(E_SPECIAL|E_VAR|E_DEV, "ramimagedev", "bootdev");
@@ -1131,7 +1118,7 @@ static char *readLine() {
 static void monitor() {
 	char *line;
 	
-	/* unschedule(); */
+	unschedule();
 	tokErr = false;
 	printf("%s>", bootDev.name);
 	line = readLine();
@@ -1141,8 +1128,6 @@ static void monitor() {
 }
 
 void boot() {
-	debug(printf("device addr: %x, device: %x\n", &device, device));
-
 	determineAvailableMemory();
 	initialize();
 	getParameters();

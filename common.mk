@@ -1,6 +1,5 @@
 export ARFLAGS = rvU
 
-TARGET_DIR = target
 INC = $(MY_HOME)/include
 INC_SYS = $(INC)/sys
 INCLUDE = -I$(INC) -I$(INC_SYS)
@@ -17,12 +16,11 @@ endif
 C_SOURCE = $(wildcard *.c)
 HEADERS = $(wildcard *.h $(INC)/*.h $(INC_SYS)/*.h)
 
-
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) $< -o $@
 
 %.o: %.s
 	$(AS) --32 $< -o $@
   
-.PHONY:	clean
+.PHONY:	clean 
 

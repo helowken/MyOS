@@ -4,10 +4,9 @@ include $(MY_HOME)/common.mk
 LIB_DIR = $(MY_HOME)/lib/m16
 LIBS = -lmyc -lmysysutil
 DISK_IMAGE = device/testOS.img
-MOUNT_POINT = /dev/nbd0
-DEVICE = $(MOUNT_POINT)p1
 # Floppy: ARGS = "file=$(BIN),format=raw,index=0,if=floppy"
 LINUX_LIB = $(MY_HOME)/linuxLib
+INSTALL_BOOT = installboot.bin
 
 
 all: install run
@@ -30,28 +29,28 @@ boot.bin: boot.elf
 	objcopy -O binary -j .text -j .rodata -j .data $< $@ 
 
 installboot: installboot.c 
-	$(CC) -o $@ $< -I$(LINUX_LIB) $(LINUX_LIB)/*.o
+	$(CC) -o $(INSTALL_BOOT) $< -I$(LINUX_LIB) $(LINUX_LIB)/*.o
 
 install: \
 	install_masterboot \
 	install_device \
-	install_bootable
+	install_bootable \
+	install_image
 
 install_masterboot: masterboot.bin installboot
-	./installboot -m $(DISK_IMAGE) $<
+	./$(INSTALL_BOOT) -m $(DISK_IMAGE) $<
 
 install_device: bootblock.bin boot.bin installboot
-	sudo ./installboot -d $(DEVICE) $< boot.bin $(ARGS)
+	./$(INSTALL_BOOT) -d $(DISK_IMAGE) $< boot.bin 
 
 install_bootable: boot.bin installboot
-	sudo ./installboot -b $(DEVICE) $<
+	./$(INSTALL_BOOT) -b $(DISK_IMAGE) $<
 
-mount:
-	sudo modprobe nbd
-	sudo qemu-nbd --format=raw --connect=$(MOUNT_POINT) $(DISK_IMAGE)
+install_image: installboot
+	./$(INSTALL_BOOT) -i $(DISK_IMAGE) ../kernel/kernel boot.elf
 
-unmount:
-	sudo qemu-nbd -d $(MOUNT_POINT)
+reset:
+	cd device && ./run && cd ..
 
 clean:
-	rm -f *.o *.bin *.elf installboot
+	rm -f *.o *.bin *.elf 

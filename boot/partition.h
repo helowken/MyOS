@@ -1,24 +1,22 @@
 #ifndef _PARTITION_H
 #define _PARTITION_H
 
-struct partitionEntry {
-	u8_t status;
-	u8_t startHead;
-	u8_t startSector;
-	u8_t startCylinder;
-	u8_t type;
-	u8_t lastHead;
-	u8_t lastSector;
-	u8_t lastCylinder;
-	u32_t lowSector;
-	u32_t sectorCount;
-};
+typedef struct {
+	uint8_t status;
+	uint8_t startHead;
+	uint8_t startSector;
+	uint8_t startCylinder;
+	uint8_t type;
+	uint8_t lastHead;
+	uint8_t lastSector;
+	uint8_t lastCylinder;
+	uint32_t lowSector;
+	uint32_t sectorCount;
+} PartitionEntry;
 
 #define NR_PARTITIONS		4		/* Number of entries in partition table */
 #define PART_TABLE_OFF		0x1BE	/* Offset of partition table in boot sector */
 
-/* Partition types */
-#define INACTIVE_PART		0x00	/* Inactive entry */
-#define ACTIVE_PART			0x01	/* Active entry */
+#define BOOTABLE(p)			((p)->status & 0x80)	/* Is it bootable */
 
 #endif
