@@ -330,12 +330,12 @@ static void installImage(char *device, char **procNames) {
 
 	deviceFd = RWOpen(device);
 	lba = getLowSector(deviceFd);
-	secOff = lba + BOOT_SEC_OFF + BOOT_MAX_SECTORS;
-	Lseek(device, deviceFd, OFFSET(secOff));
+	secOff = BOOT_SEC_OFF + BOOT_MAX_SECTORS;
+	Lseek(device, deviceFd, OFFSET(lba + secOff));
 	Write(device, deviceFd, imgBuf, bufOff);
 	free(imgBuf);
 
-	if ((n = snprintf(imgStr, IMG_STR_LEN, imgTpl, SECTORS(bufOff), secOff)) < 0)
+	if ((n = snprintf(imgStr, IMG_STR_LEN, imgTpl, secOff, SECTORS(bufOff))) < 0)
 	  fatal("create image string");
 	imgStr[n] = '\0';
 	installParams(device, deviceFd, lba, imgStr);

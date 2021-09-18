@@ -120,6 +120,7 @@ static char *getSector(u32_t vsec) {
 		errno = 0;
 		return NULL;
 	}
+
 	return buf;
 }
 
@@ -143,6 +144,19 @@ static void rawClear(u32_t addr, u32_t count) {
 		zct *= 2;
 	}
 }
+
+  static void printProgramHeader(Elf32_Phdr *phdrPtr) {
+ 	if (phdrPtr->p_type != PT_NULL) {
+ 			printf("type: %d\n", phdrPtr->p_type);
+ 					printf("offset: %d\n", phdrPtr->p_offset);
+ 							printf("vaddr: %d\n", phdrPtr->p_vaddr);
+ 									printf("paddr: %d\n", phdrPtr->p_paddr);
+ 											printf("filesz: %d\n", phdrPtr->p_filesz);
+ 													printf("memsz: %d\n", phdrPtr->p_memsz);
+ 															printf("flags: %d\n", phdrPtr->p_flags);
+ 																	printf("type: %d\n", phdrPtr->p_align);
+ 																		}
+ 																		}
 
 static void execImage(char *image) {
 	ImageHeader imgHdr;
@@ -182,6 +196,13 @@ static void execImage(char *image) {
 		while (true) {
 			if ((buf = getSector(vsec++)) == NULL)
 			  return;
+
+			memcpy(&imgHdr, buf, sizeof(imgHdr));
+			printProgramHeader(&imgHdr.codeHdr);
+			printf("----------\n");
+			printProgramHeader(&imgHdr.dataHdr);
+			printf("=============\n");
+			break;
 		}
 	}
 }
@@ -192,11 +213,8 @@ void bootMinix() {
 	imgName = getVarValue("image");
 	if ((image = selectImage(imgName)) == NULL)
 	  return;
-	printf("aa: %s, %d, %d\n", image, imgOff, imgSize);
 
-	if (false) {
 	execImage(image);
-	}
 
 	switch (errno) {
 		case ENOEXEC:
