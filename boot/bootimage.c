@@ -12,6 +12,8 @@
 #define PROCESS_MAX	16	
 #define KERNEL		0	/* The first process is the kernel. */	
 
+#define align(p, n)		(((u32_t)(p) + ((u32_t)(n) - 1)) & ~((u32_t)(n) - 1))
+
 typedef struct {
 	u32_t	entry;		/* Entry point. */
 	u32_t	cs;			/* Code segment. */
@@ -83,7 +85,7 @@ static char *getSector(u32_t vsec) {
 	if (vsec == 0)
 	  count = 0;			/* First sector, initialize. */
 
-	if ((sec = vir2Sec(vsec)) == -1)
+	if ((sec = (*vir2Sec)(vsec)) == -1)
 	  return NULL;
 
 	if (sec == 0) {
@@ -106,7 +108,7 @@ static char *getSector(u32_t vsec) {
 	while (++count < BUF_SECTORS && 
 				!isDevBoundary(bufSec + count)) {
 		++vsec;
-		if ((sec = vir2Sec(vsec)) == -1)
+		if ((sec = (*vir2Sec)(vsec)) == -1)
 		  break;
 
 		/* Consecutive? */
@@ -158,11 +160,100 @@ static void rawClear(u32_t addr, u32_t count) {
  																		}
  																		}
 
+
+static bool isBadImage(Elf32_Ehdr *ehdrPtr) {
+	return (ehdrPtr->e_ident[EI_MAG0] != ELFMAG0 ||
+				ehdrPtr->e_ident[EI_MAG1] != ELFMAG1 ||
+				ehdrPtr->e_ident[EI_MAG2] != ELFMAG2 ||
+				ehdrPtr->e_ident[EI_MAG3] != ELFMAG3) || 
+		ehdrPtr->e_ident[EI_CLASS] != ELFCLASS32 ||
+		ehdrPtr->e_ident[EI_DATA] != ELFDATA2LSB ||
+		ehdrPtr->e_ident[EI_VERSION] != EV_CURRENT ||
+		ehdrPtr->e_type != ET_EXEC;
+}
+
+static bool isSelected(char *name) {
+	char *colon, *label;
+	int cmp;
+
+	if ((colon = strchr(name, ':')) == NULL)
+	  return true;
+	if ((label = getVarValue("label")) == NULL)
+	  return true;
+
+	*colon = 0;
+	cmp = strcmp(label, name);
+	*colon = ':';
+	return cmp == 0;
+}
+
+static u32_t getProcSize(ImageHeader *imgHdr) {
+	Exec *proc = &imgHdr->process;
+	u32_t len = align(proc->codeHdr.p_filesz, SECTOR_SIZE) + 
+				align(proc->dataHdr.p_filesz, SECTOR_SIZE);
+	return len >> SECTOR_SHIFT;
+	
+}
+static void checkElfHeader(char *procName, Elf32_Ehdr *ehdrPtr) {
+	if (ehdrPtr->e_ident[EI_MAG0] != ELFMAG0 ||
+				ehdrPtr->e_ident[EI_MAG1] != ELFMAG1 ||
+				ehdrPtr->e_ident[EI_MAG2] != ELFMAG2 ||
+				ehdrPtr->e_ident[EI_MAG3] != ELFMAG3)
+	  printf("%s is not an ELF file.\n", procName);
+	
+	if (ehdrPtr->e_ident[EI_CLASS] != ELFCLASS32)
+	  printf("%s is not an 32-bit executable.\n", procName);
+
+	if (ehdrPtr->e_ident[EI_DATA] != ELFDATA2LSB)
+	  printf("%s is not little endian.\n", procName);
+
+	if (ehdrPtr->e_ident[EI_VERSION] != EV_CURRENT)
+	  printf("%s has an invalid version.\n", procName);
+
+	if (ehdrPtr->e_type != ET_EXEC)
+	  printf("%s is not an executable.\n", procName);
+}
+
+static bool getSegment(u32_t *vsec, long size, u32_t *addr, u32_t limit) {
+	char *buf;
+	size_t cnt, n;
+
+	cnt = 0;
+	while (size > 0) {
+		if (cnt == 0) {
+			/* Get one buffered sector. */
+			if ((buf = getSector((*vsec)++)) == NULL)
+			  return false;
+			cnt = SECTOR_SIZE;
+		}
+
+		/* Check if memory is enough. */
+		if (*addr + size > limit) {
+			errno = ENOMEM;
+			return false;
+		}
+
+		n = size;
+		if (n > cnt)
+		  n = cnt;
+		/* Copy from buffer to addr */
+		rawCopy((char *) *addr, mon2Abs(buf), n);
+		
+		*addr += n;
+		size -= n;
+		buf += n;
+		cnt -= n;
+	}
+	return true;
+}
+
 static void execImage(char *image) {
 	ImageHeader imgHdr;
+	Exec *proc;
 	u32_t vsec, addr, limit, imgHdrPos;
-	//Process *procp;
-	size_t hdrLen;
+	bool banner = false;
+	Process *procp;
+	size_t hdrLen, phdrLen, n, dataSize, bssSize;
 	int i;
 	char *buf;
 
@@ -178,7 +269,8 @@ static void execImage(char *image) {
 	if (limit > caddr)
 	  limit = caddr;
 
-	hdrLen = PROCESS_MAX * sizeof(imgHdr);
+	phdrLen = sizeof(*proc);
+	hdrLen = PROCESS_MAX * phdrLen;
 	limit -= hdrLen;
 	imgHdrPos = limit;
 
@@ -191,19 +283,88 @@ static void execImage(char *image) {
 			errno = 0;
 			return;
 		}
-		//procp = &procs[i];
+		procp = &procs[i];
 
+		/* Read header. */
 		while (true) {
 			if ((buf = getSector(vsec++)) == NULL)
 			  return;
 
 			memcpy(&imgHdr, buf, sizeof(imgHdr));
-			printProgramHeader(&imgHdr.codeHdr);
-			printf("----------\n");
-			printProgramHeader(&imgHdr.dataHdr);
-			printf("=============\n");
-			break;
+			proc = &imgHdr.process;
+
+			checkElfHeader(imgHdr.name, &proc->ehdr);
+
+			if (isBadImage(&proc->ehdr)) {
+				errno = ENOEXEC;
+				return;
+			}
+
+			/* Check the optional label on the process. */
+			if (isSelected(imgHdr.name))
+			  break;
+
+			/* Bad label, skip this process */
+			vsec += getProcSize(&imgHdr);
 		}
+		if (true) {
+		printProgramHeader(&proc->codeHdr);
+		printf("----------------\n");
+		printProgramHeader(&proc->dataHdr);
+		printf("================\n");
+		}
+
+		//if (i == KERNEL) 
+	    addr = align(addr, proc->codeHdr.p_align);
+
+		rawCopy((char *) (imgHdrPos + i * phdrLen), mon2Abs(proc), phdrLen);
+
+		if (!banner) {
+			printf("     cs       ds     text     data      bss\n");
+			banner = true;
+		}
+		
+		procp->cs = procp->ds = addr;
+		procp->entry = proc->ehdr.e_entry;
+
+		if (true) continue;
+
+		/* Read the text segment. */
+		if (!getSegment(&vsec, proc->codeHdr.p_filesz, &addr, limit))
+		  return;
+
+		dataSize = bssSize = 0;
+		if (isPLoad(&proc->dataHdr)) {
+			n = align(addr, proc->dataHdr.p_align) - addr;
+			rawClear(addr, n);
+			addr += n;
+			dataSize = proc->dataHdr.p_filesz;
+			bssSize = proc->dataHdr.p_memsz - dataSize;
+
+			/* Read the data segment. */
+			if (!getSegment(&vsec, proc->dataHdr.p_filesz, &addr, limit))
+			  return;
+
+			if (addr + bssSize > limit) {
+				errno = ENOMEM;
+				return;
+			}
+			/* Zero out bss. */
+			rawClear(addr, bssSize);
+			addr += bssSize;
+		}
+
+		printf("%07lx  %07lx %8ld %8ld %8ld  %s\n",
+			procp->cs, procp->ds, proc->codeHdr.p_filesz, 
+			dataSize, bssSize, imgHdr.name);
+
+		if (i == 0) {
+			addr = memList[1].base;
+			limit = memList[1].base + memList[1].size;
+		}
+
+		if (i == 1)
+		  break;
 	}
 }
 

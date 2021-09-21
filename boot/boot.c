@@ -118,7 +118,7 @@ static void copyToFarAway() {
 	if (newAddr < dma64k) 
 	  newAddr = dma64k - runSize;
 
-	/* Keep pc concurrent. */
+	/* Keep program counter concurrent. */
 	newAddr = newAddr & ~0xFFFFL;
 
 	/* Set the new caddr for relocate. */
@@ -129,6 +129,17 @@ static void copyToFarAway() {
 
 	/* Make the copy running. */
 	relocate();
+
+	/* If we have memory to spare, keep monitor in memList[0]. */
+	if (memList[1].size > 512*1024L)
+	  memList[0].size = newAddr;
+
+	/*
+	 * BIOS IVT (Interrupt Vector Table) + BDA (BIOS data area) is about 1.5KB (see "BUFFER" in masterboot.asm).
+	 * And now, we assume all exec headers can be contained in one sector (512 bytes), so 1.5KB + 512B = 2KB.
+	 */
+	memList[0].base += 2048;
+	memList[0].size -= 2048;
 }
 
 static struct biosDev {

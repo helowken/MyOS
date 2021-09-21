@@ -188,7 +188,8 @@ static long totalText = 0, totalData = 0, totalBss = 0;
 static void readHeader(char *procName, FILE *procFile, ImageHeader *imgHdr) {
 	int n, i, sn = 0;
 	static bool banner = false;
-	Elf32_Ehdr *ehdrPtr = &imgHdr->ehdr;
+	Exec *proc = &imgHdr->process;
+	Elf32_Ehdr *ehdrPtr = &proc->ehdr;
 	Elf32_Phdr phdr;
 	size_t phdrSize, textSize = 0, dataSize = 0, bssSize = 0;
 
@@ -210,15 +211,15 @@ static void readHeader(char *procName, FILE *procFile, ImageHeader *imgHdr) {
 					ferror(procFile))
 		  errExit("fread program headers");
 
-		if (phdr.p_type == PT_LOAD) {
+		if (isPLoad(&phdr)) {
 			if (isRX(&phdr)) {
-				memcpy(&imgHdr->codeHdr, &phdr, phdrSize);
-				textSize = imgHdr->codeHdr.p_filesz;
+				memcpy(&proc->codeHdr, &phdr, phdrSize);
+				textSize = proc->codeHdr.p_filesz;
 				++sn;
 			} else if (isRW(&phdr)) {
-				memcpy(&imgHdr->dataHdr, &phdr, phdrSize);
-				dataSize = imgHdr->dataHdr.p_filesz;
-				bssSize = imgHdr->dataHdr.p_memsz - dataSize;
+				memcpy(&proc->dataHdr, &phdr, phdrSize);
+				dataSize = proc->dataHdr.p_filesz;
+				bssSize = proc->dataHdr.p_memsz - dataSize;
 				++sn;
 			}
 			if (sn >= 2)
@@ -266,7 +267,7 @@ static void padImage(size_t len) {
 }
 
 static void copyExec(char *procName, FILE *procFile, size_t size) {
-	int padLen = ALIGN(size);
+	int padLen = ALIGN(size) - size;
 
 	adjustBuf(size);
 
@@ -296,6 +297,7 @@ static void installImage(char *device, char **procNames) {
 	struct stat st;
 	imgBuf = malloc(bufLen);
 	ImageHeader imgHdr;
+	Exec *proc;
 	uint32_t lba;
 	off_t secOff;
 	int deviceFd, n;
@@ -313,14 +315,16 @@ static void installImage(char *device, char **procNames) {
 		if ((procFile = fopen(file, "r")) == NULL)
 		  errExit("fopen \"%s\"", file);
 
+		/* Use on sector to store exec header */
 		readHeader(procName, procFile, &imgHdr);
 		bwrite(&imgHdr, sizeof(imgHdr));
 		padImage(SECTOR_SIZE - sizeof(imgHdr));
-
-		if (imgHdr.codeHdr.p_type != PT_NULL)
-		  copyExec(procName, procFile, imgHdr.codeHdr.p_filesz);
-		if (imgHdr.dataHdr.p_type != PT_NULL)
-		  copyExec(procName, procFile, imgHdr.dataHdr.p_filesz);
+		
+		proc = &imgHdr.process;
+		if (proc->codeHdr.p_type != PT_NULL)
+		  copyExec(procName, procFile, proc->codeHdr.p_filesz);
+		if (proc->dataHdr.p_type != PT_NULL)
+		  copyExec(procName, procFile, proc->dataHdr.p_filesz);
 
 		fclose(procFile);
 	}
