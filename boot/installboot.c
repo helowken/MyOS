@@ -325,7 +325,7 @@ static void installImage(char *device, char **procNames) {
 		  copyExec(procName, procFile, proc->codeHdr.p_filesz);
 		if (proc->dataHdr.p_type != PT_NULL)
 		  copyExec(procName, procFile, proc->dataHdr.p_filesz);
-
+		
 		fclose(procFile);
 	}
 	printf("   ------   ------   ------   ------\n");

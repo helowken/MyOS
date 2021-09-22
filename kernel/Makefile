@@ -6,7 +6,7 @@ CFLAGS += -fno-asynchronous-unwind-tables
 
 all: kernel
 
-kernel: kernel.o 
+kernel: entry.o kernel.o 
 	$(LD) $^ -Ttext 0x0 -m elf_i386 -nostdlib -L$(LIB_DIR) $(LIBS) -o $@ 
 
 clean:

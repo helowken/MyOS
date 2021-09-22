@@ -282,7 +282,7 @@ isDevBoundary:
 	divw	sectors				# If dx != 0, it means there is remainder for high half or low half.
 	subw	$1, %dx				# If dx == 0, then CF = 1; else CF = 0
 	sbbw	%ax, %ax			# ax = ax - (ax + CF) = -CF
-	negw	%eax
+	negl	%eax
 	retl
 
 	.type	resetDev, @function
@@ -432,9 +432,23 @@ readSectors:
 	xorb	%ah, %ah
 	andl	$0xFF, %eax					# Return value = al.
 .rwSectorsEnd:
-	popw %si
-	popw %di
 	popw %es
+	popw %di
+	popw %si
+	leave
+	retl
+
+	.globl	testSeg
+	.type	testSeg, @function
+testSeg:
+	pushl	%ebp
+	movl	%esp, %ebp
+	pushl	%ds
+	calll	printlnShortHex
+	addl	$4, %esp
+	pushl	%es
+	calll	printlnShortHex
+	addl	$4, %esp
 	leave
 	retl
 

@@ -8,11 +8,13 @@
 #include "image.h"
 #include "boot.h"
 
-#define BUF_SECTORS	16
-#define PROCESS_MAX	16	
-#define KERNEL		0	/* The first process is the kernel. */	
+#define BUFFERED_SECTORS	16
+#define PROCESS_MAX			16	
+#define KERNEL				0	/* The first process is the kernel. */	
 
 #define align(p, n)		(((u32_t)(p) + ((u32_t)(n) - 1)) & ~((u32_t)(n) - 1))
+
+extern void testSeg();
 
 typedef struct {
 	u32_t	entry;		/* Entry point. */
@@ -78,14 +80,14 @@ static void printPrettyImage(char *image) {
 static char *getSector(u32_t vsec) {
 	u32_t sec;
 	int r;
-	static char buf[BUF_SECTORS * SECTOR_SIZE];
+	static char buf[BUFFERED_SECTORS * SECTOR_SIZE];
 	static size_t count;	/* Number of sectors in the buffer. */
 	static u32_t bufSec;	/* First sector now in the buffer. */
 
 	if (vsec == 0)
 	  count = 0;			/* First sector, initialize. */
 
-	if ((sec = (*vir2Sec)(vsec)) == -1)
+	if ((sec = vir2Sec(vsec)) == -1)
 	  return NULL;
 
 	if (sec == 0) {
@@ -105,10 +107,10 @@ static char *getSector(u32_t vsec) {
 	bufSec = sec;
 
 	/* Try to read a whole track if possible. */
-	while (++count < BUF_SECTORS && 
+	while (++count < BUFFERED_SECTORS && 
 				!isDevBoundary(bufSec + count)) {
 		++vsec;
-		if ((sec = (*vir2Sec)(vsec)) == -1)
+		if ((sec = vir2Sec(vsec)) == -1)
 		  break;
 
 		/* Consecutive? */
@@ -147,18 +149,18 @@ static void rawClear(u32_t addr, u32_t count) {
 	}
 }
 
-  static void printProgramHeader(Elf32_Phdr *phdrPtr) {
- 	if (phdrPtr->p_type != PT_NULL) {
- 			printf("type: %d\n", phdrPtr->p_type);
- 					printf("offset: %d\n", phdrPtr->p_offset);
- 							printf("vaddr: %d\n", phdrPtr->p_vaddr);
- 									printf("paddr: %d\n", phdrPtr->p_paddr);
- 											printf("filesz: %d\n", phdrPtr->p_filesz);
- 													printf("memsz: %d\n", phdrPtr->p_memsz);
- 															printf("flags: %d\n", phdrPtr->p_flags);
- 																	printf("type: %d\n", phdrPtr->p_align);
- 																		}
- 																		}
+static void printProgramHeader(Elf32_Phdr *phdrPtr) {
+	if (phdrPtr->p_type != PT_NULL) {
+		printf("type: %d, ", phdrPtr->p_type);
+		printf("offset: %d, ", phdrPtr->p_offset);
+		printf("vaddr: %d, ", phdrPtr->p_vaddr);
+		printf("paddr: %d\n", phdrPtr->p_paddr);
+		printf("filesz: %d, ", phdrPtr->p_filesz);
+		printf("memsz: %d, ", phdrPtr->p_memsz);
+		printf("flags: %d, ", phdrPtr->p_flags);
+		printf("type: %d\n", phdrPtr->p_align);
+	}
+}
 
 
 static bool isBadImage(Elf32_Ehdr *ehdrPtr) {
@@ -214,21 +216,23 @@ static void checkElfHeader(char *procName, Elf32_Ehdr *ehdrPtr) {
 	  printf("%s is not an executable.\n", procName);
 }
 
-static bool getSegment(u32_t *vsec, long size, u32_t *addr, u32_t limit) {
+static bool getSegment(u32_t *vsecPtr, long size, u32_t *addrPtr, u32_t limit) {
 	char *buf;
 	size_t cnt, n;
+	u32_t vsec = *vsecPtr;
+	u32_t addr = *addrPtr;
 
 	cnt = 0;
 	while (size > 0) {
 		if (cnt == 0) {
 			/* Get one buffered sector. */
-			if ((buf = getSector((*vsec)++)) == NULL)
+			if ((buf = getSector(vsec++)) == NULL)
 			  return false;
 			cnt = SECTOR_SIZE;
 		}
 
 		/* Check if memory is enough. */
-		if (*addr + size > limit) {
+		if (addr + size > limit) {
 			errno = ENOMEM;
 			return false;
 		}
@@ -237,13 +241,15 @@ static bool getSegment(u32_t *vsec, long size, u32_t *addr, u32_t limit) {
 		if (n > cnt)
 		  n = cnt;
 		/* Copy from buffer to addr */
-		rawCopy((char *) *addr, mon2Abs(buf), n);
+		rawCopy((char *) addr, mon2Abs(buf), n);
 		
-		*addr += n;
+		addr += n;
 		size -= n;
 		buf += n;
 		cnt -= n;
 	}
+	*vsecPtr = vsec;
+	*addrPtr = addr;
 	return true;
 }
 
@@ -258,7 +264,7 @@ static void execImage(char *image) {
 	char *buf;
 
 	sbrk(0);
-	
+
 	printf("\nLoading ");
 	printPrettyImage(image);
 	printf(".\n\n");
@@ -276,7 +282,6 @@ static void execImage(char *image) {
 
 	/* Clear the area where the headers will be placed. */
 	rawClear(imgHdrPos, hdrLen);
-	
 	for (i = 0; vsec < imgSize; ++i) {
 		if (i == PROCESS_MAX) {
 			printf("There are more than %d programs in %s\n", PROCESS_MAX, image);
@@ -307,11 +312,11 @@ static void execImage(char *image) {
 			/* Bad label, skip this process */
 			vsec += getProcSize(&imgHdr);
 		}
-		if (true) {
-		printProgramHeader(&proc->codeHdr);
-		printf("----------------\n");
-		printProgramHeader(&proc->dataHdr);
-		printf("================\n");
+		if (false) {
+			printProgramHeader(&proc->codeHdr);
+			printf("----------------\n");
+			printProgramHeader(&proc->dataHdr);
+			printf("================\n");
 		}
 
 		//if (i == KERNEL) 
@@ -327,8 +332,6 @@ static void execImage(char *image) {
 		procp->cs = procp->ds = addr;
 		procp->entry = proc->ehdr.e_entry;
 
-		if (true) continue;
-
 		/* Read the text segment. */
 		if (!getSegment(&vsec, proc->codeHdr.p_filesz, &addr, limit))
 		  return;
@@ -340,7 +343,7 @@ static void execImage(char *image) {
 			addr += n;
 			dataSize = proc->dataHdr.p_filesz;
 			bssSize = proc->dataHdr.p_memsz - dataSize;
-
+			
 			/* Read the data segment. */
 			if (!getSegment(&vsec, proc->dataHdr.p_filesz, &addr, limit))
 			  return;
@@ -362,9 +365,8 @@ static void execImage(char *image) {
 			addr = memList[1].base;
 			limit = memList[1].base + memList[1].size;
 		}
-
-		if (i == 1)
-		  break;
+		
+		if (i == 1)break;
 	}
 }
 
