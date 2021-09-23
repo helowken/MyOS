@@ -35,9 +35,10 @@ extern int detectE801Mem(int *low, int *high, bool onStack);
 
 bool numPrefix(char *s, char **ps);
 bool numeric(char *s);
-char *ul2a(u32_t n, unsigned b);
-char *ul2a10(u32_t n);
+char* ul2a(u32_t n, unsigned b);
+char* ul2a10(u32_t n);
 long a2l(char *a);
+unsigned a2x(char *a);
 char* num2Hex(int num, int len, bool withPrefix);
 char* byte2Hex(char num);
 char* short2Hex(short num);

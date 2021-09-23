@@ -14,8 +14,6 @@
 
 #define align(p, n)		(((u32_t)(p) + ((u32_t)(n) - 1)) & ~((u32_t)(n) - 1))
 
-extern void testSeg();
-
 typedef struct {
 	u32_t	entry;		/* Entry point. */
 	u32_t	cs;			/* Code segment. */
@@ -131,7 +129,8 @@ static char *getSector(u32_t vsec) {
 /* Clear "count" bytes at absolute address "addr". */
 static void rawClear(u32_t addr, u32_t count) {
 	static char zeros[128];
-	u32_t dst, zct;
+	u32_t dst;
+	u32_t zct;
 
 	zct = sizeof(zeros);
 	if (zct > count)
@@ -143,7 +142,7 @@ static void rawClear(u32_t addr, u32_t count) {
 		dst = addr + zct;
 		if (zct > count)
 		  zct = count;
-		rawCopy((char *) dst, mon2Abs(&zeros), zct);
+		rawCopy((char *) dst, (char *) addr, zct);
 		count -= zct;
 		zct *= 2;
 	}
@@ -253,7 +252,50 @@ static bool getSegment(u32_t *vsecPtr, long size, u32_t *addrPtr, u32_t limit) {
 	return true;
 }
 
+static bool copyParams(char *params, size_t size) {
+	size_t i = 0, n;
+	Environment *e;
+	char *name, *value;
+
+	for (e = env; e != NULL; e = e->next) {
+		if (e->flags & E_VAR) {
+			name = e->name;
+			value = e->value;
+
+			if (e->flags & E_DEV) {
+				// TODO name2dev
+			}
+			/* Format: name=value\0 */
+			n = i + strlen(name) + 1 + strlen(value) + 1;
+			if (n < size) {
+				strcpy(params + i, name);	
+				strcat(params + i, "=");
+				strcat(params + i, value);
+			}
+			i = n;
+		}
+	}
+
+	if (i >= size) {
+		printf("Too many boot parameters\n");
+		return false;
+	}
+	params[i] = 0;	/* End marked with empty string. */
+	return true;
+}
+
+static void printParams(char *params) {
+	char *p = params;
+	while (p != NULL && *p != '\0') {
+		printf("%s\n", p);
+		p = strchr(p, '\0');
+		p++;
+	}
+}
+
 static void execImage(char *image) {
+	char *delayValue;
+	char params[SECTOR_SIZE];
 	ImageHeader imgHdr;
 	Exec *proc;
 	u32_t vsec, addr, limit, imgHdrPos;
@@ -262,6 +304,8 @@ static void execImage(char *image) {
 	size_t hdrLen, phdrLen, n, dataSize, bssSize;
 	int i;
 	char *buf;
+	char *console;
+	u16_t mode;
 
 	sbrk(0);
 
@@ -365,9 +409,46 @@ static void execImage(char *image) {
 			addr = memList[1].base;
 			limit = memList[1].base + memList[1].size;
 		}
-		
-		if (i == 1)break;
 	}
+
+	if (i == 0) {
+		printf("There are no programs in %s\n", image);
+		errno = 0;
+		return;
+	}
+	
+	// TODO check kernel magic number
+	// TODO patch size
+
+	/* Copy headers to the old place. */
+	rawCopy((char *) HEADER_POS, (char *) imgHdrPos, PROCESS_MAX * phdrLen);
+
+	/* Do delay if wanted. */
+	if ((delayValue = getVarValue("bootdelay")) != NULL)
+	  delay(a2l(delayValue));
+
+	/* Run the trailer function just before starting Minix. */
+	if (!runTrailer()) {
+		errno = 0;
+		return;
+	}
+
+	/* Translate the boot parameters to what Minix likes best. */
+	if (!copyParams(params, sizeof(params))) {
+		errno = 0;
+		return;
+	}
+	if (false) printParams(params);
+
+	/* Set the video to the required mode. */
+	if ((console = getVarValue("console")) == NULL ||
+				(mode = a2x(console)) == 0) {
+		mode = strcmp(getVarValue("chrome"), "color") == 0 ? COLOR_MODE : MONO_MODE;
+		setVideoMode(mode);
+	}
+
+	closeDev();
+
 }
 
 void bootMinix() {

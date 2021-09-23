@@ -6,9 +6,17 @@
 #define	SECTOR_SIZE		512
 #define	SECTOR_SHIFT	9			/* 2^9 = 512 */
 #define PARAM_SECTOR	1			/* Sector containing boot parameters. */
+
 #define ESC				'\33'		/* Escape key. */
+
 #define MSEC_PER_TICK	55			/* Clock does 18.2 ticks per second. (1000 / 18.2 is about 55) */
 #define TICKS_PER_DAY	0x1800B0L	/* After 24 hours it wraps (65543 * 24) */
+
+#define HEADER_POS		0x600L		/* Place for an array of struct Exec's. */
+
+/* BIOS video modes. */
+#define MONO_MODE		0x07		/* 80x25 monochrome. */
+#define	COLOR_MODE		0x03		/* 80x25 color. */
 
 #ifndef EXTERN
 #define EXTERN extern
@@ -72,6 +80,11 @@ EXTERN Environment *env;		/* Lists the environment. */
 /* Get value of env variable. */
 char *getVarValue(char *name);
 
+void delay(u32_t msec);
+
+/* Run the trailer function. */
+bool runTrailer();
+
 /* Load and start a Minix image. */
 void bootMinix();
 
@@ -102,6 +115,8 @@ extern int getBus();
 /* Display type, MDA to VGA. */
 extern int getVideoMode();
 
+extern void setVideoMode(unsigned mode);
+
 /* Send a character to the screen. */
 extern void putch(int ch);
 
@@ -125,5 +140,8 @@ extern char* vec2Abs(Vector *vec);
 
 /* Wait for an interrupt. */
 extern void pause();
+
+/* Close device. */
+extern void closeDev();
 
 #endif

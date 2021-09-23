@@ -64,7 +64,21 @@ halt:
 	jmp halt
 
 
-#========== Timer Functions ==========
+# ========== Function Catagory ===========
+# 1.  Timer 
+# 2.  I/O 
+# 3.  Print
+# 4.  Allocate
+# 5.  Device
+# 6.  Read/Write
+# 7.  Address
+# 8.  Video mode
+# 9.  Exit
+# 10. Detect memory
+# ========================================
+
+
+# ========== 1. Timer Functions ==========
 # u32_t getTick();
 	.globl	getTick
 	.type	getTick, @function
@@ -85,7 +99,7 @@ pause:
 	hlt							# Either saves power, or tells an x86 emulator that nothing is happening right now.
 	retl
 	
-#========== I/O Functions ==========
+# ========== 2. I/O Functions ==========
 # int getch();
 	.globl	getch
 	.type	getch, @function
@@ -172,7 +186,7 @@ escape:
 	xchgw	escFlag, %ax		# Return and reset the escape flag
 	retl
 
-#========== Print Functions ==========
+# ========== 3. Print Functions ==========
 	.globl	print
 	.type	print, @function
 print:
@@ -204,7 +218,7 @@ println:
 	leave
 	retl
 
-#========== Allocate Functions ==========
+# ========== 4. Allocate Functions ==========
 	.globl	brk
 	.type	brk, @function
 brk:
@@ -240,7 +254,7 @@ sbrk:
 	calll	printf
 	jmp	quit
 
-#========== Dev Functions ==========
+# ========== 5. Device Functions ==========
 # int getBus();
 	.globl	getBus
 	.type	getBus, @function
@@ -268,6 +282,14 @@ getBus:							# Bus type: XT, AT, MCA
 	movw	%ax, bus			# Keep bus code, A20 handler likes to know
 	retl	
 
+# void closeDev();
+	.globl	closeDev
+	.type	closeDev, @function
+closeDev:
+	xorw	%ax, %ax
+	movb	%ax, devState
+	retl
+	
 # int isDevBoundary(u32_t sector);
 	.globl	isDevBoundary
 	.type	isDevBoundary, @function
@@ -328,7 +350,7 @@ openDev:
 	xorb	%ah, %ah			# ax = BIOS error code
 	jmp .devDone
 	
-#========== Read/Write Functions ==========
+# ========== 6. Read/Write Functions ==========
 # int writeSectors(char *buf, u32_t pos, int count);
 	.global	writeSectors
 	.type	writeSectors, @function
@@ -438,20 +460,6 @@ readSectors:
 	leave
 	retl
 
-	.globl	testSeg
-	.type	testSeg, @function
-testSeg:
-	pushl	%ebp
-	movl	%esp, %ebp
-	pushl	%ds
-	calll	printlnShortHex
-	addl	$4, %esp
-	pushl	%es
-	calll	printlnShortHex
-	addl	$4, %esp
-	leave
-	retl
-
 # void rawCopy(char *newAddr, char *oldAddr, u32_t size);
 	.globl	rawCopy
 	.type	rawCopy, @function
@@ -549,7 +557,7 @@ relocate:
 	pushw	%bx					# Return offset of this function
 	retfw						# Return far with cs = cx and ip = bx
 
-#========== Address Functions ==========
+# ========== 7. Address Functions ==========
 # char* mon2Abs(void *pos);
 	.globl	mon2Abs
 	.type	mon2Abs, @function
@@ -606,7 +614,7 @@ seg2Abs:
 	popw	%cx
 	retw
 
-#========== Video mode Functions ==========
+# ========== 8. Video mode Functions ==========
 	.type	restoreVideoMode, @function
 restoreVideoMode:
 	pushl	oldVideoMode
@@ -658,12 +666,14 @@ getVideoMode:
 .gotVideo:
 	retl
 
+# void setVideoMode(unsigned mode);
+	.globl	setVideoMode
 	.type	setVideoMode, @function
 setVideoMode:
 #TODO
 	retl
 
-#========== Exit Functions ==========
+# ========== 9. Exit Functions ==========
 # void exit(int status);
 	.globl	exit
 	.type	exit, @function
@@ -681,7 +691,7 @@ reboot:
 	calll	restoreVideoMode
 	int	$0x19					# Reboot the system#
 
-#========== Detect Memory Functions ==========
+# ========== 10. Detect memory Functions ==========
 	.globl	detectLowMem
 	.type	detectLowMem, @function
 detectLowMem:

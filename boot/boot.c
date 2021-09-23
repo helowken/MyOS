@@ -455,8 +455,11 @@ static bool sugar(char *tok) {
 
 static void printTokens() {
 	Token *p = cmds;
+	int i = 0;
 	while (p != NULL) {
-		printf("%s,\t", p->token);
+		if (i++ > 0)
+		  printf(",\t");
+		printf("%s", p->token);
 		p = p->next;
 	}
 	printf("\n");
@@ -566,7 +569,8 @@ static void getParameters() {
 	setVar(E_SPECIAL|E_FUNCTION, "leader", 
 		"echo --- Welcome to MINIX3. This is the boot monitor. ---\\n");
 	setVar(E_SPECIAL|E_FUNCTION, "main", "menu");
-	setVar(E_SPECIAL|E_FUNCTION, "trailer", "");
+	/* Set trailer function body as empty. */
+	setVar(E_SPECIAL|E_FUNCTION, "trailer", ";"); 
 
 	setEnv(E_RESERVED|E_FUNCTION, NULL, "=,Start MINIX", "boot");
 
@@ -673,7 +677,7 @@ static bool interrupt() {
 	return false;
 }
 
-static void delay(u32_t msec) {
+void delay(u32_t msec) {
 	u32_t base;
 
 	if (msec == 0)
@@ -1124,6 +1128,22 @@ static char *readLine() {
 	} while (c != '\n');
 	line[i] = 0;
 	return line;
+}
+
+/*
+ * Run the trailer function between loading Minix and handing control to it.
+ * Return true iff there was no error.
+ */
+bool runTrailer() {
+	Token *savedCmds = cmds;
+
+	cmds = NULL;
+	tokenize(&cmds, "trailer");
+	while (cmds != NULL) {
+		execute();
+	}
+	cmds = savedCmds;
+	return !tokErr;
 }
 
 static void monitor() {

@@ -58,6 +58,27 @@ long a2l(char *a) {
 	return n * sign;
 }
 
+/* Ascii to hex. */
+unsigned a2x(char *a) {
+	unsigned n = 0;
+	int c;
+
+	while (true) {
+		c = *a;
+		if (between('0', c, '9'))
+		  c = c - '0' + 0x0;
+		else if (between('a', c, 'f'))
+		  c = c - 'a' + 0xa;
+		else if (between('A', c, 'F'))
+		  c = c - 'A' + 0xA;
+		else 
+		  break;
+		n = (n << 4) | c;
+		++a;
+	}
+	return n;
+}
+
 void printLowMem() {
 	int memSize;
 	memSize = detectLowMem();
