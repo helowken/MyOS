@@ -447,8 +447,20 @@ static void execImage(char *image) {
 		setVideoMode(mode);
 	}
 
+	/* Close the disk. */
 	closeDev();
 
+	/* Minix. */
+	minix(procs[KERNEL].entry, procs[KERNEL].cs, procs[KERNEL].ds, 
+				params, sizeof(params), imgHdrPos);
+
+	parseCode(params);
+
+	/*
+	printf("cs: %x, ds: %x\n", procs[KERNEL].cs, procs[KERNEL].ds);
+	printf("-----------------\n");
+	printRangeHex(p_gdt, 64, 8);
+	*/
 }
 
 void bootMinix() {

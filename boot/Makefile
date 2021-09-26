@@ -47,7 +47,7 @@ install_bootable: boot.bin installboot
 	./$(INSTALL_BOOT) -b $(DISK_IMAGE) $<
 
 install_image: installboot
-	./$(INSTALL_BOOT) -i $(DISK_IMAGE) ../kernel/kernel boot.elf
+	./$(INSTALL_BOOT) -i $(DISK_IMAGE) ../kernel/kernel
 
 reset:
 	cd device && ./run && cd ..

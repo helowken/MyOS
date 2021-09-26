@@ -34,7 +34,8 @@
  */
 extern char etext, edata, end;
 
-extern char x_gdt[48];			/* Extend Memory Block Move */
+extern char x_gdt[48];				/* Extend Memory Block Move. */
+extern char p_gdt[64];				/* Global descriptor table */
 
 EXTERN u32_t caddr;				/* Code address of the boot program. */
 EXTERN u16_t runSize;			/* Size of this program. */
@@ -87,6 +88,9 @@ bool runTrailer();
 
 /* Load and start a Minix image. */
 void bootMinix();
+
+/* Parse boot monitor commands. */
+void parseCode(char *code);
 
 /* Report a read error. */
 void readDiskError(off_t sector, int err);
@@ -143,5 +147,9 @@ extern void pause();
 
 /* Close device. */
 extern void closeDev();
+
+/* Start Minix. */
+extern void minix(u32_t kEntry, u32_t kcs, u32_t kds, 
+			char *bootParams, size_t paramSize, u32_t headerPos);
 
 #endif

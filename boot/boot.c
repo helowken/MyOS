@@ -766,7 +766,7 @@ static void menu() {
 	tokenize(&cmds, choose);
 }
 
-static void parseCode(char *code) {
+void parseCode(char *code) {
 	if (cmds != NULL && cmds->token[0] != ';')
 	  tokenize(&cmds, ";");
 	tokenize(&cmds, code);

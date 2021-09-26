@@ -1,7 +1,12 @@
 	.code16gcc
 	.text
-.equ	STACK_SIZE, 0x4800
-.equ	ESC,		0x1B	
+.equ	STACK_SIZE,		0x4800
+.equ	ESC,			0x1B	
+.equ	DS_SELECTOR,	3*8			# Kernel data selector
+.equ	ES_SELECTOR,	4*8			# Flat 4 GB
+.equ	SS_SELECTOR,	5*8			# Monitor stack selector
+.equ	CS_SELECTOR,	6*8			# Kernel code selector
+.equ	MCS_SELECTOR,	7*8			# Monitor code selector
 
 movw	%cs, %ax
 movw	%ax, %ds		# Set ds = cs to make boot run correctly
@@ -75,6 +80,7 @@ halt:
 # 8.  Video mode
 # 9.  Exit
 # 10. Detect memory
+# 11. Bootstrap / Minix
 # ========================================
 
 
@@ -283,11 +289,12 @@ getBus:							# Bus type: XT, AT, MCA
 	retl	
 
 # void closeDev();
+#	Close the current device. Under the BIOS this does nothing much.
 	.globl	closeDev
 	.type	closeDev, @function
 closeDev:
 	xorw	%ax, %ax
-	movb	%ax, devState
+	movb	%al, devState
 	retl
 	
 # int isDevBoundary(u32_t sector);
@@ -808,6 +815,98 @@ detectE820Mem:
 	leave
 	retl
 
+# ========== 11. Bootstrap / Minix Functions ==========
+# void minix(u32_t kEntry, u32_t kcs, u32_t kds, 
+#				char *bootParams, size_t paramSize, u32_t headerPos);
+	.globl	minix
+	.type	minix, @function
+minix:
+	pushl	%ebp
+	movl	%esp, %ebp
+// TODO save cs/ds real
+	movl	%cr0, %eax				
+	orb	$1,	%al					# Set PE (protection enable) bit
+	movl	%eax, mcStatus		# Save to machine status
+	
+	movw	%ds, %dx			# Use monitor ds
+	movw	$p_gdt,	%ax			# dx:ax = Global descriptor table
+	callw	seg2Abs
+	movw	%ax, p_gdt_desc+2	# Set base 15:00 of this GDT
+	movb	%al, p_gdt_desc+4	# Set base 23:16 of this GDT
+
+	movw	16(%ebp), %ax		# Kernel ds (absolute address)
+	movw	18(%ebp), %dx		
+	movw	%ax, p_ds_desc+2	# Set base 15:00 of Kernel ds
+	movb	%dl, p_ds_desc+4	# Set base 23:16 of Kenrel ds
+
+	movw	%ss, %dx			# Use monitor ss
+	xorw	%ax, %ax			# dx:ax = Monitor stack segment
+	callw	seg2Abs				# Minix starts with the stack of the monitor
+	movw	%ax, p_ss_desc+2	# Set base 15:00 of Kernel ss
+	movb	%dl, p_ss_desc+4	# Set base 23:16 of Kenrel ss
+
+	movw	12(%ebp), %ax		# Kernel cs (absolute address)
+	movw	14(%ebp), %dx		
+	movw	%ax, p_cs_desc+2	# Set base 15:00 of Kernel cs
+	movb	%dl, p_cs_desc+4	# Set base 23:16 of Kenrel cs
+
+	movw	%cs, %dx			# Monitor cs
+	xorw	%ax, %ax			# dx:ax = Monitor code segment
+	callw	seg2Abs
+	movw	%ax, p_mcs_desc+2	# Set base 15:00 of Monitor cs
+	movb	%dl, p_mcs_desc+4	# Set base 23:16 of Monitor cs
+
+	pushw	$MCS_SELECTOR	
+	pushw	$int86				# For address to INT86 support
+	pushl	28(%esp)			# Address of exec headers
+	pushl	24(%esp)			# 32 bit size of parameters on stack
+	pushl	20(%esp)			# 32 bit address of parameters (ss relative)
+	pushw	$MCS_SELECTOR
+	pushw	$ret386				# Monitor far return address	
+	
+	pushw	$0
+	pushw	$CS_SELECTOR
+	pushl	8(%esp)				# 32 bit for address to kernel entry point
+
+	calll	real2Prot			# Switch to protected mode
+	movw	$DS_SELECTOR, %ax	# Kernel data
+	movw	%ax, %ds
+	movw	$ES_SELECTOR, %ax	# Flat 4 GB 
+	movw	%ax, %es
+#retfw						# Make a far call to the kernel
+
+#TODO DEBUG
+	leave
+	retl
+
+int86:
+	#TODO
+
+real2Prot:
+	lgdt	p_gdt_desc				# Load global descriptor table
+	movl	pdbr, %eax				# Load page directory base register
+	movl	%eax, %cr3			
+	movl	%cr0, %eax
+	xchgl	%eax, mcStatus			# Exchange real mode mcStatus for protected mode mcStatus
+
+#TODO DEBUG
+	retl
+
+	ljmp	$MCS_SELECTOR, $csProt	# Set code segment selector
+csProt:
+	movw	$SS_SELECTOR, %ax		# Set data selectors
+	movw	%ax, %ds
+	movw	%ax, %es
+	movw	%ax, %ss
+	retl
+
+ret386:
+#callw	prot2Real				# Switch to real mode	
+return:
+#TODO
+	retw
+
+
 
 	.section	.rodata
 detectErrMsg:
@@ -824,9 +923,9 @@ chmem:
 
 	.section	.data
 	.globl	x_gdt			# For "Extended Memory Block Move".
-	.align	2
 	.type	x_gdt, @object
 	.size	x_gdt, 48
+	.align	2
 x_gdt:						
 x_null_desc:				# Dummy Descriptor. Initialized by user to 0.
 	.zero	8				
@@ -848,6 +947,60 @@ x_bios_desc:				# Descriptor for Protected Mode Code Segment. Initialized by use
 	.zero	8		
 x_ss_desc:					# Descriptor for Protected Mode Stack Segment. Initialized by user to 0. Modified by BIOS.
 	.zero	8
+# ------------------
+	.globl	p_gdt
+	.type	p_gdt, @object	# GDT (Global Descriptor Table)
+	.size	p_gdt, 64
+	.align	4
+p_gdt:
+p_null_desc:		# The first descriptor: Null descriptor
+	.zero	8
+p_gdt_desc:			# Descriptor for GDT
+	.value	8*8-1			# Segment limit: 15:00
+							# Each entry is 8 bytes and there are 8 entries in this table.
+	.zero	2				# Base address: 15:00
+	.zero	1				# Base address: 23:16
+	.zero	3				
+p_idt_desc:			# Descriptor for real mode IDT (Interrupt descriptor table)
+	.value	0x3FF			# Segment limit: 15:00
+	.zero	2				# Base address: 15:00
+	.zero	1				# Base address: 23:16
+	.zero	3
+p_ds_desc:			# Kernel data segment descriptor (4 GB flat)
+	.value	0xFFFF			# Segment limit: 15:00
+	.zero	2				# Base address: 15:00
+	.zero	1				# Base address: 23:16
+	.byte	0x92			# P=1, DPL=0, S=1, Type=0x2=0010(RW)
+	.byte	0xCF			# G=1, D/B=1, L=0, AVL=0, Segment limit(19:16)=0xF
+	.zero	1				# Base address: 31:24
+p_es_desc:			# Physical memory descriptor (4 GB flat)
+	.value	0xFFFF			
+	.zero	2				
+	.zero	1				
+	.byte	0x92			
+	.byte	0xCF			
+	.zero	1				
+p_ss_desc:			# Monitor data segment descriptor (64 KB flat)
+	.value	0xFFFF			
+	.zero	2				
+	.zero	1				
+	.byte	0x92
+	.zero	1				# G=0, D/B=0, S=0, Segment limit(19:16)=0x0
+	.zero	1				# Base address 31:24 = 0 
+p_cs_desc:			# Kernel code segment descriptor (4 GB flat)
+	.value	0xFFFF
+	.zero	2				
+	.zero	1				
+	.byte	0x9A			# P=1, DPL=0, S=1, Type=0xA=1010(R/E)
+	.byte	0xCF			# G=1, D/B=1, L=0, AVL=0, Segment limit(19:16)=0xF
+	.zero	1				
+p_mcs_desc:			# Monitor code segment descriptor (64 KB flat)
+	.value	0xFFFF
+	.zero	2				
+	.zero	1				
+	.byte	0x9A			# P=1, DPL=0, S=1, Type=0xA=1010(R/E)
+	.zero	1				# G=0, D/B=0, S=0, Segment limit(19:16)=0x0
+	.zero	1				
 # ------------------
 	.type	rwDAP, @object	# Disk Address Packet
 	.size	rwDAP, 16
@@ -877,4 +1030,6 @@ memBreak:
 	.lcomm	bus, 2				# Saved retrun value of getBus
 	.lcomm	unchar, 2			# Char returned by ungetch(c)
 	.lcomm	escFlag, 2			# Escape typed?
+	.lcomm	mcStatus, 4			# Saved machine status (cr0)
+	.lcomm	pdbr, 4				# Saved page directory base register (cr3)
 
