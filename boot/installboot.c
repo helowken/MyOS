@@ -266,11 +266,14 @@ static void padImage(size_t len) {
 	bufOff += len;
 }
 
-static void copyExec(char *procName, FILE *procFile, size_t size) {
+static void copyExec(char *procName, FILE *procFile, Elf32_Phdr *hdr) {
+	size_t size = hdr->p_filesz;
 	int padLen = ALIGN(size) - size;
 
 	adjustBuf(size);
 
+	if (fseek(procFile, hdr->p_offset, SEEK_SET) == -1)
+	  errExit("fseek %s", procName);
 	if (fread(currBuf, size, 1, procFile) != 1 || ferror(procFile))
 	  errExit("fread %s", procName);
 
@@ -322,9 +325,9 @@ static void installImage(char *device, char **procNames) {
 		
 		proc = &imgHdr.process;
 		if (proc->codeHdr.p_type != PT_NULL)
-		  copyExec(procName, procFile, proc->codeHdr.p_filesz);
+		  copyExec(procName, procFile, &proc->codeHdr);
 		if (proc->dataHdr.p_type != PT_NULL)
-		  copyExec(procName, procFile, proc->dataHdr.p_filesz);
+		  copyExec(procName, procFile, &proc->dataHdr);
 		
 		fclose(procFile);
 	}

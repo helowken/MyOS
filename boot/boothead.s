@@ -622,6 +622,22 @@ seg2Abs:
 	retw
 
 # ========== 8. Video mode Functions ==========
+# void clearScreen();
+	.globl	clearScreen
+	.type	clearScreen, @function
+clearScreen:
+	movw	$0x0600, %ax		# AH=06h, AL=0, clear entire window
+	movb	$0x07, %bh			# Low 4 bits are character color and high 4 bits are background color.
+	xorw	%cx, %cx
+	movw	$0x184F, %dx
+
+	int	$0x10
+	movb	$0x2, %ah			# Set cursor position.
+	movb	$0x0, %bh			# Display page number = 0
+	movw	$0x0, %dx			# Row = dh = 0, column = dl = 0
+	int	$0x10
+	retl
+
 	.type	restoreVideoMode, @function
 restoreVideoMode:
 	pushl	oldVideoMode
@@ -832,7 +848,7 @@ minix:
 	movw	$p_gdt,	%ax			# dx:ax = Global descriptor table
 	callw	seg2Abs
 	movw	%ax, p_gdt_desc+2	# Set base 15:00 of this GDT
-	movb	%al, p_gdt_desc+4	# Set base 23:16 of this GDT
+	movb	%dl, p_gdt_desc+4	# Set base 23:16 of this GDT
 
 	movw	16(%ebp), %ax		# Kernel ds (absolute address)
 	movw	18(%ebp), %dx		
@@ -873,14 +889,11 @@ minix:
 	movw	%ax, %ds
 	movw	$ES_SELECTOR, %ax	# Flat 4 GB 
 	movw	%ax, %es
-#retfw						# Make a far call to the kernel
-
-#TODO DEBUG
-	leave
-	retl
+	lret	$2						# Make a far call to the kernel
 
 int86:
 	#TODO
+	retw
 
 real2Prot:
 	lgdt	p_gdt_desc				# Load global descriptor table
@@ -888,10 +901,7 @@ real2Prot:
 	movl	%eax, %cr3			
 	movl	%cr0, %eax
 	xchgl	%eax, mcStatus			# Exchange real mode mcStatus for protected mode mcStatus
-
-#TODO DEBUG
-	retl
-
+	movl	%eax, %cr0
 	ljmp	$MCS_SELECTOR, $csProt	# Set code segment selector
 csProt:
 	movw	$SS_SELECTOR, %ax		# Set data selectors

@@ -12,7 +12,8 @@ INSTALL_BOOT = installboot.bin
 all: install run
 
 run: 
-	qemu-system-i386 -drive "file=$(DISK_IMAGE),format=raw,index=0,media=disk"
+	#qemu-system-i386 -drive "file=$(DISK_IMAGE),format=raw,index=0,media=disk"
+	bochs
 
 %.bin: %.asm
 	nasm -f bin $< -o $@
@@ -23,7 +24,7 @@ boot.elf: \
 		boot.o \
 		bootimage.o
 	# -nmagic: merge text and data
-	$(LD) $^ -Ttext 0x0 -m elf_i386 -nostdlib -L$(LIB_DIR) $(LIBS) -o $@ 
+	$(LD) $^ -Ttext 0x0 -m elf_i386 -nmagic -nostdlib -L$(LIB_DIR) $(LIBS) -o $@ 
 
 boot.bin: boot.elf
 	objcopy -O binary -j .text -j .rodata -j .data $< $@ 
@@ -52,5 +53,10 @@ install_image: installboot
 reset:
 	cd device && ./run && cd ..
 
+disasm: boot.elf
+	objdump -D boot.elf -mi386 -Matt,data16,addr16 boot.elf | less
+
 clean:
 	rm -f *.o *.bin *.elf 
+
+

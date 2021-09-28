@@ -148,6 +148,9 @@ extern void pause();
 /* Close device. */
 extern void closeDev();
 
+/* Clear screen. */
+extern void clearScreen();
+
 /* Start Minix. */
 extern void minix(u32_t kEntry, u32_t kcs, u32_t kds, 
 			char *bootParams, size_t paramSize, u32_t headerPos);

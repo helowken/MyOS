@@ -444,23 +444,26 @@ static void execImage(char *image) {
 	if ((console = getVarValue("console")) == NULL ||
 				(mode = a2x(console)) == 0) {
 		mode = strcmp(getVarValue("chrome"), "color") == 0 ? COLOR_MODE : MONO_MODE;
-		setVideoMode(mode);
+		// TODO setVideoMode(mode);
 	}
 
 	/* Close the disk. */
 	closeDev();
 
 	/* Minix. */
-	minix(procs[KERNEL].entry, procs[KERNEL].cs, procs[KERNEL].ds, 
+	minix(procs[KERNEL].entry, 
+				procs[KERNEL].cs, 
+				0, //procs[KERNEL].ds, 
 				params, sizeof(params), imgHdrPos);
 
 	parseCode(params);
 
-	/*
+	if (false) {
 	printf("cs: %x, ds: %x\n", procs[KERNEL].cs, procs[KERNEL].ds);
 	printf("-----------------\n");
 	printRangeHex(p_gdt, 64, 8);
-	*/
+	}
+	while(true) {}
 }
 
 void bootMinix() {
@@ -469,6 +472,9 @@ void bootMinix() {
 	imgName = getVarValue("image");
 	if ((image = selectImage(imgName)) == NULL)
 	  return;
+
+	// TODO now just use clearScreen
+	clearScreen();	
 
 	execImage(image);
 

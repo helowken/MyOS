@@ -951,7 +951,7 @@ static void execute() {
 									printf(version);
 									break;
 								case 'c':
-									/* TODO clearScreen(); */
+									clearScreen();
 									break;
 								case 'w':
 									while (true) {
