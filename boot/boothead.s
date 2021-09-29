@@ -889,7 +889,7 @@ minix:
 	movw	%ax, %ds
 	movw	$ES_SELECTOR, %ax	# Flat 4 GB 
 	movw	%ax, %es
-	lret	$2						# Make a far call to the kernel
+	lret						# Make a far call to the kernel
 
 int86:
 	#TODO

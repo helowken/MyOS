@@ -382,7 +382,7 @@ static void execImage(char *image) {
 
 		dataSize = bssSize = 0;
 		if (isPLoad(&proc->dataHdr)) {
-			n = align(addr, proc->dataHdr.p_align) - addr;
+			n = procp->ds + proc->dataHdr.p_paddr - addr;
 			rawClear(addr, n);
 			addr += n;
 			dataSize = proc->dataHdr.p_filesz;
@@ -453,7 +453,7 @@ static void execImage(char *image) {
 	/* Minix. */
 	minix(procs[KERNEL].entry, 
 				procs[KERNEL].cs, 
-				0, //procs[KERNEL].ds, 
+				procs[KERNEL].ds, 
 				params, sizeof(params), imgHdrPos);
 
 	parseCode(params);
