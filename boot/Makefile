@@ -30,7 +30,7 @@ boot.bin: boot.elf
 	objcopy -O binary -j .text -j .rodata -j .data $< $@ 
 
 installboot: installboot.c 
-	$(CC) -o $(INSTALL_BOOT) $< -I$(LINUX_LIB) $(LINUX_LIB)/*.o
+	$(CC) -g -o $(INSTALL_BOOT) $< -I$(LINUX_LIB) $(LINUX_LIB)/*.o
 
 install: \
 	install_masterboot \
@@ -48,13 +48,13 @@ install_bootable: boot.bin installboot
 	./$(INSTALL_BOOT) -b $(DISK_IMAGE) $<
 
 install_image: installboot
-	./$(INSTALL_BOOT) -i $(DISK_IMAGE) ../kernel/kernel
+	./$(INSTALL_BOOT) -i $(DISK_IMAGE) ../kernel/kernel.bin
 
 reset:
 	cd device && ./run && cd ..
 
 disasm: boot.elf
-	objdump -D boot.elf -mi386 -Matt,data16,addr16 boot.elf | less
+	objdump -D -mi386 -Matt,data16,addr16 $< | less
 
 clean:
 	rm -f *.o *.bin *.elf 

@@ -2,7 +2,7 @@ export ARFLAGS = rvU
 
 INC = $(MY_HOME)/include
 INC_SYS = $(INC)/sys
-INCLUDE = -I$(INC) -I$(INC_SYS)
+INCLUDE = -I$(INC)
 CFLAGS = -c -m32 -ffreestanding -nostdinc -nodefaultlibs -Wall -Werror $(INCLUDE)
 ifeq ($(MODE), M16)
 	CFLAGS += -D_M16
@@ -20,7 +20,10 @@ HEADERS = $(wildcard *.h $(INC)/*.h $(INC_SYS)/*.h)
 	$(CC) $(CFLAGS) $< -o $@
 
 %.o: %.s
-	$(AS) --32 $< -o $@
-  
+	$(AS) --32 $< -o $@ 
+
+%.o: %.S
+	$(CC) -c -Wa,--32 $(INCLUDE) $< -o $@
+
 .PHONY:	clean 
 

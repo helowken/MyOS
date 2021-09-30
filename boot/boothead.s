@@ -841,74 +841,75 @@ minix:
 	movl	%esp, %ebp
 // TODO save cs/ds real
 	movl	%cr0, %eax				
-	orb	$1,	%al					# Set PE (protection enable) bit
-	movl	%eax, mcStatus		# Save to machine status
+	orb	$1,	%al						# Set PE (protection enable) bit
+	movl	%eax, mcStatus			# Save to machine status
 	
-	movw	%ds, %dx			# Use monitor ds
-	movw	$p_gdt,	%ax			# dx:ax = Global descriptor table
+	movw	%ds, %dx				# Use monitor ds
+	movw	$p_gdt,	%ax				# dx:ax = Global descriptor table
 	callw	seg2Abs
-	movw	%ax, p_gdt_desc+2	# Set base 15:00 of this GDT
-	movb	%dl, p_gdt_desc+4	# Set base 23:16 of this GDT
+	movw	%ax, p_gdt_desc+2		# Set base 15:00 of this GDT
+	movb	%dl, p_gdt_desc+4		# Set base 23:16 of this GDT
 
-	movw	16(%ebp), %ax		# Kernel ds (absolute address)
+	movw	16(%ebp), %ax			# Kernel ds (absolute address)
 	movw	18(%ebp), %dx		
-	movw	%ax, p_ds_desc+2	# Set base 15:00 of Kernel ds
-	movb	%dl, p_ds_desc+4	# Set base 23:16 of Kenrel ds
+	movw	%ax, p_ds_desc+2		# Set base 15:00 of Kernel ds
+	movb	%dl, p_ds_desc+4		# Set base 23:16 of Kenrel ds
 
-	movw	%ss, %dx			# Use monitor ss
-	xorw	%ax, %ax			# dx:ax = Monitor stack segment
-	callw	seg2Abs				# Minix starts with the stack of the monitor
-	movw	%ax, p_ss_desc+2	# Set base 15:00 of Kernel ss
-	movb	%dl, p_ss_desc+4	# Set base 23:16 of Kenrel ss
+	movw	%ss, %dx				# Use monitor ss
+	xorw	%ax, %ax				# dx:ax = Monitor stack segment
+	callw	seg2Abs					# Minix starts with the stack of the monitor
+	movw	%ax, p_ss_desc+2		# Set base 15:00 of Kernel ss
+	movb	%dl, p_ss_desc+4		# Set base 23:16 of Kenrel ss
 
-	movw	12(%ebp), %ax		# Kernel cs (absolute address)
+	movw	12(%ebp), %ax			# Kernel cs (absolute address)
 	movw	14(%ebp), %dx		
-	movw	%ax, p_cs_desc+2	# Set base 15:00 of Kernel cs
-	movb	%dl, p_cs_desc+4	# Set base 23:16 of Kenrel cs
+	movw	%ax, p_cs_desc+2		# Set base 15:00 of Kernel cs
+	movb	%dl, p_cs_desc+4		# Set base 23:16 of Kenrel cs
 
-	movw	%cs, %dx			# Monitor cs
-	xorw	%ax, %ax			# dx:ax = Monitor code segment
+	movw	%cs, %dx				# Monitor cs
+	xorw	%ax, %ax				# dx:ax = Monitor code segment
 	callw	seg2Abs
-	movw	%ax, p_mcs_desc+2	# Set base 15:00 of Monitor cs
-	movb	%dl, p_mcs_desc+4	# Set base 23:16 of Monitor cs
+	movw	%ax, p_mcs_desc+2		# Set base 15:00 of Monitor cs
+	movb	%dl, p_mcs_desc+4		# Set base 23:16 of Monitor cs
 
 	pushw	$MCS_SELECTOR	
-	pushw	$int86				# For address to INT86 support
-	pushl	28(%esp)			# Address of exec headers
-	pushl	24(%esp)			# 32 bit size of parameters on stack
-	pushl	20(%esp)			# 32 bit address of parameters (ss relative)
+	pushw	$int86					# For address to INT86 support
+	pushl	28(%esp)				# Address of exec headers
+	pushl	24(%esp)				# 32 bit size of parameters on stack
+	pushl	20(%esp)				# 32 bit address of parameters (ss relative)
 	pushw	$MCS_SELECTOR
-	pushw	$ret386				# Monitor far return address	
+	pushw	$ret386					# Monitor far return address	
 	
-	pushw	$0
-	pushw	$CS_SELECTOR
-	pushl	8(%esp)				# 32 bit for address to kernel entry point
+	pushl	$CS_SELECTOR			# 32 bit for address to kernel entry point
+	pushl	8(%esp)					# cs:KernelEntry
 
-	calll	real2Prot			# Switch to protected mode
-	movw	$DS_SELECTOR, %ax	# Kernel data
+	callw	.real2Prot				# Switch to protected mode
+	movw	$DS_SELECTOR, %ax		# Kernel data
 	movw	%ax, %ds
-	movw	$ES_SELECTOR, %ax	# Flat 4 GB 
+	movw	$ES_SELECTOR, %ax		# Flat 4 GB 
 	movw	%ax, %es
-	lret						# Make a far call to the kernel
+	lret							# Make a far call to the kernel (cs:KernelEntry)
 
 int86:
 	#TODO
 	retw
 
-real2Prot:
+.real2Prot:
 	lgdt	p_gdt_desc				# Load global descriptor table
 	movl	pdbr, %eax				# Load page directory base register
 	movl	%eax, %cr3			
-	movl	%cr0, %eax
-	xchgl	%eax, mcStatus			# Exchange real mode mcStatus for protected mode mcStatus
+
+	movl	%cr0, %eax				# Exchange real mode mcStatus for protected mode mcStatus
+	xchgl	%eax, mcStatus			
 	movl	%eax, %cr0
-	ljmp	$MCS_SELECTOR, $csProt	# Set code segment selector
-csProt:
+
+	ljmp	$MCS_SELECTOR, $.csProt	# Use a far jump to set code segment selector.
+.csProt:
 	movw	$SS_SELECTOR, %ax		# Set data selectors
-	movw	%ax, %ds
+	movw	%ax, %ds				# ds = es = ss = ss selector
 	movw	%ax, %es
 	movw	%ax, %ss
-	retl
+	retw
 
 ret386:
 #callw	prot2Real				# Switch to real mode	

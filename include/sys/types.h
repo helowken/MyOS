@@ -1,5 +1,5 @@
-#ifndef _TYPE_H
-#define _TYPE_H
+#ifndef _SYS_TYPES_H
+#define _SYS_TYPES_H
 
 typedef unsigned long	ino_t;		// i-node number of file system
 typedef unsigned long	off_t;		// offset within a file

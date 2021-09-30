@@ -1,5 +1,5 @@
-#ifndef _DIR_H
-#define _DIR_H
+#ifndef _SYS_DIR_H
+#define _SYS_DIR_H
 
 #include "sys/types.h"
 
