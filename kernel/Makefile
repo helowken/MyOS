@@ -5,7 +5,7 @@ LIB_DIR = $(MY_HOME)/lib
 LIBS = -lmyc -lmysysutil
 
 HEAD = mpx.o
-OBJS = start.o protect.o
+OBJS = start.o protect.o table.o
 KERNEL = kernel.bin
 
 all: $(KERNEL)
@@ -17,7 +17,7 @@ test: entry.o test.o
 	$(LD) $^ -Ttext 0x0 -m elf_i386 -nostdlib -o $(KERNEL)
 
 disasm: $(KERNEL)
-	objdump -D -mi386 -Matt,data32,addr32 $< | less
+	objdump -d -j .text -j .data -j .bss -mi386 -Matt,data32,addr32 $< | less
 
 clean:
 	rm -f *.o *.bin

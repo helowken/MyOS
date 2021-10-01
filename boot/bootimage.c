@@ -257,6 +257,8 @@ static bool copyParams(char *params, size_t size) {
 	Environment *e;
 	char *name, *value;
 
+	memset(params, 0, size);
+
 	for (e = env; e != NULL; e = e->next) {
 		if (e->flags & E_VAR) {
 			name = e->name;
@@ -450,19 +452,13 @@ static void execImage(char *image) {
 	/* Close the disk. */
 	closeDev();
 
+	printf("params: %x, size: %x\n", params, sizeof(params));
 	/* Minix. */
-	minix(procs[KERNEL].entry, 
-				procs[KERNEL].cs, 
-				procs[KERNEL].ds, 
+	minix(procs[KERNEL].entry, procs[KERNEL].cs, procs[KERNEL].ds, 
 				params, sizeof(params), imgHdrPos);
 
 	parseCode(params);
 
-	if (false) {
-	printf("cs: %x, ds: %x\n", procs[KERNEL].cs, procs[KERNEL].ds);
-	printf("-----------------\n");
-	printRangeHex(p_gdt, 64, 8);
-	}
 	while(true) {}
 }
 

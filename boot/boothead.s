@@ -874,14 +874,14 @@ minix:
 
 	pushw	$MCS_SELECTOR	
 	pushw	$int86					# For address to INT86 support
-	pushl	28(%esp)				# Address of exec headers
-	pushl	24(%esp)				# 32 bit size of parameters on stack
-	pushl	20(%esp)				# 32 bit address of parameters (ss relative)
+	pushl	28(%ebp)				# Address of exec headers
+	pushl	24(%ebp)				# 32 bit size of parameters on stack
+	pushl	20(%ebp)				# 32 bit address of parameters (ss relative)
 	pushw	$MCS_SELECTOR
 	pushw	$ret386					# Monitor far return address	
 	
 	pushl	$CS_SELECTOR			# 32 bit for address to kernel entry point
-	pushl	8(%esp)					# cs:KernelEntry
+	pushl	8(%ebp)					# cs:KernelEntry
 
 	callw	.real2Prot				# Switch to protected mode
 	movw	$DS_SELECTOR, %ax		# Kernel data

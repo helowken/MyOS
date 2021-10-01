@@ -1,5 +1,5 @@
-#ifndef	_PROTECT_H
-#define _PROTECT_H
+#ifndef	PROTECT_H
+#define PROTECT_H
 
 /* Table sizes. */
 #define GDT_SIZE		(FIRST_LDT_INDEX + NR_TASKS + NR_PROCS)		
