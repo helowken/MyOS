@@ -452,7 +452,6 @@ static void execImage(char *image) {
 	/* Close the disk. */
 	closeDev();
 
-	printf("params: %x, size: %x\n", params, sizeof(params));
 	/* Minix. */
 	minix(procs[KERNEL].entry, procs[KERNEL].cs, procs[KERNEL].ds, 
 				params, sizeof(params), imgHdrPos);

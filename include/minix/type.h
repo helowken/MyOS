@@ -12,4 +12,17 @@
 /* Type definition. */
 typedef unsigned long phys_bytes;		/* Physical addr/length in bytes */
 
+typedef struct {
+	phys_bytes codeBase;				/* Base of kernel code. */
+	phys_bytes codeSize;				/* Size of kernel code. */
+	phys_bytes dataBase;				/* Base of kernel data. */
+	phys_bytes dataSize;				/* Size of kernel data. */
+
+} KernelInfo;
+
+typedef struct {
+	int pc_at;
+	int ps_mca;
+} Machine;
+
 #endif

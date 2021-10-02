@@ -991,7 +991,7 @@ p_es_desc:			# Physical memory descriptor (4 GB flat)
 	.byte	0x92			
 	.byte	0xCF			
 	.zero	1				
-p_ss_desc:			# Monitor data segment descriptor (64 KB flat)
+p_ss_desc:			# Monitor data/stack segment descriptor (64 KB flat)
 	.value	0xFFFF			
 	.zero	2				
 	.zero	1				

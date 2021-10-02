@@ -23,6 +23,35 @@
 #define CS_SELECTOR			0x30	/* (CS_INDEX * DESC_SIZE) */
 #define MON_CS_SELECTOR		0x38	/* (MON_CS_INDEX * DESC_SIZE) */
 
+/* Privileges. */
+#define INTR_PRIVILEGE		0		/* Kernel and interrupt handlers. */
+#define TASK_PRIVILEGE		1		/* Kernel tasks. */
+#define USER_PRIVILEGE		2		/* Servers and user processes. */
+
+/* 
+ * Exception vector numbers.
+ *
+ * Type: A(bort) / F(ault) / I(nterrupt) / T(rap) 
+ * Error Code (EC): Y(es) / N(o)
+ */
+									/* Description              | Type | EC */
+#define BOUNDS_VECTOR		5		/* BOUND Range Exceeded     |    F | N  */
+#define INVAL_OP_VECTOR		6		/* Invalid Opcode           |    F | N          
+									   (Undefined Opcode)                   */
+#define COPROC_NOT_VECTOR	7		/* Device Not Available     |    F | N
+									   (No Math Coprocessor)                */
+#define DOUBLE_FAULT_VECTOR	8		/* Double Fault             |    A | Y  */
+#define COPROC_SEG_VECTOR	9		/* Coprocessor Segment      |    F | N
+									   Overrun (reserved)                   */
+#define INVAL_TSS_VECTOR	10		/* Invalid TSS              |    F | Y  */
+#define SEG_NOT_VECTOR		11		/* Segment Not Present      |    F | Y  */
+#define STACK_FAULT_VECTOR	12		/* Stack-Segment Fault      |    F | Y  */
+#define PROTECTION_VECTOR	13		/* General Protection       |    F | Y  */
+#define PAGE_FAULT_VECTOR	14		/* Page Fault               |    F | Y  */
+/*							15		   Intel reserved. Do not use.          */
+#define COPROC_ERR_VECTOR	16		/* x87 FPU Floating-Point   |    F | N  
+									   Error (Math Fault)                   */
+
 
 /* Descriptor structure offsets. */
 #define DESC_SIZE			8		/*	sizeof SegDesc */

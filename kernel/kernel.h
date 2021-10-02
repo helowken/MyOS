@@ -9,6 +9,7 @@
 #include "config.h"
 #include "const.h"
 #include "type.h"
+#include "proto.h"
 #include "glo.h"
 
 #endif

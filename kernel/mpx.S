@@ -1,5 +1,6 @@
 #include "minix/config.h"
 #include "minix/com.h"
+#include "ibm/interrupt.h"
 #include "const.h"
 #include "protect.h"	
 
@@ -41,9 +42,22 @@
 	movw	%ax, %ss
 	movl	$kStackTop, %esp			# Set sp to point to the top of kernel stack
 
+# Call C startup code to set up a proper environment to run main().	
+	pushl	%edx
+	pushl	%ebx
+	pushl	SS_SELECTOR
+	pushl	DS_SELECTOR
+	pushl	CS_SELECTOR
+	calll	cstart						# cstart(cs, ds, ss, paramOffset, paramSize)
+	addl	$(5*4), %esp
 
 aa:
 	jmp aa
+
+
+#*=====================================================================*
+#*                Exception Handlers                *
+#*=====================================================================*
 
 
 

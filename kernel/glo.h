@@ -10,9 +10,9 @@
 #include "config.h"
 
 /* Kernel information structures. This groups vital kernel information. */
-EXTERN phys_bytes imgHdrPos;	/* Address of image headers */
+EXTERN phys_bytes imgHdrPos;	/* Address of image headers. */
+EXTERN KernelInfo kernelInfo;	/* Kernel information for users. */
 
-
-extern SegDesc gdt[];			/* GDT (global descriptor table) */
+extern SegDesc gdt[];			/* GDT (global descriptor table). */
 
 #endif
