@@ -3,6 +3,7 @@
 #include "ibm/interrupt.h"
 #include "const.h"
 #include "protect.h"	
+.include "sconst.inc"
 
 	.text
 # Set up a C stack frame on the monitor stack.
@@ -39,7 +40,7 @@
 	movw	%ax, %es
 	movw	%ax, %fs
 	movw	%ax, %gs
-	movw	%ax, %ss
+	movw	%ax, %ss					# ss = gs = fs = es = ds
 	movl	$kStackTop, %esp			# Set sp to point to the top of kernel stack
 
 # Call C startup code to set up a proper environment to run main().	
@@ -58,10 +59,209 @@ aa:
 #*=====================================================================*
 #*                Exception Handlers                *
 #*=====================================================================*
+	.globl	divideError
+	.type	divideError, @function
+divideError:
+	pushl	DIVIDE_VECTOR
+	jmp	exception
+
+
+	.globl	singleStepException
+	.type	singleStepException, @function
+singleStepException:
+	pushl	DEBUG_VECTOR
+	jmp exception
+
+
+	.globl	nmi
+	.type	nmi, @function
+nmi:
+	pushl	NMI_VECTOR
+	jmp exception
+
+
+	.globl	breakpointException
+	.type	breakpointException, @function
+breakpointException:
+	pushl	BREAKPOINT_VECTOR
+	jmp	exception
+
+
+	.globl	overflow
+	.type	overflow, @function
+overflow:
+	pushl	OVERFLOW_VECTOR
+	jmp	exception
+
+
+	.globl	boundsCheck
+	.type	boundsCheck, @function
+boundsCheck:
+	pushl	BOUNDS_VECTOR
+	jmp	exception
+
+
+	.globl	invalOpcode
+	.type	invalOpcode, @function
+invalOpcode:
+	pushl	INVAL_OP_VECTOR
+	jmp exception
+
+
+	.globl	coprNotAvailable
+	.type	coprNotAvailable, @function
+coprNotAvailable:
+	pushl	COPROC_NOT_VECTOR
+	jmp	exception
+
+
+	.globl	doubleFault
+	.type	doubleFault, @function
+doubleFault:
+	pushl	DOUBLE_FAULT_VECTOR
+	jmp	errException
+
+
+	.globl	coprSegOverrun
+	.type	coprSegOverrun, @function
+coprSegOverrun:
+	pushl	COPROC_SEG_VECTOR
+	jmp exception
+
+
+	.globl	invalTss
+	.type	invalTss, @function
+invalTss:
+	pushl	INVAL_TSS_VECTOR
+	jmp	errException
+
+
+	.globl	segmentNotPresent
+	.type	segmentNotPresent, @function
+segmentNotPresent:
+	pushl	SEG_NOT_VECTOR
+	jmp errException
+
+
+	.globl	stackException
+	.type	stackException, @function
+stackException:
+	pushl	STACK_FAULT_VECTOR
+	jmp errException
+
+
+	.globl	generalProtection
+	.type	generalProtection, @function
+generalProtection:
+	pushl	PROTECTION_VECTOR
+	jmp errException
+
+
+	.globl	pageFault
+	.type	pageFault, @function
+pageFault:
+	pushl	PAGE_FAULT_VECTOR
+	jmp errException
+
+
+	.globl	coprError
+	.type	coprError, @function
+coprError:
+	pushl	COPROC_ERR_VECTOR
+	jmp	exception
+
+
+#*=====================================================================*
+#*                exception                *
+#*=====================================================================*
+	.type	exception, @function
+	.align	16
+exception:
+	movl	$0, %ss:(errorCode)			# Clear errorCode
+	popl	%ss:(exVector)
+	jmp	.commonException	
+	
+
+#*=====================================================================*
+#*                errException                *
+#*=====================================================================*
+	.type	errException, @function
+	.align	16
+errException:
+	popl	%ss:(errorCode)			
+	popl	%ss:(exVector)
+.commonException:						# Common for all exceptions
+	pushl	%eax
+	movl	4(%esp), %eax				# Save old EIP
+	movl	%eax, %ss:(oldEip)
+	movl	8(%esp), %eax				# Save old CS
+	movl	%eax, %ss:(oldCs)
+	movl	12(%esp), %eax				# Save old EFLAGS
+	movl	%eax, %ss:(oldEflags)
+	popl	%eax
+	calll	save
+	pushl	oldEflags
+	pushl	oldCs
+	pushl	oldEip
+	pushl	errorCode
+	pushl	exVector
+	calll	handleException				# handleException(exVector, errorCode, oldEip, oldCs, oldEflags);
+	addl	$(5*4), %esp
+	retl
+
+
+#*=====================================================================*
+#*                save                *
+#*=====================================================================*
+# Save for protected mode.
+	.type	save, @function
+	.align	16
+save:
+	cld									
+	pushal								# Save all general registers
+	pushw	%ds
+	pushw	%es
+	pushw	%fs
+	pushw	%gs							# Save ds, es, fs, gs
+	movw	%ss, %dx					# ss is kernel data segment (See above)
+	movw	%dx, %ds					# Load rest of kernel segments
+	movw	%dx, %es					# Kernel does not use fs, gs
+	movl	%esp, %eax
+	incb	kernelReentryCount
+	jnz	.setRestart						# Stack is already kernel stack
+.setupKernelStack:						# TODO
+	jmp .setupKernelStack
+
+	.align	4
+.setRestart:
+	pushl	.doRestart
+	addl	$(RETADR-P_STACKBASE), %eax
+	jmp	%eax
+
+
+#*=====================================================================*
+#*                restart                *
+#*=====================================================================*
+.doRestart:
+	decb	kernelReentryCount
+	popw	%gs
+	popw	%fs
+	popw	%es
+	popw	%ds
+	popal
+	addl	$4, %esp					# Skip return address
+	iretl								# Continue process
+
+
+
 
 
 
 	.section	.bss
-	.lcomm kStack, K_STACK_BYTES		# Kernel stack
+	.lcomm	kStack, K_STACK_BYTES		# Kernel stack
 kStackTop:								# Top of kernel stack
-
+	.lcomm	exVector, 4	
+	.lcomm	errorCode, 4
+	.lcomm	oldEip, 4
+	.lcomm	oldCs, 4
+	.lcomm	oldEflags, 4

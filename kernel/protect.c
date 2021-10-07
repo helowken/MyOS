@@ -51,4 +51,8 @@ PUBLIC void protectInit() {
 		{ pageFault, PAGE_FAULT_VECTOR, INTR_PRIVILEGE },
 		{ coprError, COPROC_ERR_VECTOR, INTR_PRIVILEGE }
 	};
+
+	if (0) {
+		gateTable[0].gate();
+	}
 }

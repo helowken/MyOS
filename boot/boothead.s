@@ -962,7 +962,7 @@ x_ss_desc:					# Descriptor for Protected Mode Stack Segment. Initialized by use
 	.globl	p_gdt
 	.type	p_gdt, @object	# GDT (Global Descriptor Table)
 	.size	p_gdt, 64
-	.align	4
+	.align	8
 p_gdt:
 p_null_desc:		# The first descriptor: Null descriptor
 	.zero	8
