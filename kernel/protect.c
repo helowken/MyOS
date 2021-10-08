@@ -3,6 +3,10 @@
 #include "protect.h"
 
 
+#define INT_GATE_TYPE	(INT_286_GATE | DESC_386_BIT)
+#define TSS_TYPE		(AVL_286_TSS | DESC_386_BIT)
+
+
 typedef struct {
 	char limit[sizeof(u16_t)];
 	char base[sizeof(u32_t)];
@@ -12,14 +16,44 @@ typedef struct {
 	u16_t offsetLow;
 	u16_t selector;
 	u8_t pad;			/* |000|XXXXX| interrupt gate & trap gate, |XXXXXXXX| task gate */
-	u8_t pDplType;		/* |P|DPL|0|TYPE| */
+	u8_t dplType;		/* |P|DPL|0|TYPE| */
 	u16_t offsetHigh;
 } GateDesc;
 
+typedef struct {
+	reg_t preTaskLink;
+	reg_t esp0;
+	reg_t ss0;
+	reg_t esp1;
+	reg_t ss1;
+	reg_t esp2;
+	reg_t ss2;
+	reg_t cr3;			/* PDBR */
+	reg_t eip;
+	reg_t eflags;
+	reg_t eax;
+	reg_t ecx;
+	reg_t edx;
+	reg_t ebx;
+	reg_t esp;
+	reg_t ebp;
+	reg_t esi;
+	reg_t edi;
+	reg_t es;
+	reg_t cs;
+	reg_t ss;
+	reg_t ds;
+	reg_t fs;
+	reg_t gs;
+	reg_t ldtSel;
+	u16_t trap;			/* T (debug trap) flag (bit 0) */
+	u16_t ioBaseAddr;
+} TSS;					/* Task state segment */
+
 
 PUBLIC SegDesc gdt[GDT_SIZE];		/* Used in mpx.s */
-PUBLIC GateDesc idt[IDT_SIZE];		/* Zero-init so none present */
-
+PRIVATE GateDesc idt[IDT_SIZE];		/* Zero-init so none present */
+PUBLIC TSS tss;						
 
 /* 
  * Return the base address of a segment, with a 386 segment selector.
@@ -67,18 +101,30 @@ static void initDataSeg(register SegDesc *sdPtr, phys_bytes base, vir_bytes size
 	sdPtr->access = (privilege << DPL_SHIFT) | PRESENT | SEGMENT | WRITABLE;
 }
 
+static void initGate(u8_t vectorNum, vir_bytes offset, u8_t dplType) {
+	register GateDesc *idp;
+
+	idp = &idt[vectorNum];
+	idp->offsetLow = offset;
+	idp->offsetHigh = offset >> OFFSET_HIGH_SHIFT;
+	idp->selector = CS_SELECTOR;
+	idp->dplType = dplType;
+}
+
 /* 
  * Set up tables for protected mode.
  * All GDT slots are allocated at compile time.
  */
 PUBLIC void protectInit() {
-	//struct GateTable *gtp;
+	struct GateTable *gtp, *gtpEnd;
 	DescTablePtr *dtp;
+	unsigned ldtIndex;
+	register Proc *rp;
 	
 	static struct GateTable {
 		void (*gate)();
-		unsigned char vectorNum;
-		unsigned char privilege;
+		u8_t vectorNum;
+		u8_t privilege;
 	} gateTable[] = {
 		{ divideError, DIVIDE_VECTOR, INTR_PRIVILEGE },
 		{ singleStepException, DEBUG_VECTOR, INTR_PRIVILEGE },
@@ -112,8 +158,32 @@ PUBLIC void protectInit() {
 	initDataSeg(&gdt[DS_INDEX], kernelInfo.dataBase, kernelInfo.dataSize, INTR_PRIVILEGE);
 	initDataSeg(&gdt[ES_INDEX], 0, 0, TASK_PRIVILEGE);
 
-	if (0) {
-		gateTable[0].gate();
+	/* Build local descriptors in GDT for LDT's in process table.
+	 * The LDT's are allocated at compile time in the process table, and
+	 * initialized whenever a process' map is initialized or changed.
+	 */
+	for (rp = BEG_PROC_ADDR, ldtIndex = FIRST_LDT_INDEX; rp < END_PROC_ADDR; ++rp, ++ldtIndex) {
+		initDataSeg(&gdt[ldtIndex], vir2Phys(rp->ldt), sizeof(rp->ldt), INTR_PRIVILEGE);
+		gdt[ldtIndex].access = PRESENT | LDT;
+		rp->ldtSel = ldtIndex * DESC_SIZE;
 	}
+
+	/* Build main TSS.
+	 * This is used only to record the stack pointer to be used after an interrupt.
+	 * The pointer is set up so that an interrupt automatically saves the current
+	 * process's registers eip:cs:eflags:esp:ss in the correct slots in the process table.
+	 */
+	tss.ss0 = DS_SELECTOR;
+	initDataSeg(&gdt[TSS_INDEX], vir2Phys(&tss), sizeof(tss), INTR_PRIVILEGE);
+	gdt[TSS_INDEX].access = PRESENT | (INTR_PRIVILEGE << DPL_SHIFT) | TSS_TYPE;
+
+	/* Build descriptors for interrupt gates in IDT. */
+	for (gtp = &gateTable[0], gtpEnd = arrayLimit(gateTable); gtp < gtpEnd; ++gtp) {
+		initGate(gtp->vectorNum, (vir_bytes) gtp->gate, 
+					PRESENT | INT_GATE_TYPE | (gtp->privilege << DPL_SHIFT));
+	}
+
+	/* Complete building of main TSS. */
+	tss.ioBaseAddr = sizeof(tss);
 }
 

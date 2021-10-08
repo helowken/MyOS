@@ -10,19 +10,19 @@ typedef struct {
 	u16_t fs;
 	u16_t es;
 	u16_t ds;
-	reg_t di;			/* di through cx are not accessed in C */
-	reg_t si;			/* Order is to match pusha/popa */
-	reg_t bp;			
+	reg_t edi;			/* edi through ecx are not accessed in C */
+	reg_t esi;			/* Order is to match pusha/popa */
+	reg_t ebp;			
 	reg_t temp;			
-	reg_t bx;
-	reg_t dx;
-	reg_t cx;
-	reg_t ax;			/* gs through ax are all pushed by save() in assembly */
+	reg_t ebx;
+	reg_t edx;
+	reg_t ecx;
+	reg_t eax;			/* gs through eax are all pushed by save() in assembly */
 	reg_t retAddr;		/* Return address for save() in assembly */
-	reg_t ip;			/* ip, cs, eflags are pushed by interrupt */
+	reg_t eip;			/* eip, cs, eflags are pushed by interrupt */
 	reg_t cs;
 	reg_t eflags;
-	reg_t sp;			/* sp, ss are pushed by processor when a stack swithed */
+	reg_t esp;			/* esp, ss are pushed by processor when a stack swithed */
 	reg_t ss;
 } StackFrame;
 
