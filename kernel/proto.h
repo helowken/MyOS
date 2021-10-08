@@ -6,6 +6,10 @@ phys_bytes seg2Phys(U16_t seg);
 void protectInit();
 
 
+/* start.c */
+void cstart(U16_t cs, U16_t ds,	U16_t mds, U16_t paramOffset,U16_t paramSize);	
+
+
 /* exception.c */
 void handleException(unsigned vectorNum);
 

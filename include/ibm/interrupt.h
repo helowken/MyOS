@@ -14,5 +14,9 @@
 #define BREAKPOINT_VECTOR	3		/* Breakpoint       |    T | N  */
 #define OVERFLOW_VECTOR		4		/* Overflow         |    T | N  */
 
+/*
+ * Switchable irq bases for hardware interrupts.
+ */
+#define IRQ8_VECTOR			0X70	/* No need to move IRQ8-15 */
 
 #endif

@@ -11,6 +11,7 @@
 
 /* Type definition. */
 typedef unsigned long phys_bytes;		/* Physical addr/length in bytes */
+typedef unsigned int vir_bytes;			/* Virtual addresses and lengths in bytes */
 
 typedef struct {
 	phys_bytes codeBase;				/* Base of kernel code. */
