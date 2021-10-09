@@ -14,6 +14,11 @@ void cstart(U16_t cs, U16_t ds,	U16_t mds, U16_t paramOffset,U16_t paramSize);
 void handleException(unsigned vectorNum);
 
 
+/* klib386.S */
+void physCopy(phys_bytes source, phys_bytes dest, phys_bytes count);
+
+
+
 /* The following are never called from C (pure asm procs). */
 
 /* Exception handlers (protected mode), in numerical order. */

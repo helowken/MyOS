@@ -906,8 +906,8 @@ int86:
 	ljmp	$MCS_SELECTOR, $.csProt	# Use a far jump to set code segment selector.
 .csProt:
 	movw	$SS_SELECTOR, %ax		# Set data selectors
-	movw	%ax, %ds				# ds = es = ss = ss selector
-	movw	%ax, %es
+#movw	%ax, %ds				# ds = es = ss = ss selector
+#movw	%ax, %es
 	movw	%ax, %ss
 	retw
 

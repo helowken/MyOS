@@ -16,13 +16,20 @@
 #define TSS_INDEX			8		/* Kernel TSS */
 #define FIRST_LDT_INDEX		15		/* Rest of descriptors are LDT's */
 
+/* Segment selector format: 
+ * [0..1]:	RPL.	(Privilege level of the selector, can range from 0 to 3)
+ * [2]:		TI.		(0=GDT, 1=current LDT)
+ * [3..15]: Index.	(GDT/LDT baseAddr + index * 8)
+ */
 #define GDT_SELECTOR		0x08	/* (GDT_INDEX * DESC_SIZE) */
 #define IDT_SELECTOR		0x10	/* (IDT_INDEX * DESC_SIZE) */
 #define DS_SELECTOR			0x18	/* (DS_INDEX * DESC_SIZE) */
 #define ES_SELECTOR			0x20	/* (ES_INDEX * DESC_SIZE) */
+#define FLAT_ES_SELECTOR	0x21	/* RPL = 1, less privileged ES */
 #define	SS_SELECTOR			0x28	/* (SS_INDEX * DESC_SIZE) */
 #define CS_SELECTOR			0x30	/* (CS_INDEX * DESC_SIZE) */
 #define MON_CS_SELECTOR		0x38	/* (MON_CS_INDEX * DESC_SIZE) */
+#define TSS_SELECTOR		0x40	/* (TSS_INDEX * DESC_SIZE) */
 
 /* Special descriptor types. */
 #define AVL_286_TSS			1		/* Available 286 TSS */

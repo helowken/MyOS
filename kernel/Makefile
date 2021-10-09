@@ -5,7 +5,7 @@ LIB_DIR = $(MY_HOME)/lib
 LIBS = -lmyc -lmysysutil
 
 HEAD = mpx.o
-OBJS = start.o protect.o table.o exception.o
+OBJS = start.o protect.o klib386.o table.o exception.o
 KERNEL = kernel.bin
 
 all: $(KERNEL)

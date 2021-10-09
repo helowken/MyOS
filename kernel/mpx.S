@@ -27,8 +27,8 @@
 	
 	movl	gdt+DS_SELECTOR+2, %eax		# Base of kernel data
 	andl	$0xFFFFFF, %eax				# Only 24 bits
-	addl	$gdt, %eax					# Convert gdt address from virtual to physical
-	movl	%eax, gdt+GDT_SELECTOR+2	# Set base of GDT
+	addl	$gdt, %eax					# Convert gdt address from virtual to physical (gdt + ds base)
+	movl	%eax, gdt+GDT_SELECTOR+2	# Set base of GDT 
 	lgdt	gdt+GDT_SELECTOR			# Switch over to kernel GDT
 
 # Locate boot parameters, set up kernel segment registers and stack.
@@ -46,9 +46,9 @@
 # Call C startup code to set up a proper environment to run main().	
 	pushl	%edx
 	pushl	%ebx
-	pushl	SS_SELECTOR
-	pushl	DS_SELECTOR
-	pushl	CS_SELECTOR
+	pushl	$SS_SELECTOR
+	pushl	$DS_SELECTOR
+	pushl	$CS_SELECTOR
 	calll	cstart						# cstart(cs, ds, ss, paramOffset, paramSize)
 	addl	$(5*4), %esp
 

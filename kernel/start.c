@@ -9,7 +9,7 @@ PUBLIC void cstart(U16_t cs, U16_t ds,	/* Kernel code and data segment. */
 			U16_t paramOffset,			/* Boot parameters offset. */
 			U16_t paramSize)			/* Boot parameters size. */
 {			
-	//char params[128 * sizeof(char *)];	/* One sector size, 512 bytes. */
+	char params[128 * sizeof(char *)];	/* One sector size, 512 bytes. */
 	//register char *value;				/* Value in (key = value) pair. */	
 	extern char etext, end;
 
@@ -20,4 +20,9 @@ PUBLIC void cstart(U16_t cs, U16_t ds,	/* Kernel code and data segment. */
 
 	/* Initialize protected mode descriptors. */
 	protectInit();
+
+	/* Copy the boot parameters to the local buffer. */
+	kernelInfo.paramsBase = seg2Phys(mds) + paramOffset;
+	kernelInfo.paramsSize = paramSize;
+	physCopy(kernelInfo.paramsBase, vir2Phys(params), kernelInfo.paramsSize);
 }

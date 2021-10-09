@@ -10,15 +10,16 @@
 #endif
 
 /* Type definition. */
-typedef unsigned long phys_bytes;		/* Physical addr/length in bytes */
-typedef unsigned int vir_bytes;			/* Virtual addresses and lengths in bytes */
+typedef unsigned long phys_bytes;	/* Physical addr/length in bytes */
+typedef unsigned int vir_bytes;		/* Virtual addresses and lengths in bytes */
 
 typedef struct {
-	phys_bytes codeBase;				/* Base of kernel code. */
-	phys_bytes codeSize;				/* Size of kernel code. */
-	phys_bytes dataBase;				/* Base of kernel data. */
-	phys_bytes dataSize;				/* Size of kernel data. */
-
+	phys_bytes codeBase;			/* Base of kernel code. */
+	phys_bytes codeSize;			/* Size of kernel code. */
+	phys_bytes dataBase;			/* Base of kernel data. */
+	phys_bytes dataSize;			/* Size of kernel data. */
+	phys_bytes paramsBase;			/* Parameters passed by boot monitor. */
+	phys_bytes paramsSize;
 } KernelInfo;
 
 typedef struct {
