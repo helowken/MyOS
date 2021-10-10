@@ -7,8 +7,11 @@ OBJS_M32 = memcpy.o \
 		   strncpy.o \
 		   strlen.o \
 		   strcmp.o \
+		   strncmp.o \
 		   strchr.o \
+		   strstr.o \
 		   memset.o \
+		   chartab.o \
 		   $(OTHER)/errno.o
 
 OBJS_M16 = memcpy.o \

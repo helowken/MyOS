@@ -13,11 +13,11 @@ typedef struct {
 
 
 /* Magic process table addresses. */
-#define BEG_PROC_ADDR	(&proc[0])
-#define END_PROC_ADDR	(&proc[NR_TASKS + NR_PROCS])
+#define BEG_PROC_ADDR	(&procTable[0])
+#define END_PROC_ADDR	(&procTable[NR_TASKS + NR_PROCS])
 
 
-EXTERN Proc proc[NR_TASKS + NR_PROCS];	/* Process table */
+EXTERN Proc procTable[NR_TASKS + NR_PROCS];	/* Process table */
 
 
 #endif

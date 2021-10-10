@@ -137,10 +137,10 @@ extern int escape();
 extern u32_t getTick();
 
 /* Local monitor address to absolute address. */
-extern char* mon2Abs(void *pos);
+extern char *mon2Abs(void *pos);
 
 /* Vector to absolute address. */
-extern char* vec2Abs(Vector *vec);
+extern char *vec2Abs(Vector *vec);
 
 /* Wait for an interrupt. */
 extern void pause();

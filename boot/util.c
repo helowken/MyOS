@@ -122,7 +122,7 @@ void printE801Mem() {
 	  printf("Extended mem between 1-16M: %d (K), above 16M: %d (64K)\n", low, high);
 }
 
-char* num2Hex(int num, int len, bool withPrefix) {
+char *num2Hex(int num, int len, bool withPrefix) {
 	int i, j;
 	int n;
 
@@ -159,15 +159,15 @@ void printlnNumHex(int num, int len) {
 	println(num2Hex(num, len, true));
 }
 
-char* byte2Hex(char num) {
+char *byte2Hex(char num) {
 	return num2Hex(num, BYTE_BITS, false);
 }
 
-char* short2Hex(short num) {
+char *short2Hex(short num) {
 	return num2Hex(num, SHORT_BITS, false);
 }
 
-char* int2Hex(int num) {
+char *int2Hex(int num) {
 	return num2Hex(num, INT_BITS, false);
 }
 

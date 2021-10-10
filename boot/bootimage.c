@@ -135,7 +135,7 @@ static void rawClear(u32_t addr, u32_t count) {
 	zct = sizeof(zeros);
 	if (zct > count)
 	  zct = count;
-	rawCopy((char*) addr, mon2Abs(&zeros), zct);
+	rawCopy((char *) addr, mon2Abs(&zeros), zct);
 	count -= zct;
 
 	while (count > 0) {

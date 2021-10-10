@@ -565,7 +565,7 @@ relocate:
 	retfw						# Return far with cs = cx and ip = bx
 
 # ========== 7. Address Functions ==========
-# char* mon2Abs(void *pos);
+# char *mon2Abs(void *pos);
 	.globl	mon2Abs
 	.type	mon2Abs, @function
 mon2Abs:
@@ -575,7 +575,7 @@ mon2Abs:
 	movw	%ds, %dx
 	jmp	.toAbs
 
-# char* vec2Abs(Vector *vec);
+# char *vec2Abs(Vector *vec);
 	.globl	vec2Abs
 	.type	vec2Abs, @function
 vec2Abs:
