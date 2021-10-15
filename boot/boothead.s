@@ -969,14 +969,12 @@ p_null_desc:		# The first descriptor: Null descriptor
 p_gdt_desc:			# Descriptor for GDT
 	.value	8*8-1			# Segment limit: 15:00
 							# Each entry is 8 bytes and there are 8 entries in this table.
-	.zero	2				# Base address: 15:00
-	.zero	1				# Base address: 23:16
-	.zero	3				
+	.zero	4				# Base address: 31:00
+	.zero	2				# Alignment padding
 p_idt_desc:			# Descriptor for real mode IDT (Interrupt descriptor table)
 	.value	0x3FF			# Segment limit: 15:00
-	.zero	2				# Base address: 15:00
-	.zero	1				# Base address: 23:16
-	.zero	3
+	.zero	4				# Base address: 31:00
+	.zero	2				# Alignment padding
 p_ds_desc:			# Kernel data segment descriptor (4 GB flat)
 	.value	0xFFFF			# Segment limit: 15:00
 	.zero	2				# Base address: 15:00

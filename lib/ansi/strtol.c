@@ -16,11 +16,14 @@ static unsigned long string2Long(register const char *nptr, char ** const endptr
 
 	if (endptr)
 	  *endptr = (char *) nptr;
+
+	/* Skip space */
 	while (isSpace(*nptr)) {
 		++nptr;
 	}
 	c = *nptr;
 
+	/* Determine sign */
 	if (c == '-' || c == '+') {
 		if (c == '-')
 		  sign = -1;
@@ -54,7 +57,7 @@ static unsigned long string2Long(register const char *nptr, char ** const endptr
 		else if (between('A', c, 'Z'))
 		  v = c - 'A' + 0xA;
 		else
-		  break;
+		  break;	/* No more parsing */
 
 		if (v >= base)
 		  break;
@@ -71,6 +74,9 @@ static unsigned long string2Long(register const char *nptr, char ** const endptr
 	}
 	
 	if (!overflow && isSigned) {
+		/* See the assembly code. 
+		 * -(unsigned long) LONG_MIN equals (unsigned long) LONG_MIN
+		 */
 		if ((sign < 0 && val > -(unsigned long) LONG_MIN) ||
 			(sign > 0 && val > LONG_MAX))
 		  ++overflow;
@@ -84,3 +90,13 @@ static unsigned long string2Long(register const char *nptr, char ** const endptr
 	}
 	return (long) sign * val;
 }
+
+long int strtol(const char *nptr, char **endptr, int base) {
+	return (signed long) string2Long(nptr, endptr, base, 1);
+}
+
+unsigned long int strtoul(const char *nptr, char **endptr, int base) {
+	return (unsigned long) string2Long(nptr, endptr, base, 0);
+}
+
+

@@ -141,7 +141,23 @@ PUBLIC void protectInit() {
 		{ stackException, STACK_FAULT_VECTOR, INTR_PRIVILEGE },
 		{ generalProtection, PROTECTION_VECTOR, INTR_PRIVILEGE },
 		{ pageFault, PAGE_FAULT_VECTOR, INTR_PRIVILEGE },
-		{ coprError, COPROC_ERR_VECTOR, INTR_PRIVILEGE }
+		{ coprError, COPROC_ERR_VECTOR, INTR_PRIVILEGE },
+		{ hwint00, VECTOR( 0), INTR_PRIVILEGE },
+		{ hwint01, VECTOR( 1), INTR_PRIVILEGE },
+		{ hwint02, VECTOR( 2), INTR_PRIVILEGE },
+		{ hwint03, VECTOR( 3), INTR_PRIVILEGE },
+		{ hwint04, VECTOR( 4), INTR_PRIVILEGE },
+		{ hwint05, VECTOR( 5), INTR_PRIVILEGE },
+		{ hwint06, VECTOR( 6), INTR_PRIVILEGE },
+		{ hwint07, VECTOR( 7), INTR_PRIVILEGE },
+		{ hwint08, VECTOR( 8), INTR_PRIVILEGE },
+		{ hwint09, VECTOR( 9), INTR_PRIVILEGE },
+		{ hwint10, VECTOR(10), INTR_PRIVILEGE },
+		{ hwint11, VECTOR(11), INTR_PRIVILEGE },
+		{ hwint12, VECTOR(12), INTR_PRIVILEGE },
+		{ hwint13, VECTOR(13), INTR_PRIVILEGE },
+		{ hwint14, VECTOR(14), INTR_PRIVILEGE },
+		{ hwint15, VECTOR(15), INTR_PRIVILEGE }
 	};
 
 	/* Build gdt and idt pointers in GDT where the BIOS expects them. */

@@ -52,8 +52,182 @@
 	calll	cstart						# cstart(cs, ds, ss, paramOffset, paramSize)
 	addl	$(5*4), %esp
 
+# Reload GDTR, IDTR and the segment registers to global descriptor table 
+# set up by protectInit().
+	lgdt	gdt+GDT_SELECTOR
+	lidt	gdt+IDT_SELECTOR
+	
+	ljmp	$CS_SELECTOR, $.csInit
+.csInit:
+	movw	$DS_SELECTOR, %ax
+	movw	%ax, %ds
+	movw	%ax, %es
+	movw	%ax, %fs
+	movw	%ax, %gs
+	movw	%ax, %ss
+	movw	$TSS_SELECTOR, %ax			# No other TSS is used
+	ltr	%ax
+	pushl	$0							# Set flags to known good state
+	popfl								# Clear nested task and interrupt enable
+
+	jmp	main							# main()
+
 aa:
 	jmp aa
+
+
+
+#*=====================================================================*
+#*                Interrupt Handlers                *
+#*		Interrupt handlers for 386 32-bit protected mode		*
+#*=====================================================================*
+
+#*=====================================================================*
+#*                hwint00 - 07                *
+#*=====================================================================*
+.macro hwintMaster irq
+	calll	save						# Save interrupted process state.
+	retl	
+.endm
+
+# Each of these entry points is an expansion of the hwintMaster macro
+
+# void hwint00();	
+#	Intrrupt routine for irq 0 (the clock).
+	.globl	hwint00
+	.type	hwint00, @function
+	.align	16
+hwint00:
+	hwintMaster(0)
+		
+# void hwint01();
+#	Interrupt routine for irq 1 (keyboard).
+	.globl	hwint01
+	.type	hwint01, @function
+	.align	16
+hwint01:
+	hwintMaster(1)
+
+# void hwint02();
+#	Interrupt routine for irq 2 (cascade!).
+	.globl	hwint02
+	.type	hwint02, @function
+	.align	16
+hwint02:
+	hwintMaster(2)
+
+# void hwint03();
+#	Interrupt routine for irq 3 (second serial).
+	.globl	hwint03
+	.type	hwint03, @function
+	.align	16
+hwint03:
+	hwintMaster(3)
+
+# void hwint04();
+#	Interrupt routine for irq 4 (first serial).
+	.globl	hwint04
+	.type	hwint04, @function
+	.align	16
+hwint04:
+	hwintMaster(4)
+
+# void hwint05();
+#	Interrupt routine for irq 5 (XT winchester).
+	.globl	hwint05
+	.type	hwint05, @function
+	.align	16
+hwint05:
+	hwintMaster(5)
+
+# void hwint06();
+#	Interrupt routine for irq 6 (floppy).
+	.globl	hwint06
+	.type	hwint06, @function
+	.align	16
+hwint06:
+	hwintMaster(6)
+
+# void hwint07();
+#	Interrupt routine for irq 7 (printer).
+	.globl	hwint07
+	.type	hwint07, @function
+	.align	16
+hwint07:
+	hwintMaster(7)
+
+#*=====================================================================*
+#*                hwint08 - 15                *
+#*=====================================================================*
+.macro hwintSlave irq
+	retl
+.endm
+
+# Each of these entry points is an expansion of the hwintSlave macro.
+
+# void hwint08();
+#	Interrupt routine for irq 8 (realtime clock).
+	.globl	hwint08
+	.type	hwint08, @function
+	.align	16
+hwint08:
+	hwintSlave(8)
+
+# void hwint09();
+#	Interrupt routine for irq 9 (irq 2 redirected).
+	.globl	hwint09
+	.type	hwint09, @function
+	.align	16
+hwint09:
+	hwintSlave(9)
+
+# void hwint10();
+#	Interrupt routine for irq 10.
+	.globl	hwint10
+	.type	hwint10, @function
+	.align	16
+hwint10:
+	hwintSlave(10)
+
+# void hwint11();
+#	Interrupt routine for irq 11.
+	.globl	hwint11
+	.type	hwint11, @function
+	.align	16
+hwint11:
+	hwintSlave(11)
+
+# void hwint12();
+#	Interrupt routine for irq 12.
+	.globl	hwint12
+	.type	hwint12, @function
+	.align	16
+hwint12:
+	hwintSlave(12)
+
+# void hwint13();
+#	Interrupt routine for irq 13 (FPU exception).
+	.globl	hwint13
+	.type	hwint13, @function
+	.align	16
+hwint13:
+	hwintSlave(13)
+
+# void hwint14();
+#	Interrupt routine for irq 14 (AT winchester).
+	.globl	hwint14
+	.type	hwint14, @function
+	.align	16
+hwint14:
+	hwintSlave(14)
+
+# void hwint15();
+#	Interrupt routine for irq 15. 
+	.globl	hwint15
+	.type	hwint15, @function
+	.align	16
+hwint15:
+	hwintSlave(15)
 
 
 #*=====================================================================*

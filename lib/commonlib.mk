@@ -3,20 +3,29 @@ include $(MY_HOME)/common.mk
 LIB_M32 = ../lib$(LIB_NAME).a
 LIB_M16 = ../m16/lib$(LIB_NAME).a
 LIB = $(LIB_M32)
-OBJS = $(OBJS_M32)
 ifeq ($(MODE), M16)
 	LIB = $(LIB_M16)
-	OBJS = $(OBJS_M16)
 endif
 
 all: $(LIB)
 
-clean: cleanObjs
-	rm -f $(LIB_M32) $(LIB_M16)
+clean: clean_m16 clean_m32
 
-cleanObjs:
-	rm -f *.o
+clean_m16: clean_m16_objs
+	rm -f $(LIB_M16)
 
-$(LIB): cleanObjs $(OBJS)
-	ar rcs $@ *.o
+clean_m16_objs:
+	rm -f $(OBJS_M16)
+
+clean_m32: clean_m32_objs
+	rm -f $(LIB_M32)
+
+clean_m32_objs:
+	rm -f $(OBJS_M32)
+
+$(LIB_M16): clean_m16_objs $(OBJS_M16)
+	ar rcs $@ $(OBJS_M16)
+
+$(LIB_M32): clean_m32_objs $(OBJS_M32)
+	ar rcs $@ $(OBJS_M32)
 

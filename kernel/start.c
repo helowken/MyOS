@@ -37,7 +37,7 @@ PUBLIC void cstart(U16_t cs, U16_t ds,	/* Kernel code and data segment. */
 
 	/* Copy the boot parameters to the local buffer. */
 	kernelInfo.paramsBase = seg2Phys(mds) + paramOffset;
-	kernelInfo.paramsSize = paramSize;
+	kernelInfo.paramsSize = MIN(paramSize, sizeof(params) - 2);
 	physCopy(kernelInfo.paramsBase, vir2Phys(params), kernelInfo.paramsSize);
 
 	/* Record miscellaneous information for user-space servers. */

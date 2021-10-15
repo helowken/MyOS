@@ -11,13 +11,13 @@ extern char __ctype[];	/* Property array defined in chartab.c */
 #define _C		0x20	/* This bit is for control characters. */
 #define _X		0x40	/* This bit is for hex digits [a-f] and [A-F]. */
 
-#define isAlphaNum(c)	((__ctype + 1)[c] & (_U | _L | _N))
-#define isAlpha(c)		((__ctype + 1)[c] & (_U | _L))
-#define	isControl(c)	((__ctype + 1)[c] & _C)
-#define isGraphic(c)	((__ctype + 1)[c] & (_U | _L | _N | _P))
-#define isPunct(c)		((__ctype + 1)[c] & _P)
-#define isSpace(c)		((__ctype + 1)[c] & _S)
-#define isHexDigit(c)	((__ctype + 1)[c] & (_N | _X))
+#define isAlphaNum(c)	((__ctype + 1)[(unsigned) c] & (_U | _L | _N))
+#define isAlpha(c)		((__ctype + 1)[(unsigned) c] & (_U | _L))
+#define	isControl(c)	((__ctype + 1)[(unsigned) c] & _C)
+#define isGraphic(c)	((__ctype + 1)[(unsigned) c] & (_U | _L | _N | _P))
+#define isPunct(c)		((__ctype + 1)[(unsigned) c] & _P)
+#define isSpace(c)		((__ctype + 1)[(unsigned) c] & _S)
+#define isHexDigit(c)	((__ctype + 1)[(unsigned) c] & (_N | _X))
 
 #define isDigit(c)		((unsigned) ((c) - '0') < 10)
 #define isLower(c)		((unsigned) ((c) - 'a') < 26)

@@ -11,5 +11,8 @@ void *malloc(size_t size);
 void free(void *op);
 void *realloc(void *op, size_t size);
 long int strtol(const char *nptr, char **endptr, int base);
+unsigned long int strtoul(const char *nptr, char **endptr, int base);
+int atoi(const char *nptr);
+long atol(const char *nptr);
 
 #endif

@@ -5,8 +5,6 @@
 #define PRIVATE			static		
 #define PUBLIC						/* The opposite of PRIVATE */
 
-typedef enum { false, true } bool;
-
 #define NR_REMOTE_SEGS		3		/* Remote memory regions */
 
 /* Macros. */
