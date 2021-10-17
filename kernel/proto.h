@@ -5,6 +5,8 @@
 phys_bytes seg2Phys(U16_t seg);
 void protectInit();
 
+/* clock.c */
+void clockTask();
 
 /* start.c */
 void cstart(U16_t cs, U16_t ds,	U16_t mds, U16_t paramOffset,U16_t paramSize);	
@@ -17,11 +19,16 @@ void handleException(unsigned vectorNum);
 /* i8259.c */
 void initInterrupts();
 
+/* system.c */
+void sysTask();
 
 
 /* klib386.S */
 void physCopy(phys_bytes source, phys_bytes dest, phys_bytes count);
 
+/* mpx.S */
+void idleTask();
+void restart();
 
 
 /* The following are never called from C (pure asm procs). */

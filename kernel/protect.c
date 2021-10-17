@@ -179,9 +179,9 @@ PUBLIC void protectInit() {
 	 * initialized whenever a process' map is initialized or changed.
 	 */
 	for (rp = BEG_PROC_ADDR, ldtIndex = FIRST_LDT_INDEX; rp < END_PROC_ADDR; ++rp, ++ldtIndex) {
-		initDataSeg(&gdt[ldtIndex], vir2Phys(rp->ldt), sizeof(rp->ldt), INTR_PRIVILEGE);
+		initDataSeg(&gdt[ldtIndex], vir2Phys(rp->p_ldt), sizeof(rp->p_ldt), INTR_PRIVILEGE);
 		gdt[ldtIndex].access = PRESENT | LDT;
-		rp->ldtSel = ldtIndex * DESC_SIZE;
+		rp->p_ldt_sel = ldtIndex * DESC_SIZE;
 	}
 
 	/* Build main TSS.

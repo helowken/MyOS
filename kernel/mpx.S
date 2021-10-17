@@ -86,6 +86,7 @@ aa:
 #*                hwint00 - 07                *
 #*=====================================================================*
 .macro hwintMaster irq
+	retl # TODO
 	calll	save						# Save interrupted process state.
 	retl	
 .endm

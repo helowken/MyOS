@@ -3,7 +3,24 @@
 
 #include "sys/types.h"
 
+typedef void (*taskFunc)();
+
+typedef int proc_nr_t;	/* Process table entry number */
+typedef short sys_id_t;	/* System process index */
 typedef unsigned reg_t;	/* Machine register */
+
+typedef struct {
+	proc_nr_t procNum;			/* Process number to use */
+	taskFunc initialPC;		/* Start function for tasks */
+	int flags;					/* Process flags */
+	unsigned char quantum;		/* Quantum (tick count) */
+	int priority;				/* Scheduling priority */
+	int stackSize;				/* Stack size for tasks */
+	short trapMask;				/* Allowed system call traps */
+	bitchunk_t ipcTo;			/* Send mask protection */
+	long callMask;				/* System call protection */
+	char procName[P_NAME_LEN];	/* Name in process table */
+} BootImage;
 
 typedef struct {
 	u16_t gs;
