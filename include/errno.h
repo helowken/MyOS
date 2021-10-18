@@ -13,6 +13,7 @@ extern int errno;
 #define	EIO			(_SIGN 5)	/* input/output error */
 #define ENOEXEC		(_SIGN 8)	/* exec format error */
 #define ENOMEM		(_SIGN 12)	/* no enough space */
+#define ENOSPC		(_SIGN 28)	/* no space left on device */
 #define ERANGE		(_SIGN 34)	/* result too large */
 
 #endif

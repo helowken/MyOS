@@ -1,4 +1,5 @@
 MY_HOME = ..
+INC_DEPEND = $(INC)/ibm/*.h $(INC)/minix/*.h
 include $(MY_HOME)/common.mk
 CFLAGS += -fno-asynchronous-unwind-tables
 LIB_DIR = $(MY_HOME)/lib

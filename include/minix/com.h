@@ -35,6 +35,9 @@
 #define DRVR_PROC_NR	6	/* Device driver for boot medium */
 #define INIT_PROC_NR	7	/* Init -- goes multiuser */
 
+/* Number of processes contained in the system image. */
+#define NR_BOOT_PROCS	(NR_TASKS + INIT_PROC_NR + 1)
+
 /*=====================================================================*
  *			SYSTASK	request types and field names			*
  *=====================================================================*/

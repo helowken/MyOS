@@ -18,6 +18,7 @@ EXTERN Machine machine;			/* Machine information for users */
 EXTERN char kernelReentryCount;	/* Kernel reentry count (entry count less 1) */
 
 /* Variables that are initialized elsewhere are just extern here. */
+extern BootImage images[];
 extern char *taskStack[];		/* Task stack space */
 extern SegDesc gdt[];			/* GDT (global descriptor table) */
 

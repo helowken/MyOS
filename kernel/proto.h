@@ -1,6 +1,8 @@
 #ifndef PROTO_H
 #define PROTO_H
 
+struct Proc;
+
 /* protect.c */
 phys_bytes seg2Phys(U16_t seg);
 void protectInit();
@@ -20,8 +22,8 @@ void handleException(unsigned vectorNum);
 void initInterrupts();
 
 /* system.c */
+int getPriv(register struct Proc *rp, int procType);
 void sysTask();
-
 
 /* klib386.S */
 void physCopy(phys_bytes source, phys_bytes dest, phys_bytes count);

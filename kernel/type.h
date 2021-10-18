@@ -8,10 +8,13 @@ typedef void (*taskFunc)();
 typedef int proc_nr_t;	/* Process table entry number */
 typedef short sys_id_t;	/* System process index */
 typedef unsigned reg_t;	/* Machine register */
+typedef struct {		/* Bitmap for System indexes */
+	bitchunk_t chunk[BITMAP_CHUNKS(NR_SYS_PROCS)];
+} SysMap;
 
 typedef struct {
 	proc_nr_t procNum;			/* Process number to use */
-	taskFunc initialPC;		/* Start function for tasks */
+	taskFunc initialPC;			/* Start function for tasks */
 	int flags;					/* Process flags */
 	unsigned char quantum;		/* Quantum (tick count) */
 	int priority;				/* Scheduling priority */
@@ -38,7 +41,7 @@ typedef struct {
 	reg_t retAddr;		/* Return address for save() in assembly */
 	reg_t eip;			/* eip, cs, eflags are pushed by interrupt */
 	reg_t cs;
-	reg_t eflags;
+	reg_t psw;			/* eflags */
 	reg_t esp;			/* esp, ss are pushed by processor when a stack swithed */
 	reg_t ss;
 } StackFrame;

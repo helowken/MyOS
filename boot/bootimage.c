@@ -303,7 +303,7 @@ static void execImage(char *image) {
 	u32_t vsec, addr, limit, imgHdrPos;
 	bool banner = false;
 	Process *procp;
-	size_t hdrLen, phdrLen, n, dataSize, bssSize;
+	size_t hdrLen, n, dataSize, bssSize;
 	int i;
 	char *buf;
 	char *console;
@@ -321,8 +321,7 @@ static void execImage(char *image) {
 	if (limit > caddr)
 	  limit = caddr;
 
-	phdrLen = sizeof(*proc);
-	hdrLen = PROCESS_MAX * phdrLen;
+	hdrLen = PROCESS_MAX * EXEC_SIZE;
 	limit -= hdrLen;
 	imgHdrPos = limit;
 
@@ -368,7 +367,7 @@ static void execImage(char *image) {
 		//if (i == KERNEL) 
 	    addr = align(addr, proc->codeHdr.p_align);
 
-		rawCopy((char *) (imgHdrPos + i * phdrLen), mon2Abs(proc), phdrLen);
+		rawCopy((char *) (imgHdrPos + i * EXEC_SIZE), mon2Abs(proc), EXEC_SIZE);
 
 		if (!banner) {
 			printf("     cs       ds     text     data      bss\n");
@@ -423,7 +422,7 @@ static void execImage(char *image) {
 	// TODO patch size
 
 	/* Copy headers to the old place. */
-	rawCopy((char *) HEADER_POS, (char *) imgHdrPos, PROCESS_MAX * phdrLen);
+	rawCopy((char *) HEADER_POS, (char *) imgHdrPos, PROCESS_MAX * EXEC_SIZE);
 
 	/* Do delay if wanted. */
 	if ((delayValue = getVarValue("bootdelay")) != NULL)
