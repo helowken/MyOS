@@ -46,8 +46,8 @@ void main() {
 
 		sp = priv(rp);
 		sp->s_flags = ip->flags;			/* Process flags */
-		sp->s_trap_mask = ip->trapMask;	/* Allowed traps */
-		sp->s_call_mask = ip->callMask;	/* Kernel call mask */
+		sp->s_trap_mask = ip->trapMask;		/* Allowed traps */
+		sp->s_call_mask = ip->callMask;		/* Kernel call mask */
 		sp->s_ipc_to.chunk[0] = ip->ipcTo;	/* Restrict targets */
 
 		if (isKernelProc(rp)) {				/* Is Part of the kernel? */
@@ -57,9 +57,9 @@ void main() {
 			}
 			kernelTaskStackBase += ip->stackSize;	/* Point to high end of the stack */
 			rp->p_reg.esp = kernelTaskStackBase;	/* This stack's initial stack ptr */
-			hdrIdx = 0;					/* All use the first image header */
+			hdrIdx = 0;						/* All use the first image header */
 		} else {
-			hdrIdx = 1 + i - NR_TASKS;	/* Servers, drivers, INIT */
+			hdrIdx = 1 + i - NR_TASKS;		/* Servers, drivers, INIT */
 		}
 
 		/* The bootstrap loader created an array of image headers at 
@@ -67,5 +67,29 @@ void main() {
 		 */
 		physCopy(imgHdrPos + hdrIdx * EXEC_SIZE, vir2Phys(&imgHdr), 
 					(phys_bytes) EXEC_SIZE);
+
+		// TODO Convert addresses
+		
+
+		rp->p_reg.pc = (reg_t) ip->initialPC;
+		rp->p_reg.psw = (isKernelProc(rp)) ? INIT_TASK_PSW : INIT_PSW;
+
+		/* Initialize the server stack pointer. Take it down one word
+		 * to give crtso.s something to use as "argc"
+		 */
+		if (isUserProc(rp)) {		/* Is user-space process? */
+			// TODO
+		}
+		
+		/* Set ready. The HARDWARE task is never ready. */
+		if (rp->p_nr != HARDWARE) {
+			rp->p_rt_flags = 0;		/* Runnable if no flags */
+			// TODO lock_enqueue(rp);	/* add to scheduling queues */
+		} else {
+			rp-p_rt_flags = NO_MAP;
+		}
+
+		/* Code and data segments must be allocated in protected mode. */
+		// TODO allocSegments(rp);
 	}
 }

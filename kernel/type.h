@@ -39,9 +39,9 @@ typedef struct {
 	reg_t ecx;
 	reg_t eax;			/* gs through eax are all pushed by save() in assembly */
 	reg_t retAddr;		/* Return address for save() in assembly */
-	reg_t eip;			/* eip, cs, eflags are pushed by interrupt */
+	reg_t pc;			/* pc(eip), cs, eflags are pushed by interrupt */
 	reg_t cs;
-	reg_t psw;			/* eflags */
+	reg_t psw;			/* psw (program status word) = eflags */
 	reg_t esp;			/* esp, ss are pushed by processor when a stack swithed */
 	reg_t ss;
 } StackFrame;
@@ -54,5 +54,19 @@ typedef struct {
 	u8_t granularity;	/* | G | D/B | L=0 | AVL | LIMIT | */
 	u8_t baseHigh;
 } SegDesc;
+
+typedef unsigned long irq_policy_t;
+typedef unsigned long irq_id_t;
+typedef int (*irq_handler_t)(struct IRQHook *);
+
+typedef struct IRQHook {
+	struct IRQHoot *next;	/* Next hook in chain */
+	irq_handler_t handler;	/* Interrupt handler */
+	int irq;				/* IRQ vector number */
+	int id;					/* Id of this hook */
+	int procNum;			/* NONE if not in use */
+	irq_id_t notifyId;		/* Id to return on interrupt */
+	irq_policy_t policy;	/* Bit mask for policy */
+} IRQHook;
 
 #endif

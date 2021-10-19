@@ -18,7 +18,7 @@ static char *getValue(char *params, char *name) {
 	return NULL;
 }
 
-PUBLIC void cstart(U16_t cs, U16_t ds,	/* Kernel code and data segment. */
+void cstart(U16_t cs, U16_t ds,	/* Kernel code and data segment. */
 			U16_t mds,					/* Moniotr data/stack segment. */
 			U16_t paramOffset,			/* Boot parameters offset. */
 			U16_t paramSize)			/* Boot parameters size. */

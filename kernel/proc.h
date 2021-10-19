@@ -23,8 +23,9 @@ typedef struct Proc {
 	char p_name[P_NAME_LEN];	/* Name of the process, including '\0' */	
 } Proc;
 
-/* Bits for the runtime flags. A process is rnnnable iff rtFlags == 0. */
+/* Bits for the runtime flags. A process is rnnnable iff p_rt_flags == 0. */
 #define SLOT_FREE		0x01	/* Process slot is free */
+#define NO_MAP			0x02	/* Keeps unmapped forked child from running */
 
 /* Scheduling priorities for priority. */
 #define NR_SCHED_QUEUES	16		/* MUST equal minimum priority + 1 */
@@ -46,6 +47,8 @@ typedef struct Proc {
 
 #define isKernelProc(p)	isKernelNum((p)->p_nr)
 #define isKernelNum(n)	((n) < 0)
+#define isUserProc(n)	isUserNum((p)->p_nr)
+#define isUserNum(n)	((n) >= 0)
 
 EXTERN Proc procTable[NR_TASKS + NR_PROCS];		/* Process table */
 EXTERN Proc *procAddrTable[NR_TASKS + NR_PROCS];

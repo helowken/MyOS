@@ -51,14 +51,14 @@ typedef struct {
 } TSS;					/* Task state segment */
 
 
-PUBLIC SegDesc gdt[GDT_SIZE];		/* Used in mpx.s */
-PRIVATE GateDesc idt[IDT_SIZE];		/* Zero-init so none present */
-PUBLIC TSS tss;						
+SegDesc gdt[GDT_SIZE];		/* Used in mpx.s */
+static GateDesc idt[IDT_SIZE];		/* Zero-init so none present */
+TSS tss;						
 
 /* 
  * Return the base address of a segment, with a 386 segment selector.
  */
-PUBLIC phys_bytes seg2Phys(U16_t segSelector) {
+phys_bytes seg2Phys(U16_t segSelector) {
 	phys_bytes base;
 	SegDesc *segDp;
 
@@ -115,7 +115,7 @@ static void initGate(u8_t vectorNum, vir_bytes offset, u8_t dplType) {
  * Set up tables for protected mode.
  * All GDT slots are allocated at compile time.
  */
-PUBLIC void protectInit() {
+void protectInit() {
 	struct GateTable *gtp, *gtpEnd;
 	DescTablePtr *dtp;
 	unsigned ldtIndex;

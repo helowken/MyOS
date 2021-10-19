@@ -16,4 +16,8 @@
 #define BITCHUNK_BITS	(sizeof(bitchunk_t) * CHAR_BIT)
 #define BITMAP_CHUNKS(nr_bits)	(((nr_bits) + BITCHUNK_BITS - 1) / BITCHUNK_BITS)
 
+/* Program stack words and masks. */
+#define INIT_PSW		0x0200	/* Initial psw */
+#define INIT_TASK_PSW	0x1200	/* Initial psw for tasks (with IOPL = 1) */
+
 #endif
