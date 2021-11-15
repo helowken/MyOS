@@ -1,11 +1,12 @@
 #include "kernel.h"
+#include "system.h"
 #include "stdlib.h"
 #include "unistd.h"
 #include "protect.h"
 
 
 int getPriv(register Proc *rp, int procType) {
-	register Priv *p;
+	register Priv *sp;
 
 	if (procType == SYS_PROC) {
 		/* Find a new slot */
@@ -14,7 +15,7 @@ int getPriv(register Proc *rp, int procType) {
 			  break;
 		}
 		if (sp->s_proc_nr != NONE)
-		  return ENOSPC:
+		  return ENOSPC;
 		rp->p_priv = sp;				/* Assign new slot */
 		sp->s_proc_nr = procNum(rp);	/* Set association */
 		sp->s_flags = SYS_PROC;			/* Mark as privileged */
@@ -23,4 +24,5 @@ int getPriv(register Proc *rp, int procType) {
 		rp->p_priv->s_proc_nr = INIT_PROC_NR;	/* Set association */
 		rp->p_priv->s_flags = 0;
 	}
+	return OK;
 }

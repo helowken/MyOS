@@ -20,6 +20,13 @@ typedef struct Proc {
 	char p_ticks_left;		/* Number of scheduling ticks left */
 	char p_quantum_size;	/* Quantum size in ticks */
 
+	MemMap p_memmap[NR_LOCAL_SEGS];	/* Memory map (T, D, S) */ 
+
+	clock_t p_user_time;	/* User time in ticks */
+	clock_t p_sys_time;		/* Sys time in ticks */
+
+	struct Proc *p_next_ready;	/* Pointer to next ready process */
+
 	char p_name[P_NAME_LEN];	/* Name of the process, including '\0' */	
 } Proc;
 
@@ -47,10 +54,12 @@ typedef struct Proc {
 
 #define isKernelProc(p)	isKernelNum((p)->p_nr)
 #define isKernelNum(n)	((n) < 0)
-#define isUserProc(n)	isUserNum((p)->p_nr)
+#define isUserProc(p)	isUserNum((p)->p_nr)
 #define isUserNum(n)	((n) >= 0)
 
 EXTERN Proc procTable[NR_TASKS + NR_PROCS];		/* Process table */
 EXTERN Proc *procAddrTable[NR_TASKS + NR_PROCS];
+EXTERN Proc *readyProcHead[NR_SCHED_QUEUES];	/* Ptrs to ready list headers */
+EXTERN Proc *readyProcTail[NR_SCHED_QUEUES];	/* Ptrs to read list tails */
 
 #endif

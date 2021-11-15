@@ -185,6 +185,7 @@
  *	  1 1: read ISR next pulse
  */
 
+#include "stddef.h"
 #include "kernel.h"
 #include "ibm/portio.h"
 #include "proc.h"
@@ -224,5 +225,57 @@ void initInterrupts() {
 	 */
 	physCopy(BIOS_VECTOR(0) * 4L, VECTOR(0) * 4L, 8 * 4L);	/* IRQ 0-7 */
 	physCopy(BIOS_VECTOR(8) * 4L, VECTOR(8) * 4L, 8 * 4L);	/* IRQ 8-15 */
-
 }
+
+/* Register an interrupt handler. */
+void putIrqHandler(IrqHook *hook, int irq, irq_handler_t handler) {
+	int id;
+	IrqHook **line;
+
+	if (irq < 0 || irq >= NR_IRQ_VECTORS)
+	  panic("Invalid call to putIrqHandler", irq);
+
+	line = &irqHandlers[irq];
+	id = 1;
+	while (*line != NULL) {
+		if (hook == *line) 
+		  return;		/* Extra initialization, no need. */
+		line = &(*line)->next;
+		id <<= 1;
+	}
+	if (id == 0)
+	  panic("Too many handlers for irq", irq);
+
+	hook->next = NULL;
+	hook->handler = handler;
+	hook->irq = irq;
+	hook->id = id;
+	*line = hook;
+
+	irqInUse |= 1 << irq;
+}
+
+/* Call the interrupt handlers for an interrupt with the given hook list.
+ * The assembly part of the handler has already masked the IRQ, reenabled the
+ * controller(s) and enabled interrupts.
+ */
+void handleInterrupt(IrqHook *hook) {
+	/* Call list of handlers for an IRQ. */
+	while (hook != NULL) {
+		/* For each handler in the list, mark it active by setting its ID bit,
+		 * call the function, and unmark it if the function returns true.
+		 */
+		irqActiveIds[hook->irq] |= hook->id;
+		if ((*hook->handler)(irq))
+		  irqActiveIds[hook->irq] &= ~hook->id;
+		hook = hook->next;
+	}
+
+	/* The assembly code will now disable interrupts, unmask the IRQ if and only
+	 * if all active ID bits are cleared, and restart a process.
+	 */
+}
+
+
+
+

@@ -3,6 +3,7 @@
 
 #include "limits.h"
 #include "ibm/interrupt.h"
+#include "ibm/ports.h"
 #include "minix/config.h"
 #include "config.h"
 
@@ -19,5 +20,11 @@
 /* Program stack words and masks. */
 #define INIT_PSW		0x0200	/* Initial psw */
 #define INIT_TASK_PSW	0x1200	/* Initial psw for tasks (with IOPL = 1) */
+
+/* Disable / enable hardware interrupts. The parameters of lock() and unlock()
+ * are used when debugging is enabled. See debug.h for more information.
+ */
+#define lock(c, v)	disableInterrupt();
+#define unlock(c)	enableInterrupt();
 
 #endif

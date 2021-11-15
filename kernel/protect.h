@@ -31,6 +31,11 @@
 #define MON_CS_SELECTOR		0x38	/* (MON_CS_INDEX * DESC_SIZE) */
 #define TSS_SELECTOR		0x40	/* (TSS_INDEX * DESC_SIZE) */
 
+/* Fixed local descriptors. */
+#define CS_LDT_INDEX		0		/* Process CS */
+#define DS_LDT_INDEX		1		/* Process DS */
+#define EXTRA_LDT_INDEX		2		/* First of the extra LDT entries */
+
 /* Special descriptor types. */
 #define AVL_286_TSS			1		/* Available 286 TSS */
 #define LDT					2		/* Local descriptor table */
@@ -70,6 +75,10 @@
 /*							15		   Intel reserved. Do not use.          */
 #define COPROC_ERR_VECTOR	16		/* x87 FPU Floating-Point   |    F | N  
 									   Error (Math Fault)                   */
+
+/* Selector bits. */
+#define T1				0x04		/* Table indicator */
+#define RPL				0x03		/* Requested privilege level */
 
 /* Descriptor structure offsets. */
 #define DESC_SIZE			8		/*	Sizeof SegDesc */

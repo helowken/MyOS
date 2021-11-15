@@ -42,7 +42,7 @@ typedef struct {
 	reg_t pc;			/* pc(eip), cs, eflags are pushed by interrupt */
 	reg_t cs;
 	reg_t psw;			/* psw (program status word) = eflags */
-	reg_t esp;			/* esp, ss are pushed by processor when a stack swithed */
+	reg_t esp;			/* esp, ss are pushed by processor when a stack switched */
 	reg_t ss;
 } StackFrame;
 
@@ -55,18 +55,19 @@ typedef struct {
 	u8_t baseHigh;
 } SegDesc;
 
+struct IrqHook;
 typedef unsigned long irq_policy_t;
 typedef unsigned long irq_id_t;
-typedef int (*irq_handler_t)(struct IRQHook *);
+typedef int (*irq_handler_t)(struct IrqHook *);
 
-typedef struct IRQHook {
-	struct IRQHoot *next;	/* Next hook in chain */
+typedef struct IrqHook {
+	struct IrqHook *next;	/* Next hook in chain */
 	irq_handler_t handler;	/* Interrupt handler */
 	int irq;				/* IRQ vector number */
 	int id;					/* Id of this hook */
 	int procNum;			/* NONE if not in use */
 	irq_id_t notifyId;		/* Id to return on interrupt */
 	irq_policy_t policy;	/* Bit mask for policy */
-} IRQHook;
+} IrqHook;
 
 #endif

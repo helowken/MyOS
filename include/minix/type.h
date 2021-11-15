@@ -16,6 +16,11 @@ typedef unsigned long phys_bytes;	/* Physical addr/length in bytes */
 typedef unsigned int vir_bytes;		/* Virtual addresses and lengths in bytes */
 
 typedef struct {
+	phys_bytes physAddr;			/* Physical address */
+	vir_bytes len;					/* Length */
+} MemMap;
+
+typedef struct {
 	phys_bytes codeBase;			/* Base of kernel code */
 	phys_bytes codeSize;			/* Size of kernel code */
 	phys_bytes dataBase;			/* Base of kernel data */

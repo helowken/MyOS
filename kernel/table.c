@@ -54,7 +54,7 @@ char *taskStack[TOTAL_STACK_SPACE / sizeof(char *)];
  * queue, allowed traps, ipc mask, and a name for the process table. The
  * initial program counter and stack size is also provided for kernel tasks.
  */
-BootImage image[] = {
+BootImage images[] = {
 /*	  process nr,   pc, flags, qs,  queue, stack, traps, ipcTo,  call, name	    */
 	{ IDLE,   idleTask, IDL_F,  8, IDLE_Q, IDL_S,	  0,	 0,	    0, "IDLE"   },
 	{ CLOCK, clockTask,	TSK_F, 64, TASK_Q, TSK_S, TSK_T,	 0,	    0, "CLOCK"  },

@@ -161,16 +161,35 @@ static void printProgramHeader(Elf32_Phdr *phdrPtr) {
 	}
 }
 
-
-static bool isBadImage(Elf32_Ehdr *ehdrPtr) {
-	return (ehdrPtr->e_ident[EI_MAG0] != ELFMAG0 ||
+static void isBadImage(char *procName, Elf32_Ehdr *ehdrPtr) {
+	if (ehdrPtr->e_ident[EI_MAG0] != ELFMAG0 ||
 				ehdrPtr->e_ident[EI_MAG1] != ELFMAG1 ||
 				ehdrPtr->e_ident[EI_MAG2] != ELFMAG2 ||
-				ehdrPtr->e_ident[EI_MAG3] != ELFMAG3) || 
-		ehdrPtr->e_ident[EI_CLASS] != ELFCLASS32 ||
-		ehdrPtr->e_ident[EI_DATA] != ELFDATA2LSB ||
-		ehdrPtr->e_ident[EI_VERSION] != EV_CURRENT ||
-		ehdrPtr->e_type != ET_EXEC;
+				ehdrPtr->e_ident[EI_MAG3] != ELFMAG3) {
+		printf("%s is not an ELF file.\n", procName);
+		return true;
+	}
+	
+	if (ehdrPtr->e_ident[EI_CLASS] != ELFCLASS32) {
+		printf("%s is not an 32-bit executable.\n", procName);
+		return true;
+	}
+
+	if (ehdrPtr->e_ident[EI_DATA] != ELFDATA2LSB) {
+		printf("%s is not little endian.\n", procName);
+		return true;
+	}
+
+	if (ehdrPtr->e_ident[EI_VERSION] != EV_CURRENT) {
+		printf("%s has an invalid version.\n", procName);
+		return true;
+	}
+
+	if (ehdrPtr->e_type != ET_EXEC) {
+		printf("%s is not an executable.\n", procName);
+		return true;
+	}
+	return false;
 }
 
 static bool isSelected(char *name) {
@@ -194,25 +213,6 @@ static u32_t getProcSize(ImageHeader *imgHdr) {
 				align(proc->dataHdr.p_filesz, SECTOR_SIZE);
 	return len >> SECTOR_SHIFT;
 	
-}
-static void checkElfHeader(char *procName, Elf32_Ehdr *ehdrPtr) {
-	if (ehdrPtr->e_ident[EI_MAG0] != ELFMAG0 ||
-				ehdrPtr->e_ident[EI_MAG1] != ELFMAG1 ||
-				ehdrPtr->e_ident[EI_MAG2] != ELFMAG2 ||
-				ehdrPtr->e_ident[EI_MAG3] != ELFMAG3)
-	  printf("%s is not an ELF file.\n", procName);
-	
-	if (ehdrPtr->e_ident[EI_CLASS] != ELFCLASS32)
-	  printf("%s is not an 32-bit executable.\n", procName);
-
-	if (ehdrPtr->e_ident[EI_DATA] != ELFDATA2LSB)
-	  printf("%s is not little endian.\n", procName);
-
-	if (ehdrPtr->e_ident[EI_VERSION] != EV_CURRENT)
-	  printf("%s has an invalid version.\n", procName);
-
-	if (ehdrPtr->e_type != ET_EXEC)
-	  printf("%s is not an executable.\n", procName);
 }
 
 static bool getSegment(u32_t *vsecPtr, long size, u32_t *addrPtr, u32_t limit) {
@@ -343,9 +343,7 @@ static void execImage(char *image) {
 			memcpy(&imgHdr, buf, sizeof(imgHdr));
 			proc = &imgHdr.process;
 
-			checkElfHeader(imgHdr.name, &proc->ehdr);
-
-			if (isBadImage(&proc->ehdr)) {
+			if (isBadImage(imgHdr.name, &proc->ehdr)) {
 				errno = ENOEXEC;
 				return;
 			}
@@ -364,9 +362,13 @@ static void execImage(char *image) {
 			printf("================\n");
 		}
 
-		//if (i == KERNEL) 
 	    addr = align(addr, proc->codeHdr.p_align);
 
+		/* Save a copy of the header for the kernel, with the address
+		 * where the process is loaded at.
+		 */
+		proc->codeHdr.p_paddr = addr;
+		proc->dataHdr.p_paddr = addr;
 		rawCopy((char *) (imgHdrPos + i * EXEC_SIZE), mon2Abs(proc), EXEC_SIZE);
 
 		if (!banner) {
@@ -374,7 +376,8 @@ static void execImage(char *image) {
 			banner = true;
 		}
 		
-		procp->cs = procp->ds = addr;
+		procp->cs = addr;
+		procp->ds = addr;
 		procp->entry = proc->ehdr.e_entry;
 
 		/* Read the text segment. */
@@ -383,7 +386,7 @@ static void execImage(char *image) {
 
 		dataSize = bssSize = 0;
 		if (isPLoad(&proc->dataHdr)) {
-			n = procp->ds + proc->dataHdr.p_paddr - addr;
+			n = procp->ds + proc->dataHdr.p_vaddr - addr;
 			rawClear(addr, n);
 			addr += n;
 			dataSize = proc->dataHdr.p_filesz;

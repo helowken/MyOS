@@ -6,4 +6,6 @@
 
 #define P_NAME_LEN		8
 
+#define NR_IRQ_HOOKS	16		/* Number of interrupt hooks */
+
 #endif

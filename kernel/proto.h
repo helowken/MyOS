@@ -6,20 +6,29 @@ struct Proc;
 /* protect.c */
 phys_bytes seg2Phys(U16_t seg);
 void protectInit();
+void allocSegments(struct Proc *rp);
 
 /* clock.c */
 void clockTask();
 
+/* utility.c */
+void kprintf(const char *fmt, ...);
+void panic(const char *s, int n);
+
+/* proc.c */
+void lockEnqueue(struct Proc *rp);
+void lockDequeue(struct Proc *rp);
+
 /* start.c */
 void cstart(U16_t cs, U16_t ds,	U16_t mds, U16_t paramOffset,U16_t paramSize);	
-
 
 /* exception.c */
 void handleException(unsigned vectorNum);
 
-
 /* i8259.c */
 void initInterrupts();
+void putIrqHandler(IrqHook *hook, int irq, irq_handler_t handler);
+void handleInterrupt(IrqHook *hook);
 
 /* system.c */
 int getPriv(register struct Proc *rp, int procType);
@@ -27,6 +36,8 @@ void sysTask();
 
 /* klib386.S */
 void physCopy(phys_bytes source, phys_bytes dest, phys_bytes count);
+void enableIrq(IrqHook *hook);
+void disableIrq(IrqHook *hook);
 
 /* mpx.S */
 void idleTask();

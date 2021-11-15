@@ -7,6 +7,9 @@
 #define INT2_CTL		0xA0	/* I/O port for the second interrupt controller (Slave) */
 #define INT2_CTL_MASK	0xA1	/* Setting bits in this port disables interrupts. (Slave) */
 
+/* Magic numbers for interrupt controller. */
+#define END_OF_INT		0x20	/* Code used to re-enable after an interrupt. (See OCW2 in i8259.c) */
+
 /* 
  * Interrupt vectors defined/reserved by processor.
  * Type: A(bort) / F(ault) / I(nterrupt) / T(rap) 

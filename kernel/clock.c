@@ -47,15 +47,74 @@
 #define TIMER_COUNT	((unsigned) (TIMER_FREQ / HZ))	/* Initial value for counter */
 #define TIMER_FREQ	1193182L	/* Clock frequency for timer in PC and AT */
 
+#define CLOCK_ACK_BIT	0x80	/* PS/2 clock interrupt acknowledge bit */
+
 /* When a timer expires its watchDog function is run by the CLOCK task. */
 static Timer *clockTimers;		/* Queue of CLOCK timers */
-static clock_t nextTimoout;		/* Realtime that next timer expires */
+static clock_t nextTimeout;		/* Realtime that next timer expires */
 
 /* The time is incremented by the interrupt handler on each clock tick. */
 static clock_t realTime;		/* Real time clock */
-static IRQHook clockHook;		/* Interrupt handler hook */
+static IrqHook clockHook;		/* Interrupt handler hook */
 
+
+static int clockHandler(IrqHook *hook) {
+	register unsigned ticks;
+
+	/* Acknowledge the PS/2 clock interrupt. */
+	if (machine.ps_mca)
+	  outb(PORT_B, inb(PORT_B) | CLOCK_ACK_BIT);
+
+	/* Get number of ticks and update realtime. */
+	ticks = lostTicks + 1;
+	lostTicks = 0;
+	realTime += ticks;
+
+	/* Update user and system accounting times. Charge the current process for
+	 * user time. If the current process is not billable, that is, if a non-user
+	 * process is running, charge the billable process for system time as well.
+	 * Thus the unbillable process' user time is the billable user's system time.
+	 */
+	currProc->p_user_time += ticks;
+	if (priv(currProc)->s_flags & PREEMPTIBLE) {
+		currProc->p_ticks_left -= ticks;
+	}
+	if (! (priv(currProc)->s_flags & BILLABLE)) {
+		billProc->p_sys_time += ticks;
+		billProc->p_ticks_left -= ticks;
+	}
+	
+	/* Check if doClickTick() must be called. Done for alarms and scheduling.
+	 * Some processes, such as the kernel tasks, cannot be preempted.
+	 */
+	if (nextTimeout <= realTime || currProc->p_ticks_left <= 0) {
+		prevProc = currProc;			/* Store running process */
+		lockNotify(HARDWARE, CLOCK);	/* Send notifications */
+	}
+	return 1;		/* reenable interrupts */
+}
+
+static void initClock() {
+	/* Initialize the CLOCK's interrupt hook. */
+	clockHook.procNum = CLOCK;
+
+	/* Initialize channel 0 of the 8253A timer to, e.g., 60 HZ. */
+	outb(TIMER_MODE, SQUARE_WAVE);		/* Set timer to run continuously */
+	outb(TIMER0, TIMER_COUNT);			/* Load timer low byte */
+	outb(TIMER0, TIMER_COUNT >> 8);		/* Load timer high byte */
+	putIrqHandler(&clockHook, CLOCK_IRQ, clockHandler);	/* Register handler */
+	enableIrq(&clockHook);
+}
 
 /* Main program of clock task. if the call is not HARD_INT it is an error. */
+void clockTask() {
+	//Message m;			/* Message buffer for both input and output */
+	//int result;			/* Result returned by the handler */
 
+	initClock();		/* Initialize clock task */
+
+	while (true) {
+		
+	}
+}
 
