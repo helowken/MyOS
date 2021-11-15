@@ -89,14 +89,14 @@ aa:
  *=====================================================================*/
 .macro hwintMaster irq
 	calll	save			/* Save interrupted process state. */
-	pushl	"(irqHandlers,\irq,4)"	/* irqHandlers[irq]
-	calll	handleInterrupt			/* handleInterrupt(irqHandlers[irq]) */
+	pushl	irqHandlers+\irq*4	/* irqHandlers[irq] */
+	calll	handleInterrupt		/* handleInterrupt(irqHandlers[irq]) */
 	popl	%ecx
-	cmpl	$0, "irqActiveIds(,\irq,4)"	/* Is interrupt still active? */
+	cmpl	$0, irqActiveIds+\irq*4	/* Is interrupt still active? */
 	jz	0f
-	inb	$INT_CTLMASK		/* Get current mask */
-	orb	"$(1<<\irq)", %al	/* Mask irq */
-	outb	$INT_CTLMASK	/* Disable the irq */
+	inb	$INT_CTL_MASK		/* Get current mask */
+	orb	1<<\irq, %al		/* Mask irq */
+	outb	$INT_CTL_MASK	/* Disable the irq */
 0:
 	movb	$END_OF_INT, %al	
 	outb	$INT_CTL		/* Reenable master 8259 */

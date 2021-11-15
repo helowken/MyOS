@@ -56,8 +56,9 @@ char *taskStack[TOTAL_STACK_SPACE / sizeof(char *)];
  */
 BootImage images[] = {
 /*	  process nr,   pc, flags, qs,  queue, stack, traps, ipcTo,  call, name	    */
-	{ IDLE,   idleTask, IDL_F,  8, IDLE_Q, IDL_S,	  0,	 0,	    0, "IDLE"   },
+//	{ IDLE,   idleTask, IDL_F,  8, IDLE_Q, IDL_S,	  0,	 0,	    0, "IDLE"   },
 	{ CLOCK, clockTask,	TSK_F, 64, TASK_Q, TSK_S, TSK_T,	 0,	    0, "CLOCK"  },
+	/*
 	{ SYSTEM,  sysTask, TSK_F, 64, TASK_Q, TSK_S, TSK_T,     0,     0, "SYSTEM" },
 	{ HARDWARE,		 0, TSK_F, 64, TASK_Q, HRD_S,     0,     0,	    0, "KERNEL" },
 	{ PM_PROC_NR,    0, SRV_F, 32,      3, 0,     SRV_T, SRV_M,  PM_C, "pm"	    }, 
@@ -68,6 +69,7 @@ BootImage images[] = {
 	{ LOG_PROC_NR,   0, SRV_F,  4,      2, 0,     SRV_T, SYS_M, DRV_C, "log"	}, 
 	{ DRVR_PROC_NR,  0, SRV_F,  4,      2, 0,     SRV_T, SYS_M, DRV_C, "driver"	}, 
 	{ INIT_PROC_NR,  0, USR_F,  8, USER_Q, 0,     USR_T, USR_M,		0, "init"	},
+	*/
 };
 
 

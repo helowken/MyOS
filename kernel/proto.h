@@ -29,6 +29,7 @@ void handleException(unsigned vectorNum);
 void initInterrupts();
 void putIrqHandler(IrqHook *hook, int irq, irq_handler_t handler);
 void handleInterrupt(IrqHook *hook);
+int lockNotify(int src, int dst);
 
 /* system.c */
 int getPriv(register struct Proc *rp, int procType);

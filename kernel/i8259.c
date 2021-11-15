@@ -266,7 +266,7 @@ void handleInterrupt(IrqHook *hook) {
 		 * call the function, and unmark it if the function returns true.
 		 */
 		irqActiveIds[hook->irq] |= hook->id;
-		if ((*hook->handler)(irq))
+		if ((*hook->handler)(hook))
 		  irqActiveIds[hook->irq] &= ~hook->id;
 		hook = hook->next;
 	}

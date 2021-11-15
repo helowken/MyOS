@@ -161,7 +161,7 @@ static void printProgramHeader(Elf32_Phdr *phdrPtr) {
 	}
 }
 
-static void isBadImage(char *procName, Elf32_Ehdr *ehdrPtr) {
+static bool isBadImage(char *procName, Elf32_Ehdr *ehdrPtr) {
 	if (ehdrPtr->e_ident[EI_MAG0] != ELFMAG0 ||
 				ehdrPtr->e_ident[EI_MAG1] != ELFMAG1 ||
 				ehdrPtr->e_ident[EI_MAG2] != ELFMAG2 ||

@@ -50,7 +50,7 @@
 #define CLOCK_ACK_BIT	0x80	/* PS/2 clock interrupt acknowledge bit */
 
 /* When a timer expires its watchDog function is run by the CLOCK task. */
-static Timer *clockTimers;		/* Queue of CLOCK timers */
+//static Timer *clockTimers;		/* Queue of CLOCK timers */
 static clock_t nextTimeout;		/* Realtime that next timer expires */
 
 /* The time is incremented by the interrupt handler on each clock tick. */

@@ -14,7 +14,7 @@
  * void physCopy(phys_bytes source, phys_bytes dest, phys_bytes count);
  * Copy a block of physical memory. 
  */
-.equ	PC_ARGS,	2 + 2 + 4 + 4 + 4	/* ds | es | edi | esi | retAddr */
+.equ PC_ARGS,	2 + 2 + 4 + 4 + 4	/* ds | es | edi | esi | retAddr */
 
 	.globl	physCopy
 	.type	physCopy, @function
@@ -86,10 +86,10 @@ enableIrq:
 	jnz	.enableIrqDone		/* if (... != 0) still masked by other handlers, go to end. */	
 	movb	$~1, %ah		/* ~(1 << irq) => (~1) rotate irq */
 	rolb	%cl, %ah		/* ah = ~(1 << (irq % 8)) */
-	movl	$INT_CTLMASK, %edx	/* Enable irq < 8 at the master 8259 */
+	movl	$INT_CTL_MASK, %edx	/* Enable irq < 8 at the master 8259 */
 	cmpb	$8, %cl			
 	jb	.enableIrqAtSlave	
-	movl	$INT2_CTLMASK, %edx	/* Enable irq >=8 at the slave 8259 */ 
+	movl	$INT2_CTL_MASK, %edx	/* Enable irq >=8 at the slave 8259 */ 
 .enableIrqAtSlave:
 	inb	%dx					/* inb(INT(2)_CTLMASK)a */
 	andb	%ah, %al		/* al = MASK */

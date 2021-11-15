@@ -92,4 +92,28 @@ void lockEnqueue(Proc *rp) {	/* This process is now runnable */
 	unlock(3);
 }
 
+static int miniNotify(Proc *caller, int dst) {
+	return OK;
+}
 
+/* src: sender of the notification
+ * dst: who is to be notified
+ */
+int lockNotify(int src, int dst) {
+	int result;
+/* Safe gateway to miniNotify() for tasks and interrupt handlers. The sender
+ * is explicitly given to prevent confusion where the call comes from. MINIX
+ * kernel is not reentrant, which means to interrupts are disabled after
+ * the first kernel entry (hardware interrupt, trap, or exception). Locking
+ * is done by temporarily disabling interrupts.
+ */
+	if (kernelReentryCount >= 0) {
+		result = miniNotify(procAddr(src), dst);
+	} else {
+		/* Call from task level, locking is required. */
+		lock(0, "notify");
+		result = miniNotify(procAddr(src), dst);
+		unlock(0);
+	}
+	return result;
+}
