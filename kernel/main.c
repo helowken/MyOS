@@ -42,9 +42,10 @@ void main() {
 	/* Task stacks. */
 	kernelTaskStackBase = (reg_t) taskStack;
 
-	for (i = 0; i < NR_BOOT_PROCS; ++i) {
+	//for (i = 0; i < NR_BOOT_PROCS; ++i) { TODO
+	for (i = 0; i < 1; ++i) {
 		ip = &images[i];					/* Process' attributes */			
-		rp = procAddrTable[ip->procNum];	/* Get process pointer */
+		rp = procAddr(ip->procNum);	/* Get process pointer */
 		rp->p_max_priority = ip->priority;	/* Max scheduling priority */
 		rp->p_priority = ip->priority;		/* Current priority */
 		rp->p_quantum_size = ip->quantum;	/* Quantum size in ticks */

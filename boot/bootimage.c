@@ -393,7 +393,7 @@ static void execImage(char *image) {
 			bssSize = proc->dataHdr.p_memsz - dataSize;
 			
 			/* Read the data segment. */
-			if (!getSegment(&vsec, proc->dataHdr.p_filesz, &addr, limit))
+			if (!getSegment(&vsec, dataSize, &addr, limit))
 			  return;
 
 			if (addr + bssSize > limit) {

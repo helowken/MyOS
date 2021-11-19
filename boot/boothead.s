@@ -837,6 +837,7 @@ detectE820Mem:
 	.globl	minix
 	.type	minix, @function
 minix:
+	cli								# Prevent interrupt before setting valid IDT.
 	pushl	%ebp
 	movl	%esp, %ebp
 // TODO save cs/ds real

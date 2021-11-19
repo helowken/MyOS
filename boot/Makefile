@@ -1,19 +1,23 @@
 MY_HOME = ..
 MODE = M16
 include $(MY_HOME)/common.mk
+CFLAGS += -g 
 LIB_DIR = $(MY_HOME)/lib/m16
 LIBS = -lmyc -lmysysutil
 DISK_IMAGE = device/testOS.img
 # Floppy: ARGS = "file=$(BIN),format=raw,index=0,if=floppy"
 LINUX_LIB = $(MY_HOME)/linuxLib
 INSTALL_BOOT = installboot.bin
-
+DEBUG = debug.bin
 
 all: install run
 
 run: 
 	#qemu-system-i386 -drive "file=$(DISK_IMAGE),format=raw,index=0,media=disk"
 	bochs
+
+gdb:
+	/usr/local/bin/bochs -q -f .bochsrc_gdb
 
 %.bin: %.asm
 	nasm -f bin $< -o $@
@@ -25,6 +29,8 @@ boot.elf: \
 		bootimage.o
 	# -nmagic: merge text and data
 	$(LD) $^ -Ttext 0x0 -m elf_i386 -nmagic -nostdlib -L$(LIB_DIR) $(LIBS) -o $@ 
+	cp $@ $(DEBUG)
+	strip --strip-debug --strip-unneeded $@
 
 boot.bin: boot.elf
 	objcopy -O binary -j .text -j .rodata -j .data $< $@ 
@@ -53,8 +59,8 @@ install_image: installboot
 reset:
 	cd device && ./run && cd ..
 
-disasm: boot.elf
-	objdump -D -mi386 -Matt,data16,addr16 $< | less
+disasm: $(DEBUG)
+	objdump -S -D -mi386 -Matt,data16,addr16 $< | less
 
 clean:
 	rm -f *.o *.bin *.elf 

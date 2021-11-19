@@ -1,0 +1,3121 @@
+
+debug.bin:     file format elf32-i386
+
+
+Disassembly of section .text:
+
+00000000 <.copyGDT-0x1c>:
+       0:	55                   	push   %ebp
+       1:	89 e5                	mov    %esp,%ebp
+       3:	56                   	push   %esi
+       4:	57                   	push   %edi
+       5:	0f 01 05 88 2a 00 00 	sgdtl  0x2a88
+       c:	8b 35 8a 2a 00 00    	mov    0x2a8a,%esi
+      12:	bb 80 2a 00 00       	mov    $0x2a80,%ebx
+      17:	b9 40 00 00 00       	mov    $0x40,%ecx
+
+0000001c <.copyGDT>:
+      1c:	26 8a 06             	mov    %es:(%esi),%al
+      1f:	88 03                	mov    %al,(%ebx)
+      21:	46                   	inc    %esi
+      22:	43                   	inc    %ebx
+      23:	e2 f7                	loop   1c <.copyGDT>
+      25:	a1 9a 2a 00 00       	mov    0x2a9a,%eax
+      2a:	25 ff ff ff 00       	and    $0xffffff,%eax
+      2f:	05 80 2a 00 00       	add    $0x2a80,%eax
+      34:	a3 8a 2a 00 00       	mov    %eax,0x2a8a
+      39:	0f 01 15 88 2a 00 00 	lgdtl  0x2a88
+      40:	8b 5d 08             	mov    0x8(%ebp),%ebx
+      43:	8b 55 0c             	mov    0xc(%ebp),%edx
+      46:	8b 45 10             	mov    0x10(%ebp),%eax
+      49:	a3 00 63 00 00       	mov    %eax,0x6300
+      4e:	66 8c d8             	mov    %ds,%ax
+      51:	8e c0                	mov    %eax,%es
+      53:	8e e0                	mov    %eax,%fs
+      55:	8e e8                	mov    %eax,%gs
+      57:	8e d0                	mov    %eax,%ss
+      59:	bc 60 22 00 00       	mov    $0x2260,%esp
+      5e:	52                   	push   %edx
+      5f:	53                   	push   %ebx
+      60:	6a 28                	push   $0x28
+      62:	6a 18                	push   $0x18
+      64:	6a 30                	push   $0x30
+      66:	e8 23 04 00 00       	call   48e <cstart>
+      6b:	83 c4 14             	add    $0x14,%esp
+      6e:	0f 01 15 88 2a 00 00 	lgdtl  0x2a88
+      75:	0f 01 1d 90 2a 00 00 	lidtl  0x2a90
+      7c:	ea 83 00 00 00 30 00 	ljmp   $0x30,$0x83
+
+00000083 <.csInit>:
+      83:	66 b8 18 00          	mov    $0x18,%ax
+      87:	8e d8                	mov    %eax,%ds
+      89:	8e c0                	mov    %eax,%es
+      8b:	8e e0                	mov    %eax,%fs
+      8d:	8e e8                	mov    %eax,%gs
+      8f:	8e d0                	mov    %eax,%ss
+      91:	66 b8 40 00          	mov    $0x40,%ax
+      95:	0f 00 d8             	ltr    %ax
+      98:	6a 00                	push   $0x0
+      9a:	9d                   	popf   
+      9b:	e9 16 0a 00 00       	jmp    ab6 <main>
+
+000000a0 <aa>:
+      a0:	eb fe                	jmp    a0 <aa>
+      a2:	8d b4 26 00 00 00 00 	lea    0x0(%esi,%eiz,1),%esi
+      a9:	8d bc 27 00 00 00 00 	lea    0x0(%edi,%eiz,1),%edi
+
+000000b0 <hwint00>:
+      b0:	e8 fb 02 00 00       	call   3b0 <save>
+      b5:	ff 35 40 62 00 00    	pushl  0x6240
+      bb:	e8 d6 10 00 00       	call   1196 <handleInterrupt>
+      c0:	59                   	pop    %ecx
+      c1:	83 3d c0 66 00 00 00 	cmpl   $0x0,0x66c0
+      c8:	74 0a                	je     d4 <hwint00+0x24>
+      ca:	e4 21                	in     $0x21,%al
+      cc:	0a 05 01 00 00 00    	or     0x1,%al
+      d2:	e6 21                	out    %al,$0x21
+      d4:	b0 20                	mov    $0x20,%al
+      d6:	e6 20                	out    %al,$0x20
+      d8:	c3                   	ret    
+      d9:	8d b4 26 00 00 00 00 	lea    0x0(%esi,%eiz,1),%esi
+
+000000e0 <hwint01>:
+      e0:	e8 cb 02 00 00       	call   3b0 <save>
+      e5:	ff 35 44 62 00 00    	pushl  0x6244
+      eb:	e8 a6 10 00 00       	call   1196 <handleInterrupt>
+      f0:	59                   	pop    %ecx
+      f1:	83 3d c4 66 00 00 00 	cmpl   $0x0,0x66c4
+      f8:	74 0a                	je     104 <hwint01+0x24>
+      fa:	e4 21                	in     $0x21,%al
+      fc:	0a 05 02 00 00 00    	or     0x2,%al
+     102:	e6 21                	out    %al,$0x21
+     104:	b0 20                	mov    $0x20,%al
+     106:	e6 20                	out    %al,$0x20
+     108:	c3                   	ret    
+     109:	8d b4 26 00 00 00 00 	lea    0x0(%esi,%eiz,1),%esi
+
+00000110 <hwint02>:
+     110:	e8 9b 02 00 00       	call   3b0 <save>
+     115:	ff 35 48 62 00 00    	pushl  0x6248
+     11b:	e8 76 10 00 00       	call   1196 <handleInterrupt>
+     120:	59                   	pop    %ecx
+     121:	83 3d c8 66 00 00 00 	cmpl   $0x0,0x66c8
+     128:	74 0a                	je     134 <hwint02+0x24>
+     12a:	e4 21                	in     $0x21,%al
+     12c:	0a 05 04 00 00 00    	or     0x4,%al
+     132:	e6 21                	out    %al,$0x21
+     134:	b0 20                	mov    $0x20,%al
+     136:	e6 20                	out    %al,$0x20
+     138:	c3                   	ret    
+     139:	8d b4 26 00 00 00 00 	lea    0x0(%esi,%eiz,1),%esi
+
+00000140 <hwint03>:
+     140:	e8 6b 02 00 00       	call   3b0 <save>
+     145:	ff 35 4c 62 00 00    	pushl  0x624c
+     14b:	e8 46 10 00 00       	call   1196 <handleInterrupt>
+     150:	59                   	pop    %ecx
+     151:	83 3d cc 66 00 00 00 	cmpl   $0x0,0x66cc
+     158:	74 0a                	je     164 <hwint03+0x24>
+     15a:	e4 21                	in     $0x21,%al
+     15c:	0a 05 08 00 00 00    	or     0x8,%al
+     162:	e6 21                	out    %al,$0x21
+     164:	b0 20                	mov    $0x20,%al
+     166:	e6 20                	out    %al,$0x20
+     168:	c3                   	ret    
+     169:	8d b4 26 00 00 00 00 	lea    0x0(%esi,%eiz,1),%esi
+
+00000170 <hwint04>:
+     170:	e8 3b 02 00 00       	call   3b0 <save>
+     175:	ff 35 50 62 00 00    	pushl  0x6250
+     17b:	e8 16 10 00 00       	call   1196 <handleInterrupt>
+     180:	59                   	pop    %ecx
+     181:	83 3d d0 66 00 00 00 	cmpl   $0x0,0x66d0
+     188:	74 0a                	je     194 <hwint04+0x24>
+     18a:	e4 21                	in     $0x21,%al
+     18c:	0a 05 10 00 00 00    	or     0x10,%al
+     192:	e6 21                	out    %al,$0x21
+     194:	b0 20                	mov    $0x20,%al
+     196:	e6 20                	out    %al,$0x20
+     198:	c3                   	ret    
+     199:	8d b4 26 00 00 00 00 	lea    0x0(%esi,%eiz,1),%esi
+
+000001a0 <hwint05>:
+     1a0:	e8 0b 02 00 00       	call   3b0 <save>
+     1a5:	ff 35 54 62 00 00    	pushl  0x6254
+     1ab:	e8 e6 0f 00 00       	call   1196 <handleInterrupt>
+     1b0:	59                   	pop    %ecx
+     1b1:	83 3d d4 66 00 00 00 	cmpl   $0x0,0x66d4
+     1b8:	74 0a                	je     1c4 <hwint05+0x24>
+     1ba:	e4 21                	in     $0x21,%al
+     1bc:	0a 05 20 00 00 00    	or     0x20,%al
+     1c2:	e6 21                	out    %al,$0x21
+     1c4:	b0 20                	mov    $0x20,%al
+     1c6:	e6 20                	out    %al,$0x20
+     1c8:	c3                   	ret    
+     1c9:	8d b4 26 00 00 00 00 	lea    0x0(%esi,%eiz,1),%esi
+
+000001d0 <hwint06>:
+     1d0:	e8 db 01 00 00       	call   3b0 <save>
+     1d5:	ff 35 58 62 00 00    	pushl  0x6258
+     1db:	e8 b6 0f 00 00       	call   1196 <handleInterrupt>
+     1e0:	59                   	pop    %ecx
+     1e1:	83 3d d8 66 00 00 00 	cmpl   $0x0,0x66d8
+     1e8:	74 0a                	je     1f4 <hwint06+0x24>
+     1ea:	e4 21                	in     $0x21,%al
+     1ec:	0a 05 40 00 00 00    	or     0x40,%al
+     1f2:	e6 21                	out    %al,$0x21
+     1f4:	b0 20                	mov    $0x20,%al
+     1f6:	e6 20                	out    %al,$0x20
+     1f8:	c3                   	ret    
+     1f9:	8d b4 26 00 00 00 00 	lea    0x0(%esi,%eiz,1),%esi
+
+00000200 <hwint07>:
+     200:	e8 ab 01 00 00       	call   3b0 <save>
+     205:	ff 35 5c 62 00 00    	pushl  0x625c
+     20b:	e8 86 0f 00 00       	call   1196 <handleInterrupt>
+     210:	59                   	pop    %ecx
+     211:	83 3d dc 66 00 00 00 	cmpl   $0x0,0x66dc
+     218:	74 0a                	je     224 <hwint07+0x24>
+     21a:	e4 21                	in     $0x21,%al
+     21c:	0a 05 80 00 00 00    	or     0x80,%al
+     222:	e6 21                	out    %al,$0x21
+     224:	b0 20                	mov    $0x20,%al
+     226:	e6 20                	out    %al,$0x20
+     228:	c3                   	ret    
+     229:	8d b4 26 00 00 00 00 	lea    0x0(%esi,%eiz,1),%esi
+
+00000230 <hwint08>:
+     230:	c3                   	ret    
+     231:	eb 0d                	jmp    240 <hwint09>
+     233:	90                   	nop
+     234:	90                   	nop
+     235:	90                   	nop
+     236:	90                   	nop
+     237:	90                   	nop
+     238:	90                   	nop
+     239:	90                   	nop
+     23a:	90                   	nop
+     23b:	90                   	nop
+     23c:	90                   	nop
+     23d:	90                   	nop
+     23e:	90                   	nop
+     23f:	90                   	nop
+
+00000240 <hwint09>:
+     240:	c3                   	ret    
+     241:	eb 0d                	jmp    250 <hwint10>
+     243:	90                   	nop
+     244:	90                   	nop
+     245:	90                   	nop
+     246:	90                   	nop
+     247:	90                   	nop
+     248:	90                   	nop
+     249:	90                   	nop
+     24a:	90                   	nop
+     24b:	90                   	nop
+     24c:	90                   	nop
+     24d:	90                   	nop
+     24e:	90                   	nop
+     24f:	90                   	nop
+
+00000250 <hwint10>:
+     250:	c3                   	ret    
+     251:	eb 0d                	jmp    260 <hwint11>
+     253:	90                   	nop
+     254:	90                   	nop
+     255:	90                   	nop
+     256:	90                   	nop
+     257:	90                   	nop
+     258:	90                   	nop
+     259:	90                   	nop
+     25a:	90                   	nop
+     25b:	90                   	nop
+     25c:	90                   	nop
+     25d:	90                   	nop
+     25e:	90                   	nop
+     25f:	90                   	nop
+
+00000260 <hwint11>:
+     260:	c3                   	ret    
+     261:	eb 0d                	jmp    270 <hwint12>
+     263:	90                   	nop
+     264:	90                   	nop
+     265:	90                   	nop
+     266:	90                   	nop
+     267:	90                   	nop
+     268:	90                   	nop
+     269:	90                   	nop
+     26a:	90                   	nop
+     26b:	90                   	nop
+     26c:	90                   	nop
+     26d:	90                   	nop
+     26e:	90                   	nop
+     26f:	90                   	nop
+
+00000270 <hwint12>:
+     270:	c3                   	ret    
+     271:	eb 0d                	jmp    280 <hwint13>
+     273:	90                   	nop
+     274:	90                   	nop
+     275:	90                   	nop
+     276:	90                   	nop
+     277:	90                   	nop
+     278:	90                   	nop
+     279:	90                   	nop
+     27a:	90                   	nop
+     27b:	90                   	nop
+     27c:	90                   	nop
+     27d:	90                   	nop
+     27e:	90                   	nop
+     27f:	90                   	nop
+
+00000280 <hwint13>:
+     280:	c3                   	ret    
+     281:	eb 0d                	jmp    290 <hwint14>
+     283:	90                   	nop
+     284:	90                   	nop
+     285:	90                   	nop
+     286:	90                   	nop
+     287:	90                   	nop
+     288:	90                   	nop
+     289:	90                   	nop
+     28a:	90                   	nop
+     28b:	90                   	nop
+     28c:	90                   	nop
+     28d:	90                   	nop
+     28e:	90                   	nop
+     28f:	90                   	nop
+
+00000290 <hwint14>:
+     290:	c3                   	ret    
+     291:	eb 0d                	jmp    2a0 <hwint15>
+     293:	90                   	nop
+     294:	90                   	nop
+     295:	90                   	nop
+     296:	90                   	nop
+     297:	90                   	nop
+     298:	90                   	nop
+     299:	90                   	nop
+     29a:	90                   	nop
+     29b:	90                   	nop
+     29c:	90                   	nop
+     29d:	90                   	nop
+     29e:	90                   	nop
+     29f:	90                   	nop
+
+000002a0 <hwint15>:
+     2a0:	c3                   	ret    
+
+000002a1 <divideError>:
+     2a1:	ff 35 00 00 00 00    	pushl  0x0
+     2a7:	e9 84 00 00 00       	jmp    330 <exception>
+
+000002ac <singleStepException>:
+     2ac:	ff 35 01 00 00 00    	pushl  0x1
+     2b2:	eb 7c                	jmp    330 <exception>
+
+000002b4 <nmi>:
+     2b4:	ff 35 02 00 00 00    	pushl  0x2
+     2ba:	eb 74                	jmp    330 <exception>
+
+000002bc <breakpointException>:
+     2bc:	ff 35 03 00 00 00    	pushl  0x3
+     2c2:	eb 6c                	jmp    330 <exception>
+
+000002c4 <overflow>:
+     2c4:	ff 35 04 00 00 00    	pushl  0x4
+     2ca:	eb 64                	jmp    330 <exception>
+
+000002cc <boundsCheck>:
+     2cc:	ff 35 05 00 00 00    	pushl  0x5
+     2d2:	eb 5c                	jmp    330 <exception>
+
+000002d4 <invalOpcode>:
+     2d4:	ff 35 06 00 00 00    	pushl  0x6
+     2da:	eb 54                	jmp    330 <exception>
+
+000002dc <coprNotAvailable>:
+     2dc:	ff 35 07 00 00 00    	pushl  0x7
+     2e2:	eb 4c                	jmp    330 <exception>
+
+000002e4 <doubleFault>:
+     2e4:	ff 35 08 00 00 00    	pushl  0x8
+     2ea:	eb 64                	jmp    350 <errException>
+
+000002ec <coprSegOverrun>:
+     2ec:	ff 35 09 00 00 00    	pushl  0x9
+     2f2:	eb 3c                	jmp    330 <exception>
+
+000002f4 <invalTss>:
+     2f4:	ff 35 0a 00 00 00    	pushl  0xa
+     2fa:	eb 54                	jmp    350 <errException>
+
+000002fc <segmentNotPresent>:
+     2fc:	ff 35 0b 00 00 00    	pushl  0xb
+     302:	eb 4c                	jmp    350 <errException>
+
+00000304 <stackException>:
+     304:	ff 35 0c 00 00 00    	pushl  0xc
+     30a:	eb 44                	jmp    350 <errException>
+
+0000030c <generalProtection>:
+     30c:	ff 35 0d 00 00 00    	pushl  0xd
+     312:	eb 3c                	jmp    350 <errException>
+
+00000314 <pageFault>:
+     314:	ff 35 0e 00 00 00    	pushl  0xe
+     31a:	eb 34                	jmp    350 <errException>
+
+0000031c <coprError>:
+     31c:	ff 35 10 00 00 00    	pushl  0x10
+     322:	eb 0c                	jmp    330 <exception>
+     324:	8d b6 00 00 00 00    	lea    0x0(%esi),%esi
+     32a:	8d bf 00 00 00 00    	lea    0x0(%edi),%edi
+
+00000330 <exception>:
+     330:	36 c7 05 64 26 00 00 	movl   $0x0,%ss:0x2664
+     337:	00 00 00 00 
+     33b:	36 8f 05 60 26 00 00 	popl   %ss:0x2660
+     342:	eb 1a                	jmp    35e <.commonException>
+     344:	8d b6 00 00 00 00    	lea    0x0(%esi),%esi
+     34a:	8d bf 00 00 00 00    	lea    0x0(%edi),%edi
+
+00000350 <errException>:
+     350:	36 8f 05 64 26 00 00 	popl   %ss:0x2664
+     357:	36 8f 05 60 26 00 00 	popl   %ss:0x2660
+
+0000035e <.commonException>:
+     35e:	50                   	push   %eax
+     35f:	8b 44 24 04          	mov    0x4(%esp),%eax
+     363:	36 a3 68 26 00 00    	mov    %eax,%ss:0x2668
+     369:	8b 44 24 08          	mov    0x8(%esp),%eax
+     36d:	36 a3 6c 26 00 00    	mov    %eax,%ss:0x266c
+     373:	8b 44 24 0c          	mov    0xc(%esp),%eax
+     377:	36 a3 70 26 00 00    	mov    %eax,%ss:0x2670
+     37d:	58                   	pop    %eax
+     37e:	e8 2d 00 00 00       	call   3b0 <save>
+     383:	ff 35 70 26 00 00    	pushl  0x2670
+     389:	ff 35 6c 26 00 00    	pushl  0x266c
+     38f:	ff 35 68 26 00 00    	pushl  0x2668
+     395:	ff 35 64 26 00 00    	pushl  0x2664
+     39b:	ff 35 60 26 00 00    	pushl  0x2660
+     3a1:	e8 64 0e 00 00       	call   120a <handleException>
+     3a6:	83 c4 14             	add    $0x14,%esp
+     3a9:	c3                   	ret    
+     3aa:	8d b6 00 00 00 00    	lea    0x0(%esi),%esi
+
+000003b0 <save>:
+     3b0:	fc                   	cld    
+     3b1:	60                   	pusha  
+     3b2:	66 1e                	pushw  %ds
+     3b4:	66 06                	pushw  %es
+     3b6:	66 0f a0             	pushw  %fs
+     3b9:	66 0f a8             	pushw  %gs
+     3bc:	66 8c d2             	mov    %ss,%dx
+     3bf:	8e da                	mov    %edx,%ds
+     3c1:	8e c2                	mov    %edx,%es
+     3c3:	89 e0                	mov    %esp,%eax
+     3c5:	fe 05 04 63 00 00    	incb   0x6304
+     3cb:	75 13                	jne    3e0 <.setRestart>
+     3cd:	bc 60 22 00 00       	mov    $0x2260,%esp
+     3d2:	ff 35 e9 03 00 00    	pushl  0x3e9
+     3d8:	31 ed                	xor    %ebp,%ebp
+     3da:	ff 60 28             	jmp    *0x28(%eax)
+     3dd:	8d 76 00             	lea    0x0(%esi),%esi
+
+000003e0 <.setRestart>:
+     3e0:	ff 35 1a 04 00 00    	pushl  0x41a
+     3e6:	ff 60 28             	jmp    *0x28(%eax)
+
+000003e9 <restart>:
+     3e9:	83 3d a0 66 00 00 00 	cmpl   $0x0,0x66a0
+     3f0:	74 14                	je     406 <.loadProc>
+     3f2:	a1 a0 66 00 00       	mov    0x66a0,%eax
+     3f7:	a3 84 2f 00 00       	mov    %eax,0x2f84
+     3fc:	c7 05 a0 66 00 00 00 	movl   $0x0,0x66a0
+     403:	00 00 00 
+
+00000406 <.loadProc>:
+     406:	8b 25 84 2f 00 00    	mov    0x2f84,%esp
+     40c:	0f 00 54 24 40       	lldt   0x40(%esp)
+     411:	8d 44 24 40          	lea    0x40(%esp),%eax
+     415:	a3 24 2d 00 00       	mov    %eax,0x2d24
+
+0000041a <.doRestart>:
+     41a:	fe 0d 04 63 00 00    	decb   0x6304
+     420:	66 0f a9             	popw   %gs
+     423:	66 0f a1             	popw   %fs
+     426:	66 07                	popw   %es
+     428:	66 1f                	popw   %ds
+     42a:	61                   	popa   
+     42b:	83 c4 04             	add    $0x4,%esp
+     42e:	cf                   	iret   
+
+0000042f <getValue>:
+#include "protect.h"
+#include "proc.h"
+#include "stdlib.h"
+#include "string.h"
+
+static char *getValue(char *params, char *name) {
+     42f:	55                   	push   %ebp
+     430:	89 e5                	mov    %esp,%ebp
+     432:	56                   	push   %esi
+     433:	53                   	push   %ebx
+	register const size_t len = strlen(name);
+     434:	83 ec 0c             	sub    $0xc,%esp
+     437:	ff 75 0c             	pushl  0xc(%ebp)
+     43a:	e8 3c 10 00 00       	call   147b <strlen>
+     43f:	83 c4 10             	add    $0x10,%esp
+     442:	89 c6                	mov    %eax,%esi
+	register char *envp;
+
+	envp = params;
+     444:	8b 5d 08             	mov    0x8(%ebp),%ebx
+	while (*envp != '\0') {
+     447:	eb 32                	jmp    47b <getValue+0x4c>
+		if (!strncmp(envp, name, len) && envp[len] == '=') 
+     449:	83 ec 04             	sub    $0x4,%esp
+     44c:	56                   	push   %esi
+     44d:	ff 75 0c             	pushl  0xc(%ebp)
+     450:	53                   	push   %ebx
+     451:	e8 a8 10 00 00       	call   14fe <strncmp>
+     456:	83 c4 10             	add    $0x10,%esp
+     459:	85 c0                	test   %eax,%eax
+     45b:	75 11                	jne    46e <getValue+0x3f>
+     45d:	8d 04 33             	lea    (%ebx,%esi,1),%eax
+     460:	0f b6 00             	movzbl (%eax),%eax
+     463:	3c 3d                	cmp    $0x3d,%al
+     465:	75 07                	jne    46e <getValue+0x3f>
+		  return &envp[len + 1];
+     467:	8d 46 01             	lea    0x1(%esi),%eax
+     46a:	01 d8                	add    %ebx,%eax
+     46c:	eb 19                	jmp    487 <getValue+0x58>
+
+		while (*envp++ != '\0');
+     46e:	90                   	nop
+     46f:	89 d8                	mov    %ebx,%eax
+     471:	8d 58 01             	lea    0x1(%eax),%ebx
+     474:	0f b6 00             	movzbl (%eax),%eax
+     477:	84 c0                	test   %al,%al
+     479:	75 f4                	jne    46f <getValue+0x40>
+static char *getValue(char *params, char *name) {
+	register const size_t len = strlen(name);
+	register char *envp;
+
+	envp = params;
+	while (*envp != '\0') {
+     47b:	0f b6 03             	movzbl (%ebx),%eax
+     47e:	84 c0                	test   %al,%al
+     480:	75 c7                	jne    449 <getValue+0x1a>
+		if (!strncmp(envp, name, len) && envp[len] == '=') 
+		  return &envp[len + 1];
+
+		while (*envp++ != '\0');
+	}
+	return NULL;
+     482:	b8 00 00 00 00       	mov    $0x0,%eax
+}
+     487:	8d 65 f8             	lea    -0x8(%ebp),%esp
+     48a:	5b                   	pop    %ebx
+     48b:	5e                   	pop    %esi
+     48c:	5d                   	pop    %ebp
+     48d:	c3                   	ret    
+
+0000048e <cstart>:
+
+void cstart(U16_t cs, U16_t ds,	/* Kernel code and data segment. */
+			U16_t mds,					/* Moniotr data/stack segment. */
+			U16_t paramOffset,			/* Boot parameters offset. */
+			U16_t paramSize)			/* Boot parameters size. */
+{			
+     48e:	55                   	push   %ebp
+     48f:	89 e5                	mov    %esp,%ebp
+     491:	53                   	push   %ebx
+     492:	81 ec 04 02 00 00    	sub    $0x204,%esp
+	char params[128 * sizeof(char *)];	/* One sector size, 512 bytes. */
+	register char *value;				/* Value in (key = value) pair. */	
+	extern char etext, end;
+
+	kernelInfo.codeBase = seg2Phys(cs);
+     498:	83 ec 0c             	sub    $0xc,%esp
+     49b:	ff 75 08             	pushl  0x8(%ebp)
+     49e:	e8 f0 01 00 00       	call   693 <seg2Phys>
+     4a3:	83 c4 10             	add    $0x10,%esp
+     4a6:	a3 c0 2e 00 00       	mov    %eax,0x2ec0
+	kernelInfo.codeSize = (phys_bytes) &etext;		/* Size of code segment. */
+     4ab:	b8 97 17 00 00       	mov    $0x1797,%eax
+     4b0:	a3 c4 2e 00 00       	mov    %eax,0x2ec4
+	kernelInfo.dataBase = seg2Phys(ds);
+     4b5:	83 ec 0c             	sub    $0xc,%esp
+     4b8:	ff 75 0c             	pushl  0xc(%ebp)
+     4bb:	e8 d3 01 00 00       	call   693 <seg2Phys>
+     4c0:	83 c4 10             	add    $0x10,%esp
+     4c3:	a3 c8 2e 00 00       	mov    %eax,0x2ec8
+	kernelInfo.dataSize = (phys_bytes) &end;		/* Size of data segment (data + bss). */
+     4c8:	b8 e0 68 00 00       	mov    $0x68e0,%eax
+     4cd:	a3 cc 2e 00 00       	mov    %eax,0x2ecc
+
+	/* Initialize protected mode descriptors. */
+	protectInit();
+     4d2:	e8 f6 02 00 00       	call   7cd <protectInit>
+
+	/* Copy the boot parameters to the local buffer. */
+	kernelInfo.paramsBase = seg2Phys(mds) + paramOffset;
+     4d7:	83 ec 0c             	sub    $0xc,%esp
+     4da:	ff 75 10             	pushl  0x10(%ebp)
+     4dd:	e8 b1 01 00 00       	call   693 <seg2Phys>
+     4e2:	83 c4 10             	add    $0x10,%esp
+     4e5:	89 c2                	mov    %eax,%edx
+     4e7:	8b 45 14             	mov    0x14(%ebp),%eax
+     4ea:	01 d0                	add    %edx,%eax
+     4ec:	a3 dc 2e 00 00       	mov    %eax,0x2edc
+	kernelInfo.paramsSize = MIN(paramSize, sizeof(params) - 2);
+     4f1:	8b 45 18             	mov    0x18(%ebp),%eax
+     4f4:	ba fe 01 00 00       	mov    $0x1fe,%edx
+     4f9:	3d fe 01 00 00       	cmp    $0x1fe,%eax
+     4fe:	0f 47 c2             	cmova  %edx,%eax
+     501:	a3 e0 2e 00 00       	mov    %eax,0x2ee0
+	physCopy(kernelInfo.paramsBase, vir2Phys(params), kernelInfo.paramsSize);
+     506:	8b 15 e0 2e 00 00    	mov    0x2ee0,%edx
+     50c:	8b 0d c8 2e 00 00    	mov    0x2ec8,%ecx
+     512:	8d 85 f8 fd ff ff    	lea    -0x208(%ebp),%eax
+     518:	01 c1                	add    %eax,%ecx
+     51a:	a1 dc 2e 00 00       	mov    0x2edc,%eax
+     51f:	83 ec 04             	sub    $0x4,%esp
+     522:	52                   	push   %edx
+     523:	51                   	push   %ecx
+     524:	50                   	push   %eax
+     525:	e8 e6 04 00 00       	call   a10 <physCopy>
+     52a:	83 c4 10             	add    $0x10,%esp
+
+	/* Record miscellaneous information for user-space servers. */
+	kernelInfo.numProcs = NR_PROCS;
+     52d:	c7 05 e4 2e 00 00 40 	movl   $0x40,0x2ee4
+     534:	00 00 00 
+	kernelInfo.numTasks = NR_TASKS;
+     537:	c7 05 e8 2e 00 00 04 	movl   $0x4,0x2ee8
+     53e:	00 00 00 
+	strncpy(kernelInfo.release, OS_RELEASE, sizeof(kernelInfo.release));
+     541:	83 ec 04             	sub    $0x4,%esp
+     544:	6a 06                	push   $0x6
+     546:	68 98 17 00 00       	push   $0x1798
+     54b:	68 ec 2e 00 00       	push   $0x2eec
+     550:	e8 cd 0e 00 00       	call   1422 <strncpy>
+     555:	83 c4 10             	add    $0x10,%esp
+	kernelInfo.release[sizeof(kernelInfo.release) - 1] = '\0';
+     558:	c6 05 f1 2e 00 00 00 	movb   $0x0,0x2ef1
+	strncpy(kernelInfo.version, OS_VERSION, sizeof(kernelInfo.version));
+     55f:	83 ec 04             	sub    $0x4,%esp
+     562:	6a 06                	push   $0x6
+     564:	68 9a 17 00 00       	push   $0x179a
+     569:	68 f2 2e 00 00       	push   $0x2ef2
+     56e:	e8 af 0e 00 00       	call   1422 <strncpy>
+     573:	83 c4 10             	add    $0x10,%esp
+	kernelInfo.version[sizeof(kernelInfo.version) - 1] = '\0';
+     576:	c6 05 f7 2e 00 00 00 	movb   $0x0,0x2ef7
+	kernelInfo.procTableAddr = (vir_bytes) procTable;
+     57d:	b8 a0 35 00 00       	mov    $0x35a0,%eax
+     582:	a3 d0 2e 00 00       	mov    %eax,0x2ed0
+	kernelInfo.kernelMemBase = vir2Phys(0);
+     587:	a1 c8 2e 00 00       	mov    0x2ec8,%eax
+     58c:	a3 d4 2e 00 00       	mov    %eax,0x2ed4
+	kernelInfo.kernelMemSize = (phys_bytes) &end;
+     591:	b8 e0 68 00 00       	mov    $0x68e0,%eax
+     596:	a3 d8 2e 00 00       	mov    %eax,0x2ed8
+
+	/* Processor */
+	machine.processor = atoi(getValue(params, "processor"));
+     59b:	83 ec 08             	sub    $0x8,%esp
+     59e:	68 9e 17 00 00       	push   $0x179e
+     5a3:	8d 85 f8 fd ff ff    	lea    -0x208(%ebp),%eax
+     5a9:	50                   	push   %eax
+     5aa:	e8 80 fe ff ff       	call   42f <getValue>
+     5af:	83 c4 10             	add    $0x10,%esp
+     5b2:	83 ec 0c             	sub    $0xc,%esp
+     5b5:	50                   	push   %eax
+     5b6:	e8 c7 0f 00 00       	call   1582 <atoi>
+     5bb:	83 c4 10             	add    $0x10,%esp
+     5be:	a3 08 67 00 00       	mov    %eax,0x6708
+
+	/* XT, AT or MCA bus? */
+	value = getValue(params, "bus");
+     5c3:	83 ec 08             	sub    $0x8,%esp
+     5c6:	68 a8 17 00 00       	push   $0x17a8
+     5cb:	8d 85 f8 fd ff ff    	lea    -0x208(%ebp),%eax
+     5d1:	50                   	push   %eax
+     5d2:	e8 58 fe ff ff       	call   42f <getValue>
+     5d7:	83 c4 10             	add    $0x10,%esp
+     5da:	89 c3                	mov    %eax,%ebx
+	if (value == NULL || strcmp(value, "at") == 0)
+     5dc:	85 db                	test   %ebx,%ebx
+     5de:	74 15                	je     5f5 <cstart+0x167>
+     5e0:	83 ec 08             	sub    $0x8,%esp
+     5e3:	68 ac 17 00 00       	push   $0x17ac
+     5e8:	53                   	push   %ebx
+     5e9:	e8 b0 0e 00 00       	call   149e <strcmp>
+     5ee:	83 c4 10             	add    $0x10,%esp
+     5f1:	85 c0                	test   %eax,%eax
+     5f3:	75 0c                	jne    601 <cstart+0x173>
+	  machine.pc_at = true;
+     5f5:	c7 05 00 67 00 00 01 	movl   $0x1,0x6700
+     5fc:	00 00 00 
+     5ff:	eb 29                	jmp    62a <cstart+0x19c>
+	else if (strcmp(value, "mca") == 0)
+     601:	83 ec 08             	sub    $0x8,%esp
+     604:	68 af 17 00 00       	push   $0x17af
+     609:	53                   	push   %ebx
+     60a:	e8 8f 0e 00 00       	call   149e <strcmp>
+     60f:	83 c4 10             	add    $0x10,%esp
+     612:	85 c0                	test   %eax,%eax
+     614:	75 14                	jne    62a <cstart+0x19c>
+	  machine.pc_at = machine.ps_mca = true;
+     616:	c7 05 04 67 00 00 01 	movl   $0x1,0x6704
+     61d:	00 00 00 
+     620:	a1 04 67 00 00       	mov    0x6704,%eax
+     625:	a3 00 67 00 00       	mov    %eax,0x6700
+
+	/* Type of VDU */
+	value = getValue(params, "video");
+     62a:	83 ec 08             	sub    $0x8,%esp
+     62d:	68 b3 17 00 00       	push   $0x17b3
+     632:	8d 85 f8 fd ff ff    	lea    -0x208(%ebp),%eax
+     638:	50                   	push   %eax
+     639:	e8 f1 fd ff ff       	call   42f <getValue>
+     63e:	83 c4 10             	add    $0x10,%esp
+     641:	89 c3                	mov    %eax,%ebx
+	if (strcmp(value, "ega") == 0)
+     643:	83 ec 08             	sub    $0x8,%esp
+     646:	68 b9 17 00 00       	push   $0x17b9
+     64b:	53                   	push   %ebx
+     64c:	e8 4d 0e 00 00       	call   149e <strcmp>
+     651:	83 c4 10             	add    $0x10,%esp
+     654:	85 c0                	test   %eax,%eax
+     656:	75 0c                	jne    664 <cstart+0x1d6>
+	  machine.vdu_ega = true;
+     658:	c7 05 0c 67 00 00 01 	movl   $0x1,0x670c
+     65f:	00 00 00 
+	else if (strcmp(value, "vga") == 0)
+	  machine.vdu_ega = machine.vdu_vga = true;
+}
+     662:	eb 29                	jmp    68d <cstart+0x1ff>
+
+	/* Type of VDU */
+	value = getValue(params, "video");
+	if (strcmp(value, "ega") == 0)
+	  machine.vdu_ega = true;
+	else if (strcmp(value, "vga") == 0)
+     664:	83 ec 08             	sub    $0x8,%esp
+     667:	68 bd 17 00 00       	push   $0x17bd
+     66c:	53                   	push   %ebx
+     66d:	e8 2c 0e 00 00       	call   149e <strcmp>
+     672:	83 c4 10             	add    $0x10,%esp
+     675:	85 c0                	test   %eax,%eax
+     677:	75 14                	jne    68d <cstart+0x1ff>
+	  machine.vdu_ega = machine.vdu_vga = true;
+     679:	c7 05 10 67 00 00 01 	movl   $0x1,0x6710
+     680:	00 00 00 
+     683:	a1 10 67 00 00       	mov    0x6710,%eax
+     688:	a3 0c 67 00 00       	mov    %eax,0x670c
+}
+     68d:	90                   	nop
+     68e:	8b 5d fc             	mov    -0x4(%ebp),%ebx
+     691:	c9                   	leave  
+     692:	c3                   	ret    
+
+00000693 <seg2Phys>:
+TSS tss;						
+
+/* 
+ * Return the base address of a segment, with a 386 segment selector.
+ */
+phys_bytes seg2Phys(U16_t segSelector) {
+     693:	55                   	push   %ebp
+     694:	89 e5                	mov    %esp,%ebp
+     696:	83 ec 10             	sub    $0x10,%esp
+	phys_bytes base;
+	SegDesc *segDp;
+
+	segDp = &gdt[segSelector >> 3];					/* Each descriptor is 8 bytes. */
+     699:	8b 45 08             	mov    0x8(%ebp),%eax
+     69c:	c1 f8 03             	sar    $0x3,%eax
+     69f:	c1 e0 03             	shl    $0x3,%eax
+     6a2:	05 80 2a 00 00       	add    $0x2a80,%eax
+     6a7:	89 45 fc             	mov    %eax,-0x4(%ebp)
+	base = ((u32_t) segDp->baseLow) |				/* Low 16 bits of base. */
+     6aa:	8b 45 fc             	mov    -0x4(%ebp),%eax
+     6ad:	0f b7 40 02          	movzwl 0x2(%eax),%eax
+     6b1:	0f b7 d0             	movzwl %ax,%edx
+			((u32_t) segDp->baseMiddle << 16) |		/* Middle 8 bits of base. */
+     6b4:	8b 45 fc             	mov    -0x4(%ebp),%eax
+     6b7:	0f b6 40 04          	movzbl 0x4(%eax),%eax
+     6bb:	0f b6 c0             	movzbl %al,%eax
+     6be:	c1 e0 10             	shl    $0x10,%eax
+phys_bytes seg2Phys(U16_t segSelector) {
+	phys_bytes base;
+	SegDesc *segDp;
+
+	segDp = &gdt[segSelector >> 3];					/* Each descriptor is 8 bytes. */
+	base = ((u32_t) segDp->baseLow) |				/* Low 16 bits of base. */
+     6c1:	09 c2                	or     %eax,%edx
+			((u32_t) segDp->baseMiddle << 16) |		/* Middle 8 bits of base. */
+			((u32_t) segDp->baseHigh << 24);		/* High 8 bits of base. */
+     6c3:	8b 45 fc             	mov    -0x4(%ebp),%eax
+     6c6:	0f b6 40 07          	movzbl 0x7(%eax),%eax
+     6ca:	0f b6 c0             	movzbl %al,%eax
+     6cd:	c1 e0 18             	shl    $0x18,%eax
+phys_bytes seg2Phys(U16_t segSelector) {
+	phys_bytes base;
+	SegDesc *segDp;
+
+	segDp = &gdt[segSelector >> 3];					/* Each descriptor is 8 bytes. */
+	base = ((u32_t) segDp->baseLow) |				/* Low 16 bits of base. */
+     6d0:	09 d0                	or     %edx,%eax
+     6d2:	89 45 f8             	mov    %eax,-0x8(%ebp)
+			((u32_t) segDp->baseMiddle << 16) |		/* Middle 8 bits of base. */
+			((u32_t) segDp->baseHigh << 24);		/* High 8 bits of base. */
+
+	return base;
+     6d5:	8b 45 f8             	mov    -0x8(%ebp),%eax
+}
+     6d8:	c9                   	leave  
+     6d9:	c3                   	ret    
+
+000006da <setupSegDesc>:
+
+/* Fill in the fields (base, limit and granularity) of a descriptor */
+static void setupSegDesc(register SegDesc *sdPtr, phys_bytes base, vir_bytes size) {
+     6da:	55                   	push   %ebp
+     6db:	89 e5                	mov    %esp,%ebp
+     6dd:	8b 45 08             	mov    0x8(%ebp),%eax
+	sdPtr->baseLow = base;
+     6e0:	8b 55 0c             	mov    0xc(%ebp),%edx
+     6e3:	66 89 50 02          	mov    %dx,0x2(%eax)
+	sdPtr->baseMiddle = base >> BASE_MIDDLE_SHIFT;
+     6e7:	8b 55 0c             	mov    0xc(%ebp),%edx
+     6ea:	c1 ea 10             	shr    $0x10,%edx
+     6ed:	88 50 04             	mov    %dl,0x4(%eax)
+	sdPtr->baseHigh = base >> BASE_HIGH_SHIFT;
+     6f0:	8b 55 0c             	mov    0xc(%ebp),%edx
+     6f3:	c1 ea 18             	shr    $0x18,%edx
+     6f6:	88 50 07             	mov    %dl,0x7(%eax)
+
+	--size;		/* Convert to a limit (limit + 1 = size), 0 size means 4 GB */
+     6f9:	83 6d 10 01          	subl   $0x1,0x10(%ebp)
+	if (size > BYTE_GRAN_MAX) {
+     6fd:	81 7d 10 ff ff 0f 00 	cmpl   $0xfffff,0x10(%ebp)
+     704:	76 17                	jbe    71d <setupSegDesc+0x43>
+		/* Set G = 1, then size can range from 4 KB to 4 GB, in 4 KB increments. */
+		sdPtr->limitLow = size >> PAGE_GRAN_SHIFT;	
+     706:	8b 55 10             	mov    0x10(%ebp),%edx
+     709:	c1 ea 0c             	shr    $0xc,%edx
+     70c:	66 89 10             	mov    %dx,(%eax)
+		sdPtr->granularity = GRANULAR | (size >> (PAGE_GRAN_SHIFT + GRANULARITY_SHIFT));
+     70f:	8b 55 10             	mov    0x10(%ebp),%edx
+     712:	c1 ea 1c             	shr    $0x1c,%edx
+     715:	83 ca 80             	or     $0xffffff80,%edx
+     718:	88 50 06             	mov    %dl,0x6(%eax)
+     71b:	eb 0f                	jmp    72c <setupSegDesc+0x52>
+	} else {
+		/* G = 0, size can range from 1 byte to 1 MB, in byte increments. */
+		sdPtr->limitLow = size;
+     71d:	8b 55 10             	mov    0x10(%ebp),%edx
+     720:	66 89 10             	mov    %dx,(%eax)
+		sdPtr->granularity = size >> GRANULARITY_SHIFT;
+     723:	8b 55 10             	mov    0x10(%ebp),%edx
+     726:	c1 ea 10             	shr    $0x10,%edx
+     729:	88 50 06             	mov    %dl,0x6(%eax)
+	}
+	sdPtr->granularity |= DEFAULT;	/* Means BIG for data segment (D/B) */
+     72c:	0f b6 50 06          	movzbl 0x6(%eax),%edx
+     730:	83 ca 40             	or     $0x40,%edx
+     733:	88 50 06             	mov    %dl,0x6(%eax)
+}
+     736:	90                   	nop
+     737:	5d                   	pop    %ebp
+     738:	c3                   	ret    
+
+00000739 <initCodeSeg>:
+
+static void initCodeSeg(register SegDesc *sdPtr, phys_bytes base, vir_bytes size, int privilege) {
+     739:	55                   	push   %ebp
+     73a:	89 e5                	mov    %esp,%ebp
+     73c:	53                   	push   %ebx
+     73d:	8b 5d 08             	mov    0x8(%ebp),%ebx
+	setupSegDesc(sdPtr, base, size);
+     740:	ff 75 10             	pushl  0x10(%ebp)
+     743:	ff 75 0c             	pushl  0xc(%ebp)
+     746:	53                   	push   %ebx
+     747:	e8 8e ff ff ff       	call   6da <setupSegDesc>
+     74c:	83 c4 0c             	add    $0xc,%esp
+	/* CONFORMING = 0, ACCESSED = 0 */
+	sdPtr->access = (privilege << DPL_SHIFT) | PRESENT | SEGMENT | EXECUTABLE | READABLE;
+     74f:	8b 45 14             	mov    0x14(%ebp),%eax
+     752:	c1 e0 05             	shl    $0x5,%eax
+     755:	83 c8 9a             	or     $0xffffff9a,%eax
+     758:	88 43 05             	mov    %al,0x5(%ebx)
+}
+     75b:	90                   	nop
+     75c:	8b 5d fc             	mov    -0x4(%ebp),%ebx
+     75f:	c9                   	leave  
+     760:	c3                   	ret    
+
+00000761 <initDataSeg>:
+
+static void initDataSeg(register SegDesc *sdPtr, phys_bytes base, vir_bytes size, int privilege) {
+     761:	55                   	push   %ebp
+     762:	89 e5                	mov    %esp,%ebp
+     764:	53                   	push   %ebx
+     765:	8b 5d 08             	mov    0x8(%ebp),%ebx
+	setupSegDesc(sdPtr, base, size);
+     768:	ff 75 10             	pushl  0x10(%ebp)
+     76b:	ff 75 0c             	pushl  0xc(%ebp)
+     76e:	53                   	push   %ebx
+     76f:	e8 66 ff ff ff       	call   6da <setupSegDesc>
+     774:	83 c4 0c             	add    $0xc,%esp
+	/* EXECUTABLE = 0, EXPAND_DOWN = 0, ACCESSED = 0 */
+	sdPtr->access = (privilege << DPL_SHIFT) | PRESENT | SEGMENT | WRITABLE;
+     777:	8b 45 14             	mov    0x14(%ebp),%eax
+     77a:	c1 e0 05             	shl    $0x5,%eax
+     77d:	83 c8 92             	or     $0xffffff92,%eax
+     780:	88 43 05             	mov    %al,0x5(%ebx)
+}
+     783:	90                   	nop
+     784:	8b 5d fc             	mov    -0x4(%ebp),%ebx
+     787:	c9                   	leave  
+     788:	c3                   	ret    
+
+00000789 <initGate>:
+
+static void initGate(u8_t vectorNum, vir_bytes offset, u8_t dplType) {
+     789:	55                   	push   %ebp
+     78a:	89 e5                	mov    %esp,%ebp
+     78c:	53                   	push   %ebx
+     78d:	83 ec 08             	sub    $0x8,%esp
+     790:	8b 55 08             	mov    0x8(%ebp),%edx
+     793:	8b 45 10             	mov    0x10(%ebp),%eax
+     796:	88 55 f8             	mov    %dl,-0x8(%ebp)
+     799:	88 45 f4             	mov    %al,-0xc(%ebp)
+	register GateDesc *idp;
+
+	idp = &idt[vectorNum];
+     79c:	0f b6 45 f8          	movzbl -0x8(%ebp),%eax
+     7a0:	c1 e0 03             	shl    $0x3,%eax
+     7a3:	8d 98 80 26 00 00    	lea    0x2680(%eax),%ebx
+	idp->offsetLow = offset;
+     7a9:	8b 45 0c             	mov    0xc(%ebp),%eax
+     7ac:	66 89 03             	mov    %ax,(%ebx)
+	idp->offsetHigh = offset >> OFFSET_HIGH_SHIFT;
+     7af:	8b 45 0c             	mov    0xc(%ebp),%eax
+     7b2:	c1 e8 10             	shr    $0x10,%eax
+     7b5:	66 89 43 06          	mov    %ax,0x6(%ebx)
+	idp->selector = CS_SELECTOR;
+     7b9:	66 c7 43 02 30 00    	movw   $0x30,0x2(%ebx)
+	idp->dplType = dplType;
+     7bf:	0f b6 45 f4          	movzbl -0xc(%ebp),%eax
+     7c3:	88 43 05             	mov    %al,0x5(%ebx)
+}
+     7c6:	90                   	nop
+     7c7:	83 c4 08             	add    $0x8,%esp
+     7ca:	5b                   	pop    %ebx
+     7cb:	5d                   	pop    %ebp
+     7cc:	c3                   	ret    
+
+000007cd <protectInit>:
+
+/* 
+ * Set up tables for protected mode.
+ * All GDT slots are allocated at compile time.
+ */
+void protectInit() {
+     7cd:	55                   	push   %ebp
+     7ce:	89 e5                	mov    %esp,%ebp
+     7d0:	53                   	push   %ebx
+     7d1:	83 ec 10             	sub    $0x10,%esp
+		{ hwint14, VECTOR(14), INTR_PRIVILEGE },
+		{ hwint15, VECTOR(15), INTR_PRIVILEGE }
+	};
+
+	/* Build gdt and idt pointers in GDT where the BIOS expects them. */
+	dtp = (DescTablePtr *) &gdt[GDT_INDEX];
+     7d4:	c7 45 f0 88 2a 00 00 	movl   $0x2a88,-0x10(%ebp)
+	* (u16_t *) dtp->limit = (sizeof gdt) - 1;
+     7db:	8b 45 f0             	mov    -0x10(%ebp),%eax
+     7de:	66 c7 00 97 02       	movw   $0x297,(%eax)
+	* (u32_t *) dtp->base = vir2Phys(gdt);
+     7e3:	8b 45 f0             	mov    -0x10(%ebp),%eax
+     7e6:	83 c0 02             	add    $0x2,%eax
+     7e9:	8b 15 c8 2e 00 00    	mov    0x2ec8,%edx
+     7ef:	b9 80 2a 00 00       	mov    $0x2a80,%ecx
+     7f4:	01 ca                	add    %ecx,%edx
+     7f6:	89 10                	mov    %edx,(%eax)
+
+	dtp = (DescTablePtr *) &gdt[IDT_INDEX];
+     7f8:	c7 45 f0 90 2a 00 00 	movl   $0x2a90,-0x10(%ebp)
+	* (u16_t *) dtp->limit = (sizeof idt) - 1;
+     7ff:	8b 45 f0             	mov    -0x10(%ebp),%eax
+     802:	66 c7 00 bf 03       	movw   $0x3bf,(%eax)
+	* (u32_t *) dtp->base = vir2Phys(idt);
+     807:	8b 45 f0             	mov    -0x10(%ebp),%eax
+     80a:	83 c0 02             	add    $0x2,%eax
+     80d:	8b 15 c8 2e 00 00    	mov    0x2ec8,%edx
+     813:	b9 80 26 00 00       	mov    $0x2680,%ecx
+     818:	01 ca                	add    %ecx,%edx
+     81a:	89 10                	mov    %edx,(%eax)
+
+	/* Build segment descriptors for tasks and interrupt handlers. */
+	initCodeSeg(&gdt[CS_INDEX], kernelInfo.codeBase, kernelInfo.codeSize, INTR_PRIVILEGE);
+     81c:	8b 15 c4 2e 00 00    	mov    0x2ec4,%edx
+     822:	a1 c0 2e 00 00       	mov    0x2ec0,%eax
+     827:	6a 00                	push   $0x0
+     829:	52                   	push   %edx
+     82a:	50                   	push   %eax
+     82b:	68 b0 2a 00 00       	push   $0x2ab0
+     830:	e8 04 ff ff ff       	call   739 <initCodeSeg>
+     835:	83 c4 10             	add    $0x10,%esp
+	initDataSeg(&gdt[DS_INDEX], kernelInfo.dataBase, kernelInfo.dataSize, INTR_PRIVILEGE);
+     838:	8b 15 cc 2e 00 00    	mov    0x2ecc,%edx
+     83e:	a1 c8 2e 00 00       	mov    0x2ec8,%eax
+     843:	6a 00                	push   $0x0
+     845:	52                   	push   %edx
+     846:	50                   	push   %eax
+     847:	68 98 2a 00 00       	push   $0x2a98
+     84c:	e8 10 ff ff ff       	call   761 <initDataSeg>
+     851:	83 c4 10             	add    $0x10,%esp
+	initDataSeg(&gdt[ES_INDEX], 0, 0, TASK_PRIVILEGE);
+     854:	6a 01                	push   $0x1
+     856:	6a 00                	push   $0x0
+     858:	6a 00                	push   $0x0
+     85a:	68 a0 2a 00 00       	push   $0x2aa0
+     85f:	e8 fd fe ff ff       	call   761 <initDataSeg>
+     864:	83 c4 10             	add    $0x10,%esp
+
+	/* Build local descriptors in GDT for LDT's in process table.
+	 * The LDT's are allocated at compile time in the process table, and
+	 * initialized whenever a process' map is initialized or changed.
+	 */
+	for (rp = BEG_PROC_ADDR, ldtIndex = FIRST_LDT_INDEX; rp < END_PROC_ADDR; ++rp, ++ldtIndex) {
+     867:	bb a0 35 00 00       	mov    $0x35a0,%ebx
+     86c:	c7 45 f4 0f 00 00 00 	movl   $0xf,-0xc(%ebp)
+     873:	eb 41                	jmp    8b6 <protectInit+0xe9>
+		initDataSeg(&gdt[ldtIndex], vir2Phys(rp->p_ldt), sizeof(rp->p_ldt), INTR_PRIVILEGE);
+     875:	a1 c8 2e 00 00       	mov    0x2ec8,%eax
+     87a:	8d 53 44             	lea    0x44(%ebx),%edx
+     87d:	01 c2                	add    %eax,%edx
+     87f:	8b 45 f4             	mov    -0xc(%ebp),%eax
+     882:	c1 e0 03             	shl    $0x3,%eax
+     885:	05 80 2a 00 00       	add    $0x2a80,%eax
+     88a:	6a 00                	push   $0x0
+     88c:	6a 28                	push   $0x28
+     88e:	52                   	push   %edx
+     88f:	50                   	push   %eax
+     890:	e8 cc fe ff ff       	call   761 <initDataSeg>
+     895:	83 c4 10             	add    $0x10,%esp
+		gdt[ldtIndex].access = PRESENT | LDT;
+     898:	8b 45 f4             	mov    -0xc(%ebp),%eax
+     89b:	c6 04 c5 85 2a 00 00 	movb   $0x82,0x2a85(,%eax,8)
+     8a2:	82 
+		rp->p_ldt_sel = ldtIndex * DESC_SIZE;
+     8a3:	8b 45 f4             	mov    -0xc(%ebp),%eax
+     8a6:	c1 e0 03             	shl    $0x3,%eax
+     8a9:	89 43 40             	mov    %eax,0x40(%ebx)
+
+	/* Build local descriptors in GDT for LDT's in process table.
+	 * The LDT's are allocated at compile time in the process table, and
+	 * initialized whenever a process' map is initialized or changed.
+	 */
+	for (rp = BEG_PROC_ADDR, ldtIndex = FIRST_LDT_INDEX; rp < END_PROC_ADDR; ++rp, ++ldtIndex) {
+     8ac:	81 c3 a8 00 00 00    	add    $0xa8,%ebx
+     8b2:	83 45 f4 01          	addl   $0x1,-0xc(%ebp)
+     8b6:	81 fb 40 62 00 00    	cmp    $0x6240,%ebx
+     8bc:	72 b7                	jb     875 <protectInit+0xa8>
+	/* Build main TSS.
+	 * This is used only to record the stack pointer to be used after an interrupt.
+	 * The pointer is set up so that an interrupt automatically saves the current
+	 * process's registers eip:cs:eflags:esp:ss in the correct slots in the process table.
+	 */
+	tss.ss0 = DS_SELECTOR;
+     8be:	c7 05 28 2d 00 00 18 	movl   $0x18,0x2d28
+     8c5:	00 00 00 
+	initDataSeg(&gdt[TSS_INDEX], vir2Phys(&tss), sizeof(tss), INTR_PRIVILEGE);
+     8c8:	a1 c8 2e 00 00       	mov    0x2ec8,%eax
+     8cd:	ba 20 2d 00 00       	mov    $0x2d20,%edx
+     8d2:	01 d0                	add    %edx,%eax
+     8d4:	6a 00                	push   $0x0
+     8d6:	6a 68                	push   $0x68
+     8d8:	50                   	push   %eax
+     8d9:	68 c0 2a 00 00       	push   $0x2ac0
+     8de:	e8 7e fe ff ff       	call   761 <initDataSeg>
+     8e3:	83 c4 10             	add    $0x10,%esp
+	gdt[TSS_INDEX].access = PRESENT | (INTR_PRIVILEGE << DPL_SHIFT) | TSS_TYPE;
+     8e6:	c6 05 c5 2a 00 00 89 	movb   $0x89,0x2ac5
+
+	/* Build descriptors for interrupt gates in IDT. */
+	for (gtp = &gateTable[0], gtpEnd = arrayLimit(gateTable); gtp < gtpEnd; ++gtp) {
+     8ed:	c7 45 f8 00 20 00 00 	movl   $0x2000,-0x8(%ebp)
+     8f4:	c7 45 ec 00 21 00 00 	movl   $0x2100,-0x14(%ebp)
+     8fb:	eb 33                	jmp    930 <protectInit+0x163>
+		initGate(gtp->vectorNum, (vir_bytes) gtp->gate, 
+					PRESENT | INT_GATE_TYPE | (gtp->privilege << DPL_SHIFT));
+     8fd:	8b 45 f8             	mov    -0x8(%ebp),%eax
+     900:	0f b6 40 05          	movzbl 0x5(%eax),%eax
+     904:	0f b6 c0             	movzbl %al,%eax
+     907:	c1 e0 05             	shl    $0x5,%eax
+	initDataSeg(&gdt[TSS_INDEX], vir2Phys(&tss), sizeof(tss), INTR_PRIVILEGE);
+	gdt[TSS_INDEX].access = PRESENT | (INTR_PRIVILEGE << DPL_SHIFT) | TSS_TYPE;
+
+	/* Build descriptors for interrupt gates in IDT. */
+	for (gtp = &gateTable[0], gtpEnd = arrayLimit(gateTable); gtp < gtpEnd; ++gtp) {
+		initGate(gtp->vectorNum, (vir_bytes) gtp->gate, 
+     90a:	83 c8 8e             	or     $0xffffff8e,%eax
+     90d:	0f b6 d0             	movzbl %al,%edx
+     910:	8b 45 f8             	mov    -0x8(%ebp),%eax
+     913:	8b 00                	mov    (%eax),%eax
+     915:	89 c1                	mov    %eax,%ecx
+     917:	8b 45 f8             	mov    -0x8(%ebp),%eax
+     91a:	0f b6 40 04          	movzbl 0x4(%eax),%eax
+     91e:	0f b6 c0             	movzbl %al,%eax
+     921:	52                   	push   %edx
+     922:	51                   	push   %ecx
+     923:	50                   	push   %eax
+     924:	e8 60 fe ff ff       	call   789 <initGate>
+     929:	83 c4 0c             	add    $0xc,%esp
+	tss.ss0 = DS_SELECTOR;
+	initDataSeg(&gdt[TSS_INDEX], vir2Phys(&tss), sizeof(tss), INTR_PRIVILEGE);
+	gdt[TSS_INDEX].access = PRESENT | (INTR_PRIVILEGE << DPL_SHIFT) | TSS_TYPE;
+
+	/* Build descriptors for interrupt gates in IDT. */
+	for (gtp = &gateTable[0], gtpEnd = arrayLimit(gateTable); gtp < gtpEnd; ++gtp) {
+     92c:	83 45 f8 08          	addl   $0x8,-0x8(%ebp)
+     930:	8b 45 f8             	mov    -0x8(%ebp),%eax
+     933:	3b 45 ec             	cmp    -0x14(%ebp),%eax
+     936:	72 c5                	jb     8fd <protectInit+0x130>
+		initGate(gtp->vectorNum, (vir_bytes) gtp->gate, 
+					PRESENT | INT_GATE_TYPE | (gtp->privilege << DPL_SHIFT));
+	}
+
+	/* Complete building of main TSS. */
+	tss.ioBaseAddr = sizeof(tss);
+     938:	66 c7 05 86 2d 00 00 	movw   $0x68,0x2d86
+     93f:	68 00 
+}
+     941:	90                   	nop
+     942:	8b 5d fc             	mov    -0x4(%ebp),%ebx
+     945:	c9                   	leave  
+     946:	c3                   	ret    
+
+00000947 <allocSegments>:
+
+/* This is called at system initialization from main() and by doNewMap().
+ * The code has a separate function because of all hardware-dependencies.
+ * Note that IDLE is part of the kernel and gets TASK_PRIVILEGE here.
+ */
+void allocSegments(Proc *rp) {
+     947:	55                   	push   %ebp
+     948:	89 e5                	mov    %esp,%ebp
+     94a:	83 ec 10             	sub    $0x10,%esp
+	int privilege;
+
+	privilege = isKernelProc(rp) ? TASK_PRIVILEGE : USER_PRIVILEGE;	/* Both need to switch stack. */
+     94d:	8b 45 08             	mov    0x8(%ebp),%eax
+     950:	8b 40 6c             	mov    0x6c(%eax),%eax
+     953:	85 c0                	test   %eax,%eax
+     955:	79 07                	jns    95e <allocSegments+0x17>
+     957:	b8 01 00 00 00       	mov    $0x1,%eax
+     95c:	eb 05                	jmp    963 <allocSegments+0x1c>
+     95e:	b8 02 00 00 00       	mov    $0x2,%eax
+     963:	89 45 fc             	mov    %eax,-0x4(%ebp)
+	initCodeSeg(&rp->p_ldt[CS_LDT_INDEX], rp->p_memmap[T].physAddr,
+     966:	8b 45 08             	mov    0x8(%ebp),%eax
+     969:	8b 90 80 00 00 00    	mov    0x80(%eax),%edx
+     96f:	8b 45 08             	mov    0x8(%ebp),%eax
+     972:	8b 40 7c             	mov    0x7c(%eax),%eax
+     975:	8b 4d 08             	mov    0x8(%ebp),%ecx
+     978:	83 c1 44             	add    $0x44,%ecx
+     97b:	ff 75 fc             	pushl  -0x4(%ebp)
+     97e:	52                   	push   %edx
+     97f:	50                   	push   %eax
+     980:	51                   	push   %ecx
+     981:	e8 b3 fd ff ff       	call   739 <initCodeSeg>
+     986:	83 c4 10             	add    $0x10,%esp
+				rp->p_memmap[T].len, privilege);
+	initDataSeg(&rp->p_ldt[DS_LDT_INDEX], rp->p_memmap[D].physAddr,
+     989:	8b 45 08             	mov    0x8(%ebp),%eax
+     98c:	8b 90 88 00 00 00    	mov    0x88(%eax),%edx
+     992:	8b 45 08             	mov    0x8(%ebp),%eax
+     995:	8b 80 84 00 00 00    	mov    0x84(%eax),%eax
+     99b:	8b 4d 08             	mov    0x8(%ebp),%ecx
+     99e:	83 c1 4c             	add    $0x4c,%ecx
+     9a1:	ff 75 fc             	pushl  -0x4(%ebp)
+     9a4:	52                   	push   %edx
+     9a5:	50                   	push   %eax
+     9a6:	51                   	push   %ecx
+     9a7:	e8 b5 fd ff ff       	call   761 <initDataSeg>
+     9ac:	83 c4 10             	add    $0x10,%esp
+				rp->p_memmap[D].len, privilege);
+	rp->p_reg.cs = (CS_LDT_INDEX * DESC_SIZE) | T1 | privilege; 
+     9af:	8b 45 fc             	mov    -0x4(%ebp),%eax
+     9b2:	83 c8 04             	or     $0x4,%eax
+     9b5:	89 c2                	mov    %eax,%edx
+     9b7:	8b 45 08             	mov    0x8(%ebp),%eax
+     9ba:	89 50 30             	mov    %edx,0x30(%eax)
+	rp->p_reg.gs = 
+	rp->p_reg.fs = 
+	rp->p_reg.ss = 
+	rp->p_reg.es = 
+	rp->p_reg.ds = (DS_LDT_INDEX * DESC_SIZE) | T1 | privilege;
+     9bd:	8b 45 fc             	mov    -0x4(%ebp),%eax
+     9c0:	83 c8 0c             	or     $0xc,%eax
+     9c3:	89 c2                	mov    %eax,%edx
+     9c5:	8b 45 08             	mov    0x8(%ebp),%eax
+     9c8:	66 89 50 06          	mov    %dx,0x6(%eax)
+     9cc:	8b 45 08             	mov    0x8(%ebp),%eax
+     9cf:	0f b7 50 06          	movzwl 0x6(%eax),%edx
+				rp->p_memmap[D].len, privilege);
+	rp->p_reg.cs = (CS_LDT_INDEX * DESC_SIZE) | T1 | privilege; 
+	rp->p_reg.gs = 
+	rp->p_reg.fs = 
+	rp->p_reg.ss = 
+	rp->p_reg.es = 
+     9d3:	8b 45 08             	mov    0x8(%ebp),%eax
+     9d6:	66 89 50 04          	mov    %dx,0x4(%eax)
+     9da:	8b 45 08             	mov    0x8(%ebp),%eax
+     9dd:	0f b7 40 04          	movzwl 0x4(%eax),%eax
+	initDataSeg(&rp->p_ldt[DS_LDT_INDEX], rp->p_memmap[D].physAddr,
+				rp->p_memmap[D].len, privilege);
+	rp->p_reg.cs = (CS_LDT_INDEX * DESC_SIZE) | T1 | privilege; 
+	rp->p_reg.gs = 
+	rp->p_reg.fs = 
+	rp->p_reg.ss = 
+     9e1:	0f b7 d0             	movzwl %ax,%edx
+     9e4:	8b 45 08             	mov    0x8(%ebp),%eax
+     9e7:	89 50 3c             	mov    %edx,0x3c(%eax)
+     9ea:	8b 45 08             	mov    0x8(%ebp),%eax
+     9ed:	8b 40 3c             	mov    0x3c(%eax),%eax
+				rp->p_memmap[T].len, privilege);
+	initDataSeg(&rp->p_ldt[DS_LDT_INDEX], rp->p_memmap[D].physAddr,
+				rp->p_memmap[D].len, privilege);
+	rp->p_reg.cs = (CS_LDT_INDEX * DESC_SIZE) | T1 | privilege; 
+	rp->p_reg.gs = 
+	rp->p_reg.fs = 
+     9f0:	89 c2                	mov    %eax,%edx
+     9f2:	8b 45 08             	mov    0x8(%ebp),%eax
+     9f5:	66 89 50 02          	mov    %dx,0x2(%eax)
+     9f9:	8b 45 08             	mov    0x8(%ebp),%eax
+     9fc:	0f b7 50 02          	movzwl 0x2(%eax),%edx
+	initCodeSeg(&rp->p_ldt[CS_LDT_INDEX], rp->p_memmap[T].physAddr,
+				rp->p_memmap[T].len, privilege);
+	initDataSeg(&rp->p_ldt[DS_LDT_INDEX], rp->p_memmap[D].physAddr,
+				rp->p_memmap[D].len, privilege);
+	rp->p_reg.cs = (CS_LDT_INDEX * DESC_SIZE) | T1 | privilege; 
+	rp->p_reg.gs = 
+     a00:	8b 45 08             	mov    0x8(%ebp),%eax
+     a03:	66 89 10             	mov    %dx,(%eax)
+	rp->p_reg.fs = 
+	rp->p_reg.ss = 
+	rp->p_reg.es = 
+	rp->p_reg.ds = (DS_LDT_INDEX * DESC_SIZE) | T1 | privilege;
+}
+     a06:	90                   	nop
+     a07:	c9                   	leave  
+     a08:	c3                   	ret    
+     a09:	66 90                	xchg   %ax,%ax
+     a0b:	66 90                	xchg   %ax,%ax
+     a0d:	66 90                	xchg   %ax,%ax
+     a0f:	90                   	nop
+
+00000a10 <physCopy>:
+     a10:	fc                   	cld    
+     a11:	56                   	push   %esi
+     a12:	57                   	push   %edi
+     a13:	66 06                	pushw  %es
+     a15:	66 1e                	pushw  %ds
+     a17:	b8 21 00 00 00       	mov    $0x21,%eax
+     a1c:	8e c0                	mov    %eax,%es
+     a1e:	8e d8                	mov    %eax,%ds
+     a20:	8b 74 24 10          	mov    0x10(%esp),%esi
+     a24:	8b 7c 24 14          	mov    0x14(%esp),%edi
+     a28:	8b 44 24 18          	mov    0x18(%esp),%eax
+     a2c:	83 f8 0a             	cmp    $0xa,%eax
+     a2f:	72 15                	jb     a46 <.pcSmall>
+     a31:	89 f1                	mov    %esi,%ecx
+     a33:	f7 d9                	neg    %ecx
+     a35:	83 e1 03             	and    $0x3,%ecx
+     a38:	29 c8                	sub    %ecx,%eax
+     a3a:	f3 a4                	rep movsb %ds:(%esi),%es:(%edi)
+     a3c:	89 c1                	mov    %eax,%ecx
+     a3e:	c1 e9 02             	shr    $0x2,%ecx
+     a41:	f3 a5                	rep movsl %ds:(%esi),%es:(%edi)
+     a43:	83 e0 03             	and    $0x3,%eax
+
+00000a46 <.pcSmall>:
+     a46:	91                   	xchg   %eax,%ecx
+     a47:	f3 a4                	rep movsb %ds:(%esi),%es:(%edi)
+     a49:	66 1f                	popw   %ds
+     a4b:	66 07                	popw   %es
+     a4d:	5f                   	pop    %edi
+     a4e:	5e                   	pop    %esi
+     a4f:	c3                   	ret    
+
+00000a50 <enableIrq>:
+     a50:	55                   	push   %ebp
+     a51:	89 e5                	mov    %esp,%ebp
+     a53:	9c                   	pushf  
+     a54:	fa                   	cli    
+     a55:	8b 45 08             	mov    0x8(%ebp),%eax
+     a58:	8b 48 08             	mov    0x8(%eax),%ecx
+     a5b:	8b 40 0c             	mov    0xc(%eax),%eax
+     a5e:	f7 d0                	not    %eax
+     a60:	21 04 8d c0 66 00 00 	and    %eax,0x66c0(,%ecx,4)
+     a67:	75 17                	jne    a80 <.enableIrqDone>
+     a69:	b4 fe                	mov    $0xfe,%ah
+     a6b:	d2 c4                	rol    %cl,%ah
+     a6d:	ba 21 00 00 00       	mov    $0x21,%edx
+     a72:	80 f9 08             	cmp    $0x8,%cl
+     a75:	72 05                	jb     a7c <.enableIrqAtSlave>
+     a77:	ba a1 00 00 00       	mov    $0xa1,%edx
+
+00000a7c <.enableIrqAtSlave>:
+     a7c:	ec                   	in     (%dx),%al
+     a7d:	20 e0                	and    %ah,%al
+     a7f:	ee                   	out    %al,(%dx)
+
+00000a80 <.enableIrqDone>:
+     a80:	9d                   	popf   
+     a81:	c9                   	leave  
+     a82:	c3                   	ret    
+
+00000a83 <announce>:
+#include "unistd.h"
+#include "image.h"
+#include "minix/com.h"
+#include "proc.h"
+
+static void announce() {
+     a83:	55                   	push   %ebp
+     a84:	89 e5                	mov    %esp,%ebp
+     a86:	83 ec 08             	sub    $0x8,%esp
+	kprintf("\nMINIX %s.%s. ", OS_RELEASE, OS_VERSION);
+     a89:	83 ec 04             	sub    $0x4,%esp
+     a8c:	68 c4 17 00 00       	push   $0x17c4
+     a91:	68 c8 17 00 00       	push   $0x17c8
+     a96:	68 ca 17 00 00       	push   $0x17ca
+     a9b:	e8 7c 09 00 00       	call   141c <kprintf>
+     aa0:	83 c4 10             	add    $0x10,%esp
+	kprintf("Executing in 32-bit protected mode.\n\n");
+     aa3:	83 ec 0c             	sub    $0xc,%esp
+     aa6:	68 dc 17 00 00       	push   $0x17dc
+     aab:	e8 6c 09 00 00       	call   141c <kprintf>
+     ab0:	83 c4 10             	add    $0x10,%esp
+}
+     ab3:	90                   	nop
+     ab4:	c9                   	leave  
+     ab5:	c3                   	ret    
+
+00000ab6 <main>:
+
+void main() {
+     ab6:	8d 4c 24 04          	lea    0x4(%esp),%ecx
+     aba:	83 e4 f0             	and    $0xfffffff0,%esp
+     abd:	ff 71 fc             	pushl  -0x4(%ecx)
+     ac0:	55                   	push   %ebp
+     ac1:	89 e5                	mov    %esp,%ebp
+     ac3:	57                   	push   %edi
+     ac4:	56                   	push   %esi
+     ac5:	53                   	push   %ebx
+     ac6:	51                   	push   %ecx
+     ac7:	81 ec a8 00 00 00    	sub    $0xa8,%esp
+	BootImage *ip;		/* Boot image pointer */
+	register Proc *rp;	/* Process pointer */
+	register Priv *sp;	/* Privilege pointer */
+	register int i;
+	int hdrIdx;
+	phys_bytes textBase = 0, dataBase = 0;
+     acd:	c7 45 e0 00 00 00 00 	movl   $0x0,-0x20(%ebp)
+     ad4:	c7 45 dc 00 00 00 00 	movl   $0x0,-0x24(%ebp)
+	vir_bytes textLen = 0, dataLen = 0;
+     adb:	c7 45 d8 00 00 00 00 	movl   $0x0,-0x28(%ebp)
+     ae2:	c7 45 d4 00 00 00 00 	movl   $0x0,-0x2c(%ebp)
+	reg_t kernelTaskStackBase;
+	Exec imgHdr;
+	Elf32_Phdr *hdr;
+
+	/* Initialize the interrupt controller. */
+	initInterrupts();
+     ae9:	e8 e9 04 00 00       	call   fd7 <initInterrupts>
+
+	/* Clear the process table. Anounce each slot as empty.
+	 * Do the same for the table with privilege structures for the system processes.
+	 */
+	for (rp = BEG_PROC_ADDR, i = -NR_TASKS; rp < END_PROC_ADDR; ++rp, ++i) {
+     aee:	bb a0 35 00 00       	mov    $0x35a0,%ebx
+     af3:	be fc ff ff ff       	mov    $0xfffffffc,%esi
+     af8:	eb 1f                	jmp    b19 <main+0x63>
+		rp->p_rt_flags = SLOT_FREE;				/* Initialize free slot. */
+     afa:	c6 43 74 01          	movb   $0x1,0x74(%ebx)
+		rp->p_nr = i;							/* Proc number from ptr. */
+     afe:	89 73 6c             	mov    %esi,0x6c(%ebx)
+		(procAddrTable + NR_TASKS)[i] = rp;		/* Proc ptr from number. */
+     b01:	89 f0                	mov    %esi,%eax
+     b03:	83 c0 04             	add    $0x4,%eax
+     b06:	c1 e0 02             	shl    $0x2,%eax
+     b09:	05 a0 2d 00 00       	add    $0x2da0,%eax
+     b0e:	89 18                	mov    %ebx,(%eax)
+	initInterrupts();
+
+	/* Clear the process table. Anounce each slot as empty.
+	 * Do the same for the table with privilege structures for the system processes.
+	 */
+	for (rp = BEG_PROC_ADDR, i = -NR_TASKS; rp < END_PROC_ADDR; ++rp, ++i) {
+     b10:	81 c3 a8 00 00 00    	add    $0xa8,%ebx
+     b16:	83 c6 01             	add    $0x1,%esi
+     b19:	81 fb 40 62 00 00    	cmp    $0x6240,%ebx
+     b1f:	72 d9                	jb     afa <main+0x44>
+		rp->p_rt_flags = SLOT_FREE;				/* Initialize free slot. */
+		rp->p_nr = i;							/* Proc number from ptr. */
+		(procAddrTable + NR_TASKS)[i] = rp;		/* Proc ptr from number. */
+	}
+	for (sp = BEG_PRIV_ADDR, i = 0; sp < END_PRIV_ADDR; ++sp, ++i) {
+     b21:	bf 20 63 00 00       	mov    $0x6320,%edi
+     b26:	be 00 00 00 00       	mov    $0x0,%esi
+     b2b:	eb 19                	jmp    b46 <main+0x90>
+		sp->s_proc_nr = NONE;		/* Initialize as free. */
+     b2d:	c7 07 ce 6a 00 00    	movl   $0x6ace,(%edi)
+		sp->s_id = i;				/* Priv structure index. */
+     b33:	89 f0                	mov    %esi,%eax
+     b35:	66 89 47 04          	mov    %ax,0x4(%edi)
+		privAddrTable[i] = sp;		/* Priv ptr from number. */
+     b39:	89 3c b5 80 62 00 00 	mov    %edi,0x6280(,%esi,4)
+	for (rp = BEG_PROC_ADDR, i = -NR_TASKS; rp < END_PROC_ADDR; ++rp, ++i) {
+		rp->p_rt_flags = SLOT_FREE;				/* Initialize free slot. */
+		rp->p_nr = i;							/* Proc number from ptr. */
+		(procAddrTable + NR_TASKS)[i] = rp;		/* Proc ptr from number. */
+	}
+	for (sp = BEG_PRIV_ADDR, i = 0; sp < END_PRIV_ADDR; ++sp, ++i) {
+     b40:	83 c7 1c             	add    $0x1c,%edi
+     b43:	83 c6 01             	add    $0x1,%esi
+     b46:	81 ff a0 66 00 00    	cmp    $0x66a0,%edi
+     b4c:	72 df                	jb     b2d <main+0x77>
+		sp->s_id = i;				/* Priv structure index. */
+		privAddrTable[i] = sp;		/* Priv ptr from number. */
+	}
+
+	/* Task stacks. */
+	kernelTaskStackBase = (reg_t) taskStack;
+     b4e:	c7 45 d0 a0 2f 00 00 	movl   $0x2fa0,-0x30(%ebp)
+
+	//for (i = 0; i < NR_BOOT_PROCS; ++i) { TODO
+	for (i = 0; i < 1; ++i) {
+     b55:	be 00 00 00 00       	mov    $0x0,%esi
+     b5a:	e9 f9 01 00 00       	jmp    d58 <main+0x2a2>
+		ip = &images[i];					/* Process' attributes */			
+     b5f:	89 f0                	mov    %esi,%eax
+     b61:	c1 e0 02             	shl    $0x2,%eax
+     b64:	01 f0                	add    %esi,%eax
+     b66:	c1 e0 03             	shl    $0x3,%eax
+     b69:	05 00 21 00 00       	add    $0x2100,%eax
+     b6e:	89 45 cc             	mov    %eax,-0x34(%ebp)
+		rp = procAddrTable[ip->procNum];	/* Get process pointer */
+     b71:	8b 45 cc             	mov    -0x34(%ebp),%eax
+     b74:	8b 00                	mov    (%eax),%eax
+     b76:	8b 1c 85 a0 2d 00 00 	mov    0x2da0(,%eax,4),%ebx
+		rp->p_max_priority = ip->priority;	/* Max scheduling priority */
+     b7d:	8b 45 cc             	mov    -0x34(%ebp),%eax
+     b80:	8b 40 10             	mov    0x10(%eax),%eax
+     b83:	88 43 76             	mov    %al,0x76(%ebx)
+		rp->p_priority = ip->priority;		/* Current priority */
+     b86:	8b 45 cc             	mov    -0x34(%ebp),%eax
+     b89:	8b 40 10             	mov    0x10(%eax),%eax
+     b8c:	88 43 75             	mov    %al,0x75(%ebx)
+		rp->p_quantum_size = ip->quantum;	/* Quantum size in ticks */
+     b8f:	8b 45 cc             	mov    -0x34(%ebp),%eax
+     b92:	0f b6 40 0c          	movzbl 0xc(%eax),%eax
+     b96:	88 43 78             	mov    %al,0x78(%ebx)
+		rp->p_ticks_left = ip->quantum;		/* Current credit */
+     b99:	8b 45 cc             	mov    -0x34(%ebp),%eax
+     b9c:	0f b6 40 0c          	movzbl 0xc(%eax),%eax
+     ba0:	88 43 77             	mov    %al,0x77(%ebx)
+		strncpy(rp->p_name, ip->procName, P_NAME_LEN);	/* Set process name */
+     ba3:	8b 45 cc             	mov    -0x34(%ebp),%eax
+     ba6:	8d 50 20             	lea    0x20(%eax),%edx
+     ba9:	8d 83 a0 00 00 00    	lea    0xa0(%ebx),%eax
+     baf:	83 ec 04             	sub    $0x4,%esp
+     bb2:	6a 08                	push   $0x8
+     bb4:	52                   	push   %edx
+     bb5:	50                   	push   %eax
+     bb6:	e8 67 08 00 00       	call   1422 <strncpy>
+     bbb:	83 c4 10             	add    $0x10,%esp
+		getPriv(rp, (ip->flags & SYS_PROC));	/* Assign privileged structure */
+     bbe:	8b 45 cc             	mov    -0x34(%ebp),%eax
+     bc1:	8b 40 08             	mov    0x8(%eax),%eax
+     bc4:	83 e0 10             	and    $0x10,%eax
+     bc7:	83 ec 08             	sub    $0x8,%esp
+     bca:	50                   	push   %eax
+     bcb:	53                   	push   %ebx
+     bcc:	e8 3f 06 00 00       	call   1210 <getPriv>
+     bd1:	83 c4 10             	add    $0x10,%esp
+
+		sp = priv(rp);
+     bd4:	8b 7b 70             	mov    0x70(%ebx),%edi
+		sp->s_flags = ip->flags;			/* Process flags */
+     bd7:	8b 45 cc             	mov    -0x34(%ebp),%eax
+     bda:	8b 40 08             	mov    0x8(%eax),%eax
+     bdd:	66 89 47 06          	mov    %ax,0x6(%edi)
+		sp->s_trap_mask = ip->trapMask;		/* Allowed traps */
+     be1:	8b 45 cc             	mov    -0x34(%ebp),%eax
+     be4:	0f b7 40 18          	movzwl 0x18(%eax),%eax
+     be8:	66 89 47 08          	mov    %ax,0x8(%edi)
+		sp->s_call_mask = ip->callMask;		/* Kernel call mask */
+     bec:	8b 45 cc             	mov    -0x34(%ebp),%eax
+     bef:	8b 40 1c             	mov    0x1c(%eax),%eax
+     bf2:	89 47 14             	mov    %eax,0x14(%edi)
+		sp->s_ipc_to.chunk[0] = ip->ipcTo;	/* Restrict targets */
+     bf5:	8b 45 cc             	mov    -0x34(%ebp),%eax
+     bf8:	0f b7 40 1a          	movzwl 0x1a(%eax),%eax
+     bfc:	66 89 47 0e          	mov    %ax,0xe(%edi)
+
+		if (isKernelProc(rp)) {				/* Is Part of the kernel? */
+     c00:	8b 43 6c             	mov    0x6c(%ebx),%eax
+     c03:	85 c0                	test   %eax,%eax
+     c05:	79 31                	jns    c38 <main+0x182>
+			if (ip->stackSize > 0) {		/* HARDWARE stack size is 0 */
+     c07:	8b 45 cc             	mov    -0x34(%ebp),%eax
+     c0a:	8b 40 14             	mov    0x14(%eax),%eax
+     c0d:	85 c0                	test   %eax,%eax
+     c0f:	7e 0f                	jle    c20 <main+0x16a>
+				sp->s_stack_guard = (reg_t *) kernelTaskStackBase;
+     c11:	8b 45 d0             	mov    -0x30(%ebp),%eax
+     c14:	89 47 18             	mov    %eax,0x18(%edi)
+				*((reg_t *) kernelTaskStackBase) = STACK_GUARD;
+     c17:	8b 45 d0             	mov    -0x30(%ebp),%eax
+     c1a:	c7 00 ef be ad de    	movl   $0xdeadbeef,(%eax)
+			}
+			kernelTaskStackBase += ip->stackSize;	/* Point to high end of the stack */
+     c20:	8b 45 cc             	mov    -0x34(%ebp),%eax
+     c23:	8b 40 14             	mov    0x14(%eax),%eax
+     c26:	01 45 d0             	add    %eax,-0x30(%ebp)
+			rp->p_reg.esp = kernelTaskStackBase;	/* This stack's initial stack ptr */
+     c29:	8b 45 d0             	mov    -0x30(%ebp),%eax
+     c2c:	89 43 38             	mov    %eax,0x38(%ebx)
+			hdrIdx = 0;						/* All use the first image header */
+     c2f:	c7 45 e4 00 00 00 00 	movl   $0x0,-0x1c(%ebp)
+     c36:	eb 06                	jmp    c3e <main+0x188>
+		} else {
+			hdrIdx = 1 + i - NR_TASKS;		/* Servers, drivers, INIT */
+     c38:	8d 46 fd             	lea    -0x3(%esi),%eax
+     c3b:	89 45 e4             	mov    %eax,-0x1c(%ebp)
+		}
+
+		/* The bootstrap loader created an array of image headers at 
+		 * absolute address imgHdrPos. Get one element to imgHdr.
+		 */
+		physCopy(imgHdrPos + hdrIdx * EXEC_SIZE, vir2Phys(&imgHdr), 
+     c3e:	8b 15 c8 2e 00 00    	mov    0x2ec8,%edx
+     c44:	8d 85 54 ff ff ff    	lea    -0xac(%ebp),%eax
+     c4a:	01 c2                	add    %eax,%edx
+     c4c:	8b 45 e4             	mov    -0x1c(%ebp),%eax
+     c4f:	6b c8 74             	imul   $0x74,%eax,%ecx
+     c52:	a1 00 63 00 00       	mov    0x6300,%eax
+     c57:	01 c8                	add    %ecx,%eax
+     c59:	83 ec 04             	sub    $0x4,%esp
+     c5c:	6a 74                	push   $0x74
+     c5e:	52                   	push   %edx
+     c5f:	50                   	push   %eax
+     c60:	e8 ab fd ff ff       	call   a10 <physCopy>
+     c65:	83 c4 10             	add    $0x10,%esp
+					(phys_bytes) EXEC_SIZE);
+
+		/* Build process memory map */
+		hdr = &imgHdr.codeHdr;
+     c68:	8d 85 54 ff ff ff    	lea    -0xac(%ebp),%eax
+     c6e:	83 c0 34             	add    $0x34,%eax
+     c71:	89 45 c8             	mov    %eax,-0x38(%ebp)
+		if (isPLoad(hdr)) {
+     c74:	8b 45 c8             	mov    -0x38(%ebp),%eax
+     c77:	8b 00                	mov    (%eax),%eax
+     c79:	83 f8 01             	cmp    $0x1,%eax
+     c7c:	75 12                	jne    c90 <main+0x1da>
+			textBase = hdr->p_paddr;
+     c7e:	8b 45 c8             	mov    -0x38(%ebp),%eax
+     c81:	8b 40 0c             	mov    0xc(%eax),%eax
+     c84:	89 45 e0             	mov    %eax,-0x20(%ebp)
+			textLen = hdr->p_memsz;
+     c87:	8b 45 c8             	mov    -0x38(%ebp),%eax
+     c8a:	8b 40 14             	mov    0x14(%eax),%eax
+     c8d:	89 45 d8             	mov    %eax,-0x28(%ebp)
+		}
+		hdr = &imgHdr.dataHdr;
+     c90:	8d 85 54 ff ff ff    	lea    -0xac(%ebp),%eax
+     c96:	83 c0 54             	add    $0x54,%eax
+     c99:	89 45 c8             	mov    %eax,-0x38(%ebp)
+		if (isPLoad(hdr)) {
+     c9c:	8b 45 c8             	mov    -0x38(%ebp),%eax
+     c9f:	8b 00                	mov    (%eax),%eax
+     ca1:	83 f8 01             	cmp    $0x1,%eax
+     ca4:	75 1a                	jne    cc0 <main+0x20a>
+			dataBase = hdr->p_paddr;
+     ca6:	8b 45 c8             	mov    -0x38(%ebp),%eax
+     ca9:	8b 40 0c             	mov    0xc(%eax),%eax
+     cac:	89 45 dc             	mov    %eax,-0x24(%ebp)
+			dataLen = hdr->p_vaddr + hdr->p_memsz;
+     caf:	8b 45 c8             	mov    -0x38(%ebp),%eax
+     cb2:	8b 50 08             	mov    0x8(%eax),%edx
+     cb5:	8b 45 c8             	mov    -0x38(%ebp),%eax
+     cb8:	8b 40 14             	mov    0x14(%eax),%eax
+     cbb:	01 d0                	add    %edx,%eax
+     cbd:	89 45 d4             	mov    %eax,-0x2c(%ebp)
+		}
+		rp->p_memmap[T].physAddr = textBase;
+     cc0:	8b 45 e0             	mov    -0x20(%ebp),%eax
+     cc3:	89 43 7c             	mov    %eax,0x7c(%ebx)
+		rp->p_memmap[T].len = textLen;
+     cc6:	8b 45 d8             	mov    -0x28(%ebp),%eax
+     cc9:	89 83 80 00 00 00    	mov    %eax,0x80(%ebx)
+		rp->p_memmap[D].physAddr = dataBase;
+     ccf:	8b 45 dc             	mov    -0x24(%ebp),%eax
+     cd2:	89 83 84 00 00 00    	mov    %eax,0x84(%ebx)
+		rp->p_memmap[D].len = dataLen;
+     cd8:	8b 45 d4             	mov    -0x2c(%ebp),%eax
+     cdb:	89 83 88 00 00 00    	mov    %eax,0x88(%ebx)
+		rp->p_memmap[S].physAddr = dataBase + dataLen;
+     ce1:	8b 55 dc             	mov    -0x24(%ebp),%edx
+     ce4:	8b 45 d4             	mov    -0x2c(%ebp),%eax
+     ce7:	01 d0                	add    %edx,%eax
+     ce9:	89 83 8c 00 00 00    	mov    %eax,0x8c(%ebx)
+		rp->p_memmap[S].len = 0;
+     cef:	c7 83 90 00 00 00 00 	movl   $0x0,0x90(%ebx)
+     cf6:	00 00 00 
+
+		/* Set initial register values. The Proessor status word for tasks
+		 * is different from that of other processes because tasks can
+		 * access I/O; this is not allowed to less-privileged processes.
+		 */
+		rp->p_reg.pc = (reg_t) ip->initialPC;
+     cf9:	8b 45 cc             	mov    -0x34(%ebp),%eax
+     cfc:	8b 40 04             	mov    0x4(%eax),%eax
+     cff:	89 43 2c             	mov    %eax,0x2c(%ebx)
+		rp->p_reg.psw = (isKernelProc(rp)) ? INIT_TASK_PSW : INIT_PSW;
+     d02:	8b 43 6c             	mov    0x6c(%ebx),%eax
+     d05:	85 c0                	test   %eax,%eax
+     d07:	79 07                	jns    d10 <main+0x25a>
+     d09:	b8 00 12 00 00       	mov    $0x1200,%eax
+     d0e:	eb 05                	jmp    d15 <main+0x25f>
+     d10:	b8 00 02 00 00       	mov    $0x200,%eax
+     d15:	89 43 34             	mov    %eax,0x34(%ebx)
+
+		/* Initialize the server stack pointer. Take it down one word
+		 * to give crtso.s something to use as "argc"
+		 */
+		if (isUserProc(rp)) {		/* Is user-space process? */
+     d18:	8b 43 6c             	mov    0x6c(%ebx),%eax
+     d1b:	85 c0                	test   %eax,%eax
+     d1d:	78 0c                	js     d2b <main+0x275>
+			rp->p_reg.esp = rp->p_memmap[S].physAddr - sizeof(reg_t);
+     d1f:	8b 83 8c 00 00 00    	mov    0x8c(%ebx),%eax
+     d25:	83 e8 04             	sub    $0x4,%eax
+     d28:	89 43 38             	mov    %eax,0x38(%ebx)
+		}
+		
+		/* Set ready. The HARDWARE task is never ready. */
+		if (rp->p_nr != HARDWARE) {
+     d2b:	8b 43 6c             	mov    0x6c(%ebx),%eax
+     d2e:	83 f8 ff             	cmp    $0xffffffff,%eax
+     d31:	74 12                	je     d45 <main+0x28f>
+			rp->p_rt_flags = 0;		/* Runnable if no flags */
+     d33:	c6 43 74 00          	movb   $0x0,0x74(%ebx)
+			lockEnqueue(rp);	/* add to scheduling queues */
+     d37:	83 ec 0c             	sub    $0xc,%esp
+     d3a:	53                   	push   %ebx
+     d3b:	e8 09 02 00 00       	call   f49 <lockEnqueue>
+     d40:	83 c4 10             	add    $0x10,%esp
+     d43:	eb 04                	jmp    d49 <main+0x293>
+		} else {
+			rp->p_rt_flags = NO_MAP;
+     d45:	c6 43 74 02          	movb   $0x2,0x74(%ebx)
+		}
+
+		/* Code and data segments must be allocated in protected mode. */
+		allocSegments(rp);
+     d49:	83 ec 0c             	sub    $0xc,%esp
+     d4c:	53                   	push   %ebx
+     d4d:	e8 f5 fb ff ff       	call   947 <allocSegments>
+     d52:	83 c4 10             	add    $0x10,%esp
+
+	/* Task stacks. */
+	kernelTaskStackBase = (reg_t) taskStack;
+
+	//for (i = 0; i < NR_BOOT_PROCS; ++i) { TODO
+	for (i = 0; i < 1; ++i) {
+     d55:	83 c6 01             	add    $0x1,%esi
+     d58:	85 f6                	test   %esi,%esi
+     d5a:	0f 8e ff fd ff ff    	jle    b5f <main+0xa9>
+
+	// TODO boot device
+
+
+	/* We're definitely not shutting down. */
+	shutdownStarted = 0;
+     d60:	c6 05 80 2f 00 00 00 	movb   $0x0,0x2f80
+
+	/* MINIX is now ready. All boot image processes are on the ready queue.
+	 * Return to the assembly code to start running the current process.
+	 */
+	billProc = procAddr(IDLE);	/* It has to point somewhere */
+     d67:	a1 a0 2d 00 00       	mov    0x2da0,%eax
+     d6c:	a3 14 67 00 00       	mov    %eax,0x6714
+	announce();					/* Print MINIX startup banner */
+     d71:	e8 0d fd ff ff       	call   a83 <announce>
+	restart();
+     d76:	e8 6e f6 ff ff       	call   3e9 <restart>
+}
+     d7b:	90                   	nop
+     d7c:	8d 65 f0             	lea    -0x10(%ebp),%esp
+     d7f:	59                   	pop    %ecx
+     d80:	5b                   	pop    %ebx
+     d81:	5e                   	pop    %esi
+     d82:	5f                   	pop    %edi
+     d83:	5d                   	pop    %ebp
+     d84:	8d 61 fc             	lea    -0x4(%ecx),%esp
+     d87:	c3                   	ret    
+
+00000d88 <schedule>:
+
+/* This function determines the scheduling policy. It is called whenever a
+ * process must be added to one of the scheduling queues to decide where to
+ * insert it. As a side-effect the process' priority may be update.
+ */
+static void schedule(Proc *rp, int *queue, int *front) {
+     d88:	55                   	push   %ebp
+     d89:	89 e5                	mov    %esp,%ebp
+     d8b:	83 ec 10             	sub    $0x10,%esp
+	static Proc *prevProc = NIL_PROC;		/* Previous without time */
+	int timeLeft = rp->p_ticks_left > 0;	/* Quantum fully consumed */
+     d8e:	8b 45 08             	mov    0x8(%ebp),%eax
+     d91:	0f b6 40 77          	movzbl 0x77(%eax),%eax
+     d95:	84 c0                	test   %al,%al
+     d97:	0f 9f c0             	setg   %al
+     d9a:	0f b6 c0             	movzbl %al,%eax
+     d9d:	89 45 f8             	mov    %eax,-0x8(%ebp)
+	int penalty = 0;		/* change in priority */
+     da0:	c7 45 fc 00 00 00 00 	movl   $0x0,-0x4(%ebp)
+
+	if (!timeLeft) {	/* Quantum consumed ? */
+     da7:	83 7d f8 00          	cmpl   $0x0,-0x8(%ebp)
+     dab:	75 29                	jne    dd6 <schedule+0x4e>
+		rp->p_ticks_left = rp->p_quantum_size;	/* Give new quantum */
+     dad:	8b 45 08             	mov    0x8(%ebp),%eax
+     db0:	0f b6 50 78          	movzbl 0x78(%eax),%edx
+     db4:	8b 45 08             	mov    0x8(%ebp),%eax
+     db7:	88 50 77             	mov    %dl,0x77(%eax)
+		if (prevProc == rp) 
+     dba:	a1 40 2a 00 00       	mov    0x2a40,%eax
+     dbf:	3b 45 08             	cmp    0x8(%ebp),%eax
+     dc2:	75 06                	jne    dca <schedule+0x42>
+		  ++penalty;		/* Catch infinite loops */
+     dc4:	83 45 fc 01          	addl   $0x1,-0x4(%ebp)
+     dc8:	eb 04                	jmp    dce <schedule+0x46>
+		else 
+		  --penalty;		/* Give slow way back */
+     dca:	83 6d fc 01          	subl   $0x1,-0x4(%ebp)
+		prevProc = rp;		/* Store ptr for next check */
+     dce:	8b 45 08             	mov    0x8(%ebp),%eax
+     dd1:	a3 40 2a 00 00       	mov    %eax,0x2a40
+
+	/* Determine the new priority of this process. The bounds are determined
+	 * by IDLE's queue and the maximum priority of this process. Kernel task
+	 * and the idle process are never changed in priority.
+	 */
+	if (penalty != 0 && !isKernelProc(rp)) {
+     dd6:	83 7d fc 00          	cmpl   $0x0,-0x4(%ebp)
+     dda:	74 53                	je     e2f <schedule+0xa7>
+     ddc:	8b 45 08             	mov    0x8(%ebp),%eax
+     ddf:	8b 40 6c             	mov    0x6c(%eax),%eax
+     de2:	85 c0                	test   %eax,%eax
+     de4:	78 49                	js     e2f <schedule+0xa7>
+		rp->p_priority += penalty;		/* Update with penalty */
+     de6:	8b 45 08             	mov    0x8(%ebp),%eax
+     de9:	0f b6 40 75          	movzbl 0x75(%eax),%eax
+     ded:	89 c2                	mov    %eax,%edx
+     def:	8b 45 fc             	mov    -0x4(%ebp),%eax
+     df2:	01 d0                	add    %edx,%eax
+     df4:	89 c2                	mov    %eax,%edx
+     df6:	8b 45 08             	mov    0x8(%ebp),%eax
+     df9:	88 50 75             	mov    %dl,0x75(%eax)
+		if (rp->p_priority < rp->p_max_priority)	/* Check upper bound */
+     dfc:	8b 45 08             	mov    0x8(%ebp),%eax
+     dff:	0f b6 50 75          	movzbl 0x75(%eax),%edx
+     e03:	8b 45 08             	mov    0x8(%ebp),%eax
+     e06:	0f b6 40 76          	movzbl 0x76(%eax),%eax
+     e0a:	38 c2                	cmp    %al,%dl
+     e0c:	7d 0f                	jge    e1d <schedule+0x95>
+		  rp->p_priority = rp->p_max_priority;
+     e0e:	8b 45 08             	mov    0x8(%ebp),%eax
+     e11:	0f b6 50 76          	movzbl 0x76(%eax),%edx
+     e15:	8b 45 08             	mov    0x8(%ebp),%eax
+     e18:	88 50 75             	mov    %dl,0x75(%eax)
+     e1b:	eb 12                	jmp    e2f <schedule+0xa7>
+		else if (rp->p_priority >= IDLE_Q)		/* Check lower bound */
+     e1d:	8b 45 08             	mov    0x8(%ebp),%eax
+     e20:	0f b6 40 75          	movzbl 0x75(%eax),%eax
+     e24:	3c 0e                	cmp    $0xe,%al
+     e26:	7e 07                	jle    e2f <schedule+0xa7>
+		  rp->p_priority = IDLE_Q - 1;
+     e28:	8b 45 08             	mov    0x8(%ebp),%eax
+     e2b:	c6 40 75 0e          	movb   $0xe,0x75(%eax)
+
+	/* If there is time left, the process is added to the front of its queue,
+	 * so that it can immediately run. The queue to use simply is always the 
+	 * process' current priority.
+	 */
+	*queue = rp->p_priority;
+     e2f:	8b 45 08             	mov    0x8(%ebp),%eax
+     e32:	0f b6 40 75          	movzbl 0x75(%eax),%eax
+     e36:	0f be d0             	movsbl %al,%edx
+     e39:	8b 45 0c             	mov    0xc(%ebp),%eax
+     e3c:	89 10                	mov    %edx,(%eax)
+	*front = timeLeft;
+     e3e:	8b 45 10             	mov    0x10(%ebp),%eax
+     e41:	8b 55 f8             	mov    -0x8(%ebp),%edx
+     e44:	89 10                	mov    %edx,(%eax)
+}
+     e46:	90                   	nop
+     e47:	c9                   	leave  
+     e48:	c3                   	ret    
+
+00000e49 <pickProc>:
+
+/* Decide who to run now. A new process is selected by setting 'nextProc'.
+ * When a billable process is selected, record it in 'billProc', so that the
+ * clock task can tell who to bill for system time.
+ */
+static void pickProc() {
+     e49:	55                   	push   %ebp
+     e4a:	89 e5                	mov    %esp,%ebp
+     e4c:	53                   	push   %ebx
+     e4d:	83 ec 10             	sub    $0x10,%esp
+
+	/* Check each of the scheduling queues for ready processes. The number of
+	 * queues is defined in proc.h, and priorities are set in the image table.
+	 * The lowest queue contains IDLE, which is always ready.
+	 */
+	for (queue = 0; queue < NR_SCHED_QUEUES; ++queue) {
+     e50:	c7 45 f8 00 00 00 00 	movl   $0x0,-0x8(%ebp)
+     e57:	eb 2f                	jmp    e88 <pickProc+0x3f>
+		if ((rp = readyProcHead[queue]) != NIL_PROC) {
+     e59:	8b 45 f8             	mov    -0x8(%ebp),%eax
+     e5c:	8b 1c 85 00 2f 00 00 	mov    0x2f00(,%eax,4),%ebx
+     e63:	85 db                	test   %ebx,%ebx
+     e65:	74 1d                	je     e84 <pickProc+0x3b>
+			nextProc = rp;
+     e67:	89 1d a0 66 00 00    	mov    %ebx,0x66a0
+			if (priv(rp)->s_flags & BILLABLE)
+     e6d:	8b 43 70             	mov    0x70(%ebx),%eax
+     e70:	0f b7 40 06          	movzwl 0x6(%eax),%eax
+     e74:	98                   	cwtl   
+     e75:	83 e0 04             	and    $0x4,%eax
+     e78:	85 c0                	test   %eax,%eax
+     e7a:	74 14                	je     e90 <pickProc+0x47>
+			  billProc = rp;
+     e7c:	89 1d 14 67 00 00    	mov    %ebx,0x6714
+			return;
+     e82:	eb 0c                	jmp    e90 <pickProc+0x47>
+
+	/* Check each of the scheduling queues for ready processes. The number of
+	 * queues is defined in proc.h, and priorities are set in the image table.
+	 * The lowest queue contains IDLE, which is always ready.
+	 */
+	for (queue = 0; queue < NR_SCHED_QUEUES; ++queue) {
+     e84:	83 45 f8 01          	addl   $0x1,-0x8(%ebp)
+     e88:	83 7d f8 0f          	cmpl   $0xf,-0x8(%ebp)
+     e8c:	7e cb                	jle    e59 <pickProc+0x10>
+     e8e:	eb 01                	jmp    e91 <pickProc+0x48>
+		if ((rp = readyProcHead[queue]) != NIL_PROC) {
+			nextProc = rp;
+			if (priv(rp)->s_flags & BILLABLE)
+			  billProc = rp;
+			return;
+     e90:	90                   	nop
+		}
+	}
+}
+     e91:	83 c4 10             	add    $0x10,%esp
+     e94:	5b                   	pop    %ebx
+     e95:	5d                   	pop    %ebp
+     e96:	c3                   	ret    
+
+00000e97 <enqueue>:
+
+static void enqueue(Proc *rp) {
+     e97:	55                   	push   %ebp
+     e98:	89 e5                	mov    %esp,%ebp
+     e9a:	83 ec 10             	sub    $0x10,%esp
+	int queue;	/* Scheduling queue to use */
+	int front;	/* Add to front or back */
+
+	schedule(rp, &queue, &front);
+     e9d:	8d 45 f8             	lea    -0x8(%ebp),%eax
+     ea0:	50                   	push   %eax
+     ea1:	8d 45 fc             	lea    -0x4(%ebp),%eax
+     ea4:	50                   	push   %eax
+     ea5:	ff 75 08             	pushl  0x8(%ebp)
+     ea8:	e8 db fe ff ff       	call   d88 <schedule>
+     ead:	83 c4 0c             	add    $0xc,%esp
+
+	/* Now add the process to the queue. */
+	if (readyProcHead[queue] == NIL_PROC) {		/* Add to empty queue */
+     eb0:	8b 45 fc             	mov    -0x4(%ebp),%eax
+     eb3:	8b 04 85 00 2f 00 00 	mov    0x2f00(,%eax,4),%eax
+     eba:	85 c0                	test   %eax,%eax
+     ebc:	75 2d                	jne    eeb <enqueue+0x54>
+		readyProcHead[queue] = readyProcTail[queue] = rp;	/* Create a new queue */
+     ebe:	8b 55 fc             	mov    -0x4(%ebp),%edx
+     ec1:	8b 45 fc             	mov    -0x4(%ebp),%eax
+     ec4:	8b 4d 08             	mov    0x8(%ebp),%ecx
+     ec7:	89 0c 85 40 2f 00 00 	mov    %ecx,0x2f40(,%eax,4)
+     ece:	8b 04 85 40 2f 00 00 	mov    0x2f40(,%eax,4),%eax
+     ed5:	89 04 95 00 2f 00 00 	mov    %eax,0x2f00(,%edx,4)
+		rp->p_next_ready = NIL_PROC;			/* Mark new end */
+     edc:	8b 45 08             	mov    0x8(%ebp),%eax
+     edf:	c7 80 9c 00 00 00 00 	movl   $0x0,0x9c(%eax)
+     ee6:	00 00 00 
+     ee9:	eb 56                	jmp    f41 <enqueue+0xaa>
+	} else if (front) {			/* Add to head of queue */
+     eeb:	8b 45 f8             	mov    -0x8(%ebp),%eax
+     eee:	85 c0                	test   %eax,%eax
+     ef0:	74 22                	je     f14 <enqueue+0x7d>
+		rp->p_next_ready = readyProcHead[queue];	/* Chain head of queue */	
+     ef2:	8b 45 fc             	mov    -0x4(%ebp),%eax
+     ef5:	8b 14 85 00 2f 00 00 	mov    0x2f00(,%eax,4),%edx
+     efc:	8b 45 08             	mov    0x8(%ebp),%eax
+     eff:	89 90 9c 00 00 00    	mov    %edx,0x9c(%eax)
+		readyProcHead[queue] = rp;		/* Set new queue head */
+     f05:	8b 45 fc             	mov    -0x4(%ebp),%eax
+     f08:	8b 55 08             	mov    0x8(%ebp),%edx
+     f0b:	89 14 85 00 2f 00 00 	mov    %edx,0x2f00(,%eax,4)
+     f12:	eb 2d                	jmp    f41 <enqueue+0xaa>
+	} else {			/* add to tail of queue */
+		readyProcTail[queue]->p_next_ready = rp;	/* Chain tail of queue */
+     f14:	8b 45 fc             	mov    -0x4(%ebp),%eax
+     f17:	8b 04 85 40 2f 00 00 	mov    0x2f40(,%eax,4),%eax
+     f1e:	8b 55 08             	mov    0x8(%ebp),%edx
+     f21:	89 90 9c 00 00 00    	mov    %edx,0x9c(%eax)
+		readyProcTail[queue] = rp;		/* Set new queue tail */
+     f27:	8b 45 fc             	mov    -0x4(%ebp),%eax
+     f2a:	8b 55 08             	mov    0x8(%ebp),%edx
+     f2d:	89 14 85 40 2f 00 00 	mov    %edx,0x2f40(,%eax,4)
+		rp->p_next_ready = NIL_PROC;	/* Mark new end */
+     f34:	8b 45 08             	mov    0x8(%ebp),%eax
+     f37:	c7 80 9c 00 00 00 00 	movl   $0x0,0x9c(%eax)
+     f3e:	00 00 00 
+	}
+
+	/* Now select the next process to run. */
+	pickProc();
+     f41:	e8 03 ff ff ff       	call   e49 <pickProc>
+}
+     f46:	90                   	nop
+     f47:	c9                   	leave  
+     f48:	c3                   	ret    
+
+00000f49 <lockEnqueue>:
+
+void lockEnqueue(Proc *rp) {	/* This process is now runnable */
+     f49:	55                   	push   %ebp
+     f4a:	89 e5                	mov    %esp,%ebp
+     f4c:	83 ec 08             	sub    $0x8,%esp
+	/* Safe gateway to enqueue() for tasks. */
+	lock(3, "enqueue");
+     f4f:	e8 60 06 00 00       	call   15b4 <disableInterrupt>
+	enqueue(rp);
+     f54:	83 ec 0c             	sub    $0xc,%esp
+     f57:	ff 75 08             	pushl  0x8(%ebp)
+     f5a:	e8 38 ff ff ff       	call   e97 <enqueue>
+     f5f:	83 c4 10             	add    $0x10,%esp
+	unlock(3);
+     f62:	e8 4f 06 00 00       	call   15b6 <enableInterrupt>
+}
+     f67:	90                   	nop
+     f68:	c9                   	leave  
+     f69:	c3                   	ret    
+
+00000f6a <miniNotify>:
+
+static int miniNotify(Proc *caller, int dst) {
+     f6a:	55                   	push   %ebp
+     f6b:	89 e5                	mov    %esp,%ebp
+	return OK;
+     f6d:	b8 00 00 00 00       	mov    $0x0,%eax
+}
+     f72:	5d                   	pop    %ebp
+     f73:	c3                   	ret    
+
+00000f74 <lockNotify>:
+
+/* src: sender of the notification
+ * dst: who is to be notified
+ */
+int lockNotify(int src, int dst) {
+     f74:	55                   	push   %ebp
+     f75:	89 e5                	mov    %esp,%ebp
+     f77:	83 ec 18             	sub    $0x18,%esp
+ * is explicitly given to prevent confusion where the call comes from. MINIX
+ * kernel is not reentrant, which means to interrupts are disabled after
+ * the first kernel entry (hardware interrupt, trap, or exception). Locking
+ * is done by temporarily disabling interrupts.
+ */
+	if (kernelReentryCount >= 0) {
+     f7a:	0f b6 05 04 63 00 00 	movzbl 0x6304,%eax
+     f81:	84 c0                	test   %al,%al
+     f83:	78 21                	js     fa6 <lockNotify+0x32>
+		result = miniNotify(procAddr(src), dst);
+     f85:	8b 45 08             	mov    0x8(%ebp),%eax
+     f88:	83 c0 04             	add    $0x4,%eax
+     f8b:	c1 e0 02             	shl    $0x2,%eax
+     f8e:	05 a0 2d 00 00       	add    $0x2da0,%eax
+     f93:	8b 00                	mov    (%eax),%eax
+     f95:	ff 75 0c             	pushl  0xc(%ebp)
+     f98:	50                   	push   %eax
+     f99:	e8 cc ff ff ff       	call   f6a <miniNotify>
+     f9e:	83 c4 08             	add    $0x8,%esp
+     fa1:	89 45 f4             	mov    %eax,-0xc(%ebp)
+     fa4:	eb 2c                	jmp    fd2 <lockNotify+0x5e>
+	} else {
+		/* Call from task level, locking is required. */
+		lock(0, "notify");
+     fa6:	e8 09 06 00 00       	call   15b4 <disableInterrupt>
+		result = miniNotify(procAddr(src), dst);
+     fab:	8b 45 08             	mov    0x8(%ebp),%eax
+     fae:	83 c0 04             	add    $0x4,%eax
+     fb1:	c1 e0 02             	shl    $0x2,%eax
+     fb4:	05 a0 2d 00 00       	add    $0x2da0,%eax
+     fb9:	8b 00                	mov    (%eax),%eax
+     fbb:	83 ec 08             	sub    $0x8,%esp
+     fbe:	ff 75 0c             	pushl  0xc(%ebp)
+     fc1:	50                   	push   %eax
+     fc2:	e8 a3 ff ff ff       	call   f6a <miniNotify>
+     fc7:	83 c4 10             	add    $0x10,%esp
+     fca:	89 45 f4             	mov    %eax,-0xc(%ebp)
+		unlock(0);
+     fcd:	e8 e4 05 00 00       	call   15b6 <enableInterrupt>
+	}
+	return result;
+     fd2:	8b 45 f4             	mov    -0xc(%ebp),%eax
+}
+     fd5:	c9                   	leave  
+     fd6:	c3                   	ret    
+
+00000fd7 <initInterrupts>:
+#define ICW4_AT_MASTER	0x05	/* not SFNM, not buffered, normal EOI, 8086 */
+#define ICW4_PC_SLAVE	0x09	/* not SFNM, buffered, normal EOI, 8086 */
+#define ICW4_PC_MASTER	0x0D	/* not SFNM, buffered, normal EOI, 8086 */
+
+
+void initInterrupts() {
+     fd7:	55                   	push   %ebp
+     fd8:	89 e5                	mov    %esp,%ebp
+     fda:	83 ec 08             	sub    $0x8,%esp
+	disableInterrupt();
+     fdd:	e8 d2 05 00 00       	call   15b4 <disableInterrupt>
+
+	/* The AT and newer PS/2 have two interrupt controllers, one master, one slaved at IRQ2. */
+
+	/* Settings for master. */
+	outb(INT_CTL, machine.ps_mca ? ICW1_PS : ICW1_AT);
+     fe2:	a1 04 67 00 00       	mov    0x6704,%eax
+     fe7:	85 c0                	test   %eax,%eax
+     fe9:	74 07                	je     ff2 <initInterrupts+0x1b>
+     feb:	b8 19 00 00 00       	mov    $0x19,%eax
+     ff0:	eb 05                	jmp    ff7 <initInterrupts+0x20>
+     ff2:	b8 11 00 00 00       	mov    $0x11,%eax
+     ff7:	83 ec 08             	sub    $0x8,%esp
+     ffa:	50                   	push   %eax
+     ffb:	6a 20                	push   $0x20
+     ffd:	e8 a6 05 00 00       	call   15a8 <outb>
+    1002:	83 c4 10             	add    $0x10,%esp
+	outb(INT_CTL_MASK, IRQ0_VECTOR);		/* ICW2 for master, set up interrupt vector number for IRQ0. */
+    1005:	83 ec 08             	sub    $0x8,%esp
+    1008:	6a 50                	push   $0x50
+    100a:	6a 21                	push   $0x21
+    100c:	e8 97 05 00 00       	call   15a8 <outb>
+    1011:	83 c4 10             	add    $0x10,%esp
+	outb(INT_CTL_MASK, (1 << CASCADE_IRQ));	/* Use these lines to tell slaves. (only 1 slave here) */
+    1014:	83 ec 08             	sub    $0x8,%esp
+    1017:	6a 04                	push   $0x4
+    1019:	6a 21                	push   $0x21
+    101b:	e8 88 05 00 00       	call   15a8 <outb>
+    1020:	83 c4 10             	add    $0x10,%esp
+	outb(INT_CTL_MASK, ICW4_AT_MASTER);
+    1023:	83 ec 08             	sub    $0x8,%esp
+    1026:	6a 05                	push   $0x5
+    1028:	6a 21                	push   $0x21
+    102a:	e8 79 05 00 00       	call   15a8 <outb>
+    102f:	83 c4 10             	add    $0x10,%esp
+	/* IRQ 0-7 mask. Masking IRQ2 will cause the Slave PIC to stop raising IRQs. */
+	outb(INT_CTL_MASK, ~(1 << CASCADE_IRQ));
+    1032:	83 ec 08             	sub    $0x8,%esp
+    1035:	6a fb                	push   $0xfffffffb
+    1037:	6a 21                	push   $0x21
+    1039:	e8 6a 05 00 00       	call   15a8 <outb>
+    103e:	83 c4 10             	add    $0x10,%esp
+
+	/* Settings for slave. */
+	outb(INT2_CTL, machine.ps_mca ? ICW1_PS : ICW1_AT);
+    1041:	a1 04 67 00 00       	mov    0x6704,%eax
+    1046:	85 c0                	test   %eax,%eax
+    1048:	74 07                	je     1051 <initInterrupts+0x7a>
+    104a:	b8 19 00 00 00       	mov    $0x19,%eax
+    104f:	eb 05                	jmp    1056 <initInterrupts+0x7f>
+    1051:	b8 11 00 00 00       	mov    $0x11,%eax
+    1056:	83 ec 08             	sub    $0x8,%esp
+    1059:	50                   	push   %eax
+    105a:	68 a0 00 00 00       	push   $0xa0
+    105f:	e8 44 05 00 00       	call   15a8 <outb>
+    1064:	83 c4 10             	add    $0x10,%esp
+	outb(INT2_CTL_MASK, IRQ8_VECTOR);		/* ICW2 for slave, set up interrupt vector number for IRQ8. */
+    1067:	83 ec 08             	sub    $0x8,%esp
+    106a:	6a 70                	push   $0x70
+    106c:	68 a1 00 00 00       	push   $0xa1
+    1071:	e8 32 05 00 00       	call   15a8 <outb>
+    1076:	83 c4 10             	add    $0x10,%esp
+	outb(INT2_CTL_MASK, CASCADE_IRQ);		/* Set up slave id. */
+    1079:	83 ec 08             	sub    $0x8,%esp
+    107c:	6a 02                	push   $0x2
+    107e:	68 a1 00 00 00       	push   $0xa1
+    1083:	e8 20 05 00 00       	call   15a8 <outb>
+    1088:	83 c4 10             	add    $0x10,%esp
+	outb(INT2_CTL_MASK, ICW4_AT_MASTER);
+    108b:	83 ec 08             	sub    $0x8,%esp
+    108e:	6a 05                	push   $0x5
+    1090:	68 a1 00 00 00       	push   $0xa1
+    1095:	e8 0e 05 00 00       	call   15a8 <outb>
+    109a:	83 c4 10             	add    $0x10,%esp
+	outb(INT_CTL_MASK, ~0);					/* IRQ 8-15 mask */
+    109d:	83 ec 08             	sub    $0x8,%esp
+    10a0:	6a ff                	push   $0xffffffff
+    10a2:	6a 21                	push   $0x21
+    10a4:	e8 ff 04 00 00       	call   15a8 <outb>
+    10a9:	83 c4 10             	add    $0x10,%esp
+	
+	/* Copy the BIOS vectors from the BIOS to the Minix location, so we can still make BIOS 
+	 * calls without reprogramming the i8259s. (See BIOS interrupt vectors aboved.)
+	 */
+	physCopy(BIOS_VECTOR(0) * 4L, VECTOR(0) * 4L, 8 * 4L);	/* IRQ 0-7 */
+    10ac:	83 ec 04             	sub    $0x4,%esp
+    10af:	6a 20                	push   $0x20
+    10b1:	68 40 01 00 00       	push   $0x140
+    10b6:	6a 20                	push   $0x20
+    10b8:	e8 53 f9 ff ff       	call   a10 <physCopy>
+    10bd:	83 c4 10             	add    $0x10,%esp
+	physCopy(BIOS_VECTOR(8) * 4L, VECTOR(8) * 4L, 8 * 4L);	/* IRQ 8-15 */
+    10c0:	83 ec 04             	sub    $0x4,%esp
+    10c3:	6a 20                	push   $0x20
+    10c5:	68 c0 01 00 00       	push   $0x1c0
+    10ca:	68 c0 01 00 00       	push   $0x1c0
+    10cf:	e8 3c f9 ff ff       	call   a10 <physCopy>
+    10d4:	83 c4 10             	add    $0x10,%esp
+}
+    10d7:	90                   	nop
+    10d8:	c9                   	leave  
+    10d9:	c3                   	ret    
+
+000010da <putIrqHandler>:
+
+/* Register an interrupt handler. */
+void putIrqHandler(IrqHook *hook, int irq, irq_handler_t handler) {
+    10da:	55                   	push   %ebp
+    10db:	89 e5                	mov    %esp,%ebp
+    10dd:	83 ec 18             	sub    $0x18,%esp
+	int id;
+	IrqHook **line;
+
+	if (irq < 0 || irq >= NR_IRQ_VECTORS)
+    10e0:	83 7d 0c 00          	cmpl   $0x0,0xc(%ebp)
+    10e4:	78 06                	js     10ec <putIrqHandler+0x12>
+    10e6:	83 7d 0c 0f          	cmpl   $0xf,0xc(%ebp)
+    10ea:	7e 13                	jle    10ff <putIrqHandler+0x25>
+	  panic("Invalid call to putIrqHandler", irq);
+    10ec:	83 ec 08             	sub    $0x8,%esp
+    10ef:	ff 75 0c             	pushl  0xc(%ebp)
+    10f2:	68 02 18 00 00       	push   $0x1802
+    10f7:	e8 1a 03 00 00       	call   1416 <panic>
+    10fc:	83 c4 10             	add    $0x10,%esp
+
+	line = &irqHandlers[irq];
+    10ff:	8b 45 0c             	mov    0xc(%ebp),%eax
+    1102:	c1 e0 02             	shl    $0x2,%eax
+    1105:	05 40 62 00 00       	add    $0x6240,%eax
+    110a:	89 45 f0             	mov    %eax,-0x10(%ebp)
+	id = 1;
+    110d:	c7 45 f4 01 00 00 00 	movl   $0x1,-0xc(%ebp)
+	while (*line != NULL) {
+    1114:	eb 15                	jmp    112b <putIrqHandler+0x51>
+		if (hook == *line) 
+    1116:	8b 45 f0             	mov    -0x10(%ebp),%eax
+    1119:	8b 00                	mov    (%eax),%eax
+    111b:	3b 45 08             	cmp    0x8(%ebp),%eax
+    111e:	74 73                	je     1193 <putIrqHandler+0xb9>
+		  return;		/* Extra initialization, no need. */
+		line = &(*line)->next;
+    1120:	8b 45 f0             	mov    -0x10(%ebp),%eax
+    1123:	8b 00                	mov    (%eax),%eax
+    1125:	89 45 f0             	mov    %eax,-0x10(%ebp)
+		id <<= 1;
+    1128:	d1 65 f4             	shll   -0xc(%ebp)
+	if (irq < 0 || irq >= NR_IRQ_VECTORS)
+	  panic("Invalid call to putIrqHandler", irq);
+
+	line = &irqHandlers[irq];
+	id = 1;
+	while (*line != NULL) {
+    112b:	8b 45 f0             	mov    -0x10(%ebp),%eax
+    112e:	8b 00                	mov    (%eax),%eax
+    1130:	85 c0                	test   %eax,%eax
+    1132:	75 e2                	jne    1116 <putIrqHandler+0x3c>
+		if (hook == *line) 
+		  return;		/* Extra initialization, no need. */
+		line = &(*line)->next;
+		id <<= 1;
+	}
+	if (id == 0)
+    1134:	83 7d f4 00          	cmpl   $0x0,-0xc(%ebp)
+    1138:	75 13                	jne    114d <putIrqHandler+0x73>
+	  panic("Too many handlers for irq", irq);
+    113a:	83 ec 08             	sub    $0x8,%esp
+    113d:	ff 75 0c             	pushl  0xc(%ebp)
+    1140:	68 20 18 00 00       	push   $0x1820
+    1145:	e8 cc 02 00 00       	call   1416 <panic>
+    114a:	83 c4 10             	add    $0x10,%esp
+
+	hook->next = NULL;
+    114d:	8b 45 08             	mov    0x8(%ebp),%eax
+    1150:	c7 00 00 00 00 00    	movl   $0x0,(%eax)
+	hook->handler = handler;
+    1156:	8b 45 08             	mov    0x8(%ebp),%eax
+    1159:	8b 55 10             	mov    0x10(%ebp),%edx
+    115c:	89 50 04             	mov    %edx,0x4(%eax)
+	hook->irq = irq;
+    115f:	8b 45 08             	mov    0x8(%ebp),%eax
+    1162:	8b 55 0c             	mov    0xc(%ebp),%edx
+    1165:	89 50 08             	mov    %edx,0x8(%eax)
+	hook->id = id;
+    1168:	8b 45 08             	mov    0x8(%ebp),%eax
+    116b:	8b 55 f4             	mov    -0xc(%ebp),%edx
+    116e:	89 50 0c             	mov    %edx,0xc(%eax)
+	*line = hook;
+    1171:	8b 45 f0             	mov    -0x10(%ebp),%eax
+    1174:	8b 55 08             	mov    0x8(%ebp),%edx
+    1177:	89 10                	mov    %edx,(%eax)
+
+	irqInUse |= 1 << irq;
+    1179:	8b 45 0c             	mov    0xc(%ebp),%eax
+    117c:	ba 01 00 00 00       	mov    $0x1,%edx
+    1181:	89 c1                	mov    %eax,%ecx
+    1183:	d3 e2                	shl    %cl,%edx
+    1185:	a1 88 2f 00 00       	mov    0x2f88,%eax
+    118a:	09 d0                	or     %edx,%eax
+    118c:	a3 88 2f 00 00       	mov    %eax,0x2f88
+    1191:	eb 01                	jmp    1194 <putIrqHandler+0xba>
+
+	line = &irqHandlers[irq];
+	id = 1;
+	while (*line != NULL) {
+		if (hook == *line) 
+		  return;		/* Extra initialization, no need. */
+    1193:	90                   	nop
+	hook->irq = irq;
+	hook->id = id;
+	*line = hook;
+
+	irqInUse |= 1 << irq;
+}
+    1194:	c9                   	leave  
+    1195:	c3                   	ret    
+
+00001196 <handleInterrupt>:
+
+/* Call the interrupt handlers for an interrupt with the given hook list.
+ * The assembly part of the handler has already masked the IRQ, reenabled the
+ * controller(s) and enabled interrupts.
+ */
+void handleInterrupt(IrqHook *hook) {
+    1196:	55                   	push   %ebp
+    1197:	89 e5                	mov    %esp,%ebp
+    1199:	83 ec 08             	sub    $0x8,%esp
+	/* Call list of handlers for an IRQ. */
+	while (hook != NULL) {
+    119c:	eb 63                	jmp    1201 <handleInterrupt+0x6b>
+		/* For each handler in the list, mark it active by setting its ID bit,
+		 * call the function, and unmark it if the function returns true.
+		 */
+		irqActiveIds[hook->irq] |= hook->id;
+    119e:	8b 45 08             	mov    0x8(%ebp),%eax
+    11a1:	8b 40 08             	mov    0x8(%eax),%eax
+    11a4:	8b 55 08             	mov    0x8(%ebp),%edx
+    11a7:	8b 52 08             	mov    0x8(%edx),%edx
+    11aa:	8b 0c 95 c0 66 00 00 	mov    0x66c0(,%edx,4),%ecx
+    11b1:	8b 55 08             	mov    0x8(%ebp),%edx
+    11b4:	8b 52 0c             	mov    0xc(%edx),%edx
+    11b7:	09 ca                	or     %ecx,%edx
+    11b9:	89 14 85 c0 66 00 00 	mov    %edx,0x66c0(,%eax,4)
+		if ((*hook->handler)(hook))
+    11c0:	8b 45 08             	mov    0x8(%ebp),%eax
+    11c3:	8b 40 04             	mov    0x4(%eax),%eax
+    11c6:	83 ec 0c             	sub    $0xc,%esp
+    11c9:	ff 75 08             	pushl  0x8(%ebp)
+    11cc:	ff d0                	call   *%eax
+    11ce:	83 c4 10             	add    $0x10,%esp
+    11d1:	85 c0                	test   %eax,%eax
+    11d3:	74 24                	je     11f9 <handleInterrupt+0x63>
+		  irqActiveIds[hook->irq] &= ~hook->id;
+    11d5:	8b 45 08             	mov    0x8(%ebp),%eax
+    11d8:	8b 40 08             	mov    0x8(%eax),%eax
+    11db:	8b 55 08             	mov    0x8(%ebp),%edx
+    11de:	8b 52 08             	mov    0x8(%edx),%edx
+    11e1:	8b 0c 95 c0 66 00 00 	mov    0x66c0(,%edx,4),%ecx
+    11e8:	8b 55 08             	mov    0x8(%ebp),%edx
+    11eb:	8b 52 0c             	mov    0xc(%edx),%edx
+    11ee:	f7 d2                	not    %edx
+    11f0:	21 ca                	and    %ecx,%edx
+    11f2:	89 14 85 c0 66 00 00 	mov    %edx,0x66c0(,%eax,4)
+		hook = hook->next;
+    11f9:	8b 45 08             	mov    0x8(%ebp),%eax
+    11fc:	8b 00                	mov    (%eax),%eax
+    11fe:	89 45 08             	mov    %eax,0x8(%ebp)
+ * The assembly part of the handler has already masked the IRQ, reenabled the
+ * controller(s) and enabled interrupts.
+ */
+void handleInterrupt(IrqHook *hook) {
+	/* Call list of handlers for an IRQ. */
+	while (hook != NULL) {
+    1201:	83 7d 08 00          	cmpl   $0x0,0x8(%ebp)
+    1205:	75 97                	jne    119e <handleInterrupt+0x8>
+	}
+
+	/* The assembly code will now disable interrupts, unmask the IRQ if and only
+	 * if all active ID bits are cleared, and restart a process.
+	 */
+}
+    1207:	90                   	nop
+    1208:	c9                   	leave  
+    1209:	c3                   	ret    
+
+0000120a <handleException>:
+#include "kernel.h"
+#include "proc.h"
+
+void handleException(unsigned vectorNum) {
+    120a:	55                   	push   %ebp
+    120b:	89 e5                	mov    %esp,%ebp
+	// TODO
+}
+    120d:	90                   	nop
+    120e:	5d                   	pop    %ebp
+    120f:	c3                   	ret    
+
+00001210 <getPriv>:
+#include "stdlib.h"
+#include "unistd.h"
+#include "protect.h"
+
+
+int getPriv(register Proc *rp, int procType) {
+    1210:	55                   	push   %ebp
+    1211:	89 e5                	mov    %esp,%ebp
+    1213:	53                   	push   %ebx
+    1214:	8b 45 08             	mov    0x8(%ebp),%eax
+	register Priv *sp;
+
+	if (procType == SYS_PROC) {
+    1217:	83 7d 0c 10          	cmpl   $0x10,0xc(%ebp)
+    121b:	75 49                	jne    1266 <getPriv+0x56>
+		/* Find a new slot */
+		for (sp = BEG_PRIV_ADDR; sp < END_PRIV_ADDR; ++sp) {
+    121d:	bb 20 63 00 00       	mov    $0x6320,%ebx
+    1222:	eb 16                	jmp    123a <getPriv+0x2a>
+			if (sp->s_proc_nr == NONE && sp->s_id != USER_PRIV_ID)
+    1224:	8b 13                	mov    (%ebx),%edx
+    1226:	81 fa ce 6a 00 00    	cmp    $0x6ace,%edx
+    122c:	75 09                	jne    1237 <getPriv+0x27>
+    122e:	0f b7 53 04          	movzwl 0x4(%ebx),%edx
+    1232:	66 85 d2             	test   %dx,%dx
+    1235:	75 0d                	jne    1244 <getPriv+0x34>
+int getPriv(register Proc *rp, int procType) {
+	register Priv *sp;
+
+	if (procType == SYS_PROC) {
+		/* Find a new slot */
+		for (sp = BEG_PRIV_ADDR; sp < END_PRIV_ADDR; ++sp) {
+    1237:	83 c3 1c             	add    $0x1c,%ebx
+    123a:	81 fb a0 66 00 00    	cmp    $0x66a0,%ebx
+    1240:	72 e2                	jb     1224 <getPriv+0x14>
+    1242:	eb 01                	jmp    1245 <getPriv+0x35>
+			if (sp->s_proc_nr == NONE && sp->s_id != USER_PRIV_ID)
+			  break;
+    1244:	90                   	nop
+		}
+		if (sp->s_proc_nr != NONE)
+    1245:	8b 13                	mov    (%ebx),%edx
+    1247:	81 fa ce 6a 00 00    	cmp    $0x6ace,%edx
+    124d:	74 07                	je     1256 <getPriv+0x46>
+		  return ENOSPC;
+    124f:	b8 e4 ff ff ff       	mov    $0xffffffe4,%eax
+    1254:	eb 2e                	jmp    1284 <getPriv+0x74>
+		rp->p_priv = sp;				/* Assign new slot */
+    1256:	89 58 70             	mov    %ebx,0x70(%eax)
+		sp->s_proc_nr = procNum(rp);	/* Set association */
+    1259:	8b 40 6c             	mov    0x6c(%eax),%eax
+    125c:	89 03                	mov    %eax,(%ebx)
+		sp->s_flags = SYS_PROC;			/* Mark as privileged */
+    125e:	66 c7 43 06 10 00    	movw   $0x10,0x6(%ebx)
+    1264:	eb 19                	jmp    127f <getPriv+0x6f>
+	} else {
+		rp->p_priv = &privTable[USER_PRIV_ID];	/* Use shared slot */
+    1266:	c7 40 70 20 63 00 00 	movl   $0x6320,0x70(%eax)
+		rp->p_priv->s_proc_nr = INIT_PROC_NR;	/* Set association */
+    126d:	8b 50 70             	mov    0x70(%eax),%edx
+    1270:	c7 02 07 00 00 00    	movl   $0x7,(%edx)
+		rp->p_priv->s_flags = 0;
+    1276:	8b 40 70             	mov    0x70(%eax),%eax
+    1279:	66 c7 40 06 00 00    	movw   $0x0,0x6(%eax)
+	}
+	return OK;
+    127f:	b8 00 00 00 00       	mov    $0x0,%eax
+}
+    1284:	5b                   	pop    %ebx
+    1285:	5d                   	pop    %ebp
+    1286:	c3                   	ret    
+
+00001287 <clockHandler>:
+/* The time is incremented by the interrupt handler on each clock tick. */
+static clock_t realTime;		/* Real time clock */
+static IrqHook clockHook;		/* Interrupt handler hook */
+
+
+static int clockHandler(IrqHook *hook) {
+    1287:	55                   	push   %ebp
+    1288:	89 e5                	mov    %esp,%ebp
+    128a:	53                   	push   %ebx
+    128b:	83 ec 04             	sub    $0x4,%esp
+	register unsigned ticks;
+
+	/* Acknowledge the PS/2 clock interrupt. */
+	if (machine.ps_mca)
+    128e:	a1 04 67 00 00       	mov    0x6704,%eax
+    1293:	85 c0                	test   %eax,%eax
+    1295:	74 1d                	je     12b4 <clockHandler+0x2d>
+	  outb(PORT_B, inb(PORT_B) | CLOCK_ACK_BIT);
+    1297:	83 ec 0c             	sub    $0xc,%esp
+    129a:	6a 61                	push   $0x61
+    129c:	e8 fc 02 00 00       	call   159d <inb>
+    12a1:	83 c4 10             	add    $0x10,%esp
+    12a4:	0c 80                	or     $0x80,%al
+    12a6:	83 ec 08             	sub    $0x8,%esp
+    12a9:	50                   	push   %eax
+    12aa:	6a 61                	push   $0x61
+    12ac:	e8 f7 02 00 00       	call   15a8 <outb>
+    12b1:	83 c4 10             	add    $0x10,%esp
+
+	/* Get number of ticks and update realtime. */
+	ticks = lostTicks + 1;
+    12b4:	a1 08 63 00 00       	mov    0x6308,%eax
+    12b9:	8d 58 01             	lea    0x1(%eax),%ebx
+	lostTicks = 0;
+    12bc:	c7 05 08 63 00 00 00 	movl   $0x0,0x6308
+    12c3:	00 00 00 
+	realTime += ticks;
+    12c6:	a1 48 2a 00 00       	mov    0x2a48,%eax
+    12cb:	01 d8                	add    %ebx,%eax
+    12cd:	a3 48 2a 00 00       	mov    %eax,0x2a48
+	/* Update user and system accounting times. Charge the current process for
+	 * user time. If the current process is not billable, that is, if a non-user
+	 * process is running, charge the billable process for system time as well.
+	 * Thus the unbillable process' user time is the billable user's system time.
+	 */
+	currProc->p_user_time += ticks;
+    12d2:	a1 84 2f 00 00       	mov    0x2f84,%eax
+    12d7:	8b 15 84 2f 00 00    	mov    0x2f84,%edx
+    12dd:	8b 92 94 00 00 00    	mov    0x94(%edx),%edx
+    12e3:	01 da                	add    %ebx,%edx
+    12e5:	89 90 94 00 00 00    	mov    %edx,0x94(%eax)
+	if (priv(currProc)->s_flags & PREEMPTIBLE) {
+    12eb:	a1 84 2f 00 00       	mov    0x2f84,%eax
+    12f0:	8b 40 70             	mov    0x70(%eax),%eax
+    12f3:	0f b7 40 06          	movzwl 0x6(%eax),%eax
+    12f7:	98                   	cwtl   
+    12f8:	83 e0 01             	and    $0x1,%eax
+    12fb:	85 c0                	test   %eax,%eax
+    12fd:	74 1a                	je     1319 <clockHandler+0x92>
+		currProc->p_ticks_left -= ticks;
+    12ff:	a1 84 2f 00 00       	mov    0x2f84,%eax
+    1304:	8b 15 84 2f 00 00    	mov    0x2f84,%edx
+    130a:	0f b6 52 77          	movzbl 0x77(%edx),%edx
+    130e:	89 d1                	mov    %edx,%ecx
+    1310:	89 da                	mov    %ebx,%edx
+    1312:	29 d1                	sub    %edx,%ecx
+    1314:	89 ca                	mov    %ecx,%edx
+    1316:	88 50 77             	mov    %dl,0x77(%eax)
+	}
+	if (! (priv(currProc)->s_flags & BILLABLE)) {
+    1319:	a1 84 2f 00 00       	mov    0x2f84,%eax
+    131e:	8b 40 70             	mov    0x70(%eax),%eax
+    1321:	0f b7 40 06          	movzwl 0x6(%eax),%eax
+    1325:	98                   	cwtl   
+    1326:	83 e0 04             	and    $0x4,%eax
+    1329:	85 c0                	test   %eax,%eax
+    132b:	75 33                	jne    1360 <clockHandler+0xd9>
+		billProc->p_sys_time += ticks;
+    132d:	a1 14 67 00 00       	mov    0x6714,%eax
+    1332:	8b 15 14 67 00 00    	mov    0x6714,%edx
+    1338:	8b 92 98 00 00 00    	mov    0x98(%edx),%edx
+    133e:	01 da                	add    %ebx,%edx
+    1340:	89 90 98 00 00 00    	mov    %edx,0x98(%eax)
+		billProc->p_ticks_left -= ticks;
+    1346:	a1 14 67 00 00       	mov    0x6714,%eax
+    134b:	8b 15 14 67 00 00    	mov    0x6714,%edx
+    1351:	0f b6 52 77          	movzbl 0x77(%edx),%edx
+    1355:	89 d1                	mov    %edx,%ecx
+    1357:	89 da                	mov    %ebx,%edx
+    1359:	29 d1                	sub    %edx,%ecx
+    135b:	89 ca                	mov    %ecx,%edx
+    135d:	88 50 77             	mov    %dl,0x77(%eax)
+	}
+	
+	/* Check if doClickTick() must be called. Done for alarms and scheduling.
+	 * Some processes, such as the kernel tasks, cannot be preempted.
+	 */
+	if (nextTimeout <= realTime || currProc->p_ticks_left <= 0) {
+    1360:	8b 15 44 2a 00 00    	mov    0x2a44,%edx
+    1366:	a1 48 2a 00 00       	mov    0x2a48,%eax
+    136b:	39 c2                	cmp    %eax,%edx
+    136d:	7e 0d                	jle    137c <clockHandler+0xf5>
+    136f:	a1 84 2f 00 00       	mov    0x2f84,%eax
+    1374:	0f b6 40 77          	movzbl 0x77(%eax),%eax
+    1378:	84 c0                	test   %al,%al
+    137a:	7f 19                	jg     1395 <clockHandler+0x10e>
+		prevProc = currProc;			/* Store running process */
+    137c:	a1 84 2f 00 00       	mov    0x2f84,%eax
+    1381:	a3 18 67 00 00       	mov    %eax,0x6718
+		lockNotify(HARDWARE, CLOCK);	/* Send notifications */
+    1386:	83 ec 08             	sub    $0x8,%esp
+    1389:	6a fd                	push   $0xfffffffd
+    138b:	6a ff                	push   $0xffffffff
+    138d:	e8 e2 fb ff ff       	call   f74 <lockNotify>
+    1392:	83 c4 10             	add    $0x10,%esp
+	}
+	return 1;		/* reenable interrupts */
+    1395:	b8 01 00 00 00       	mov    $0x1,%eax
+}
+    139a:	8b 5d fc             	mov    -0x4(%ebp),%ebx
+    139d:	c9                   	leave  
+    139e:	c3                   	ret    
+
+0000139f <initClock>:
+
+static void initClock() {
+    139f:	55                   	push   %ebp
+    13a0:	89 e5                	mov    %esp,%ebp
+    13a2:	83 ec 08             	sub    $0x8,%esp
+	/* Initialize the CLOCK's interrupt hook. */
+	clockHook.procNum = CLOCK;
+    13a5:	c7 05 5c 2a 00 00 fd 	movl   $0xfffffffd,0x2a5c
+    13ac:	ff ff ff 
+
+	/* Initialize channel 0 of the 8253A timer to, e.g., 60 HZ. */
+	outb(TIMER_MODE, SQUARE_WAVE);		/* Set timer to run continuously */
+    13af:	83 ec 08             	sub    $0x8,%esp
+    13b2:	6a 36                	push   $0x36
+    13b4:	6a 43                	push   $0x43
+    13b6:	e8 ed 01 00 00       	call   15a8 <outb>
+    13bb:	83 c4 10             	add    $0x10,%esp
+	outb(TIMER0, TIMER_COUNT);			/* Load timer low byte */
+    13be:	83 ec 08             	sub    $0x8,%esp
+    13c1:	68 ae 4d 00 00       	push   $0x4dae
+    13c6:	6a 40                	push   $0x40
+    13c8:	e8 db 01 00 00       	call   15a8 <outb>
+    13cd:	83 c4 10             	add    $0x10,%esp
+	outb(TIMER0, TIMER_COUNT >> 8);		/* Load timer high byte */
+    13d0:	83 ec 08             	sub    $0x8,%esp
+    13d3:	6a 4d                	push   $0x4d
+    13d5:	6a 40                	push   $0x40
+    13d7:	e8 cc 01 00 00       	call   15a8 <outb>
+    13dc:	83 c4 10             	add    $0x10,%esp
+	putIrqHandler(&clockHook, CLOCK_IRQ, clockHandler);	/* Register handler */
+    13df:	83 ec 04             	sub    $0x4,%esp
+    13e2:	68 87 12 00 00       	push   $0x1287
+    13e7:	6a 00                	push   $0x0
+    13e9:	68 4c 2a 00 00       	push   $0x2a4c
+    13ee:	e8 e7 fc ff ff       	call   10da <putIrqHandler>
+    13f3:	83 c4 10             	add    $0x10,%esp
+	enableIrq(&clockHook);
+    13f6:	83 ec 0c             	sub    $0xc,%esp
+    13f9:	68 4c 2a 00 00       	push   $0x2a4c
+    13fe:	e8 4d f6 ff ff       	call   a50 <enableIrq>
+    1403:	83 c4 10             	add    $0x10,%esp
+}
+    1406:	90                   	nop
+    1407:	c9                   	leave  
+    1408:	c3                   	ret    
+
+00001409 <clockTask>:
+
+/* Main program of clock task. if the call is not HARD_INT it is an error. */
+void clockTask() {
+    1409:	55                   	push   %ebp
+    140a:	89 e5                	mov    %esp,%ebp
+    140c:	83 ec 08             	sub    $0x8,%esp
+	//Message m;			/* Message buffer for both input and output */
+	//int result;			/* Result returned by the handler */
+
+	initClock();		/* Initialize clock task */
+    140f:	e8 8b ff ff ff       	call   139f <initClock>
+
+	while (true) {
+		
+	}
+    1414:	eb fe                	jmp    1414 <clockTask+0xb>
+
+00001416 <panic>:
+
+void panic(char* msg, int num) {
+    1416:	55                   	push   %ebp
+    1417:	89 e5                	mov    %esp,%ebp
+	// TODO
+}
+    1419:	90                   	nop
+    141a:	5d                   	pop    %ebp
+    141b:	c3                   	ret    
+
+0000141c <kprintf>:
+
+void kprintf(const char *fmt, ...) {
+    141c:	55                   	push   %ebp
+    141d:	89 e5                	mov    %esp,%ebp
+	// TODO
+}
+    141f:	90                   	nop
+    1420:	5d                   	pop    %ebp
+    1421:	c3                   	ret    
+
+00001422 <strncpy>:
+    1422:	55                   	push   %ebp
+    1423:	89 e5                	mov    %esp,%ebp
+    1425:	57                   	push   %edi
+    1426:	56                   	push   %esi
+    1427:	53                   	push   %ebx
+    1428:	8b 7d 0c             	mov    0xc(%ebp),%edi
+    142b:	8b 45 10             	mov    0x10(%ebp),%eax
+    142e:	8b 5d 08             	mov    0x8(%ebp),%ebx
+    1431:	85 c0                	test   %eax,%eax
+    1433:	74 3e                	je     1473 <strncpy+0x51>
+    1435:	90                   	nop
+    1436:	89 d9                	mov    %ebx,%ecx
+    1438:	8d 59 01             	lea    0x1(%ecx),%ebx
+    143b:	89 fe                	mov    %edi,%esi
+    143d:	8d 7e 01             	lea    0x1(%esi),%edi
+    1440:	0f b6 16             	movzbl (%esi),%edx
+    1443:	88 11                	mov    %dl,(%ecx)
+    1445:	0f b6 09             	movzbl (%ecx),%ecx
+    1448:	84 c9                	test   %cl,%cl
+    144a:	74 07                	je     1453 <strncpy+0x31>
+    144c:	83 e8 01             	sub    $0x1,%eax
+    144f:	85 c0                	test   %eax,%eax
+    1451:	75 e3                	jne    1436 <strncpy+0x14>
+    1453:	83 ef 01             	sub    $0x1,%edi
+    1456:	0f b6 17             	movzbl (%edi),%edx
+    1459:	84 d2                	test   %dl,%dl
+    145b:	75 16                	jne    1473 <strncpy+0x51>
+    145d:	83 e8 01             	sub    $0x1,%eax
+    1460:	85 c0                	test   %eax,%eax
+    1462:	74 0f                	je     1473 <strncpy+0x51>
+    1464:	89 da                	mov    %ebx,%edx
+    1466:	8d 5a 01             	lea    0x1(%edx),%ebx
+    1469:	c6 02 00             	movb   $0x0,(%edx)
+    146c:	83 e8 01             	sub    $0x1,%eax
+    146f:	85 c0                	test   %eax,%eax
+    1471:	75 f1                	jne    1464 <strncpy+0x42>
+    1473:	8b 45 08             	mov    0x8(%ebp),%eax
+    1476:	5b                   	pop    %ebx
+    1477:	5e                   	pop    %esi
+    1478:	5f                   	pop    %edi
+    1479:	5d                   	pop    %ebp
+    147a:	c3                   	ret    
+
+0000147b <strlen>:
+    147b:	55                   	push   %ebp
+    147c:	89 e5                	mov    %esp,%ebp
+    147e:	53                   	push   %ebx
+    147f:	8b 5d 08             	mov    0x8(%ebp),%ebx
+    1482:	90                   	nop
+    1483:	89 d8                	mov    %ebx,%eax
+    1485:	8d 58 01             	lea    0x1(%eax),%ebx
+    1488:	0f b6 00             	movzbl (%eax),%eax
+    148b:	84 c0                	test   %al,%al
+    148d:	75 f4                	jne    1483 <strlen+0x8>
+    148f:	83 eb 01             	sub    $0x1,%ebx
+    1492:	89 da                	mov    %ebx,%edx
+    1494:	8b 45 08             	mov    0x8(%ebp),%eax
+    1497:	29 c2                	sub    %eax,%edx
+    1499:	89 d0                	mov    %edx,%eax
+    149b:	5b                   	pop    %ebx
+    149c:	5d                   	pop    %ebp
+    149d:	c3                   	ret    
+
+0000149e <strcmp>:
+    149e:	55                   	push   %ebp
+    149f:	89 e5                	mov    %esp,%ebp
+    14a1:	53                   	push   %ebx
+    14a2:	8b 55 08             	mov    0x8(%ebp),%edx
+    14a5:	8b 45 0c             	mov    0xc(%ebp),%eax
+    14a8:	eb 13                	jmp    14bd <strcmp+0x1f>
+    14aa:	89 d1                	mov    %edx,%ecx
+    14ac:	8d 51 01             	lea    0x1(%ecx),%edx
+    14af:	0f b6 09             	movzbl (%ecx),%ecx
+    14b2:	84 c9                	test   %cl,%cl
+    14b4:	75 07                	jne    14bd <strcmp+0x1f>
+    14b6:	b8 00 00 00 00       	mov    $0x0,%eax
+    14bb:	eb 3e                	jmp    14fb <strcmp+0x5d>
+    14bd:	0f b6 1a             	movzbl (%edx),%ebx
+    14c0:	89 c1                	mov    %eax,%ecx
+    14c2:	8d 41 01             	lea    0x1(%ecx),%eax
+    14c5:	0f b6 09             	movzbl (%ecx),%ecx
+    14c8:	38 cb                	cmp    %cl,%bl
+    14ca:	74 de                	je     14aa <strcmp+0xc>
+    14cc:	0f b6 0a             	movzbl (%edx),%ecx
+    14cf:	84 c9                	test   %cl,%cl
+    14d1:	75 07                	jne    14da <strcmp+0x3c>
+    14d3:	b8 ff ff ff ff       	mov    $0xffffffff,%eax
+    14d8:	eb 21                	jmp    14fb <strcmp+0x5d>
+    14da:	83 e8 01             	sub    $0x1,%eax
+    14dd:	0f b6 08             	movzbl (%eax),%ecx
+    14e0:	84 c9                	test   %cl,%cl
+    14e2:	75 07                	jne    14eb <strcmp+0x4d>
+    14e4:	b8 01 00 00 00       	mov    $0x1,%eax
+    14e9:	eb 10                	jmp    14fb <strcmp+0x5d>
+    14eb:	0f b6 12             	movzbl (%edx),%edx
+    14ee:	0f b6 d2             	movzbl %dl,%edx
+    14f1:	0f b6 00             	movzbl (%eax),%eax
+    14f4:	0f b6 c0             	movzbl %al,%eax
+    14f7:	29 c2                	sub    %eax,%edx
+    14f9:	89 d0                	mov    %edx,%eax
+    14fb:	5b                   	pop    %ebx
+    14fc:	5d                   	pop    %ebp
+    14fd:	c3                   	ret    
+
+000014fe <strncmp>:
+    14fe:	55                   	push   %ebp
+    14ff:	89 e5                	mov    %esp,%ebp
+    1501:	53                   	push   %ebx
+    1502:	83 ec 04             	sub    $0x4,%esp
+    1505:	8b 55 08             	mov    0x8(%ebp),%edx
+    1508:	8b 45 0c             	mov    0xc(%ebp),%eax
+    150b:	8b 4d 10             	mov    0x10(%ebp),%ecx
+    150e:	85 c9                	test   %ecx,%ecx
+    1510:	74 65                	je     1577 <strncmp+0x79>
+    1512:	0f b6 1a             	movzbl (%edx),%ebx
+    1515:	88 5d fb             	mov    %bl,-0x5(%ebp)
+    1518:	89 c3                	mov    %eax,%ebx
+    151a:	8d 43 01             	lea    0x1(%ebx),%eax
+    151d:	0f b6 1b             	movzbl (%ebx),%ebx
+    1520:	38 5d fb             	cmp    %bl,-0x5(%ebp)
+    1523:	75 1c                	jne    1541 <strncmp+0x43>
+    1525:	89 d3                	mov    %edx,%ebx
+    1527:	8d 53 01             	lea    0x1(%ebx),%edx
+    152a:	0f b6 1b             	movzbl (%ebx),%ebx
+    152d:	84 db                	test   %bl,%bl
+    152f:	75 07                	jne    1538 <strncmp+0x3a>
+    1531:	b8 00 00 00 00       	mov    $0x0,%eax
+    1536:	eb 44                	jmp    157c <strncmp+0x7e>
+    1538:	83 e9 01             	sub    $0x1,%ecx
+    153b:	85 c9                	test   %ecx,%ecx
+    153d:	75 d3                	jne    1512 <strncmp+0x14>
+    153f:	eb 01                	jmp    1542 <strncmp+0x44>
+    1541:	90                   	nop
+    1542:	85 c9                	test   %ecx,%ecx
+    1544:	74 31                	je     1577 <strncmp+0x79>
+    1546:	0f b6 0a             	movzbl (%edx),%ecx
+    1549:	84 c9                	test   %cl,%cl
+    154b:	75 07                	jne    1554 <strncmp+0x56>
+    154d:	b8 ff ff ff ff       	mov    $0xffffffff,%eax
+    1552:	eb 28                	jmp    157c <strncmp+0x7e>
+    1554:	83 e8 01             	sub    $0x1,%eax
+    1557:	0f b6 08             	movzbl (%eax),%ecx
+    155a:	84 c9                	test   %cl,%cl
+    155c:	75 07                	jne    1565 <strncmp+0x67>
+    155e:	b8 01 00 00 00       	mov    $0x1,%eax
+    1563:	eb 17                	jmp    157c <strncmp+0x7e>
+    1565:	0f b6 12             	movzbl (%edx),%edx
+    1568:	0f b6 d2             	movzbl %dl,%edx
+    156b:	0f b6 00             	movzbl (%eax),%eax
+    156e:	0f b6 c0             	movzbl %al,%eax
+    1571:	29 c2                	sub    %eax,%edx
+    1573:	89 d0                	mov    %edx,%eax
+    1575:	eb 05                	jmp    157c <strncmp+0x7e>
+    1577:	b8 00 00 00 00       	mov    $0x0,%eax
+    157c:	83 c4 04             	add    $0x4,%esp
+    157f:	5b                   	pop    %ebx
+    1580:	5d                   	pop    %ebp
+    1581:	c3                   	ret    
+
+00001582 <atoi>:
+    1582:	55                   	push   %ebp
+    1583:	89 e5                	mov    %esp,%ebp
+    1585:	83 ec 08             	sub    $0x8,%esp
+    1588:	8b 45 08             	mov    0x8(%ebp),%eax
+    158b:	83 ec 04             	sub    $0x4,%esp
+    158e:	6a 0a                	push   $0xa
+    1590:	6a 00                	push   $0x0
+    1592:	50                   	push   %eax
+    1593:	e8 cf 01 00 00       	call   1767 <strtol>
+    1598:	83 c4 10             	add    $0x10,%esp
+    159b:	c9                   	leave  
+    159c:	c3                   	ret    
+
+0000159d <inb>:
+    159d:	55                   	push   %ebp
+    159e:	89 e5                	mov    %esp,%ebp
+    15a0:	8b 55 08             	mov    0x8(%ebp),%edx
+    15a3:	31 c0                	xor    %eax,%eax
+    15a5:	ec                   	in     (%dx),%al
+    15a6:	5d                   	pop    %ebp
+    15a7:	c3                   	ret    
+
+000015a8 <outb>:
+    15a8:	55                   	push   %ebp
+    15a9:	89 e5                	mov    %esp,%ebp
+    15ab:	8b 55 08             	mov    0x8(%ebp),%edx
+    15ae:	8b 45 0c             	mov    0xc(%ebp),%eax
+    15b1:	ee                   	out    %al,(%dx)
+    15b2:	5d                   	pop    %ebp
+    15b3:	c3                   	ret    
+
+000015b4 <disableInterrupt>:
+    15b4:	fa                   	cli    
+    15b5:	c3                   	ret    
+
+000015b6 <enableInterrupt>:
+    15b6:	fb                   	sti    
+    15b7:	c3                   	ret    
+
+000015b8 <string2Long>:
+    15b8:	55                   	push   %ebp
+    15b9:	89 e5                	mov    %esp,%ebp
+    15bb:	57                   	push   %edi
+    15bc:	56                   	push   %esi
+    15bd:	53                   	push   %ebx
+    15be:	83 ec 10             	sub    $0x10,%esp
+    15c1:	8b 4d 08             	mov    0x8(%ebp),%ecx
+    15c4:	be 00 00 00 00       	mov    $0x0,%esi
+    15c9:	c7 45 f0 00 00 00 00 	movl   $0x0,-0x10(%ebp)
+    15d0:	c7 45 ec 01 00 00 00 	movl   $0x1,-0x14(%ebp)
+    15d7:	89 4d e8             	mov    %ecx,-0x18(%ebp)
+    15da:	83 7d 0c 00          	cmpl   $0x0,0xc(%ebp)
+    15de:	74 0a                	je     15ea <string2Long+0x32>
+    15e0:	8b 45 0c             	mov    0xc(%ebp),%eax
+    15e3:	89 08                	mov    %ecx,(%eax)
+    15e5:	eb 03                	jmp    15ea <string2Long+0x32>
+    15e7:	83 c1 01             	add    $0x1,%ecx
+    15ea:	0f b6 01             	movzbl (%ecx),%eax
+    15ed:	0f be c0             	movsbl %al,%eax
+    15f0:	83 c0 01             	add    $0x1,%eax
+    15f3:	05 40 21 00 00       	add    $0x2140,%eax
+    15f8:	0f b6 00             	movzbl (%eax),%eax
+    15fb:	0f be c0             	movsbl %al,%eax
+    15fe:	83 e0 08             	and    $0x8,%eax
+    1601:	85 c0                	test   %eax,%eax
+    1603:	75 e2                	jne    15e7 <string2Long+0x2f>
+    1605:	0f b6 01             	movzbl (%ecx),%eax
+    1608:	0f be d8             	movsbl %al,%ebx
+    160b:	83 fb 2d             	cmp    $0x2d,%ebx
+    160e:	74 05                	je     1615 <string2Long+0x5d>
+    1610:	83 fb 2b             	cmp    $0x2b,%ebx
+    1613:	75 0f                	jne    1624 <string2Long+0x6c>
+    1615:	83 fb 2d             	cmp    $0x2d,%ebx
+    1618:	75 07                	jne    1621 <string2Long+0x69>
+    161a:	c7 45 ec ff ff ff ff 	movl   $0xffffffff,-0x14(%ebp)
+    1621:	83 c1 01             	add    $0x1,%ecx
+    1624:	89 4d e4             	mov    %ecx,-0x1c(%ebp)
+    1627:	83 7d 10 00          	cmpl   $0x0,0x10(%ebp)
+    162b:	75 36                	jne    1663 <string2Long+0xab>
+    162d:	0f b6 01             	movzbl (%ecx),%eax
+    1630:	3c 30                	cmp    $0x30,%al
+    1632:	75 26                	jne    165a <string2Long+0xa2>
+    1634:	83 c1 01             	add    $0x1,%ecx
+    1637:	0f b6 01             	movzbl (%ecx),%eax
+    163a:	3c 78                	cmp    $0x78,%al
+    163c:	74 07                	je     1645 <string2Long+0x8d>
+    163e:	0f b6 01             	movzbl (%ecx),%eax
+    1641:	3c 58                	cmp    $0x58,%al
+    1643:	75 0c                	jne    1651 <string2Long+0x99>
+    1645:	c7 45 10 10 00 00 00 	movl   $0x10,0x10(%ebp)
+    164c:	83 c1 01             	add    $0x1,%ecx
+    164f:	eb 33                	jmp    1684 <string2Long+0xcc>
+    1651:	c7 45 10 08 00 00 00 	movl   $0x8,0x10(%ebp)
+    1658:	eb 2a                	jmp    1684 <string2Long+0xcc>
+    165a:	c7 45 10 0a 00 00 00 	movl   $0xa,0x10(%ebp)
+    1661:	eb 21                	jmp    1684 <string2Long+0xcc>
+    1663:	83 7d 10 10          	cmpl   $0x10,0x10(%ebp)
+    1667:	75 1b                	jne    1684 <string2Long+0xcc>
+    1669:	0f b6 01             	movzbl (%ecx),%eax
+    166c:	3c 30                	cmp    $0x30,%al
+    166e:	75 14                	jne    1684 <string2Long+0xcc>
+    1670:	83 c1 01             	add    $0x1,%ecx
+    1673:	0f b6 01             	movzbl (%ecx),%eax
+    1676:	3c 78                	cmp    $0x78,%al
+    1678:	74 07                	je     1681 <string2Long+0xc9>
+    167a:	0f b6 01             	movzbl (%ecx),%eax
+    167d:	3c 58                	cmp    $0x58,%al
+    167f:	75 03                	jne    1684 <string2Long+0xcc>
+    1681:	83 c1 01             	add    $0x1,%ecx
+    1684:	0f b6 01             	movzbl (%ecx),%eax
+    1687:	0f be d8             	movsbl %al,%ebx
+    168a:	8d 43 d0             	lea    -0x30(%ebx),%eax
+    168d:	83 f8 09             	cmp    $0x9,%eax
+    1690:	77 07                	ja     1699 <string2Long+0xe1>
+    1692:	8d 43 d0             	lea    -0x30(%ebx),%eax
+    1695:	89 c3                	mov    %eax,%ebx
+    1697:	eb 1c                	jmp    16b5 <string2Long+0xfd>
+    1699:	8d 43 9f             	lea    -0x61(%ebx),%eax
+    169c:	83 f8 19             	cmp    $0x19,%eax
+    169f:	77 07                	ja     16a8 <string2Long+0xf0>
+    16a1:	8d 43 a9             	lea    -0x57(%ebx),%eax
+    16a4:	89 c3                	mov    %eax,%ebx
+    16a6:	eb 0d                	jmp    16b5 <string2Long+0xfd>
+    16a8:	8d 43 bf             	lea    -0x41(%ebx),%eax
+    16ab:	83 f8 19             	cmp    $0x19,%eax
+    16ae:	77 30                	ja     16e0 <string2Long+0x128>
+    16b0:	8d 43 c9             	lea    -0x37(%ebx),%eax
+    16b3:	89 c3                	mov    %eax,%ebx
+    16b5:	8b 45 10             	mov    0x10(%ebp),%eax
+    16b8:	39 c3                	cmp    %eax,%ebx
+    16ba:	73 27                	jae    16e3 <string2Long+0x12b>
+    16bc:	89 d8                	mov    %ebx,%eax
+    16be:	f7 d0                	not    %eax
+    16c0:	8b 7d 10             	mov    0x10(%ebp),%edi
+    16c3:	ba 00 00 00 00       	mov    $0x0,%edx
+    16c8:	f7 f7                	div    %edi
+    16ca:	39 f0                	cmp    %esi,%eax
+    16cc:	73 04                	jae    16d2 <string2Long+0x11a>
+    16ce:	83 45 f0 01          	addl   $0x1,-0x10(%ebp)
+    16d2:	8b 45 10             	mov    0x10(%ebp),%eax
+    16d5:	0f af c6             	imul   %esi,%eax
+    16d8:	8d 34 18             	lea    (%eax,%ebx,1),%esi
+    16db:	83 c1 01             	add    $0x1,%ecx
+    16de:	eb a4                	jmp    1684 <string2Long+0xcc>
+    16e0:	90                   	nop
+    16e1:	eb 01                	jmp    16e4 <string2Long+0x12c>
+    16e3:	90                   	nop
+    16e4:	83 7d 0c 00          	cmpl   $0x0,0xc(%ebp)
+    16e8:	74 14                	je     16fe <string2Long+0x146>
+    16ea:	39 4d e4             	cmp    %ecx,-0x1c(%ebp)
+    16ed:	75 0a                	jne    16f9 <string2Long+0x141>
+    16ef:	8b 45 0c             	mov    0xc(%ebp),%eax
+    16f2:	8b 55 e8             	mov    -0x18(%ebp),%edx
+    16f5:	89 10                	mov    %edx,(%eax)
+    16f7:	eb 05                	jmp    16fe <string2Long+0x146>
+    16f9:	8b 45 0c             	mov    0xc(%ebp),%eax
+    16fc:	89 08                	mov    %ecx,(%eax)
+    16fe:	83 7d f0 00          	cmpl   $0x0,-0x10(%ebp)
+    1702:	75 24                	jne    1728 <string2Long+0x170>
+    1704:	83 7d 14 00          	cmpl   $0x0,0x14(%ebp)
+    1708:	74 1e                	je     1728 <string2Long+0x170>
+    170a:	83 7d ec 00          	cmpl   $0x0,-0x14(%ebp)
+    170e:	79 08                	jns    1718 <string2Long+0x160>
+    1710:	81 fe 00 00 00 80    	cmp    $0x80000000,%esi
+    1716:	77 0c                	ja     1724 <string2Long+0x16c>
+    1718:	83 7d ec 00          	cmpl   $0x0,-0x14(%ebp)
+    171c:	7e 0a                	jle    1728 <string2Long+0x170>
+    171e:	89 f0                	mov    %esi,%eax
+    1720:	85 c0                	test   %eax,%eax
+    1722:	79 04                	jns    1728 <string2Long+0x170>
+    1724:	83 45 f0 01          	addl   $0x1,-0x10(%ebp)
+    1728:	83 7d f0 00          	cmpl   $0x0,-0x10(%ebp)
+    172c:	74 2b                	je     1759 <string2Long+0x1a1>
+    172e:	c7 05 68 2a 00 00 22 	movl   $0x22,0x2a68
+    1735:	00 00 00 
+    1738:	83 7d 14 00          	cmpl   $0x0,0x14(%ebp)
+    173c:	74 14                	je     1752 <string2Long+0x19a>
+    173e:	83 7d ec 00          	cmpl   $0x0,-0x14(%ebp)
+    1742:	79 07                	jns    174b <string2Long+0x193>
+    1744:	b8 00 00 00 80       	mov    $0x80000000,%eax
+    1749:	eb 14                	jmp    175f <string2Long+0x1a7>
+    174b:	b8 ff ff ff 7f       	mov    $0x7fffffff,%eax
+    1750:	eb 0d                	jmp    175f <string2Long+0x1a7>
+    1752:	b8 ff ff ff ff       	mov    $0xffffffff,%eax
+    1757:	eb 06                	jmp    175f <string2Long+0x1a7>
+    1759:	8b 45 ec             	mov    -0x14(%ebp),%eax
+    175c:	0f af c6             	imul   %esi,%eax
+    175f:	83 c4 10             	add    $0x10,%esp
+    1762:	5b                   	pop    %ebx
+    1763:	5e                   	pop    %esi
+    1764:	5f                   	pop    %edi
+    1765:	5d                   	pop    %ebp
+    1766:	c3                   	ret    
+
+00001767 <strtol>:
+    1767:	55                   	push   %ebp
+    1768:	89 e5                	mov    %esp,%ebp
+    176a:	6a 01                	push   $0x1
+    176c:	ff 75 10             	pushl  0x10(%ebp)
+    176f:	ff 75 0c             	pushl  0xc(%ebp)
+    1772:	ff 75 08             	pushl  0x8(%ebp)
+    1775:	e8 3e fe ff ff       	call   15b8 <string2Long>
+    177a:	83 c4 10             	add    $0x10,%esp
+    177d:	c9                   	leave  
+    177e:	c3                   	ret    
+
+0000177f <strtoul>:
+    177f:	55                   	push   %ebp
+    1780:	89 e5                	mov    %esp,%ebp
+    1782:	6a 00                	push   $0x0
+    1784:	ff 75 10             	pushl  0x10(%ebp)
+    1787:	ff 75 0c             	pushl  0xc(%ebp)
+    178a:	ff 75 08             	pushl  0x8(%ebp)
+    178d:	e8 26 fe ff ff       	call   15b8 <string2Long>
+    1792:	83 c4 10             	add    $0x10,%esp
+    1795:	c9                   	leave  
+    1796:	c3                   	ret    
+
+Disassembly of section .data:
+
+00002000 <gateTable.1450>:
+    2000:	a1 02 00 00 00 00 00 00 ac 02 00 00 01 00 00 00     ................
+    2010:	b4 02 00 00 02 00 00 00 bc 02 00 00 03 02 00 00     ................
+    2020:	c4 02 00 00 04 02 00 00 cc 02 00 00 05 00 00 00     ................
+    2030:	d4 02 00 00 06 00 00 00 dc 02 00 00 07 00 00 00     ................
+    2040:	e4 02 00 00 08 00 00 00 ec 02 00 00 09 00 00 00     ................
+    2050:	f4 02 00 00 0a 00 00 00 fc 02 00 00 0b 00 00 00     ................
+    2060:	04 03 00 00 0c 00 00 00 0c 03 00 00 0d 00 00 00     ................
+    2070:	14 03 00 00 0e 00 00 00 1c 03 00 00 10 00 00 00     ................
+    2080:	b0 00 00 00 50 00 00 00 e0 00 00 00 51 00 00 00     ....P.......Q...
+    2090:	10 01 00 00 52 00 00 00 40 01 00 00 53 00 00 00     ....R...@...S...
+    20a0:	70 01 00 00 54 00 00 00 a0 01 00 00 55 00 00 00     p...T.......U...
+    20b0:	d0 01 00 00 56 00 00 00 00 02 00 00 57 00 00 00     ....V.......W...
+    20c0:	30 02 00 00 70 00 00 00 40 02 00 00 71 00 00 00     0...p...@...q...
+    20d0:	50 02 00 00 72 00 00 00 60 02 00 00 73 00 00 00     P...r...`...s...
+    20e0:	70 02 00 00 74 00 00 00 80 02 00 00 75 00 00 00     p...t.......u...
+    20f0:	90 02 00 00 76 00 00 00 a0 02 00 00 77 00 00 00     ....v.......w...
+
+00002100 <images>:
+    2100:	fd ff ff ff 09 14 00 00 10 00 00 00 40 00 00 00     ............@...
+    2110:	00 00 00 00 00 02 00 00 04 00 00 00 00 00 00 00     ................
+    2120:	43 4c 4f 43 4b 00 00 00 00 00 00 00 00 00 00 00     CLOCK...........
+	...
+
+00002140 <__ctype>:
+    2140:	00 20 20 20 20 20 20 20 20 20 28 28 28 28 28 20     .         ((((( 
+    2150:	20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20                     
+    2160:	20 08 10 10 10 10 10 10 10 10 10 10 10 10 10 10      ...............
+    2170:	10 04 04 04 04 04 04 04 04 04 04 10 10 10 10 10     ................
+    2180:	10 10 41 41 41 41 41 41 01 01 01 01 01 01 01 01     ..AAAAAA........
+    2190:	01 01 01 01 01 01 01 01 01 01 01 01 10 10 10 10     ................
+    21a0:	10 10 42 42 42 42 42 42 02 02 02 02 02 02 02 02     ..BBBBBB........
+    21b0:	02 02 02 02 02 02 02 02 02 02 02 02 10 10 10 10     ................
+    21c0:	20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00      ...............
+	...
+
+Disassembly of section .bss:
+
+00002260 <kStack>:
+	...
+
+00002660 <exVector>:
+    2660:	00 00 00 00                                         ....
+
+00002664 <errorCode>:
+    2664:	00 00 00 00                                         ....
+
+00002668 <oldEip>:
+    2668:	00 00 00 00                                         ....
+
+0000266c <oldCs>:
+    266c:	00 00 00 00                                         ....
+
+00002670 <oldEflags>:
+	...
+
+00002680 <idt>:
+	...
+
+00002a40 <prevProc.1373>:
+    2a40:	00 00 00 00                                         ....
+
+00002a44 <nextTimeout>:
+    2a44:	00 00 00 00                                         ....
+
+00002a48 <realTime>:
+    2a48:	00 00 00 00                                         ....
+
+00002a4c <clockHook>:
+	...
+
+00002a68 <errno>:
+	...
+
+00002a80 <gdt>:
+	...
+
+00002d20 <tss>:
+	...
+
+00002da0 <procAddrTable>:
+	...
+
+00002ec0 <kernelInfo>:
+	...
+
+00002f00 <readyProcHead>:
+	...
+
+00002f40 <readyProcTail>:
+	...
+
+00002f80 <shutdownStarted>:
+    2f80:	00 00 00 00                                         ....
+
+00002f84 <currProc>:
+    2f84:	00 00 00 00                                         ....
+
+00002f88 <irqInUse>:
+	...
+
+00002fa0 <taskStack>:
+	...
+
+000035a0 <procTable>:
+	...
+
+00006240 <irqHandlers>:
+	...
+
+00006280 <privAddrTable>:
+	...
+
+00006300 <imgHdrPos>:
+    6300:	00 00 00 00                                         ....
+
+00006304 <kernelReentryCount>:
+    6304:	00 00 00 00                                         ....
+
+00006308 <lostTicks>:
+	...
+
+00006320 <privTable>:
+	...
+
+000066a0 <nextProc>:
+	...
+
+000066c0 <irqActiveIds>:
+	...
+
+00006700 <machine>:
+	...
+
+00006714 <billProc>:
+    6714:	00 00 00 00                                         ....
+
+00006718 <prevProc>:
+	...
+
+00006720 <irqHooks>:
+	...

@@ -444,7 +444,7 @@ restart:
 	cmpl	$0, nextProc		/* See if another process is scheduled. */
 	jz	.loadProc
 	movl	nextProc, %eax
-	movl	%eax, prevProc		/* Schedule new process */
+	movl	%eax, currProc		/* Schedule new process */
 	movl	$0, nextProc
 .loadProc:
 	movl	currProc, %esp		/* esp = Proc.StackFrame */
@@ -468,7 +468,7 @@ restart:
 
 	.section	.bss
 	.lcomm	kStack, K_STACK_BYTES	/* Kernel stack */
-kStackTop:							/* Top of kernel stack */
+	.lcomm  kStackTop, 0		/* Top of kernel stack, just a position tag, no size. */
 	.lcomm	exVector, 4	
 	.lcomm	errorCode, 4
 	.lcomm	oldEip, 4
