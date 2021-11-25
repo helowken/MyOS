@@ -3,7 +3,7 @@ INC_DEPEND = $(INC)/ibm/*.h $(INC)/minix/*.h
 include $(MY_HOME)/common.mk
 CFLAGS += -g 
 LIB_DIR = $(MY_HOME)/lib
-LIBS = -lmyc -lmysysutil
+LIBS = -lmyc -lmysysutil -lmytimers
 
 HEAD = mpx.o
 OBJS = start.o protect.o klib386.o table.o main.o proc.o \

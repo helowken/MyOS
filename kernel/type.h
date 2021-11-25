@@ -5,10 +5,10 @@
 
 typedef void (*taskFunc)();
 
-typedef int proc_nr_t;	/* Process table entry number */
-typedef short sys_id_t;	/* System process index */
-typedef unsigned reg_t;	/* Machine register */
-typedef struct {		/* Bitmap for System indexes */
+typedef int proc_nr_t;		/* Process table entry number */
+typedef short sys_id_t;		/* System process index */
+typedef unsigned reg_t;		/* Machine register */
+typedef struct {			/* Bitmap for System indexes */
 	bitchunk_t chunk[BITMAP_CHUNKS(NR_SYS_PROCS)];
 } SysMap;
 
@@ -39,7 +39,7 @@ typedef struct {
 	reg_t ecx;
 	reg_t eax;			/* gs through eax are all pushed by save() in assembly */
 	reg_t retAddr;		/* Return address for save() in assembly */
-	reg_t pc;			/* pc(eip), cs, eflags are pushed by interrupt */
+	reg_t pc;			/* pc(eip), cs, psw(eflags) are pushed by interrupt */
 	reg_t cs;
 	reg_t psw;			/* psw (program status word) = eflags */
 	reg_t esp;			/* esp, ss are pushed by processor when a stack switched */

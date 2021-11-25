@@ -10,6 +10,9 @@
 /* Magic numbers for interrupt controller. */
 #define END_OF_INT		0x20	/* Code used to re-enable after an interrupt. (See OCW2 in i8259.c) */
 
+/* Fixed system call vector. */
+#define SYS386_VECTOR	33		/* Except 386 system calls use this. */
+
 /* 
  * Interrupt vectors defined/reserved by processor.
  * Type: A(bort) / F(ault) / I(nterrupt) / T(rap) 

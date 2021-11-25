@@ -62,7 +62,7 @@ static void pickProc() {
 	}
 }
 
-static void enqueue(Proc *rp) {
+static void enqueue(register Proc *rp) {
 	int queue;	/* Scheduling queue to use */
 	int front;	/* Add to front or back */
 
@@ -85,11 +85,47 @@ static void enqueue(Proc *rp) {
 	pickProc();
 }
 
+static void dequeue(register Proc *rp) {
+	register int queue = rp->p_priority;	/* Queue to use. */
+	register Proc **xpp;					/* Iterate over queue. */
+	register Proc *prevXp;
+
+	/* Side-effect for kernel: check if the task's stack still is ok? */
+	if (isKernelProc(rp)) {
+		if (*priv(rp)->s_stack_guard != STACK_GUARD)
+		  panic("stack overrun by task", procNum(rp));
+	}
+
+	/* Now make sure that the process is not in its ready queue. Remove the
+	 * process if it is found. A process can be made unready even if it is not
+	 * running by being sent a signal that kills it.
+	 */
+	prevXp = NIL_PROC;
+	for (xpp = &readyProcHead[queue]; *xpp != NIL_PROC; xpp = &(*xpp)->p_next_ready) {
+		if (*xpp == rp) {		/* Found process to remove. */
+			*xpp = (*xpp)->p_next_ready;		/* Replace with next chain. */
+			if (rp == readyProcTail[queue])		/* Queue tail removed. */
+			  readyProcTail[queue] = prevXp;	/* Set new tail. */
+			if (rp == currProc || rp == nextProc)	/* Active process removed. */
+			  pickProc();		/* Pick new process to run. */
+			break;
+		}
+		prevXp = *xpp;			/* Save previous in chain. */					
+	}
+}
+
 void lockEnqueue(Proc *rp) {	/* This process is now runnable */
 	/* Safe gateway to enqueue() for tasks. */
 	lock(3, "enqueue");
 	enqueue(rp);
 	unlock(3);
+}
+
+void lockDequeue(Proc *rp) {	/* This process is no longer runnable. */
+	/* Safe gateway to dequeue() for tasks. */
+	lock(4, "dequeue");
+	dequeue(rp);
+	unlock(4);
 }
 
 static int miniNotify(Proc *caller, int dst) {

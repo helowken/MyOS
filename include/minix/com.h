@@ -39,6 +39,21 @@
 #define NR_BOOT_PROCS	(NR_TASKS + INIT_PROC_NR + 1)
 
 /*=====================================================================*
+ *			Kernel notification types			*
+ *=====================================================================*/
+
+/* Kernel notification types. In principle, these can be sent to any process,
+ * so make sure that these types do not interfere with other message types.
+ * Notifications are prioritized because of the way they are unhold() and
+ * blocking notifications are delivered. The lowest numbers go first. The
+ * offset are used for the per-process notification bit maps.
+ */
+#define NOTIFY_MESSAGE	0x1000	
+#define NOTIFY_FROM(procNum)	(NOTIFY_MESSAGE | ((procNum) + NR_TASKS))
+#define SYNC_ALARM	NOTIFY_FROM(CLOCK)		/* Synchronous alarm */
+#define HARD_INT	NOTIFY_FROM(HARDWARE)	/* Hardware interrupt */
+
+/*=====================================================================*
  *			SYSTASK	request types and field names			*
  *=====================================================================*/
 

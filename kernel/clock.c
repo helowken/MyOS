@@ -38,6 +38,7 @@
 
 
 #include "kernel.h"
+#include "stddef.h"
 #include "proc.h"
 #include "minix/com.h"
 
@@ -50,7 +51,7 @@
 #define CLOCK_ACK_BIT	0x80	/* PS/2 clock interrupt acknowledge bit */
 
 /* When a timer expires its watchDog function is run by the CLOCK task. */
-//static Timer *clockTimers;		/* Queue of CLOCK timers */
+static Timer *clockTimers;		/* Queue of CLOCK timers */
 static clock_t nextTimeout;		/* Realtime that next timer expires */
 
 /* The time is incremented by the interrupt handler on each clock tick. */
@@ -106,15 +107,49 @@ static void initClock() {
 	enableIrq(&clockHook);
 }
 
+/* Despite its name, this routine is not called on every clock tick. It
+ * is called on those clock ticks when a lot of work needs to be done.
+ */
+static int doClockTick() {
+	/* A process used up a full quantum. The interrupt handler stored this
+	 * process in 'prevProc'. First make sure that the process is not on the
+	 * scheduling queues. Then announce the process ready again. Since it has
+	 * no more time left, it gets a new quantum and is inserted at the right
+	 * place in the queues. As a side-effect a new process will be scheduled.
+	 */
+	if (prevProc->p_ticks_left <= 0 && priv(prevProc)->s_flags & PREEMPTIBLE) {
+		lockDequeue(prevProc);		/* Take it off the queue */
+		lockEnqueue(prevProc);		/* and reinsert it again. */
+	}
+
+	/* Check if a clock timer expired and run its watchdog function. */
+	if (nextTimeout <= realTime) {
+		expiredTimers(&clockTimers, realTime, NULL);
+		nextTimeout = clockTimers == NULL ? TIMER_NEVER : clockTimers->expiredTime;
+	}
+
+	return EDONTREPLY;
+}
+
 /* Main program of clock task. if the call is not HARD_INT it is an error. */
 void clockTask() {
-	//Message m;			/* Message buffer for both input and output */
-	//int result;			/* Result returned by the handler */
+	Message m;			/* Message buffer for both input and output */
 
 	initClock();		/* Initialize clock task */
 
+	/* Main loop of the clock task. Get work, process it. Never reply. */
 	while (true) {
-		
+		/* Go get a message */
+		receive(ANY, &m);
+
+		/* Handle the request. Only clock ticks are expected. */
+		switch (m.m_type) {
+			case HARD_INT:
+				doClockTick(&m);	/* Handle clock tick */
+				break;
+			default:	/* Illegal request type */
+				kprintf("CLOCK: illegal request %d from %d.\n", m.m_type, m.m_source);
+		}
 	}
 }
 

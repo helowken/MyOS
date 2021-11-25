@@ -400,6 +400,7 @@ errException:
 /*=====================================================================*
  *                save                *
  *=====================================================================*/
+
 /* Save for protected mode. 
    The stack already points into the process table, or has already been
    switched to the kernel stack. 
@@ -433,10 +434,20 @@ save:
 	pushl	.doRestart
 	jmp	*RETADDR-P_STACKBASE(%eax)
 
+/*=====================================================================*
+ *                s_call                *
+ *=====================================================================*/ 
+	.globl	s_call
+	.type	s_call, @function
+	.align	16
+s_call:
+	
+
 
 /*=====================================================================*
  *                restart                *
  *=====================================================================*/ 
+
 /* Restart the current process or the next process if it is set. */ 
 	.globl	restart 
 	.type	restart, @function

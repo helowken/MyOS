@@ -1,6 +1,8 @@
 LIB_NAME = myc
 OTHER = ../other
-I386_MISC = ../i386/misc
+I386 = ../i386
+MISC = $(I386)/misc
+RTS = $(I386)/rts
 
 OBJS_M32 = memcpy.o \
 		   strcat.o \
@@ -17,13 +19,14 @@ OBJS_M32 = memcpy.o \
 		   atoi.o \
 		   atol.o \
 		   $(OTHER)/errno.o \
-		   $(I386_MISC)/io_inb.o \
-		   $(I386_MISC)/io_inw.o \
-		   $(I386_MISC)/io_inl.o \
-		   $(I386_MISC)/io_outb.o \
-		   $(I386_MISC)/io_outw.o \
-		   $(I386_MISC)/io_outl.o \
-		   $(I386_MISC)/io_intr.o 
+		   $(MISC)/io_inb.o \
+		   $(MISC)/io_inw.o \
+		   $(MISC)/io_inl.o \
+		   $(MISC)/io_outb.o \
+		   $(MISC)/io_outw.o \
+		   $(MISC)/io_outl.o \
+		   $(MISC)/io_intr.o \
+		   $(RTS)/_ipc.o
 		
 
 OBJS_M16 = memcpy.o \
