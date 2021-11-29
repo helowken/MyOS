@@ -31,6 +31,8 @@ EXTERN IrqHook *irqHandlers[NR_IRQ_VECTORS];	/* List of IRQ handlers */
 EXTERN int irqActiveIds[NR_IRQ_VECTORS];	/* IRQ ID bits active */
 EXTERN int irqInUse;			/* Map of all in-use irq's */
 
+EXTERN void (*level0Func)();
+
 /* Variables that are initialized elsewhere are just extern here. */
 extern BootImage images[];
 extern char *taskStack[];		/* Task stack space */

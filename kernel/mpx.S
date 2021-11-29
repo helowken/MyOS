@@ -414,10 +414,10 @@ errException:
 save:
 	cld									
 	pushal						/* Save all general registers */
-	pushw	%ds
-	pushw	%es
-	pushw	%fs
-	pushw	%gs					/* Save ds, es, fs, gs */
+	pushl	%ds
+	pushl	%es
+	pushl	%fs
+	pushl	%gs					/* Save ds, es, fs, gs */
 	movw	%ss, %dx			/* ss is kernel data segment (See above) */
 	movw	%dx, %ds			/* Load rest of kernel segments */
 	movw	%dx, %es			/* Kernel does not use fs, gs */
@@ -437,12 +437,39 @@ save:
 /*=====================================================================*
  *                s_call                *
  *=====================================================================*/ 
+
+/* C calling conventions:
+ * A procedure must preserve the values of the EBX, ESP, EBP, ESI and EDI.
+ */
+
 	.globl	s_call
 	.type	s_call, @function
 	.align	16
 s_call:
+	cld							/* Set direction flag to a known value */
+	subl	$(6*4), %esp		/* Skip RETADDR, eax, ecx, edx, ebx, temp */
+	pushl	%ebp				/* Stack already points into procTable */
+	pushl	%esi
+	pushl	%edi
+	pushl	%ds
+	pushl	%es
+	pushl	%fs
+	pushl	%gs
+	movw	%ss, %dx
+	movw	%dx, %ds
+	movw	%dx, %es
+	incb	kernelReentryCount
+	movl	%esp, %esi			/* Assumes P_STACKBASE == 0 */
+	movl	$kStackTop, %esp
+	xorl	%ebp, %ebp			/* End of inline save() */
 	
+	pushl	%ebx				/* Pointer to user message */
+	pushl	%eax				/* Source / Destination */
+	pushl	%ecx				/* SEND / RECEIVE / BOTH */
+	calll	sys_call			/* sys_call(function, srcDest, msgPtr) */
+	movl	%eax, AXREG(%esi)	/* sys_call must preserve esi. (C calling conventions) */
 
+/* Fall into code to restart proc/task running. */
 
 /*=====================================================================*
  *                restart                *
@@ -464,16 +491,22 @@ restart:
 	movl	%eax, tss+TSS3_S_SP0	/* To save state in process table */
 .doRestart:
 	decb	kernelReentryCount 
-	popw	%gs
-	popw	%fs
-	popw	%es
-	popw	%ds
+	popl	%gs
+	popl	%fs
+	popl	%es
+	popl	%ds
 	popal
 	addl	$4, %esp			/* Skip return address */
 	iretl						/* Continue process */
 
-
-
+/*=====================================================================*
+ *                level0_call                *
+ *=====================================================================*/ 
+	.globl	level0_call
+	.type	level0_call, @function
+level0_call:
+	calll save
+	jmp level0Func
 
 
 

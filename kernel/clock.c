@@ -153,3 +153,7 @@ void clockTask() {
 	}
 }
 
+/* Get and return the current clock uptime in ticks. */
+clock_t getUptime() {
+	return realTime;
+}

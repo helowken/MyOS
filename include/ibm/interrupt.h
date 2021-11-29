@@ -12,6 +12,7 @@
 
 /* Fixed system call vector. */
 #define SYS386_VECTOR	33		/* Except 386 system calls use this. */
+#define LEVEL0_VECTOR	34		/* For execution of a function at level 0. */
 
 /* 
  * Interrupt vectors defined/reserved by processor.

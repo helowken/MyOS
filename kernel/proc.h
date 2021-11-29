@@ -26,6 +26,11 @@ typedef struct Proc {
 	clock_t p_sys_time;		/* Sys time in ticks */
 
 	struct Proc *p_next_ready;	/* Pointer to next ready process */
+	struct Proc *p_sender_head;	/* Head of list of procs wishing to send */
+	struct Proc *p_sender_next;	/* Link to next proc wishing to send */
+	Message *p_msg;			/* Pointer to passed message buffer */
+	proc_nr_t p_get_from;	/* From whom does process want to receive? */
+	proc_nr_t p_send_to;	/* To whom does process want to send? */
 
 	char p_name[P_NAME_LEN];	/* Name of the process, including '\0' */	
 } Proc;
@@ -33,6 +38,8 @@ typedef struct Proc {
 /* Bits for the runtime flags. A process is rnnnable iff p_rt_flags == 0. */
 #define SLOT_FREE		0x01	/* Process slot is free */
 #define NO_MAP			0x02	/* Keeps unmapped forked child from running */
+#define SENDING			0x04	/* Process blocked trying to SEND */
+#define RECEIVING		0x08	/* Process blocked trying to RECEIVE */
 
 /* Scheduling priorities for priority. */
 #define NR_SCHED_QUEUES	16		/* MUST equal minimum priority + 1 */
@@ -52,10 +59,13 @@ typedef struct Proc {
 #define procAddr(n)		(procAddrTable + NR_TASKS)[(n)]
 #define procNum(p)		((p)->p_nr)
 
-#define isKernelProc(p)	isKernelNum((p)->p_nr)
-#define isKernelNum(n)	((n) < 0)
-#define isUserProc(p)	isUserNum((p)->p_nr)
-#define isUserNum(n)	((n) >= 0)
+#define isOkProcNum(n)		((unsigned) ((n) + NR_TASKS) < NR_PROCS + NR_TASKS)
+#define isEmptyProcNum(n)	isEmptyProc(procAddr(n))
+#define isEmptyProc(p)		((p)->p_rt_flags == SLOT_FREE)
+#define isKernelProc(p)		isKernelNum((p)->p_nr)
+#define isKernelNum(n)		((n) < 0)
+#define isUserProc(p)		isUserNum((p)->p_nr)
+#define isUserNum(n)		((n) >= 0)
 
 EXTERN Proc procTable[NR_TASKS + NR_PROCS];		/* Process table */
 EXTERN Proc *procAddrTable[NR_TASKS + NR_PROCS];

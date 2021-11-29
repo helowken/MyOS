@@ -18,8 +18,9 @@
 	}
 
 #define copyMsg(srcNum, srcProc, msg, dstProc, dstMsg)	\
-	copyMessage(srcNum, (srcProc)->p_memmap[D].physAddr, (vir_bytes) msg,	\
-				(dstProc)->p_memmap[D].physAddr, (vir_bytes) dstMsg)
+	cpMsg(srcNum, (srcProc)->p_memmap[D].physAddr,	\
+			(vir_bytes) msg, (dstProc)->p_memmap[D].physAddr,	\
+			(vir_bytes) dstMsg)
 
 
 /* This function determines the scheduling policy. It is called whenever a
@@ -330,15 +331,6 @@ int lockNotify(int src, int dst) {
 		result = miniNotify(procAddr(src), dst);
 		unlock(0);
 	}
-	return result;
-}
-
-int lockSend(int dst, Message *msg) {
-/* Safe gateway to miniSend() for tasks. */
-	int result;
-	lock(2, "send");
-	result = miniSend(currProc, dst, msg, NON_BLOCKING);
-	unlock(2);
 	return result;
 }
 

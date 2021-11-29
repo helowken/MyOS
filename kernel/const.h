@@ -15,7 +15,13 @@
 
 /* Constants and macros for bit map manipulation. */
 #define BITCHUNK_BITS	(sizeof(bitchunk_t) * CHAR_BIT)
-#define BITMAP_CHUNKS(nr_bits)	(((nr_bits) + BITCHUNK_BITS - 1) / BITCHUNK_BITS)
+#define BITMAP_CHUNKS(nr_bits)	( ((nr_bits) + BITCHUNK_BITS - 1) / BITCHUNK_BITS )
+#define MAP_CHUNK(map, bit)	(map)[ ((bit) / BITCHUNK_BITS) ]
+#define CHUNK_OFFSET(bit)	((bit) % BITCHUNK_BITS)
+
+#define getSysBit(map, bit)	( MAP_CHUNK(map.chunk, bit) & (1 << CHUNK_OFFSET(bit)) )
+#define setSysBit(map, bit) ( MAP_CHUNK(map.chunk, bit) |= (1 << CHUNK_OFFSET(bit)) )
+#define NR_SYS_CHUNKS	BITMAP_CHUNKS(NR_SYS_PROCS)
 
 /* Program stack words and masks. */
 #define INIT_PSW		0x0200	/* Initial psw */

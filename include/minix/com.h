@@ -53,6 +53,13 @@
 #define SYNC_ALARM	NOTIFY_FROM(CLOCK)		/* Synchronous alarm */
 #define HARD_INT	NOTIFY_FROM(HARDWARE)	/* Hardware interrupt */
 
+/* Shorthands for message parameters passed with notifications. */
+#define NOTIFY_SOURCE	m_source
+#define NOTIFY_TYPE		m_type
+#define NOTIFY_ARG		m2_l1
+#define NOTIFY_TIMESTAMP	m2_l2
+#define NOTIFY_FLAGS		m2_i1
+
 /*=====================================================================*
  *			SYSTASK	request types and field names			*
  *=====================================================================*/

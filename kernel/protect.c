@@ -158,7 +158,8 @@ void protectInit() {
 		{ hwint13, VECTOR(13), INTR_PRIVILEGE },
 		{ hwint14, VECTOR(14), INTR_PRIVILEGE },
 		{ hwint15, VECTOR(15), INTR_PRIVILEGE },
-		{ s_call, SYS386_VECTOR, USER_PRIVILEGE }
+		{ s_call, SYS386_VECTOR, USER_PRIVILEGE },
+		{ level0_call, LEVEL0_VECTOR, TASK_PRIVILEGE }
 	};
 
 	/* Build gdt and idt pointers in GDT where the BIOS expects them. */

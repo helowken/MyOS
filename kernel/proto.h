@@ -10,6 +10,7 @@ void allocSegments(struct Proc *rp);
 
 /* clock.c */
 void clockTask();
+clock_t getUptime();
 
 /* utility.c */
 void kprintf(const char *fmt, ...);
@@ -18,6 +19,7 @@ void panic(const char *s, int n);
 /* proc.c */
 void lockEnqueue(struct Proc *rp);
 void lockDequeue(struct Proc *rp);
+int sys_call(int function, int srcDst, Message *msg);
 
 /* start.c */
 void cstart(U16_t cs, U16_t ds,	U16_t mds, U16_t paramOffset,U16_t paramSize);	
@@ -29,6 +31,7 @@ void handleException(unsigned vectorNum);
 void initInterrupts();
 void putIrqHandler(IrqHook *hook, int irq, irq_handler_t handler);
 void handleInterrupt(IrqHook *hook);
+int lockSend(int dst, Message *msg);
 int lockNotify(int src, int dst);
 
 /* system.c */
@@ -36,9 +39,12 @@ int getPriv(register struct Proc *rp, int procType);
 void sysTask();
 
 /* klib386.S */
+void copyMessage(int src, phys_bytes srcAddr, vir_bytes srcOffset, 
+			phys_bytes dstAddr, vir_bytes dstOffset);
 void physCopy(phys_bytes source, phys_bytes dest, phys_bytes count);
 void enableIrq(IrqHook *hook);
 void disableIrq(IrqHook *hook);
+void level0(void (*func)());
 
 /* mpx.S */
 void idleTask();
@@ -82,5 +88,9 @@ void hwint12();
 void hwint13();
 void hwint14();
 void hwint15();
+
+/* Software interrupt handlers, in numerical order. */
+void s_call();
+void level0_call();
 
 #endif

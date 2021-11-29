@@ -7,14 +7,59 @@
 /* This file contains a number of assembly code utility routines needed by the kernel. */
 
 	.text
+/*=====================================================================*
+ *                idleTask                *
+ *=====================================================================*/
+
+/* void idleTask();
+ * This task is called when the system has nothing else to do. The HLT
+ * introduction puts the processor in a state where it draws minimum power.
+ */
+
+	.globl	idleTask
+	.type	idleTask, @function
+idleTask:
+	push halt
+	calll	level0		/* level0(halt) */
+	popl %eax
+	jmp idleTask
+
+/* hlt instruction is a privileged instruction, so we need to call it by a gate.
+ * It stops instruction execution and places the processor in a HALT state.
+ * An enabled interrupt will resume execution.
+ */
+halt:
+	sti
+	hlt
+	cli
+	retl
+
+/*=====================================================================*
+ *                level0                *
+ *=====================================================================*/
+
+/* void level0(void (*func)(void));
+ * Call a function at permission level 0. This allows kernel tasks to do
+ * things that are only possible at the most privileged CPU level.
+ */
+
+	.globl	level0
+	.type	level0, @function
+level0:
+	movl	4(%esp), %eax
+	movl	%eax, level0Func
+	int $LEVEL0_VECTOR
+	retl
 
 /*=====================================================================*
  *                physCopy                *
- *=====================================================================*
- * void physCopy(phys_bytes source, phys_bytes dest, phys_bytes count);
+ *=====================================================================*/
+ 
+/* void physCopy(phys_bytes source, phys_bytes dest, phys_bytes count);
  * Copy a block of physical memory. 
  */
-.equ PC_ARGS,	2 + 2 + 4 + 4 + 4	/* ds | es | edi | esi | retAddr */
+
+.equ PC_ARGS,	4 + 4 + 4 + 4 + 4	/* ds | es | edi | esi | retAddr */
 
 	.globl	physCopy
 	.type	physCopy, @function
@@ -23,15 +68,15 @@ physCopy:
 	cld						/* Set esi and edi to be incremented. */
 	pushl	%esi
 	pushl	%edi
-	pushw	%es
-	pushw	%ds
+	pushl	%es
+	pushl	%ds
 
 	movl	$FLAT_ES_SELECTOR, %eax
 	movw	%ax, %es
 	movw	%ax, %ds		/* ds = es = flat 4 GB (less privileged) */
 
-	movl	PC_ARGS(%esp), %esi		/* source */
-	movl	PC_ARGS+4(%esp), %edi	/* dest */
+	movl	PC_ARGS(%esp), %esi			/* source */
+	movl	PC_ARGS+4(%esp), %edi		/* dest */
 	movl	PC_ARGS+4+4(%esp), %eax		/* count */
 
 	cmpl	$10, %eax		/* Avoid align overhead for small counts */
@@ -54,18 +99,21 @@ physCopy:
 	rep
 	movsb	
 
-	popw	%ds
-	popw	%es
+	popl	%ds
+	popl	%es
 	popl	%edi
 	popl	%esi
 	retl
 
 /*=====================================================================*
  *                enableIrq                *
- *=====================================================================*
- * void enableIrq(IrqHook *hook);
+ *=====================================================================*/
+
+/* void enableIrq(IrqHook *hook);
  * Enable an interrupt request line by clearing an 8259 bit.
+ *
  * Equivalent C code:
+ *
  *	if ((irqActiveIds[hook->irq] &= ~hook->id) == 0) 
  *	  outb(INT_CTLMASK, inb(INT_CTLMASK) & ~(1 << hook->irq));
  */
@@ -98,6 +146,58 @@ enableIrq:
 	popfl
 	leave
 	retl
+
+/*=====================================================================*
+ *                copyMessage                *
+ *=====================================================================*/
+
+/* void copyMessage(int src, phys_bytes srcAddr, vir_bytes srcOffset, 
+ *			phys_bytes dstAddr, vir_bytes dstOffset);
+ *
+ * This routine makes a fast copy of a message from anywhere in the address
+ * space to anywhere else. It also copies the source address provided as a
+ * parameter to the call into the first word of the destination message.
+ *
+ * Note that the message size, "Msize" is in DWORDS (not bytes) and must be
+ * set correctly. Changing the definition of message in the type file and 
+ * not changing it here will lead to total disaster.
+ */
+
+.equ CM_ARGS, 4 + 4 + 4 + 4 + 4		 /* 4	+  4	+  4	+  4	+  4	*/
+/*			 es  ds  edi esi retAddr   src srcAddr srcOffset dstAddr dstOffset */
+
+	.globl	copyMessage
+	.type	copyMessage, @function
+copyMessage:
+	cld
+	pushl	%esi
+	pushl	%edi
+	pushl	%ds
+	pushl	%es
+	
+	movl	$FLAT_ES_SELECTOR, %eax
+	movw	%ax, %ds
+	movw	%ax, %es
+
+	movl	CM_ARGS+4(%esp), %esi		/* src addr */
+	addl	CM_ARGS+4+4(%esp), %esi		/* + src offset */
+	movl	CM_ARGS+4+4+4(%esp), %edi	/* dst addr */
+	addl	CM_ARGS+4+4+4+4(%esp), %edi		/* + dst offset */
+	
+	movl	CM_ARGS(%esp), %eax			/* src (process number of sender) */
+	stosl								/* Copy number of sender to dst message. */
+	addl	$4, %esi					/* Do not copy first dword */
+	movl	$(Msize - 1), %ecx			/* Remember, first dword does not count. */
+	rep
+	movsd								/* Copy the message */
+
+	popl	%es
+	popl	%ds
+	popl	%edi
+	popl	%esi
+	retl								
+
+
 
 
 

@@ -16,6 +16,10 @@ typedef struct {
 	SysMap s_ipc_to;		/* Allowed destination processes */
 	long s_call_mask;		/* Allowed kernel calls */
 
+	SysMap s_notify_pending;	/* Bit map with pending notifications. */
+	irq_id_t s_int_pending;		/* Pending hardware interrupts */
+	sigset_t s_sig_pending;		/* Pending signals */
+
 	reg_t *s_stack_guard;	/* Stack guard word for kernel tasks */
 } Priv;
 
@@ -28,14 +32,14 @@ typedef struct {
 #define SYS_PROC		0x10	/* System processes are privilieged */
 #define SENDREC_BUSY	0x20	/* sendrec() in process */
 
-
 /* Magic system structure table addresses. */
 #define BEG_PRIV_ADDR	(&privTable[0])
 #define END_PRIV_ADDR	(&privTable[NR_SYS_PROCS])
 
 #define privAddr(i)		(privAddrTable)[(i)]
 #define priv(rp)		((rp)->p_priv)
-#define privId(rp)		(priv(rp)->s_id)
+#define privId(rp)		(privAddr(rp)->s_id)
+#define privIdToProcNum(id)		privAddr(id)->s_proc_nr
 
 EXTERN Priv privTable[NR_SYS_PROCS];		/* System properties table */
 EXTERN Priv *privAddrTable[NR_SYS_PROCS];
