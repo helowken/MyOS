@@ -18,10 +18,10 @@ HEADERS = $(wildcard *.h $(INC)/*.h $(INC)/sys/*.h $(INC_DEPEND))
 	$(CC) $(CFLAGS) $< -o $@
 
 %.o: %.s
-	$(AS) --32 $< -o $@ 
+	$(AS) -g --32 $< -o $@ 
 
 %.o: %.S
-	$(CC) -c -Wa,--32 -I$(INC) $< -o $@
+	$(CC) -g -c -Wa,--32 -I$(INC) $< -o $@
 
 .PHONY:	clean 
 

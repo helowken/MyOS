@@ -19,7 +19,7 @@
 	.globl	idleTask
 	.type	idleTask, @function
 idleTask:
-	push halt
+	push $halt
 	calll	level0		/* level0(halt) */
 	popl %eax
 	jmp idleTask

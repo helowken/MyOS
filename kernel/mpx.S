@@ -100,7 +100,7 @@ aa:
 0:
 	movb	$END_OF_INT, %al	
 	outb	$INT_CTL		/* Reenable master 8259 */
-	retl					/* Restart (another) process. (retAddr has been pushed by save().) */
+	ret						/* Restart (another) process. (retAddr has been pushed by save().) */
 .endm
 
 /* Each of these entry points is an expansion of the hwintMaster macro. */
@@ -249,112 +249,112 @@ hwint15:
 	.globl	divideError
 	.type	divideError, @function
 divideError:
-	pushl	DIVIDE_VECTOR
+	pushl	$DIVIDE_VECTOR
 	jmp	exception
 
 
 	.globl	singleStepException
 	.type	singleStepException, @function
 singleStepException:
-	pushl	DEBUG_VECTOR
+	pushl	$DEBUG_VECTOR
 	jmp exception
 
 
 	.globl	nmi
 	.type	nmi, @function
 nmi:
-	pushl	NMI_VECTOR
+	pushl	$NMI_VECTOR
 	jmp exception
 
 
 	.globl	breakpointException
 	.type	breakpointException, @function
 breakpointException:
-	pushl	BREAKPOINT_VECTOR
+	pushl	$BREAKPOINT_VECTOR
 	jmp	exception
 
 
 	.globl	overflow
 	.type	overflow, @function
 overflow:
-	pushl	OVERFLOW_VECTOR
+	pushl	$OVERFLOW_VECTOR
 	jmp	exception
 
 
 	.globl	boundsCheck
 	.type	boundsCheck, @function
 boundsCheck:
-	pushl	BOUNDS_VECTOR
+	pushl	$BOUNDS_VECTOR
 	jmp	exception
 
 
 	.globl	invalOpcode
 	.type	invalOpcode, @function
 invalOpcode:
-	pushl	INVAL_OP_VECTOR
+	pushl	$INVAL_OP_VECTOR
 	jmp exception
 
 
 	.globl	coprNotAvailable
 	.type	coprNotAvailable, @function
 coprNotAvailable:
-	pushl	COPROC_NOT_VECTOR
+	pushl	$COPROC_NOT_VECTOR
 	jmp	exception
 
 
 	.globl	doubleFault
 	.type	doubleFault, @function
 doubleFault:
-	pushl	DOUBLE_FAULT_VECTOR
+	pushl	$DOUBLE_FAULT_VECTOR
 	jmp	errException
 
 
 	.globl	coprSegOverrun
 	.type	coprSegOverrun, @function
 coprSegOverrun:
-	pushl	COPROC_SEG_VECTOR
+	pushl	$COPROC_SEG_VECTOR
 	jmp exception
 
 
 	.globl	invalTss
 	.type	invalTss, @function
 invalTss:
-	pushl	INVAL_TSS_VECTOR
+	pushl	$INVAL_TSS_VECTOR
 	jmp	errException
 
 
 	.globl	segmentNotPresent
 	.type	segmentNotPresent, @function
 segmentNotPresent:
-	pushl	SEG_NOT_VECTOR
+	pushl	$SEG_NOT_VECTOR
 	jmp errException
 
 
 	.globl	stackException
 	.type	stackException, @function
 stackException:
-	pushl	STACK_FAULT_VECTOR
+	pushl	$STACK_FAULT_VECTOR
 	jmp errException
 
 
 	.globl	generalProtection
 	.type	generalProtection, @function
 generalProtection:
-	pushl	PROTECTION_VECTOR
+	pushl	$PROTECTION_VECTOR
 	jmp errException
 
 
 	.globl	pageFault
 	.type	pageFault, @function
 pageFault:
-	pushl	PAGE_FAULT_VECTOR
+	pushl	$PAGE_FAULT_VECTOR
 	jmp errException
 
 
 	.globl	coprError
 	.type	coprError, @function
 coprError:
-	pushl	COPROC_ERR_VECTOR
+	pushl	$COPROC_ERR_VECTOR
 	jmp	exception
 
 
@@ -425,13 +425,13 @@ save:
 	incb	kernelReentryCount	/* From -1 if not reentering */
 	jnz	.setRestart				/* Stack is already kernel stack */
 	movl	$kStackTop, %esp	
-	pushl	restart				/* Build return address for interrupt handler */
+	pushl	$restart				/* Build return address for interrupt handler */
 	xorl	%ebp, %ebp			/* For stacktrace */
 	jmp	*RETADDR-P_STACKBASE(%eax)	/* jmp *%eax is AT&T syntax for jmp eax. */
 
 	.align	4
 .setRestart:
-	pushl	.doRestart
+	pushl	$.doRestart
 	jmp	*RETADDR-P_STACKBASE(%eax)
 
 /*=====================================================================*
@@ -506,7 +506,7 @@ restart:
 	.type	level0_call, @function
 level0_call:
 	calll save
-	jmp level0Func
+	jmpl	level0Func
 
 
 

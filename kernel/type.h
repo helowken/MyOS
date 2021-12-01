@@ -26,10 +26,10 @@ typedef struct {
 } BootImage;
 
 typedef struct {
-	u16_t gs;
-	u16_t fs;
-	u16_t es;
-	u16_t ds;
+	reg_t gs;
+	reg_t fs;
+	reg_t es;
+	reg_t ds;
 	reg_t edi;			/* edi through ecx are not accessed in C */
 	reg_t esi;			/* Order is to match pusha/popa */
 	reg_t ebp;			
