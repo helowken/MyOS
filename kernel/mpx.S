@@ -100,7 +100,7 @@ aa:
 0:
 	movb	$END_OF_INT, %al	
 	outb	$INT_CTL		/* Reenable master 8259 */
-	ret						/* Restart (another) process. (retAddr has been pushed by save().) */
+	retl					/* Restart (another) process. (retAddr has been pushed by save().) */
 .endm
 
 /* Each of these entry points is an expansion of the hwintMaster macro. */

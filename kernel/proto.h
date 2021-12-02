@@ -42,6 +42,7 @@ void sysTask();
 void copyMessage(int src, phys_bytes srcAddr, vir_bytes srcOffset, 
 			phys_bytes dstAddr, vir_bytes dstOffset);
 void physCopy(phys_bytes source, phys_bytes dest, phys_bytes count);
+void physMemset(phys_bytes source, unsigned long pattern, phys_bytes count);
 void enableIrq(IrqHook *hook);
 void disableIrq(IrqHook *hook);
 void level0(void (*func)());

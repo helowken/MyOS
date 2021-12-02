@@ -40,6 +40,10 @@ typedef struct Proc {
 #define NO_MAP			0x02	/* Keeps unmapped forked child from running */
 #define SENDING			0x04	/* Process blocked trying to SEND */
 #define RECEIVING		0x08	/* Process blocked trying to RECEIVE */
+#define SIGNALED		0x10	/* Set when new kernel signal arrives */
+#define SIG_PENDING		0x20	/* Unready while signal being processed */
+#define P_STOP			0x40	/* Set when process is being traced */
+#define NO_PRIV			0x80	/* Keep forked system process from running */
 
 /* Scheduling priorities for priority. */
 #define NR_SCHED_QUEUES	16		/* MUST equal minimum priority + 1 */

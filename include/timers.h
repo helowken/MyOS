@@ -25,8 +25,12 @@ typedef struct Timer {
 #define TIMER_NEVER		((clock_t) LONG_MAX)
 
 /* These definitions can be used to set or get data from a timer variable. */
-#define timerArg(tp)		(&(tp)->arg)
+#define timerArg(tp)	(&(tp)->arg)
 #define timerExpTime(tp)	(&(tp)->expredTime)
+
+/* Timers should be initialized once before they are being used. */
+#define timerInit(tp)	{ (tp)->expiredTime = TIMER_NEVER;	\
+							(tp)->next = NULL; }
 
 /* The following generic timer management functions are available. They
  * can be used to operate on the lists of timers. Adding a timer to a list

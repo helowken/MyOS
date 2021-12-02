@@ -17,9 +17,10 @@ typedef struct {
 	long s_call_mask;		/* Allowed kernel calls */
 
 	SysMap s_notify_pending;	/* Bit map with pending notifications. */
-	irq_id_t s_int_pending;		/* Pending hardware interrupts */
-	sigset_t s_sig_pending;		/* Pending signals */
+	irq_id_t s_int_pending;	/* Pending hardware interrupts */
+	sigset_t s_sig_pending;	/* Pending signals */
 
+	Timer s_alarm_timer;	/* Synchronous alarm timer */
 	reg_t *s_stack_guard;	/* Stack guard word for kernel tasks */
 } Priv;
 

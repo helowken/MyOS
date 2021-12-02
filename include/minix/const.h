@@ -13,9 +13,11 @@
 #define D				1	/* proc[i].p_memmap[D] is for data */
 #define S				2	/* proc[i].p_memmap[S] is for stack */
 
-
 /* Macros. */
 #define MAX(a, b)		((a) > (b) ? (a) : (b))
 #define MIN(a, b)		((a) < (b) ? (a) : (b))
+
+/* Miscellaneous */
+#define BYTE		0377	/* Mark for 8 bits */
 
 #endif

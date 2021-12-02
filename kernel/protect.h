@@ -2,8 +2,9 @@
 #define PROTECT_H
 
 /* Table sizes. */
-#define GDT_SIZE		(FIRST_LDT_INDEX + NR_TASKS + NR_PROCS)		
-#define IDT_SIZE		(IRQ8_VECTOR + 8)	/* Only up to the highest vector. */
+#define GDT_SIZE	(FIRST_LDT_INDEX + NR_TASKS + NR_PROCS)		
+#define IDT_SIZE	(IRQ8_VECTOR + 8)	/* Only up to the highest vector. */
+#define LDT_SIZE	(2 + NR_REMOTE_SEGS)	/* CS, DS and remote segments. */
 
 /* Fixed global descriptors. 1 to 7 are prescribed by the BIOS. */
 #define GDT_INDEX			1		/* GDT descriptor */

@@ -197,6 +197,53 @@ copyMessage:
 	popl	%esi
 	retl								
 
+/*=====================================================================*
+ *                physMemset                *
+ *=====================================================================*/
+
+/* void physMemset(phys_bytes source, unsigned long pattern, phys_bytes count);
+ *
+ * Fill a block of physical memory iwth pattern.
+ */
+	.globl	physMemset
+	.type	physMemset, @function
+	.align	16
+physMemset:
+	pushl	%ebp
+	movl	%esp, %ebp
+	pushl	%esi
+	pushl	%ebx
+	pushl	%ds
+	movl	8(%ebp), %esi		/* source */
+	movl	16(%ebp), %eax		/* count */
+	movl	$FLAT_ES_SELECTOR, %ebx		
+	movw	%bx, %ds
+	movl	12(%ebp), %ebx		/* pattern */
+	shrl	$2, %eax			/* count /= 4, becuase pattern is unsigned long. */
+.fillStart:
+	movl	%ebx, (%esi)
+	addl	$4, %esi
+	decl	%eax
+	jnz	.fillStart
+	movl	16(%ebp), %eax		/* Any remaining bytes? */
+	addl	$3, %eax			/* count %= 4 */
+.remainFill:
+	cmpl	$0, %eax
+	jz	.fillDone
+	movb	12(%ebp), %bl		/* pattern[ebp], ebp may be 0, 1, 2. */
+	movb	%bl, (%esi)
+	addl	$1, %esi
+	incl	%ebp
+	decl	%eax
+	jmp	.remainFill
+.fillDone:
+	popl	%ds
+	popl	%ebx
+	popl	%esi
+	popl	%ebp
+	retl
+
+
 
 
 

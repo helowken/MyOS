@@ -13,6 +13,7 @@ extern int errno;
 #define	EIO			(_SIGN 5)	/* Input/output error */
 #define ENOEXEC		(_SIGN 8)	/* Exec format error */
 #define ENOMEM		(_SIGN 12)	/* No enough space */
+#define EINVAL		(_SIGN 22)	/* Invalid argument */
 #define ENOSPC		(_SIGN 28)	/* No space left on device */
 #define ERANGE		(_SIGN 34)	/* Result too large */
 
@@ -25,6 +26,7 @@ extern int errno;
 #define ECALLDENIED	(_SIGN 104)	/* No permission for system call. */
 #define EDEADDST	(_SIGN 105) /* Send destination is not alive. */
 #define ENOTREADY	(_SIGN 106) /* Source or destination is not ready. */
+#define EBADREQUEST	(_SIGN 107) /* Destination cannot handle request. */
 #define EDONTREPLY	(_SIGN 201)	/* Pseudo-code: don't send a reply. */
 
 #endif

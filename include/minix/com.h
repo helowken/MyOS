@@ -66,7 +66,7 @@
 
 /* System library calls are dispatched via a call vector. 
  * The numbers here determine which call is made from the call vector.*/
-#define KERNEL_CALL	0X600	/* Base for kernel calls to SYSTEM */
+#define KERNEL_CALL	0x600	/* Base for kernel calls to SYSTEM */
 
 #define SYS_FORK		(KERNEL_CALL + 0)	/* sys_fork() */
 #define SYS_EXEC		(KERNEL_CALL + 1)	/* sys_exec() */
@@ -103,5 +103,21 @@
 #define SYS_ABORT		(KERNEL_CALL + 27)	/* sys_abort() */ 
 
 #define NR_SYS_CALLS	28					/* Number of system calls */
+
+/*=====================================================================*
+ *                SYSTASK request types and field names                *
+ *=====================================================================*/
+
+/* Field names for SYS_FORK, EXEC, EXIT, NEWMAP. */
+#define PR_PROC_NR		m1_i1		/* Indicates a (child) process */
+#define PR_PRIORITY		m1_i2		/* Process priority */
+#define PR_PPROC_NR		m1_i2		/* Indicates a (parent) process */
+#define PR_PID			m1_i3		/* Process id at process manager */
+#define PR_STACK_PTR	m1_p1		/* Used for stack ptr */
+#define PR_TRACING		m1_i3		/* Flag to indicate tracing is on / off */
+#define PR_NAME_PTR		m1_p2		/* Tells where program name is for dmp */
+#define PR_IP_PTR		m1_p3		/* Initial value for ip after exec */
+#define	PR_MEM_PTR		m1_p1		/* Tells where memory map */
+
 
 #endif
