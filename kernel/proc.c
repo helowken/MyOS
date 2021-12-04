@@ -377,7 +377,7 @@ int sys_call(int callNum, int srcDst, Message *msg) {
 	 * that the destination is still alive.
 	 */
 	if (function & CHECK_DST) {
-		if (! getSysBit(priv(caller)->s_ipc_to, privId(srcDst))) {
+		if (! getSysBit(priv(caller)->s_ipc_to, procNumToPrivId(srcDst))) {
 			kprintf("sys_call: ipc mask denied %d sending to %d\n",
 						procNum(caller), srcDst);
 			return ECALLDENIED;

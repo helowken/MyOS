@@ -10,6 +10,7 @@
 
 extern int errno;
 
+#define	EPERM		(_SIGN 1)	/* Operation not permitted. */
 #define	EIO			(_SIGN 5)	/* Input/output error */
 #define ENOEXEC		(_SIGN 8)	/* Exec format error */
 #define ENOMEM		(_SIGN 12)	/* No enough space */

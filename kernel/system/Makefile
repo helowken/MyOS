@@ -5,7 +5,10 @@ LIB = ../libmysystem.a
 
 OBJS = do_unused.o \
 	   do_fork.o \
-	   do_exec.o
+	   do_exec.o \
+	   do_exit.o \
+	   do_nice.o \
+	   do_privctl.o
 
 all: $(LIB)
 

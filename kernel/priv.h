@@ -39,8 +39,9 @@ typedef struct {
 
 #define privAddr(i)		(privAddrTable)[(i)]
 #define priv(rp)		((rp)->p_priv)
-#define privId(rp)		(privAddr(rp)->s_id)
+#define privId(rp)		(priv(rp)->s_id)
 #define privIdToProcNum(id)		privAddr(id)->s_proc_nr
+#define procNumToPrivId(pNum)	privId(procAddr(pNum))
 
 EXTERN Priv privTable[NR_SYS_PROCS];		/* System properties table */
 EXTERN Priv *privAddrTable[NR_SYS_PROCS];

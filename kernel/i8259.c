@@ -276,6 +276,25 @@ void handleInterrupt(IrqHook *hook) {
 	 */
 }
 
+/* Unregister an interrupt handler. */
+void removeIrqHandler(IrqHook *hook) {
+	int irq = hook->irq;
+	int id = hook->id;
+	IrqHook **line;
 
+	if (irq < 0 || irq >= NR_IRQ_VECTORS) 
+		panic("Invalid call to removeIrqHandler", irq);
+
+	line = &irqHandlers[irq];
+	while (*line != NULL) {
+		if ((*line)->id == id) {
+			*line = (*line)->next;
+			if (! irqHandlers[irq])
+			  irqInUse &= ~(1 << irq);
+			return;
+		}
+		line = &(*line)->next;
+	}
+}
 
 

@@ -21,6 +21,7 @@
 
 #define getSysBit(map, bit)	( MAP_CHUNK(map.chunk, bit) & (1 << CHUNK_OFFSET(bit)) )
 #define setSysBit(map, bit) ( MAP_CHUNK(map.chunk, bit) |= (1 << CHUNK_OFFSET(bit)) )
+#define unsetSysBit(map, bit)	( MAP_CHUNK(map.chunk, bit) &= ~(1 << CHUNK_OFFSET(bit)) )
 #define NR_SYS_CHUNKS	BITMAP_CHUNKS(NR_SYS_PROCS)
 
 /* Program stack words and masks. */

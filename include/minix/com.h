@@ -49,7 +49,7 @@
  * offset are used for the per-process notification bit maps.
  */
 #define NOTIFY_MESSAGE	0x1000	
-#define NOTIFY_FROM(procNum)	(NOTIFY_MESSAGE | ((procNum) + NR_TASKS))
+#define NOTIFY_FROM(pNum)	(NOTIFY_MESSAGE | ((pNum) + NR_TASKS))
 #define SYNC_ALARM	NOTIFY_FROM(CLOCK)		/* Synchronous alarm */
 #define HARD_INT	NOTIFY_FROM(HARDWARE)	/* Hardware interrupt */
 

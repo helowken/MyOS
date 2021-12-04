@@ -11,6 +11,7 @@ typedef long	clock_t;	/* Unit for system accounting */
 typedef unsigned long	sigset_t;
 #endif
 
+typedef int				pid_t;		/* Process id (must be signed) */
 typedef unsigned long	ino_t;		/* i-node number of file system */
 typedef unsigned long	off_t;		/* Offset within a file */
 typedef unsigned short	bitchunk_t;	/* Collection of bits in a bitmap */

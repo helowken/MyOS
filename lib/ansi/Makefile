@@ -3,6 +3,7 @@ OTHER = ../other
 I386 = ../i386
 MISC = $(I386)/misc
 RTS = $(I386)/rts
+POSIX = ../posix
 
 OBJS_M32 = memcpy.o \
 		   strcat.o \
@@ -26,7 +27,8 @@ OBJS_M32 = memcpy.o \
 		   $(MISC)/io_outw.o \
 		   $(MISC)/io_outl.o \
 		   $(MISC)/io_intr.o \
-		   $(RTS)/_ipc.o
+		   $(RTS)/_ipc.o \
+		   $(POSIX)/sigset.o
 		
 
 OBJS_M16 = memcpy.o \

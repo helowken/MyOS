@@ -11,6 +11,7 @@ void allocSegments(struct Proc *rp);
 /* clock.c */
 void clockTask();
 clock_t getUptime();
+void resetTimer(struct Timer *tp);
 
 /* utility.c */
 void kprintf(const char *fmt, ...);
@@ -31,12 +32,16 @@ void handleException(unsigned vectorNum);
 void initInterrupts();
 void putIrqHandler(IrqHook *hook, int irq, irq_handler_t handler);
 void handleInterrupt(IrqHook *hook);
+void removeIrqHandler(IrqHook *hook);
 int lockSend(int dst, Message *msg);
 int lockNotify(int src, int dst);
 
 /* system.c */
 int getPriv(register struct Proc *rp, int procType);
 void sysTask();
+#define numapLocal(pNum, virAddr, bytes) \
+	umapLocal(procAddr(pNum), D, (virAddr), (bytes))
+phys_bytes umapLocal(struct Proc *rp, int seg, vir_bytes virAddr, vir_bytes bytes);
 
 /* klib386.S */
 void copyMessage(int src, phys_bytes srcAddr, vir_bytes srcOffset, 

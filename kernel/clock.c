@@ -157,3 +157,12 @@ void clockTask() {
 clock_t getUptime() {
 	return realTime;
 }
+
+void resetTimer(Timer *tp) {
+/* The timer pointed to by 'tp' is no longer needed. Remove it from both the
+ * active and expired lists. Always update the next timeout time by setting 
+ * it to the front of the active list.
+ */
+	clearTimer(&clockTimers, tp, NULL);
+	nextTimeout = (clockTimers == NULL) ? TIMER_NEVER : clockTimers->expiredTime;
+}
