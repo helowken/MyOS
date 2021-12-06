@@ -16,8 +16,8 @@ void main() {
 	register Priv *sp;	/* Privilege pointer */
 	register int i;
 	int hdrIdx;
-	phys_bytes textBase = 0, dataBase = 0;
-	vir_bytes textLen = 0, dataLen = 0;
+	phys_bytes textPhysAddr = 0, dataPhysAddr = 0;
+	vir_bytes textVirAddr, dataVirAddr, textLen = 0, dataLen = 0;
 	reg_t kernelTaskStackBase;
 	Exec imgHdr;
 	Elf32_Phdr *hdr;
@@ -80,19 +80,24 @@ void main() {
 		/* Build process memory map */
 		hdr = &imgHdr.codeHdr;
 		if (isPLoad(hdr)) {
-			textBase = hdr->p_paddr;
+			textPhysAddr = hdr->p_paddr;
+			textVirAddr = hdr->p_vaddr;
 			textLen = hdr->p_memsz;
 		}
 		hdr = &imgHdr.dataHdr;
 		if (isPLoad(hdr)) {
-			dataBase = hdr->p_paddr;
-			dataLen = hdr->p_vaddr + hdr->p_memsz;
+			dataPhysAddr = hdr->p_paddr;
+			dataVirAddr = hdr->p_vaddr;
+			dataLen = hdr->p_memsz;
 		}
-		rp->p_memmap[T].physAddr = textBase;
+		rp->p_memmap[T].physAddr = textPhysAddr;
+		rp->p_memmap[T].virAddr = textVirAddr;
 		rp->p_memmap[T].len = textLen;
-		rp->p_memmap[D].physAddr = dataBase;
+		rp->p_memmap[D].physAddr = dataPhysAddr;
+		rp->p_memmap[D].virAddr = dataVirAddr;
 		rp->p_memmap[D].len = dataLen;
-		rp->p_memmap[S].physAddr = dataBase + dataLen;
+		rp->p_memmap[S].physAddr = dataPhysAddr + dataLen;
+		rp->p_memmap[S].virAddr = dataVirAddr + dataLen;
 		rp->p_memmap[S].len = 0;
 
 		/* Set initial register values. The Proessor status word for tasks

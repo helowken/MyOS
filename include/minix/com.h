@@ -108,6 +108,27 @@
  *                SYSTASK request types and field names                *
  *=====================================================================*/
 
+/* Field names for SYS_TRACE, SYS_SVRCTL */
+#define CTL_PROC_NR		m2_i1		/* Process number of the caller */
+#define CTL_REQUEST		m2_i2		/* Server control request */
+#define CTL_MM_PRIV		m2_i3		/* Privilege as seen by PM */
+#define CTL_ARG_PTR		m2_p1		/* Pointer to argument */
+#define	CTL_ADDRESS		m2_l1		/* Address at traced process' space */
+#define CTL_DATA		m2_l2		/* Data field for tracing */
+
+/* Field names for SYS_KILL, SYS_SIGCTL */
+#define SIG_REQUEST		m2_l2		/* PM signal control request */
+#define S_GETSIG		0			/* Get pending kernel signal */
+#define S_ENDSIG		1			/* Finish a kernel signal */
+#define S_SENDSIG		2			/* POSIX style signal handling */
+#define S_SIGRETURN		3			/* Return from POSIX handling */
+#define S_KILL			4			/* Server kills process with signal */
+#define	SIG_PROC		m2_i1		/* Process number for inform */
+#define SIG_NUMBER		m2_i2		/* Signal number to send */
+#define SIG_FLAGS		m2_i3		/* Signal flags field */
+#define SIG_MAP			m2_l1		/* Used by kernel to pass signal bit map */
+#define SIG_CTXT_PTR	m2_p1		/* Poitner to info to restore signal context */
+
 /* Field names for SYS_FORK, EXEC, EXIT, NEWMAP. */
 #define PR_PROC_NR		m1_i1		/* Indicates a (child) process */
 #define PR_PRIORITY		m1_i2		/* Process priority */

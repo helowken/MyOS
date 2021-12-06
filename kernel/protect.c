@@ -205,18 +205,22 @@ void protectInit() {
 	tss.ioBaseAddr = sizeof(tss);
 }
 
+void allocSegments(Proc *rp) {
 /* This is called at system initialization from main() and by doNewMap().
  * The code has a separate function because of all hardware-dependencies.
  * Note that IDLE is part of the kernel and gets TASK_PRIVILEGE here.
  */
-void allocSegments(Proc *rp) {
+	phys_bytes codeBytes;
+	phys_bytes dataBytes;
 	int privilege;
 
+	codeBytes = rp->p_memmap[T].len;
+	dataBytes = (phys_bytes) (rp->p_memmap[S].virAddr + rp->p_memmap[S].len);
 	privilege = isKernelProc(rp) ? TASK_PRIVILEGE : USER_PRIVILEGE;	/* Both need to switch stack. */
 	initCodeSeg(&rp->p_ldt[CS_LDT_INDEX], rp->p_memmap[T].physAddr,
-				rp->p_memmap[T].len, privilege);
+				codeBytes, privilege);
 	initDataSeg(&rp->p_ldt[DS_LDT_INDEX], rp->p_memmap[D].physAddr,
-				rp->p_memmap[D].len, privilege);
+				dataBytes, privilege);
 	rp->p_reg.cs = (CS_LDT_INDEX * DESC_SIZE) | T1 | privilege; 
 	rp->p_reg.gs = 
 	rp->p_reg.fs = 

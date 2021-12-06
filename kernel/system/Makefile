@@ -8,7 +8,11 @@ OBJS = do_unused.o \
 	   do_exec.o \
 	   do_exit.o \
 	   do_nice.o \
-	   do_privctl.o
+	   do_privctl.o \
+	   do_trace.o \
+	   do_kill.o \
+	   do_getksig.o \
+	   do_endksig.o
 
 all: $(LIB)
 

@@ -3,6 +3,7 @@
 #include "stdlib.h"
 #include "unistd.h"
 #include "protect.h"
+#include "signal.h"
 
 int (*callVec[NR_SYS_CALLS])(Message *msg);
 
@@ -43,35 +44,47 @@ static void initialize() {
 	map(SYS_KILL, doKill);
 	map(SYS_GETKSIG, doGetKSig);
 	map(SYS_ENDKSIG, doEndKSig);
+	/*
 	map(SYS_SIGSEND, doSigSend);
 	map(SYS_SIGRETURN, doSigReturn);
+	*/
 
 	/* Device I/O. */
+	/*
 	map(SYS_IRQCTL, doIrqCtl);
 	map(SYS_DEVIO, doDevIO);
 	map(SYS_SDEVIO, doStrDevIO);
 	map(SYS_VDEVIO, doVecDevIO);
 	map(SYS_INT86, doInt86);
+	*/
 
 	/* Memory management. */
+	/*
 	map(SYS_NEWMAP, doNewMap);
 	map(SYS_SEGCTL, doSegCtl);
 	map(SYS_MEMSET, doMemset);
+	*/
 	
 	/* Copying. */
+	/*
 	map(SYS_UMAP, doUmap);
 	map(SYS_VIRCOPY, doVirCopy);
 	map(SYS_PHYSCOPY, doPhysCopy);
 	map(SYS_VIRVCOPY, doVirVecCopy);
 	map(SYS_PHYSVCOPY, doPhysVecCopy);
+	*/
 
 	/* Clock functionality. */
+	/*
 	map(SYS_TIMES, doTimes);
 	map(SYS_SETALARM, doSetAlarm);
+	*/
 
 	/* System control. */
+	/*
 	map(SYS_ABORT, doAbort);
 	map(SYS_GETINFO, doGetInfo);
+	*/
 }
 
 /* Main entry point of sysTask. Get the message and dispatch on type. */
@@ -135,6 +148,68 @@ int getPriv(register Proc *rp, int procType) {
 		rp->p_priv->s_flags = 0;
 	}
 	return OK;
+}
+
+phys_bytes umapLocal(Proc *rp, int seg, vir_bytes virAddr, vir_bytes bytes) {
+/* Calculate the physical memory address for a given virtual address. */
+	vir_bytes virEnd, segVirStart,segVirEnd;
+
+	if (bytes <= 0)
+	  return (phys_bytes) 0;
+	if (virAddr + bytes <= virAddr)
+	  return 0;		/* Overflow */
+
+	virEnd = virAddr + bytes - 1;		/* Last byte of data */
+	if (seg != T) 
+	  seg = (virEnd < rp->p_memmap[D].virAddr + rp->p_memmap[D].len ? D : S);
+
+	segVirStart = rp->p_memmap[seg].virAddr; 
+	segVirEnd = segVirStart + rp->p_memmap[seg].len;
+	if (virAddr < segVirStart || virAddr >= segVirEnd || virEnd >= segVirEnd)
+	  return (phys_bytes) 0;
+
+	return rp->p_memmap[seg].physAddr + virAddr;
+}
+
+void sendSig(int pNum, int sig) {
+/* Notify a system process about a signal. This is straightforward. Simply
+ * set the signal that is to be delivered in the pending signals map and
+ * send a notification with source SYSTEM.
+ */
+	register Proc *rp;
+
+	rp = procAddr(pNum);
+	sigaddset(&priv(rp)->s_sig_pending, sig);
+	lockNotify(SYSTEM, pNum);
+}
+
+void causeSig(int pNum, int sig) {
+/* A system process wants to send a signal to a process. Examples are:
+ *	- HARDWARE wanting to cause a SIGSEGV after a CPU exception
+ *	- TTY wanting to cause SIGINT upon getting a DEL
+ *	- FS wanting to cause SIGPIPE for a broken pipe
+ * Signals are handled by sending a message to PM. This function handles the
+ * signals and makes sure the PM gets them by sending a notification. The
+ * process being signaled is blocked while PM has not finished all signals
+ * for it.
+ * Race conditions between calls to this function and the system calls that
+ * process pending kernel signals cannot exist. Signal related functions are
+ * only called when a user process causes a CPU exception and from the kernel
+ * process level, which runs to completion.
+ */
+	register Proc *rp;
+
+	/* Check if the signal is already pending. Process it otherwise. */
+	rp = procAddr(pNum);
+	if (! sigismember(&rp->p_pending, sig)) {
+		sigaddset(&rp->p_pending, sig);
+		if (! (rp->p_rt_flags & SIGNALED)) {		/* Other pending */
+			if (rp->p_rt_flags == 0)
+			  lockDequeue(rp);		/* Make not ready */
+			rp->p_rt_flags |= SIGNALED | SIG_PENDING;	/* Update flags */
+			sendSig(pNum, sig);
+		}
+	}
 }
 
 

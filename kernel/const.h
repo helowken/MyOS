@@ -27,6 +27,9 @@
 /* Program stack words and masks. */
 #define INIT_PSW		0x0200	/* Initial psw */
 #define INIT_TASK_PSW	0x1200	/* Initial psw for tasks (with IOPL = 1) */
+#define TRACE_BIT		0x0100	/* OR this with psw in procTable[] for tracing */
+#define SETPSW(rp, newState)	/* Permits only certain bits to be set: CF, PF, AF, ZF, SF, DF, OF */ \
+	( (rp)->p_reg.psw = ((rp)->p_reg.psw & ~0xCD5) | ((newState) & 0xCD5) )
 
 /* Disable / enable hardware interrupts. The parameters of lock() and unlock()
  * are used when debugging is enabled. See debug.h for more information.

@@ -42,6 +42,8 @@ void sysTask();
 #define numapLocal(pNum, virAddr, bytes) \
 	umapLocal(procAddr(pNum), D, (virAddr), (bytes))
 phys_bytes umapLocal(struct Proc *rp, int seg, vir_bytes virAddr, vir_bytes bytes);
+void sendSig(int pNum, int sig);
+void causeSig(int pNum, int sig);
 
 /* klib386.S */
 void copyMessage(int src, phys_bytes srcAddr, vir_bytes srcOffset, 

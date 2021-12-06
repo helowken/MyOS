@@ -17,6 +17,7 @@ typedef unsigned int vir_bytes;		/* Virtual addresses and lengths in bytes */
 
 typedef struct {
 	phys_bytes physAddr;			/* Physical address */
+	vir_bytes virAddr;				/* Virtual address */
 	vir_bytes len;					/* Length */
 } MemMap;
 

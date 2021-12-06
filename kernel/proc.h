@@ -32,6 +32,8 @@ typedef struct Proc {
 	proc_nr_t p_get_from;	/* From whom does process want to receive? */
 	proc_nr_t p_send_to;	/* To whom does process want to send? */
 
+	sigset_t p_pending;		/* Bit map for pending kernel signals */
+
 	char p_name[P_NAME_LEN];	/* Name of the process, including '\0' */	
 } Proc;
 
