@@ -12,7 +12,11 @@ OBJS = do_unused.o \
 	   do_trace.o \
 	   do_kill.o \
 	   do_getksig.o \
-	   do_endksig.o
+	   do_endksig.o \
+	   do_getinfo.o \
+	   do_times.o \
+	   do_setalarm.o \
+	   do_memset.o
 
 all: $(LIB)
 

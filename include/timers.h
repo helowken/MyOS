@@ -36,9 +36,9 @@ typedef struct Timer {
  * can be used to operate on the lists of timers. Adding a timer to a list
  * automatically takes care of removing it.
  */
-clock_t clearTimer(Timer **timers, Timer *tp, clock_t *newHead);
-void expiredTimers(Timer **timers, clock_t now, clock_t *newHead);
-clock_t setTimer(Timer **timers, Timer *tp, clock_t expiredTime, 
+clock_t timersClearTimer(Timer **timers, Timer *tp, clock_t *newHead);
+void timersExpTimers(Timer **timers, clock_t now, clock_t *newHead);
+clock_t timersSetTimer(Timer **timers, Timer *tp, clock_t expiredTime, 
 			timerFunc watchDog, clock_t *newHead);
 
 #endif

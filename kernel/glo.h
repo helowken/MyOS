@@ -16,6 +16,8 @@ EXTERN char shutdownStarted;	/* TRUE after shutdowns / reboots */
 EXTERN phys_bytes imgHdrPos;	/* Address of image headers */
 EXTERN KernelInfo kernelInfo;	/* Kernel information for users */
 EXTERN Machine machine;			/* Machine information for users */
+EXTERN KernelMessages kernelMessages;	/* Diagnostic messages in kernel */
+EXTERN Randomness kernelRandom;	/* Gather kernel random information */
 
 /* Process scheduling information and the kernel reentry count. */
 EXTERN Proc *prevProc;

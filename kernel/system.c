@@ -62,12 +62,12 @@ static void initialize() {
 	/*
 	map(SYS_NEWMAP, doNewMap);
 	map(SYS_SEGCTL, doSegCtl);
-	map(SYS_MEMSET, doMemset);
 	*/
+	map(SYS_MEMSET, doMemset);
 	
 	/* Copying. */
 	/*
-	map(SYS_UMAP, doUmap);
+	map(SYS_UMAP, doUMap);
 	map(SYS_VIRCOPY, doVirCopy);
 	map(SYS_PHYSCOPY, doPhysCopy);
 	map(SYS_VIRVCOPY, doVirVecCopy);
@@ -75,16 +75,12 @@ static void initialize() {
 	*/
 
 	/* Clock functionality. */
-	/*
 	map(SYS_TIMES, doTimes);
 	map(SYS_SETALARM, doSetAlarm);
-	*/
 
 	/* System control. */
-	/*
-	map(SYS_ABORT, doAbort);
+	//map(SYS_ABORT, doAbort);
 	map(SYS_GETINFO, doGetInfo);
-	*/
 }
 
 /* Main entry point of sysTask. Get the message and dispatch on type. */

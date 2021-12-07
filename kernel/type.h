@@ -25,6 +25,21 @@ typedef struct {
 	char procName[P_NAME_LEN];	/* Name in process table */
 } BootImage;
 
+/* The kernel outputs diagnostic messages in a circular buffer. */
+typedef struct {
+	int km_next;				/* Next index to write */
+	int km_size;				/* Current size in buffer */
+	char km_buf[KMESS_BUF_SIZE];	/* Buffer for messages */
+} KernelMessages;
+
+typedef struct {
+	struct {
+		int r_next;			/* Next index to write */
+		int r_size;			/* Number of random elements */
+		unsigned short r_buf[RANDOM_ELEMENTS];	/* Buffer for random info */
+	} bin[RANDOM_SOURCES];
+} Randomness;
+
 typedef struct {
 	reg_t gs;
 	reg_t fs;

@@ -287,7 +287,7 @@ static int miniNotify(register Proc *caller, int dst) {
 	int srcId;
 	Message notifyMsg;
 
-	if ( (dstProc->p_rt_flags & (SENDING | RECEIVING)) == RECEIVING &&
+	if ((dstProc->p_rt_flags & (SENDING | RECEIVING)) == RECEIVING &&
 			! (priv(dstProc)->s_flags & SENDREC_BUSY) &&
 			(dstProc->p_get_from == ANY || dstProc->p_get_from == caller->p_nr)) {
 		/* Destination is indeed waiting for a message. Assemble a notification
@@ -315,13 +315,14 @@ static int miniNotify(register Proc *caller, int dst) {
  * dst: who is to be notified
  */
 int lockNotify(int src, int dst) {
-	int result;
 /* Safe gateway to miniNotify() for tasks and interrupt handlers. The sender
  * is explicitly given to prevent confusion where the call comes from. MINIX
  * kernel is not reentrant, which means to interrupts are disabled after
  * the first kernel entry (hardware interrupt, trap, or exception). Locking
  * is done by temporarily disabling interrupts.
  */
+	int result;
+
 	if (kernelReentryCount >= 0) {
 		result = miniNotify(procAddr(src), dst);
 	} else {

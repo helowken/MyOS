@@ -124,7 +124,7 @@ static int doClockTick() {
 
 	/* Check if a clock timer expired and run its watchdog function. */
 	if (nextTimeout <= realTime) {
-		expiredTimers(&clockTimers, realTime, NULL);
+		timersExpTimers(&clockTimers, realTime, NULL);
 		nextTimeout = clockTimers == NULL ? TIMER_NEVER : clockTimers->expiredTime;
 	}
 
@@ -158,11 +158,19 @@ clock_t getUptime() {
 	return realTime;
 }
 
+void setTimer(Timer *tp, clock_t expTime, timerFunc watchDog) {
+/* Insert the new timer in the active timers list. Always update the
+ * next timeout time by setting it to the front of the active list.
+ */
+	timersSetTimer(&clockTimers, tp, expTime, watchDog, NULL);
+	nextTimeout = clockTimers->expiredTime;
+}
+
 void resetTimer(Timer *tp) {
 /* The timer pointed to by 'tp' is no longer needed. Remove it from both the
  * active and expired lists. Always update the next timeout time by setting 
  * it to the front of the active list.
  */
-	clearTimer(&clockTimers, tp, NULL);
+	timersClearTimer(&clockTimers, tp, NULL);
 	nextTimeout = (clockTimers == NULL) ? TIMER_NEVER : clockTimers->expiredTime;
 }

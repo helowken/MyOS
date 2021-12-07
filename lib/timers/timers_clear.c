@@ -2,7 +2,7 @@
 
 #define NULL	((void *) 0)
 
-clock_t clearTimer(Timer **timers, Timer *tp, clock_t *nextTime) {
+clock_t timersClearTimer(Timer **timers, Timer *tp, clock_t *nextTime) {
 /* Deactivate a timer and remove it from the timers queue. */
 	Timer **atp;
 	clock_t prevTime;
