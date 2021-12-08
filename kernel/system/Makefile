@@ -20,12 +20,10 @@ OBJS = do_unused.o \
 
 all: $(LIB)
 
-clean: clean_objs
+clean: 
+	$(call cleanCommon)
 	rm -f $(LIB)
 
-clean_objs:
-	rm -f $(OBJS)
-
-$(LIB): clean_objs $(OBJS)
+$(LIB): clean $(OBJS)
 	ar rcs $@ $(OBJS)
 

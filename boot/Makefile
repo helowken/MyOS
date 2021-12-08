@@ -1,14 +1,14 @@
 MY_HOME = ..
 MODE = M16
 include $(MY_HOME)/common.mk
-CFLAGS += -g 
-LIB_DIR = $(MY_HOME)/lib/m16
-LIBS = -lmyc -lmysysutil
+
 DISK_IMAGE = device/testOS.img
 # Floppy: ARGS = "file=$(BIN),format=raw,index=0,if=floppy"
 LINUX_LIB = $(MY_HOME)/linuxLib
 INSTALL_BOOT = installboot.bin
-DEBUG = debug.bin
+
+LIBS = -L$(MY_HOME)/lib/m16 \
+	   -lmyc -lmysysutil
 
 all: install run
 
@@ -27,10 +27,8 @@ boot.elf: \
 		util.o \
 		boot.o \
 		bootimage.o
-	# -nmagic: merge text and data
-	$(LD) $^ -Ttext 0x0 -m elf_i386 -nmagic -nostdlib -L$(LIB_DIR) $(LIBS) -o $@ 
-	cp $@ $(DEBUG)
-	strip --strip-debug --strip-unneeded $@
+	$(call link,$^,$(LIBS),$@) 
+	$(call createDebug,$@,$(DEBUG))
 
 boot.bin: boot.elf
 	objcopy -O binary -j .text -j .rodata -j .data $< $@ 
@@ -60,9 +58,9 @@ reset:
 	cd device && ./run && cd ..
 
 disasm: $(DEBUG)
-	objdump -S -D -mi386 -Matt,data16,addr16 $< | less
+	$(call disasmCode,$<,16)
 
 clean:
-	rm -f *.o *.bin *.elf 
+	$(call cleanCommon)
 
 

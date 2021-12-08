@@ -17,6 +17,9 @@
 #define MAX(a, b)		((a) > (b) ? (a) : (b))
 #define MIN(a, b)		((a) < (b) ? (a) : (b))
 
+/* Process name length in the PM process table, including '\0'. */
+#define PROC_NAME_LEN	16
+
 /* Miscellaneous */
 #define BYTE		0377	/* Mark for 8 bits */
 

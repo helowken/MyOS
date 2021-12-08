@@ -31,7 +31,7 @@ typedef struct {
 #define PREEMPTIBLE		0x01	/* Kernel tasks are not preemptilble */
 #define BILLABLE		0x04	/* Some processes are not billable */
 #define SYS_PROC		0x10	/* System processes are privilieged */
-#define SENDREC_BUSY	0x20	/* sendrec() in process */
+#define SENDREC_BUSY	0x20	/* sendRec() in process */
 
 /* Magic system structure table addresses. */
 #define BEG_PRIV_ADDR	(&privTable[0])

@@ -84,7 +84,7 @@ typedef struct {
 /* Hide names to avoid name space pollution. */
 #define echo		_echo
 #define notify		_notify
-#define sendrec		_sendrec
+#define sendRec		_sendRec
 #define receive		_receive
 #define	send		_send
 #define nbReceive	_nbReceive
@@ -92,7 +92,7 @@ typedef struct {
 
 int echo(Message *mp);
 int notify(int dest);
-int sendrec(int srcDest, Message *mp);
+int sendRec(int srcDest, Message *mp);
 int receive(int src, Message *mp);
 int send(int dest, Message *mp);
 int nbReceive(int src, Message *mp);

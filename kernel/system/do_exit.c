@@ -69,7 +69,7 @@ int doExit(Message *msg) {
 			clearProc(procAddr(exitProcNum));	/* Exit a user process */
 			return OK;		/* Report back to PM */
 		}
-	}
+	} 
 
 	/* The PM or some other system process requested to be exited. */
 	clearProc(procAddr(msg->m_source));

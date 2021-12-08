@@ -50,7 +50,7 @@
 
 #define CLOCK_ACK_BIT	0x80	/* PS/2 clock interrupt acknowledge bit */
 
-/* When a timer expires its watchDog function is run by the CLOCK task. */
+/* When a timer expires its watchdog function is run by the CLOCK task. */
 static Timer *clockTimers;		/* Queue of CLOCK timers */
 static clock_t nextTimeout;		/* Realtime that next timer expires */
 
@@ -158,11 +158,11 @@ clock_t getUptime() {
 	return realTime;
 }
 
-void setTimer(Timer *tp, clock_t expTime, timerFunc watchDog) {
+void setTimer(Timer *tp, clock_t expTime, timerFunc watchdog) {
 /* Insert the new timer in the active timers list. Always update the
  * next timeout time by setting it to the front of the active list.
  */
-	timersSetTimer(&clockTimers, tp, expTime, watchDog, NULL);
+	timersSetTimer(&clockTimers, tp, expTime, watchdog, NULL);
 	nextTimeout = clockTimers->expiredTime;
 }
 

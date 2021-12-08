@@ -506,7 +506,7 @@ restart:
 	.type	level0_call, @function
 level0_call:
 	calll save
-	jmpl	level0Func
+	jmp	*level0Func
 
 
 

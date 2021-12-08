@@ -7,5 +7,6 @@ all:
 
 clean:
 	cd ansi && $(MAKE) clean
+	cd syslib && $(MAKE) clean
 	cd sysutil && $(MAKE) clean
 	cd timers && $(MAKE) clean

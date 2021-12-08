@@ -39,6 +39,6 @@ typedef struct Timer {
 clock_t timersClearTimer(Timer **timers, Timer *tp, clock_t *newHead);
 void timersExpTimers(Timer **timers, clock_t now, clock_t *newHead);
 clock_t timersSetTimer(Timer **timers, Timer *tp, clock_t expiredTime, 
-			timerFunc watchDog, clock_t *newHead);
+			timerFunc watchdog, clock_t *newHead);
 
 #endif

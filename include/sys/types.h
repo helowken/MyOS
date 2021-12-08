@@ -12,6 +12,8 @@ typedef unsigned long	sigset_t;
 #endif
 
 typedef int				pid_t;		/* Process id (must be signed) */
+typedef	short			uid_t;		/* User id */
+typedef char			gid_t;		/* Group id */
 typedef unsigned long	ino_t;		/* i-node number of file system */
 typedef unsigned long	off_t;		/* Offset within a file */
 typedef unsigned short	bitchunk_t;	/* Collection of bits in a bitmap */

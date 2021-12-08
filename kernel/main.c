@@ -128,7 +128,6 @@ void main() {
 
 	// TODO boot device
 
-
 	/* We're definitely not shutting down. */
 	shutdownStarted = 0;
 
