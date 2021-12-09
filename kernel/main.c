@@ -111,7 +111,8 @@ void main() {
 		 * to give crtso.s something to use as "argc"
 		 */
 		if (isUserProc(rp)) {		/* Is user-space process? */
-			rp->p_reg.esp = rp->p_memmap[S].physAddr - sizeof(reg_t);
+			rp->p_reg.esp = (rp->p_memmap[S].virAddr + 
+						rp->p_memmap[S].len) - sizeof(reg_t);
 		}
 		
 		/* Set ready. The HARDWARE task is never ready. */
