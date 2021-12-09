@@ -22,5 +22,6 @@
 
 /* Miscellaneous */
 #define BYTE		0377	/* Mark for 8 bits */
+#define	NO_NUM		0x8000	/* Used as numerical argument to panic() */
 
 #endif

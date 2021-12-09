@@ -1,1 +1,6 @@
-gdb -x gdb_init_cmds $1
+#!/bin/bash
+
+gdb -ex "target remote localhost:1234" \
+	-ex "source $MY_HOME/gdb_common_utils.py" \
+	-ex "source $MY_DIR/gdb_utils.py" \
+	$MY_DIR/debug.bin

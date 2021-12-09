@@ -48,11 +48,29 @@ static void pmInit() {
 
 }
 
+static void getWork() {
+/* Wait for the next message and extract useful information from it. */
+	if (receive(ANY, &inMsg) != OK)
+	  panic(__FILE__, "PM receive error", NO_NUM);
+	
+	who = inMsg.m_source;		/* Who sent the message */
+	callNum = inMsg.m_type;		/* System call number */
+
+	/* Process slot of caller. Misuse PM's own process slot if the kernel is
+	 * calling. This can happen in case of synchronous alarms (CLOCK) or event
+	 * like pending kernel signals (SYSTEM).
+	 */
+	mp = &mprocTable[who < 0 ? PM_PROC_NR : who];
+}
+
 int main() {
 /* Main routine of the process manager. */
 
-
 	pmInit();		/* Initialize process manager tables. */
+
+	while (true) {
+		getWork();	/* Wait for an PM system call. */
+	}
 
 	return OK;
 }

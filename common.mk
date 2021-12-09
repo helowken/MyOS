@@ -1,6 +1,13 @@
 export ARFLAGS = rvU
 
 INC = $(MY_HOME)/include
+INC_HEADERS = *.h \
+			  $(INC)/*.h \
+			  $(INC)/sys/*.h \
+			  $(INC)/ibm/*.h \
+			  $(INC)/minix/*.h \
+			  $(INC)/sys/*.h 
+
 CFLAGS = -g -c -m32 -ffreestanding -nostdinc -nodefaultlibs -Wall -Werror -I$(INC)
 ifeq ($(MODE), M16)
 	CFLAGS += -D_M16
@@ -12,7 +19,7 @@ else
 endif
 
 C_SOURCE = $(wildcard *.c)
-HEADERS = $(wildcard *.h $(INC)/*.h $(INC)/sys/*.h $(INC_DEPEND))
+HEADERS = $(wildcard $(INC_HEADERS))
 DEBUG = debug.bin
 
 %.o: %.c $(HEADERS)

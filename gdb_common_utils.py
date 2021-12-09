@@ -1,8 +1,10 @@
-class Vir2PhysAddr:
+class Vir2PhysAddr(gdb.Function):
     def __init__(self, offset):
+        super(Vir2PhysAddr, self).__init__('p')
         self.__offset = offset
 
-    def convert(self, v):
+    def invoke(self, *args):
+        v = args[0]
         vt = v.type
         pre_vt = None
         if v.address == None:
@@ -43,28 +45,3 @@ class Vir2PhysAddr:
         print(s)
         return gdb.parse_and_eval(s)
 
-
-class ProtectedVir2PhysAddr(gdb.Function):
-    """$p(arg): Convert protected mode virtual address to physical address."""
-
-    def __init__(self):
-        super(ProtectedVir2PhysAddr, self).__init__('p')
-        self.__converter = Vir2PhysAddr(0x1000)
-
-    def invoke(self, *args):
-        return self.__converter.convert(args[0])
-
-
-class RealVir2PhysAddr(gdb.Function):
-    """$r(arg): Convert real mode virtual address to physical address."""
-
-    def __init__(self):
-        super(RealVir2PhysAddr, self).__init__('r')
-        self.__converter = Vir2PhysAddr(0x90000)
-
-    def invoke(self, *args):
-        return self.__converter.convert(args[0])
-
-
-ProtectedVir2PhysAddr()
-RealVir2PhysAddr()

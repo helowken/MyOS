@@ -1,5 +1,4 @@
 MY_HOME = ..
-INC_DEPEND = $(INC)/ibm/*.h $(INC)/minix/*.h
 include $(MY_HOME)/common.mk
 SYSTEM = mysystem
 LIB_SYSTEM = lib$(SYSTEM).a
