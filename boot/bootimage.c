@@ -316,12 +316,14 @@ static void execImage(char *image) {
 	printf(".\n\n");
 
 	vsec = 0;
-	addr = memList[0].base;
-	limit = addr + memList[0].size;
-	if (limit > caddr)
-	  limit = caddr;
-
 	hdrLen = PROCESS_MAX * EXEC_SIZE;
+	/* Image headers' end may be > memList[0].base */
+	addr = max(memList[0].base, HEADER_POS + hdrLen);
+
+	/* If code is relocated in memList[0], then limit must be <= caddr */
+	limit = min(caddr, memList[0].base + memList[0].size);
+
+	/* Left space for image headers */
 	limit -= hdrLen;
 	imgHdrPos = limit;
 
@@ -362,7 +364,8 @@ static void execImage(char *image) {
 			printf("================\n");
 		}
 
-	    addr = align(addr, proc->codeHdr.p_align);
+	    //addr = align(addr, proc->codeHdr.p_align);
+	    addr = align(addr, CLICK_SIZE);
 
 		/* Save a copy of the header for the kernel, with the address
 		 * where the process is loaded at.

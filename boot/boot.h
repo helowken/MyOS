@@ -18,6 +18,8 @@
 #define MONO_MODE		0x07		/* 80x25 monochrome. */
 #define	COLOR_MODE		0x03		/* 80x25 color. */
 
+#define CLICK_SIZE		1024		/* Unit in which memory is allocated */
+
 #ifndef EXTERN
 #define EXTERN extern
 #endif

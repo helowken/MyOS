@@ -33,6 +33,11 @@ typedef struct {
 } KernelMessages;
 
 typedef struct {
+	phys_bytes base;			/* Start address of chunk */
+	phys_bytes size;			/* Size of memory chunk */
+} Memory;
+
+typedef struct {
 	struct {
 		int r_next;			/* Next index to write */
 		int r_size;			/* Number of random elements */

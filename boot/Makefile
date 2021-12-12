@@ -10,8 +10,8 @@ INSTALL_BOOT = installboot.bin
 LIBS = -L$(MY_HOME)/lib/m16 \
 	   -lmyc -lmysysutil
 
-PROGS = ../kernel/kernel.bin \
-		../servers/pm/pm.bin
+PROGRAMS = ../kernel/kernel.bin \
+		   ../servers/pm/pm.bin
 
 all: install run
 
@@ -55,7 +55,7 @@ install_bootable: boot.bin installboot
 	./$(INSTALL_BOOT) -b $(DISK_IMAGE) $<
 
 install_image: installboot
-	./$(INSTALL_BOOT) -i $(DISK_IMAGE) $(PROGS)
+	./$(INSTALL_BOOT) -i $(DISK_IMAGE) $(PROGRAMS)
 
 reset:
 	cd device && ./run && cd ..

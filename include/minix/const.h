@@ -24,4 +24,7 @@
 #define BYTE		0377	/* Mark for 8 bits */
 #define	NO_NUM		0x8000	/* Used as numerical argument to panic() */
 
+#define CLICK_SIZE		1024	/* Unit in which memory is allocated */
+#define CLICK_SHIFT		10		/* log2 of CLICK_SIZE */
+
 #endif

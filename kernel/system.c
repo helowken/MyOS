@@ -157,7 +157,7 @@ phys_bytes umapLocal(Proc *rp, int seg, vir_bytes virAddr, vir_bytes bytes) {
 
 	virEnd = virAddr + bytes - 1;		/* Last byte of data */
 	if (seg != T) 
-	  seg = (virEnd < rp->p_memmap[D].virAddr + rp->p_memmap[D].len ? D : S);
+	  seg = D;		/* D can be as S */
 
 	segVirStart = rp->p_memmap[seg].virAddr; 
 	segVirEnd = segVirStart + rp->p_memmap[seg].len;

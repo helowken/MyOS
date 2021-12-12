@@ -86,10 +86,12 @@ static void determineAvailableMemory() {
 			memList[1].base = 0x100000;
 			memList[1].size = low << 10;
 
-			/* if adjacent */
 			if (low == (15 << 10)) {
+				/* memList[1] and memList[2] is adjacent, there is no hole between 15M and 16M. 
+				 * So we merge these two mem chunks together. */
 				memList[1].size += high << 16;	
 			} else {
+				/* There is a hole between 15M and 16M */
 				memList[2].base = 0x1000000;
 				memList[2].size = high << 16;
 			}
@@ -138,8 +140,8 @@ static void copyToFarAway() {
 	 * BIOS IVT (Interrupt Vector Table) + BDA (BIOS data area) is about 1.5KB (see "BUFFER" in masterboot.asm).
 	 * And now, we assume all exec headers can be contained in one sector (512 bytes), so 1.5KB + 512B = 2KB.
 	 */
-	memList[0].base += 2048;
-	memList[0].size -= 2048;
+	memList[0].base += CLICK_SIZE << 1;
+	memList[0].size -= CLICK_SIZE << 1;
 }
 
 static struct biosDev {

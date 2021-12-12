@@ -40,4 +40,10 @@
 #define lock(c, v)	disableInterrupt();
 #define unlock(c)	enableInterrupt();
 
+/* Size of memory tables. The boot monitor distinguishes three memory areas,
+ * namely low mem below 1M, 1M-16M, and mem above 16M. Area 2 and 3 may be merged
+ * together if they are adjacent (no hole between them).
+ */
+#define NR_MEMS			3
+
 #endif

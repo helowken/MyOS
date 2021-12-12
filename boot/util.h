@@ -12,6 +12,8 @@
 #define arraySize(a)		(sizeof(a) / sizeof((a)[0]))
 #define arrayLimit(a)		((a) + arraySize(a))
 #define between(a, c, z)	((unsigned) ((c) - (a)) <= ((z) - (a)))
+#define min(m,n) ((m) < (n) ? (m) : (n))
+#define max(m,n) ((m) > (n) ? (m) : (n))
 
 
 typedef enum { false, true } bool;

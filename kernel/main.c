@@ -96,7 +96,7 @@ void main() {
 		rp->p_memmap[D].physAddr = dataPhysAddr;
 		rp->p_memmap[D].virAddr = dataVirAddr;
 		rp->p_memmap[D].len = dataLen;
-		rp->p_memmap[S].physAddr = dataPhysAddr + dataLen;
+		rp->p_memmap[S].physAddr = dataPhysAddr + dataVirAddr + dataLen;
 		rp->p_memmap[S].virAddr = dataVirAddr + dataLen;
 		rp->p_memmap[S].len = 0;
 
