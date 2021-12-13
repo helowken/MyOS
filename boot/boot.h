@@ -12,8 +12,6 @@
 #define MSEC_PER_TICK	55			/* Clock does 18.2 ticks per second. (1000 / 18.2 is about 55) */
 #define TICKS_PER_DAY	0x1800B0L	/* After 24 hours it wraps (65543 * 24) */
 
-#define HEADER_POS		0x600L		/* Place for an array of struct Exec's. */
-
 /* BIOS video modes. */
 #define MONO_MODE		0x07		/* 80x25 monochrome. */
 #define	COLOR_MODE		0x03		/* 80x25 color. */

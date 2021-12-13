@@ -10,9 +10,11 @@
 
 #include "unistd.h"
 #include "minix/syslib.h"
+#include "minix/sysutil.h"
 
 #include "limits.h"
 #include "errno.h"
 
+#include "const.h"
 #include "proto.h"
 #include "glo.h"

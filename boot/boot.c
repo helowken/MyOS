@@ -138,7 +138,7 @@ static void copyToFarAway() {
 
 	/*
 	 * BIOS IVT (Interrupt Vector Table) + BDA (BIOS data area) is about 1.5KB (see "BUFFER" in masterboot.asm).
-	 * And now, we assume all exec headers can be contained in one sector (512 bytes), so 1.5KB + 512B = 2KB.
+	 * We simply use 2KB to align it.
 	 */
 	memList[0].base += CLICK_SIZE << 1;
 	memList[0].size -= CLICK_SIZE << 1;

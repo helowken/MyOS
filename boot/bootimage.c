@@ -317,12 +317,10 @@ static void execImage(char *image) {
 
 	vsec = 0;
 	hdrLen = PROCESS_MAX * EXEC_SIZE;
-	/* Image headers' end may be > memList[0].base */
-	addr = max(memList[0].base, HEADER_POS + hdrLen);
+	addr = memList[0].base;
 
 	/* If code is relocated in memList[0], then limit must be <= caddr */
 	limit = min(caddr, memList[0].base + memList[0].size);
-
 	/* Left space for image headers */
 	limit -= hdrLen;
 	imgHdrPos = limit;
@@ -426,9 +424,6 @@ static void execImage(char *image) {
 	
 	// TODO check kernel magic number
 	// TODO patch size
-
-	/* Copy headers to the old place. */
-	rawCopy((char *) HEADER_POS, (char *) imgHdrPos, PROCESS_MAX * EXEC_SIZE);
 
 	/* Do delay if wanted. */
 	if ((delayValue = getVarValue("bootdelay")) != NULL)

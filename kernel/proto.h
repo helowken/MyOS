@@ -40,7 +40,7 @@ int lockNotify(int src, int dst);
 /* system.c */
 int getPriv(register struct Proc *rp, int procType);
 void sysTask();
-#define numapLocal(pNum, virAddr, bytes) \
+#define nUmapLocal(pNum, virAddr, bytes) \
 	umapLocal(procAddr(pNum), D, (virAddr), (bytes))
 phys_bytes umapLocal(struct Proc *rp, int seg, vir_bytes virAddr, vir_bytes bytes);
 void sendSig(int pNum, int sig);

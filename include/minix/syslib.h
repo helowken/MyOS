@@ -11,6 +11,8 @@ int taskCall(int who, int sysCallNum, Message *msg);
 /* Shorthands for sys_getinfo() system call. */
 #define sysGetMonParams(v, vl)	sysGetInfo(GET_MONPARAMS, v, vl, 0, 0)
 #define sysGetKernelInfo(dst)	sysGetInfo(GET_KINFO, dst, 0, 0, 0)
+#define sysGetProc(dst, num)	sysGetInfo(GET_PROC, dst, 0, 0, num)
+#define sysGetImage(dst)		sysGetInfo(GET_IMAGE, dst, 0, 0, 0)
 
 int sysGetInfo(int request, void *valPtr, int valLen, void *valPtr2, int valLen2);
 

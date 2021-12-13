@@ -38,7 +38,7 @@ class Vir2PhysAddr(gdb.Function):
 
         # For (char *), its target type is int, so we use str() to do the check.
         ptr = '*'
-        if pre_vt != None and str(pre_vt) == 'char *':
+        if pre_vt != None and str(pre_vt).replace('const', '').strip() == 'char *':
             ptr = ''
 
         s = '%s(%s *)%s' % (ptr, vt, hex(addr))
