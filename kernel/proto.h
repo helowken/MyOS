@@ -47,8 +47,8 @@ void sendSig(int pNum, int sig);
 void causeSig(int pNum, int sig);
 
 /* klib386.S */
-void copyMessage(int src, phys_bytes srcAddr, vir_bytes srcOffset, 
-			phys_bytes dstAddr, vir_bytes dstOffset);
+void copyMessage(int src, phys_clicks srcAddr, vir_bytes srcOffset, 
+			phys_clicks dstAddr, vir_bytes dstOffset);
 void physCopy(phys_bytes source, phys_bytes dest, phys_bytes count);
 void physMemset(phys_bytes source, unsigned long pattern, phys_bytes count);
 void enableIrq(IrqHook *hook);

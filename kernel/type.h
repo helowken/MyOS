@@ -33,8 +33,8 @@ typedef struct {
 } KernelMessages;
 
 typedef struct {
-	phys_bytes base;			/* Start address of chunk */
-	phys_bytes size;			/* Size of memory chunk */
+	phys_clicks base;			/* Start address of chunk */
+	phys_clicks size;			/* Size of memory chunk */
 } Memory;
 
 typedef struct {

@@ -13,12 +13,14 @@ typedef enum { false, true } bool;
 
 /* Type definition. */
 typedef unsigned long phys_bytes;	/* Physical addr/length in bytes */
-typedef unsigned int vir_bytes;		/* Virtual addresses and lengths in bytes */
+typedef unsigned int phys_clicks;	/* Physical addr/length in clicks */
+typedef unsigned int vir_bytes;		/* Virtual addr/length in bytes */
+typedef unsigned int vir_clicks;	/* Virtual addr/length in clicks */
 
 typedef struct {
-	phys_bytes physAddr;			/* Physical address */
-	vir_bytes virAddr;				/* Virtual address */
-	vir_bytes len;					/* Length */
+	phys_clicks physAddr;			/* Physical address */
+	vir_clicks virAddr;				/* Virtual address */
+	vir_clicks len;					/* Length */
 } MemMap;
 
 typedef struct {

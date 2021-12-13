@@ -148,23 +148,25 @@ int getPriv(register Proc *rp, int procType) {
 
 phys_bytes umapLocal(Proc *rp, int seg, vir_bytes virAddr, vir_bytes bytes) {
 /* Calculate the physical memory address for a given virtual address. */
-	vir_bytes virEnd, segVirStart,segVirEnd;
+	vir_clicks virAddrClicks;		/* The virtual address in clicks */
+	vir_clicks segEndClicks;
 
 	if (bytes <= 0)
 	  return (phys_bytes) 0;
 	if (virAddr + bytes <= virAddr)
 	  return 0;		/* Overflow */
+	virAddrClicks = (virAddr + bytes - 1) >> CLICK_SHIFT;	/* Last click of data */
 
-	virEnd = virAddr + bytes - 1;		/* Last byte of data */
 	if (seg != T) 
-	  seg = D;		/* D can be as S */
+	  seg = (virAddrClicks < rp->p_memmap[D].virAddr + rp->p_memmap[D].len ? D : S);
 
-	segVirStart = rp->p_memmap[seg].virAddr; 
-	segVirEnd = segVirStart + rp->p_memmap[seg].len;
-	if (virAddr < segVirStart || virAddr >= segVirEnd || virEnd >= segVirEnd)
+	segEndClicks = rp->p_memmap[seg].virAddr + rp->p_memmap[seg].len;
+
+	if ((virAddr >> CLICK_SHIFT) >= segEndClicks || virAddrClicks >= segEndClicks)
 	  return (phys_bytes) 0;
 
-	return rp->p_memmap[seg].physAddr + virAddr;
+	return (rp->p_memmap[seg].physAddr << CLICK_SHIFT) + virAddr -
+			(rp->p_memmap[seg].virAddr << CLICK_SHIFT);
 }
 
 void sendSig(int pNum, int sig) {

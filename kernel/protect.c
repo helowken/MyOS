@@ -214,12 +214,12 @@ void allocSegments(Proc *rp) {
 	phys_bytes dataBytes;
 	int privilege;
 
-	codeBytes = rp->p_memmap[T].len;
-	dataBytes = (phys_bytes) (rp->p_memmap[S].virAddr + rp->p_memmap[S].len);
+	codeBytes = rp->p_memmap[T].len << CLICK_SHIFT;
+	dataBytes = (phys_bytes) (rp->p_memmap[S].virAddr + rp->p_memmap[S].len) << CLICK_SHIFT;
 	privilege = isKernelProc(rp) ? TASK_PRIVILEGE : USER_PRIVILEGE;	/* Both need to switch stack. */
-	initCodeSeg(&rp->p_ldt[CS_LDT_INDEX], rp->p_memmap[T].physAddr,
+	initCodeSeg(&rp->p_ldt[CS_LDT_INDEX], rp->p_memmap[T].physAddr << CLICK_SHIFT,
 				codeBytes, privilege);
-	initDataSeg(&rp->p_ldt[DS_LDT_INDEX], rp->p_memmap[D].physAddr,
+	initDataSeg(&rp->p_ldt[DS_LDT_INDEX], rp->p_memmap[D].physAddr << CLICK_SHIFT,
 				dataBytes, privilege);
 	rp->p_reg.cs = (CS_LDT_INDEX * DESC_SIZE) | T1 | privilege; 
 	rp->p_reg.gs = 

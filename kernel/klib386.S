@@ -152,8 +152,8 @@ enableIrq:
  *                copyMessage                *
  *=====================================================================*/
 
-/* void copyMessage(int src, phys_bytes srcAddr, vir_bytes srcOffset, 
- *			phys_bytes dstAddr, vir_bytes dstOffset);
+/* void copyMessage(int src, phys_clicks srcAddr, vir_bytes srcOffset, 
+ *			phys_clicks dstAddr, vir_bytes dstOffset);
  *
  * This routine makes a fast copy of a message from anywhere in the address
  * space to anywhere else. It also copies the source address provided as a
@@ -181,8 +181,10 @@ copyMessage:
 	movw	%ax, %es
 
 	movl	CM_ARGS+4(%esp), %esi		/* src addr */
+	shll	$CLICK_SHIFT, %esi 
 	addl	CM_ARGS+4+4(%esp), %esi		/* + src offset */
 	movl	CM_ARGS+4+4+4(%esp), %edi	/* dst addr */
+	shll	$CLICK_SHIFT, %edi
 	addl	CM_ARGS+4+4+4+4(%esp), %edi		/* + dst offset */
 	
 	movl	CM_ARGS(%esp), %eax			/* src (process number of sender) */

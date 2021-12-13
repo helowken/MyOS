@@ -16,8 +16,8 @@ void main() {
 	register Priv *sp;	/* Privilege pointer */
 	register int i;
 	int hdrIdx;
-	phys_bytes textPhysAddr = 0, dataPhysAddr = 0;
-	vir_bytes textVirAddr, dataVirAddr, textLen = 0, dataLen = 0;
+	phys_clicks textBase = 0, dataBase = 0;
+	vir_clicks textClicks = 0, dataClicks = 0;
 	reg_t kernelTaskStackBase;
 	Exec imgHdr;
 	Elf32_Phdr *hdr;
@@ -80,25 +80,20 @@ void main() {
 		/* Build process memory map */
 		hdr = &imgHdr.codeHdr;
 		if (isPLoad(hdr)) {
-			textPhysAddr = hdr->p_paddr;
-			textVirAddr = hdr->p_vaddr;
-			textLen = hdr->p_memsz;
+			textBase = hdr->p_paddr >> CLICK_SHIFT;
+			textClicks = (hdr->p_memsz + CLICK_SIZE - 1) >> CLICK_SHIFT;
 		}
 		hdr = &imgHdr.dataHdr;
 		if (isPLoad(hdr)) {
-			dataPhysAddr = hdr->p_paddr;
-			dataVirAddr = hdr->p_vaddr;
-			dataLen = hdr->p_memsz;
+			dataBase = hdr->p_paddr >> CLICK_SHIFT;
+			dataClicks = (hdr->p_vaddr + hdr->p_memsz + CLICK_SIZE - 1) >> CLICK_SHIFT;
 		}
-		rp->p_memmap[T].physAddr = textPhysAddr;
-		rp->p_memmap[T].virAddr = textVirAddr;
-		rp->p_memmap[T].len = textLen;
-		rp->p_memmap[D].physAddr = dataPhysAddr;
-		rp->p_memmap[D].virAddr = dataVirAddr;
-		rp->p_memmap[D].len = dataLen;
-		rp->p_memmap[S].physAddr = dataPhysAddr + dataVirAddr + dataLen;
-		rp->p_memmap[S].virAddr = dataVirAddr + dataLen;
-		rp->p_memmap[S].len = 0;
+		rp->p_memmap[T].physAddr = textBase;
+		rp->p_memmap[T].len = textClicks;
+		rp->p_memmap[D].physAddr = dataBase;
+		rp->p_memmap[D].len = dataClicks;
+		rp->p_memmap[S].physAddr = dataBase + dataClicks;
+		rp->p_memmap[S].virAddr = dataClicks;
 
 		/* Set initial register values. The Proessor status word for tasks
 		 * is different from that of other processes because tasks can
@@ -112,7 +107,8 @@ void main() {
 		 */
 		if (isUserProc(rp)) {		/* Is user-space process? */
 			rp->p_reg.esp = (rp->p_memmap[S].virAddr + 
-						rp->p_memmap[S].len) - sizeof(reg_t);
+						rp->p_memmap[S].len) << CLICK_SHIFT;
+			rp->p_reg.esp -= sizeof(reg_t);
 		}
 		
 		/* Set ready. The HARDWARE task is never ready. */
