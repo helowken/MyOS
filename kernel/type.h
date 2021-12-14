@@ -32,7 +32,7 @@ typedef struct {
 	char km_buf[KMESS_BUF_SIZE];	/* Buffer for messages */
 } KernelMessages;
 
-typedef struct {
+typedef struct Memory {
 	phys_clicks base;			/* Start address of chunk */
 	phys_clicks size;			/* Size of memory chunk */
 } Memory;

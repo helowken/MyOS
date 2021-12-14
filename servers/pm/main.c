@@ -11,6 +11,10 @@
 #include "../../kernel/type.h"
 #include "../../kernel/proc.h"
 
+#define clickToRoundKB(n)	\
+	((unsigned) ((((unsigned long) (n) << CLICK_SHIFT) + 512) / 1024))
+
+
 static void patchMemChunks(Memory *memChunks, MemMap *memMap) {
 /* Remove server memory from the free memory list. The boot monitor
  * promises to put processes at the start of memory chunks. The
@@ -103,7 +107,7 @@ static void pmInit() {
 	register char *sigPtr;
 	Memory memChunks[NR_MEMS];
 	MemMap memMap[NR_LOCAL_SEGS];
-	phys_clicks minixClicks;
+	phys_clicks minixClicks, totalClicks, freeClicks;
 		
 	/* Initialize process table, including timers. */
 	for (rmp = &mprocTable[0]; rmp < &mprocTable[NR_PROCS]; ++rmp) {
@@ -195,7 +199,11 @@ static void pmInit() {
 	
 	/* Initialize tables to all physical memory and print memory information. */
 	printf("Physical memory:");
-
+	initMemory(memChunks, &freeClicks);
+	totalClicks = minixClicks + freeClicks;
+	printf(" total %u KB,", clickToRoundKB(totalClicks));
+	printf(" system %u KB,", clickToRoundKB(minixClicks));
+	printf(" free %u KB,", clickToRoundKB(freeClicks));
 }
 
 static void getWork() {
@@ -210,7 +218,7 @@ static void getWork() {
 	 * calling. This can happen in case of synchronous alarms (CLOCK) or event
 	 * like pending kernel signals (SYSTEM).
 	 */
-	mp = &mprocTable[who < 0 ? PM_PROC_NR : who];
+	currMp = &mprocTable[who < 0 ? PM_PROC_NR : who];
 }
 
 int main() {

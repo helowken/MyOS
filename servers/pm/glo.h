@@ -4,7 +4,7 @@
 #endif
 
 /* Global variables. */
-EXTERN struct MProc *mp;	/* Pointer to 'mprocTable' slot of current process */
+EXTERN struct MProc *currMp;	/* Pointer to 'mprocTable' slot of current process */
 EXTERN int procsInUse;	/* How many processes are marked as IN_USE */
 EXTERN char monitorParams[128 * sizeof(char *)];	/* Boot minitor parameters */
 EXTERN KernelInfo kernelInfo;	/* Kernel information */

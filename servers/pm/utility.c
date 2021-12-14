@@ -1,4 +1,5 @@
 #include "pm.h"
+#include "mproc.h"
 #include "string.h"
 
 #include "../../kernel/const.h"
