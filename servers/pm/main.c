@@ -108,6 +108,9 @@ static void pmInit() {
 	Memory memChunks[NR_MEMS];
 	MemMap memMap[NR_LOCAL_SEGS];
 	phys_clicks minixClicks, totalClicks, freeClicks;
+
+	/* Init calls. */
+	initSysCalls();
 		
 	/* Initialize process table, including timers. */
 	for (rmp = &mprocTable[0]; rmp < &mprocTable[NR_PROCS]; ++rmp) {
@@ -223,11 +226,35 @@ static void getWork() {
 
 int main() {
 /* Main routine of the process manager. */
+	int result;
+	sigset_t sigset;
 
 	pmInit();		/* Initialize process manager tables. */
 
 	while (true) {
 		getWork();	/* Wait for an PM system call. */
+
+		/* Check for system notifications first. Special cases. */
+		if (callNum == SYN_ALARM) {
+			pmExpireTimers(inMsg.NOTIFY_TIMESTAMP);
+			result = SUSPEND;		/* Don't reply */
+		} else if (callNum == SYS_SIG) {	/* Signals pending */
+			sigset = inMsg.NOTIFY_ARG;
+			if (sigismember(&sigset, SIGKSIG))
+			  kernelSigPending();
+			result = SUSPEND;		/* Don't reply */
+		} 
+		/* Else, if the system call number is valid, perform the call. */
+		else if ((unsigned) callNum >= NCALLS) {
+			result = ENOSYS;
+		} else {
+			result = callVec[callNum]();
+		}
+
+		/* Send the results back to the user to indicate completion. */
+		if (result != SUSPEND) 
+		  setReply(who, result);
+
 	}
 
 	return OK;

@@ -1,7 +1,5 @@
 #include "timers.h"
 
-#define NULL	((void *) 0)
-
 clock_t timersSetTimer(Timer **timers, Timer *tp, clock_t expTime, 
 			timerFunc watchdog, clock_t *newHead) {
 /* Activate a timer to run function 'watchdog' at time 'expTime'. If the timer is

@@ -50,8 +50,10 @@
  */
 #define NOTIFY_MESSAGE	0x1000	
 #define NOTIFY_FROM(pNum)	(NOTIFY_MESSAGE | ((pNum) + NR_TASKS))
-#define SYNC_ALARM	NOTIFY_FROM(CLOCK)		/* Synchronous alarm */
-#define HARD_INT	NOTIFY_FROM(HARDWARE)	/* Hardware interrupt */
+#	define SYN_ALARM	NOTIFY_FROM(CLOCK)		/* Synchronous alarm */
+#	define SYS_SIG		NOTIFY_FROM(SYSTEM)		/* System signal */
+#	define HARD_INT		NOTIFY_FROM(HARDWARE)	/* Hardware interrupt */
+#	define NEW_KSIG		NOTIFY_FROM(HARDWARE)	/* New kernel signal */
 
 /* Shorthands for message parameters passed with notifications. */
 #define NOTIFY_SOURCE	m_source
@@ -59,6 +61,13 @@
 #define NOTIFY_ARG		m2_l1
 #define NOTIFY_TIMESTAMP	m2_l2
 #define NOTIFY_FLAGS		m2_i1
+
+/*=====================================================================*
+ *			Messages for BLOCK and CHARACTER device drivers			*
+ *=====================================================================*/
+
+/* Field names used in reply messages from tasks. */
+#	define SUSPEND		-998	/* Status to suspend caller, reply later */
 
 /*=====================================================================*
  *			SYSTASK	request types and field names			*

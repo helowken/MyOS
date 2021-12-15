@@ -54,3 +54,7 @@ pid_t getFreePid() {
 	} while (t);
 	return nextPid;
 }
+
+int noSys() {
+	return ENOSYS;
+}

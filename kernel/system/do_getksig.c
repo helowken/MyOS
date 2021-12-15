@@ -1,7 +1,7 @@
 #include "../system.h"
 #include "signal.h"
 
-int doGetKSig(Message *msg) {
+int doGetKernelSig(Message *msg) {
 /* PM is ready to accept signals and repeatedly does a kernel call to get
  * one. Find a process with pending signals. If no signals are available,
  * return NONE in the process number field.

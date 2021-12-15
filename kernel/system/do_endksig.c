@@ -1,6 +1,6 @@
 #include "../system.h"
 
-int doEndKSig(Message *msg) {
+int doEndKernelSig(Message *msg) {
 /* Finish up after a kernel type signal, caused by a SYS_KILL message or a
  * call to causeSig by a task. This is called by the PM after processing a
  * signal it got with SYS_GETKSIG.

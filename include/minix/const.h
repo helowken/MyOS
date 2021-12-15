@@ -5,6 +5,8 @@
 
 #define HZ				60	/* clock freq (software settable on IBM-PC) */
 
+#define SUPER_USER		0	/* uid_t of superuser */
+
 #define NR_REMOTE_SEGS	3	/* Remote memory regions */
 
 /* Memory related constants. */

@@ -42,12 +42,10 @@ static void initialize() {
 
 	/* Signal handling. */
 	map(SYS_KILL, doKill);
-	map(SYS_GETKSIG, doGetKSig);
-	map(SYS_ENDKSIG, doEndKSig);
-	/*
-	map(SYS_SIGSEND, doSigSend);
-	map(SYS_SIGRETURN, doSigReturn);
-	*/
+	map(SYS_GETKSIG, doGetKernelSig);
+	map(SYS_ENDKSIG, doEndKernelSig);
+//	map(SYS_SIGSEND, doSigSend);
+	//map(SYS_SIGRETURN, doSigReturn);
 
 	/* Device I/O. */
 	/*

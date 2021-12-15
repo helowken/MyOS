@@ -38,10 +38,10 @@ int doTrace(Message *msg);
 int doKill(Message *msg);
 
 /* PM checks for pending signals. */
-int doGetKSig(Message *msg);
+int doGetKernelSig(Message *msg);
 
 /* PM finished processing signal. */
-int doEndKSig(Message *msg);
+int doEndKernelSig(Message *msg);
 
 /* Start POSIX-style signal. */
 int doSigSend(Message *msg);

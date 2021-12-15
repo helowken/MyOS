@@ -1,7 +1,5 @@
 #include "timers.h"
 
-#define NULL	((void *) 0)
-
 void timersExpTimers(Timer **timers, clock_t now, clock_t *newHead) {
 /* Use the current time to check the timers queue list for expired timers.
  * Run the watchdog functions for all expired timers and deactivate them.

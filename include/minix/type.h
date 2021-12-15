@@ -47,4 +47,12 @@ typedef struct {
 	bool vdu_vga;
 } Machine;
 
+typedef struct {
+	int sm_sig_num;		/* Signal number being caught */
+	unsigned long sm_mask;		/* Mask to restore when handler returns */
+	vir_bytes sm_sig_handler;	/* Address of handler */
+	vir_bytes sm_sig_return;	/* Address of _sigReturn in C library */
+	vir_bytes sm_stack_ptr;		/* User stack pointer */
+} SigMsg;
+
 #endif

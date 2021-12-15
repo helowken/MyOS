@@ -38,5 +38,13 @@ EXTERN struct MProc {
 
 /* Flag values */
 #define IN_USE			0x001	/* Set when 'mprocTable' slot in use */
+#define WAITING			0x002	/* Set by WAIT system call */
+#define ZOMBIE			0x004	/* Set by EXIT, cleared by WAIT */
+#define PAUSED			0x008	/* Set by PAUSE system call */
+#define ALARM_ON		0x010	/* Set when SIGALRM timer started */
+#define TRACED			0x040	/* Set if process is to be traced */
+#define STOPPED			0x080	/* Set if process stopped for tracing */
+#define SIGSUSPENDED	0x100	/* Set by SIGSUSPEND system call */
+#define REPLY			0x200	/* Set if a reply message is pending */
 #define DONT_SWAP		0x1000	/* Never swap out this process */
 #define	PRIV_PROC		0x2000	/* System process, special privileges */
