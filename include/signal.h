@@ -41,6 +41,42 @@
 #define SIGTTIN		21	/* Background process wants to read */
 #define SIGTTOU		22	/* Background process wants to write */
 
+typedef void (*SigHandler)(int);
+
+/* Macros used as function pointers. */
+#define SIG_ERR		((SigHandler) -1)	/* Error return */
+#define SIG_DFL		((SigHandler)  0)	/* Default signal handling */
+#define SIG_IGN		((SigHandler)  1)	/* Ignore signal */
+#define SIG_HOLD	((SigHandler)  2)	/* Block signal */
+#define SIG_CATCH	((SigHandler)  3)	/* Catch signal */
+#define SIG_MESS	((SigHandler)  4)	/* Pass as message (MINIX) */
+
+struct sigaction {			
+	SigHandler sa_handler;	/* SIG_DFL, SIG_IGN, or pointer to function */
+	sigset_t sa_mask;		/* Signals to be blocked during handler */
+	int sa_flags;			/* Special flags */
+};
+
+/* Fields for sa_flags. */
+#define SA_ONSTACK		0x0001	/* Deliver signal on alternate stack */
+#define SA_RESETHAND	0x0002	/* Reset signal handler when signal caught */
+#define SA_NODEFER		0x0004	/* Don't block signal while catching it */
+#define SA_RESTART		0x0008	/* Automatic system call restart */
+#define SA_SIGINFO		0x0010	/* Extended signal handling */
+#define SA_NOCLDWAIT	0x0020	/* Don't create zombies */
+#define SA_NOCLDSTOP	0x0040	/* Don't receive SIGCHLD when child stops */
+
+/* POSIX requires these values for use with sigprocmask(2). */
+#define SIG_BLOCK		0	/* For blocking signals */
+#define SIG_UNBLOCK		1	/* For unblocking signals */
+#define SIG_SETMASK		2	/* For setting the signal mask */
+#define SIG_INQUIRE		4	/* For internel use only */
+
+int raise(int sig);
+SigHandler signal(int sig, SigHandler func);
+int kill(pid_t pid, int sig);
+int sigaction(int sig, const struct sigaction *sa, struct sigaction *oldSa);
+
 int sigaddset(sigset_t *set, int sig);
 int sigdelset(sigset_t *set, int sig);
 int sigemptyset(sigset_t *set);

@@ -11,7 +11,7 @@ void allocSegments(struct Proc *rp);
 /* clock.c */
 void clockTask();
 clock_t getUptime();
-void setTimer(struct Timer *tp, clock_t expTime, timerFunc watchDog);
+void setTimer(struct Timer *tp, clock_t expTime, TimerFunc watchDog);
 void resetTimer(struct Timer *tp);
 
 /* utility.c */

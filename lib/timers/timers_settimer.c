@@ -1,7 +1,7 @@
 #include "timers.h"
 
 clock_t timersSetTimer(Timer **timers, Timer *tp, clock_t expTime, 
-			timerFunc watchdog, clock_t *newHead) {
+			TimerFunc watchdog, clock_t *newHead) {
 /* Activate a timer to run function 'watchdog' at time 'expTime'. If the timer is
  * already in use it is first removed from the timers queue. Then, it is put
  * in the list of active timers with the first to expire in front.

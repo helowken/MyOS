@@ -158,7 +158,7 @@ clock_t getUptime() {
 	return realTime;
 }
 
-void setTimer(Timer *tp, clock_t expTime, timerFunc watchdog) {
+void setTimer(Timer *tp, clock_t expTime, TimerFunc watchdog) {
 /* Insert the new timer in the active timers list. Always update the
  * next timeout time by setting it to the front of the active list.
  */

@@ -1,7 +1,8 @@
 #include "pm.h"
 #include "mproc.h"
-#include "string.h"
+#include "param.h"
 
+#include "string.h"
 #include "../../kernel/const.h"
 #include "../../kernel/config.h"
 #include "../../kernel/type.h"
@@ -57,4 +58,34 @@ pid_t getFreePid() {
 
 int noSys() {
 	return ENOSYS;
+}
+
+void tellFS(int what, int p1, int p2, int p3) {
+/* This routine is only used by PM to inform FS of certain events:
+ *		tellFS(CHDIR, slot, dir, 0)
+ *		tellFS(EXEC, proc, 0, 0)
+ *		tellFS(EXIT, proc, 0, 0)
+ *		tellFS(FORK, parent, child, pid)
+ *		tellFS(SETGID, proc, rgid, egid)
+ *		tellFS(SETSID, proc, 0, 0)
+ *		tellFS(SETUID, proc, ruid, euid)
+ *		tellFS(UNPAUSE, proc, sigNum, 0)
+ *		tellFS(STIME, time, 0, 0)
+ */
+	Message msg;
+
+	msg.tell_fs_arg1 = p1;
+	msg.tell_fs_arg2 = p2;
+	msg.tell_fs_arg3 = p3;
+	taskCall(FS_PROC_NR, what, &msg);
+}
+
+int getStackPtr(int pNum, vir_bytes *sp) {
+	Proc p;
+	int s;
+
+	if ((s = sysGetProc(&p, pNum)) != OK)
+	  return s;
+	*sp = p.p_reg.esp;
+	return OK;
 }

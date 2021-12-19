@@ -5,6 +5,7 @@
 #include "sys/resource.h"
 #include "string.h"
 #include "mproc.h"
+#include "param.h"
 
 #include "../../kernel/const.h"
 #include "../../kernel/config.h"
@@ -14,6 +15,20 @@
 #define clickToRoundKB(n)	\
 	((unsigned) ((((unsigned long) (n) << CLICK_SHIFT) + 512) / 1024))
 
+
+void setReply(int pIdx, int result) {
+/* Fill in a reply message to be sent later to a user process. System calls
+ * may occasionally fill in other fields, this is only for the main return
+ * value, and for setting the "must send reply" flag.
+ */
+	register MProc *rmp = &mprocTable[pIdx];
+
+	rmp->mp_reply.reply_res = result;
+	rmp->mp_flags |= REPLY;		/* Reply pending */
+
+	if (rmp->mp_flags & ONSWAP) 
+	  swapInQueue(rmp);		/* Must swap this process back in */
+}
 
 static void patchMemChunks(Memory *memChunks, MemMap *memMap) {
 /* Remove server memory from the free memory list. The boot monitor
@@ -134,14 +149,14 @@ static void pmInit() {
 	 * reported, but it must be corrected for the kernel and system processes.
 	 */
 	if ((s = sysGetMonParams(monitorParams, sizeof(monitorParams))) != OK)
-	  panic(__FILE__, "Get monitor params failed", s);
+	  panic(__FILE__, "get monitor params failed", s);
 	getMemChunks(memChunks);
 	if ((s = sysGetKernelInfo(&kernelInfo)) != OK)
-	  panic(__FILE__, "Get kernel info failed", s);
+	  panic(__FILE__, "get kernel info failed", s);
 	
 	/* Get the memory map of the kernel to see how much memory it uses. */
 	if ((s = getMemMap(SYSTASK, memMap)) != OK)
-	  panic(__FILE__, "Couldn't get memory map of SYSTASK", s);
+	  panic(__FILE__, "couldn't get memory map of SYSTASK", s);
 	minixClicks = memMap[S].physAddr + memMap[S].len - memMap[T].physAddr;
 	patchMemChunks(memChunks, memMap);
 
@@ -149,7 +164,7 @@ static void pmInit() {
 	 * that is defined at the kernel level to see which slots to fill in. 
 	 */
 	if ((s = sysGetImage(images)) != OK)
-	  panic(__FILE__, "Couldn't get image table: %d\n", s);
+	  panic(__FILE__, "couldn't get image table: %d\n", s);
 	procsInUse = 0;		/* Start populating table */
 	printf("Building process table:");		/* Show what's happening */
 	//for (i = 0; i < NR_BOOT_PROCS; ++i) { // TODO
@@ -161,7 +176,7 @@ static void pmInit() {
 			/* Set process details found in the image table. */
 			rmp = &mprocTable[ip->procNum];
 			strncpy(rmp->mp_name, ip->procName, PROC_NAME_LEN);
-			rmp->mp_parent = RS_PROC_NR;
+			rmp->mp_parent_idx = RS_PROC_NR;
 			rmp->mp_nice = getNiceValue(ip->priority);
 			if (ip->procNum == INIT_PROC_NR) {	/* User Process */
 				rmp->mp_pid = INIT_PID;
@@ -178,7 +193,7 @@ static void pmInit() {
 
 			/* Get memory map for this process from the kernel. */
 			if ((s = getMemMap(ip->procNum, rmp->mp_memmap)) != OK)
-			  panic(__FILE__, "Couldn't get process entry", s);
+			  panic(__FILE__, "couldn't get process entry", s);
 			minixClicks = rmp->mp_memmap[S].physAddr + 
 				rmp->mp_memmap[S].len - rmp->mp_memmap[T].physAddr;
 			patchMemChunks(memChunks, rmp->mp_memmap);
@@ -193,7 +208,7 @@ static void pmInit() {
 
 	/* Override some details. PM is somewhat special. */
 	mprocTable[PM_PROC_NR].mp_pid = PM_PID;
-	mprocTable[PM_PROC_NR].mp_parent = PM_PROC_NR;	/* PM doesn't have parent */
+	mprocTable[PM_PROC_NR].mp_parent_idx = PM_PROC_NR;	/* PM doesn't have parent */
 
 	/* Tell FS that no more system processes follow and synchronize. */
 	// TODO
@@ -254,7 +269,8 @@ int main() {
 		/* Send the results back to the user to indicate completion. */
 		if (result != SUSPEND) 
 		  setReply(who, result);
-
+	
+		// TODO swap_in()
 	}
 
 	return OK;

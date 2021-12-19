@@ -6,6 +6,7 @@ typedef struct Memory Memory;
 /* alloc.c */
 void initMemory(Memory *chunks, phys_clicks *free);
 void freeMemory(phys_clicks base, phys_clicks clicks);
+void swapInQueue(MProc *rmp);
 
 /* utility.c */
 void panic(char *who, char *msg, int num);
@@ -13,12 +14,14 @@ char *findParam(const char *key);
 int getMemMap(int pNum, MemMap *memMap);
 pid_t getFreePid();
 int noSys();
+void tellFS(int what, int p1, int p2, int p3);
+int getStackPtr(int pNum, vir_bytes *sp);
 
 /* break.c */
 int doBrk();
 
 /* timers.c */
-void pmSetTimer(Timer *tp, int delta, timerFunc watchdog, int arg);
+void pmSetTimer(Timer *tp, int delta, TimerFunc watchdog, int arg);
 void pmExpireTimers(clock_t now);
 void pmCancelTimer(Timer *tp);
 
@@ -43,6 +46,7 @@ int doSvrCtl();
 int doAllocMem();
 int doFreeMem();
 int doGetSetPriority();
+void setReply(int pIdx, int result);
 
 /* table.c */
 void initSysCalls();

@@ -1,13 +1,16 @@
 #include "timers.h"
+#include "signal.h"
 
 typedef struct MProc MProc;
 
 EXTERN struct MProc {
 	MemMap mp_memmap[NR_LOCAL_SEGS];	/* Points to text, data, stack */
+	char mp_exit_status;	/* Storage for status when process exits */
+	char mp_sig_status;		/* Storage for status # for killed procs */
 	pid_t mp_pid;			/* Process id */
 	pid_t mp_proc_grp;		/* Pid of process group (used for signals) */
 	pid_t mp_wait_pid;		/* Pid this process is waiting for */
-	int mp_parent;			/* Index of parent process */
+	int mp_parent_idx;		/* Index of parent process */
 
 	/* Child user and system times. Accounting done on child exit. */
 	clock_t mp_child_utime;		/* Cumulative user time of children */
@@ -26,9 +29,13 @@ EXTERN struct MProc {
 	sigset_t mp_sig_mask;		/* Signals to be blocked */
 	sigset_t mp_sig_mask2;		/* Saved copy of mp_sig_mask */
 	sigset_t mp_sig_pending;	/* Pending signals to be handled */
+	struct sigaction mp_sig_actions[NSIG + 1];	/* As in sigaction(2) */
+	vir_bytes mp_sig_return;	/* Address of C library _sigreturn function */
 	Timer mp_timer;				/* Watchdog timer for alarm */
 
 	unsigned mp_flags;		/* Flag bits */
+	MProc *mp_swap_in_q;	/* Queue of procs waiting to be swapped in */
+	Message mp_reply;		/* Reply message to be sent to one */
 
 	/* Scheduling priority. */
 	int mp_nice;			/* Nice is PRIO_MIN..PRIO_MAX, standard 0. */
@@ -46,5 +53,7 @@ EXTERN struct MProc {
 #define STOPPED			0x080	/* Set if process stopped for tracing */
 #define SIGSUSPENDED	0x100	/* Set by SIGSUSPEND system call */
 #define REPLY			0x200	/* Set if a reply message is pending */
+#define ONSWAP			0x400	/* Set if data segment is swapped out */
+#define SWAPIN			0x800	/* Set if on the "swap this in" queue */
 #define DONT_SWAP		0x1000	/* Never swap out this process */
 #define	PRIV_PROC		0x2000	/* System process, special privileges */

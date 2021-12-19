@@ -7,7 +7,7 @@
 
 struct Timer;
 
-typedef void (*timerFunc)(struct Timer *tp);
+typedef void (*TimerFunc)(struct Timer *tp);
 
 typedef union {
 	int ta_int;
@@ -18,7 +18,7 @@ typedef union {
 typedef struct Timer {
 	struct Timer *next;		/* Next in a timer chain */
 	clock_t	expiredTime;	/* Expiration time */
-	timerFunc func;			/* Function to call when expired */
+	TimerFunc func;		/* Function to call when expired */
 	TimerArg arg;			/* random argument */
 } Timer;
 
@@ -40,6 +40,6 @@ typedef struct Timer {
 clock_t timersClearTimer(Timer **timers, Timer *tp, clock_t *newHead);
 void timersExpTimers(Timer **timers, clock_t now, clock_t *newHead);
 clock_t timersSetTimer(Timer **timers, Timer *tp, clock_t expiredTime, 
-			timerFunc watchdog, clock_t *newHead);
+			TimerFunc watchdog, clock_t *newHead);
 
 #endif

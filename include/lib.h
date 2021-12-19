@@ -1,7 +1,6 @@
 #ifndef _LIB_H
 #define _LIB_H
 
-#define	_POSIX_SOURCE	1
 #define _MINIX			1
 
 #include "minix/config.h"

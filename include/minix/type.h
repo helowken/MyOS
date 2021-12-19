@@ -47,6 +47,11 @@ typedef struct {
 	bool vdu_vga;
 } Machine;
 
+/* PM passes the address of a structure of this type to KERNEL when
+ * sysSendSig() is invoked as part of the signal catching mechanism.
+ * The structure contains all the information that KERNEL needs to build
+ * the signal stack.
+ */
 typedef struct {
 	int sm_sig_num;		/* Signal number being caught */
 	unsigned long sm_mask;		/* Mask to restore when handler returns */

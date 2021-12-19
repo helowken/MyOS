@@ -1,7 +1,6 @@
 #ifndef KERNEL_H
 #define KERNEL_H
 
-#define _POSIX_SOURCE		1
 #define _MINIX				1
 #define _SYSTEM				1
 

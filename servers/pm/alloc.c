@@ -23,6 +23,7 @@ static Hole *holeHead;		/* Pointer to first hole */
 static Hole *freeSlots;		/* Pointer to list of unused table slots */
 static phys_clicks swapBase;		/* Memory offset chosen as swap base */
 static phys_clicks swapMaxSize;		/* Maximum amount of swap "memory" possible */
+static MProc *inQueue;		/* Queue of processes wanting to swap in */
 
 static void deleteSlot(Hole *prevHp, Hole *hp) {
 /* Remove an entry from the hole list. This procedure is called when a
@@ -81,7 +82,7 @@ void freeMemory(phys_clicks base, phys_clicks clicks) {
 	if (clicks == 0)
 	  return;
 	if ((newHp = freeSlots) == NIL_HOLE)
-	  panic(__FILE__, "Hole table full", NO_NUM);
+	  panic(__FILE__, "hole table full", NO_NUM);
 	newHp->base = base;
 	newHp->len = clicks;
 	freeSlots = newHp->next;
@@ -151,4 +152,19 @@ void initMemory(Memory *chunks, phys_clicks *freeClicks) {
 	swapMaxSize = 0 - swapBase;		/* Maximum we can possibly use */
 }
 
+void swapInQueue(register MProc *rmp) {
+/* Put a swapped out process on the queue of processes to be swapped in. This
+ * happens when such a process gets a signal, or if a reply message must be
+ * sent, like when a process doing a wait() has a child that exits.
+ */
+	MProc **xp;
 
+	if (rmp->mp_flags & SWAPIN) 
+	  return;
+
+	for (xp = &inQueue; *xp != NULL; xp = &(*xp)->mp_swap_in_q) {
+	}
+	*xp = rmp;
+	rmp->mp_swap_in_q = NULL;
+	rmp->mp_flags |= SWAPIN;
+}
