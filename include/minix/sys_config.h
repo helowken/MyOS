@@ -1,4 +1,4 @@
-#ifndef _MINIX_SYS_CONFIG_h
+#ifndef _MINIX_SYS_CONFIG_H
 #define _MINIX_SYS_CONFIG_H	1
 
 #define _NR_PROCS		64

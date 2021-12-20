@@ -45,7 +45,7 @@ typedef struct {
 	} bin[RANDOM_SOURCES];
 } Randomness;
 
-typedef struct {
+typedef struct StackFrame {
 	reg_t gs;
 	reg_t fs;
 	reg_t es;

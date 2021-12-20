@@ -29,7 +29,10 @@ OBJS_M32 = memcpy.o \
 		   $(MISC)/io_outl.o \
 		   $(MISC)/io_intr.o \
 		   $(RTS)/_ipc.o \
-		   $(POSIX)/sigset.o
+		   $(RTS)/_sigreturn.o \
+		   $(POSIX)/sigset.o \
+		   $(POSIX)/_sigaction.o \
+		   $(POSIX)/_sigreturn.o
 		
 
 OBJS_M16 = memcpy.o \

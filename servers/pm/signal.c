@@ -5,6 +5,7 @@
 #include "sys/sigcontext.h"
 #include "string.h"
 #include "mproc.h"
+#include "param.h"
 
 static void unpause(int pIdx) {
 /* A signal is to be sent to a process. If that process is hanging on a 
@@ -15,7 +16,6 @@ static void unpause(int pIdx) {
  */
 	register struct MProc *rmp;
 	int flags;
-	int sigNum;
 
 	rmp = &mprocTable[pIdx];
 	flags = PAUSED | WAITING | SIGSUSPENDED;
@@ -29,6 +29,11 @@ static void unpause(int pIdx) {
 
 	/* Process is not hanging on an PM call. Ask FS to take a look. */
 	tellFS(UNPAUSE, pIdx, 0, 0);
+}
+
+static void dumpCore(register MProc *rmp) {
+/* Make a core dump on the file "core", if possible. */
+	// TODO
 }
 
 void signalProc(register MProc *rmp, int sigNum) {
@@ -55,7 +60,7 @@ void signalProc(register MProc *rmp, int sigNum) {
 	slot = (int) (rmp - mprocTable);
 	if ((rmp->mp_flags & (IN_USE | ZOMBIE)) != IN_USE) {
 		printf("PM: signal %d sent to %s process %d\n",
-			sigNum, (rmp-mp_flags & ZOMBIE) ? "zombie" : "dead", slot);
+			sigNum, (rmp->mp_flags & ZOMBIE) ? "zombie" : "dead", slot);
 		panic(__FILE__, "", NO_NUM);
 	}
 	if ((rmp->mp_flags & TRACED) && sigNum != SIGKILL) {
@@ -68,7 +73,7 @@ void signalProc(register MProc *rmp, int sigNum) {
 	if (sigismember(&rmp->mp_sig_ignore, sigNum)) {
 		return;
 	}
-	if (sigismember($rmp->mp_sig_catch, sigNum)) {
+	if (sigismember(&rmp->mp_sig_catch, sigNum)) {
 		/* Signal should be blocked. */
 		sigaddset(&rmp->mp_sig_pending, sigNum);
 		return;
@@ -80,9 +85,9 @@ void signalProc(register MProc *rmp, int sigNum) {
 		return;
 	}
 
-	sa = &rmp->mp_sigaction[sigNum];
+	sa = &rmp->mp_sig_actions[sigNum];
 	sigFlags = sa->sa_flags;
-	if (sigismember(&rmp->mp_catch, sigNum)) {
+	if (sigismember(&rmp->mp_sig_catch, sigNum)) {
 		if (rmp->mp_flags & SIGSUSPENDED)
 		  sm.sm_mask = rmp->mp_sig_mask2;
 		else
@@ -103,12 +108,12 @@ void signalProc(register MProc *rmp, int sigNum) {
 		  sigaddset(&rmp->mp_sig_mask, sigNum);
 
 		if (sigFlags & SA_RESETHAND) {
-			sigdelset(&rmp->mp_catch, sigNum);
+			sigdelset(&rmp->mp_sig_catch, sigNum);
 			sa->sa_handler = SIG_DFL;
 		}
 
 		if ((s == sysSigSend(slot, &sm)) == OK) {
-			sigdelset(&rmp>mp_sig_pending, sigNum);
+			sigdelset(&rmp->mp_sig_pending, sigNum);
 			/* If process is hanging on PAUSE, WAIT, SIGSUSPEND, tty,
 			 * pipe, etc., release it.
 			 */
@@ -122,7 +127,7 @@ void signalProc(register MProc *rmp, int sigNum) {
 		return;
 	}
 
-doTerminate:
+//doTerminate:
 	/* Signal should not or cannot be caught. Take default action. */
 	if (sigismember(&ignoreSigSet, sigNum))
 	  return;
@@ -143,7 +148,7 @@ doTerminate:
 	pmExit(rmp, 0);		/* Terminate process */
 }
 
-void checkSig(pid_t pid, int sigNum) {
+int checkSig(pid_t procId, int sigNum) {
 /* Check to see if it is possible to send a signal. The signal may have to be
  * sent to a group of processes. This routine is invoked by the KILL system
  * call, and also when the kernel catches a DEL or other signal.
@@ -156,7 +161,7 @@ void checkSig(pid_t pid, int sigNum) {
 	  return EINVAL;
 
 	/* Return EINVAL for attempts to send SIGKILL to INIT alone. */
-	if (pid == INIT_PID && sigNum == SIGKILL)
+	if (procId == INIT_PID && sigNum == SIGKILL)
 	  return EINVAL;
 
 	/* Search the proc table for processes to signal. */
@@ -168,10 +173,10 @@ void checkSig(pid_t pid, int sigNum) {
 		  continue;
 
 		/* Check for selection. */
-		if ((pid > 0 && pNum != rmp->mp_pid) ||
-			(pid == 0 && currMp->mp_proc_grp != rmp->mp_proc_grp) ||
-			(pid == -1 && rmp->mp_pid <= INIT_PID) ||
-			(pid < -1 && rmp->mp_proc_grp != -pid))
+		if ((procId > 0 && procId != rmp->mp_pid) ||
+			(procId == 0 && currMp->mp_proc_grp != rmp->mp_proc_grp) ||
+			(procId == -1 && rmp->mp_pid <= INIT_PID) ||
+			(procId < -1 && rmp->mp_proc_grp != -procId))
 		  continue;
 
 		/* Check for permission. */
@@ -194,7 +199,7 @@ void checkSig(pid_t pid, int sigNum) {
 		 */
 		signalProc(rmp, sigNum);
 	
-		if (pid > 0)
+		if (procId > 0)
 		  break;		/* Only one process being signaled */
 	}
 
@@ -207,12 +212,12 @@ void checkSig(pid_t pid, int sigNum) {
 static void handleSig(int pNum, sigset_t sigMap) {
 	register MProc *rmp;
 	int sig;
-	pid_t pid, id;
+	pid_t procId, id;
 
 	rmp = &mprocTable[pNum];
 	if ((rmp->mp_flags & (IN_USE | ZOMBIE)) != IN_USE)
 	  return;
-	pid = rmp->mp_pid;
+	procId = rmp->mp_pid;
 	currMp = &mprocTable[0];	/* Pretend signals are from PM */
 	currMp->mp_proc_grp = rmp->mp_proc_grp;		/* Get process group right */
 
@@ -235,7 +240,7 @@ static void handleSig(int pNum, sigset_t sigMap) {
 				id = -1;	/* Broadcast to all except INIT */
 				break;
 			default:
-				id = pid;
+				id = procId;
 				break;
 		}
 		checkSig(id, sig);
@@ -270,16 +275,17 @@ int kernelSigPending() {
 
 int doSigAction() {
 	int r;
+	int sigNum;
 	struct sigaction sa;
 	struct sigaction *oldSa;
 
 	sigNum = inMsg.sig_num;
-	if (inMsg.sig_num = SIGKILL)
+	if (inMsg.sig_num == SIGKILL)
 	  return OK;
-	if (inMsg->sig_num < 1 || inMsg.sig_num > NSIG)
+	if (inMsg.sig_num < 1 || inMsg.sig_num > NSIG)
 	  return EINVAL;
 	oldSa = &currMp->mp_sig_actions[sigNum]; 
-	if ((struct sigaction *) inMsg->sig_osa != (struct sigaction *) NULL) {
+	if ((struct sigaction *) inMsg.sig_old_sa != (struct sigaction *) NULL) {
 		r = sysDataCopy(PM_PROC_NR, (vir_bytes) oldSa, 
 				who, (vir_bytes) inMsg.sig_old_sa, (phys_bytes) sizeof(sa));
 		if (r != OK)

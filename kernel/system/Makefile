@@ -16,7 +16,8 @@ OBJS = do_unused.o \
 	   do_getinfo.o \
 	   do_times.o \
 	   do_setalarm.o \
-	   do_memset.o
+	   do_memset.o \
+	   do_sigsend.o
 
 all: $(LIB)
 
