@@ -125,6 +125,15 @@
 #define ALARM_PROC_NR	m2_i1		/* Which process wants the alarm? */
 #define ALARM_FLAG_PTR	m2_p1		/* Virtual address of timeout flag */
 
+/* Field names for UMAP, VIRCOPY, PHYSCOPY. */
+#define CP_SRC_SPACE	m5_c1		/* T or D space (stack is also D) */
+#define CP_SRC_PROC_NR	m5_i1		/* Process to copy from */
+#define CP_SRC_ADDR		m5_l1		/* Address where data come from */
+#define CP_DST_SPACE	m5_c2		/* T or D space (stack is alos D) */
+#define CP_DST_PROC_NR	m5_i2		/* Process is copy to */
+#define CP_DST_ADDR		m5_l2		/* Address where data go to */
+#define CP_NR_BYTES		m5_l3		/* Number of bytes to copy */
+
 /* Field names for SYS_GETINFO. */
 #define I_REQUEST		m7_i3		/* What info to get */
 #	define GET_KINFO		0		/* Get kernel information structure */

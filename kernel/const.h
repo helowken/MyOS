@@ -13,6 +13,10 @@
 /* Map a process number to a privilege structure id. */
 #define s_nrToId(n)	(NR_TASKS + (n) + 1)
 
+/* Constants used in virtualCopy(). Values must be 0 and 1, respectively. */
+#define _SRC_	0
+#define _DST_	1
+
 /* Number of random sources */
 #define RANDOM_SOURCES	16
 

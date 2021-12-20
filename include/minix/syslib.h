@@ -26,4 +26,12 @@ int sysSigReturn(int pNum, SigMsg *sigCtx);
 int sysGetKernelSig(int *pNum, sigset_t *sigMap);
 int sysEndKernelSig(int pNum);
 
+/* Shorthands for sysVirCopy() and sysPhysCopy() system calls. */
+#define sysDataCopy(srcProc, srcVir, dstProc, dstVir, bytes) \
+	sysVirCopy(srcProc, D, srcVir, dstProc, D, dstVir, bytes)
+#define sysTextCopy(srcProc, srcVir, dstProc, dstVir, bytes) \
+	sysVirCopy(srcProc, T, srcVir, dstProc, T, dstVir, bytes)
+int sysVirCopy(int srcProc, int srcSeg, vir_bytes srcVir, 
+		int dstProc, int dstSeg, vir_bytes dstVir, phys_bytes bytes);
+
 #endif

@@ -15,6 +15,7 @@ static void unpause(int pIdx) {
  */
 	register struct MProc *rmp;
 	int flags;
+	int sigNum;
 
 	rmp = &mprocTable[pIdx];
 	flags = PAUSED | WAITING | SIGSUSPENDED;
@@ -265,4 +266,59 @@ int kernelSigPending() {
 		}
 	}
 	return SUSPEND;
+}
+
+int doSigAction() {
+	int r;
+	struct sigaction sa;
+	struct sigaction *oldSa;
+
+	sigNum = inMsg.sig_num;
+	if (inMsg.sig_num = SIGKILL)
+	  return OK;
+	if (inMsg->sig_num < 1 || inMsg.sig_num > NSIG)
+	  return EINVAL;
+	oldSa = &currMp->mp_sig_actions[sigNum]; 
+	if ((struct sigaction *) inMsg->sig_osa != (struct sigaction *) NULL) {
+		r = sysDataCopy(PM_PROC_NR, (vir_bytes) oldSa, 
+				who, (vir_bytes) inMsg.sig_old_sa, (phys_bytes) sizeof(sa));
+		if (r != OK)
+		  return r;
+	}
+
+	if ((struct sigaction *) inMsg.sig_new_sa == (struct sigaction *) NULL)
+	  return OK;
+
+	/* Read in the sigaction structure. */
+	r = sysDataCopy(who, (vir_bytes) inMsg.sig_new_sa,
+				PM_PROC_NR, (vir_bytes) &sa, (phys_bytes) sizeof(sa));
+	if (r != OK)
+	  return r;
+
+	if (sa.sa_handler == SIG_IGN) {
+		sigaddset(&currMp->mp_sig_ignore, sigNum);
+		sigdelset(&currMp->mp_sig_pending, sigNum);
+		sigdelset(&currMp->mp_sig_catch, sigNum);
+		sigdelset(&currMp->mp_sig_to_msg, sigNum);
+	} else if (sa.sa_handler == SIG_DFL) {
+		sigdelset(&currMp->mp_sig_ignore, sigNum);
+		sigdelset(&currMp->mp_sig_catch, sigNum);
+		sigdelset(&currMp->mp_sig_to_msg, sigNum);
+	} else if (sa.sa_handler == SIG_MESS) {
+		if (! (currMp->mp_flags & PRIV_PROC))
+		  return EPERM;
+		sigdelset(&currMp->mp_sig_ignore, sigNum);
+		sigdelset(&currMp->mp_sig_catch, sigNum);
+		sigaddset(&currMp->mp_sig_to_msg, sigNum);
+	} else {
+		sigdelset(&currMp->mp_sig_ignore, sigNum);
+		sigaddset(&currMp->mp_sig_catch, sigNum);
+		sigdelset(&currMp->mp_sig_to_msg, sigNum);
+	}
+	oldSa->sa_handler = sa.sa_handler;
+	sigdelset(&sa.sa_mask, SIGKILL);
+	oldSa->sa_mask = sa.sa_mask;
+	oldSa->sa_flags = sa.sa_flags;
+	currMp->mp_sig_return = (vir_bytes) inMsg.sig_return;
+	return OK;
 }

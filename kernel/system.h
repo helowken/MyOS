@@ -92,16 +92,18 @@ int doMemset(Message *msg);
 int doUmap(Message *msg);
 
 /* Use pure virtual addressing. */
-int doVirCopy(Message *msg);
-
+#define doVirCopy	doCopy
 /* Use physical addressing. */
-int doPhysCopy(Message *msg);
+#define doPhysCopy	doCopy
+int doCopy(Message *msg);
+
 
 /* Vector with copy requests. */
 int doVirVecCopy(Message *msg);
 
 /* Vector with copy requests. */
 int doPhysVecCopy(Message *msg);
+
 
 
 /*=====================================================================*

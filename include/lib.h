@@ -18,5 +18,6 @@
 #define MM		PM_PROC_NR
 #define FS		FS_PROC_NR
 
+int syscall(int who, int callNum, Message *msg);
 
 #endif

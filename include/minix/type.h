@@ -24,6 +24,12 @@ typedef struct {
 } MemMap;
 
 typedef struct {
+	int pNum;
+	int segment;
+	vir_bytes offset;
+} VirAddr;
+
+typedef struct {
 	phys_bytes codeBase;			/* Base of kernel code */
 	phys_bytes codeSize;			/* Size of kernel code */
 	phys_bytes dataBase;			/* Base of kernel data */

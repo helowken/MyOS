@@ -208,7 +208,48 @@ void causeSig(int pNum, int sig) {
 	}
 }
 
+int virtualCopy(VirAddr *srcAddr, VirAddr *dstAddr, vir_bytes bytes) {
+/* Copy bytes from virtual address srcAddr to virtual address dstAddr.
+ * Virtual addresses can be in ABS, LOCAL_SEG, REMOTE_SEG, or BIOS_SEG.
+ */
+	VirAddr *virAddr[2];	/* Virtual source and destination address */
+	phys_bytes physAddr[2];	/* Absolute source and destination */
+	int segIdx;
+	int i;
 
+	/* Check copy count. */
+	if (bytes <= 0)
+	  return EDOM;
+
+	/* Do some more checks and map virtual addresses to physical addresses. */
+	virAddr[_SRC_] = srcAddr;
+	virAddr[_DST_] = dstAddr;
+	for (i = _SRC_; i <= _DST_; ++i) {
+		/* Get physical address. */
+		switch (virAddr[i]->segment & SEGMENT_TYPE) {
+			case LOCAL_SEG:
+				segIdx = virAddr[i]->segment & SEGMENT_INDEX;
+				physAddr[i] = umapLocal(procAddr(virAddr[i]->pNum), segIdx,
+							virAddr[i]->offset, bytes);
+				break;
+			// case REMOTE_SEG: TODO
+			// case BIOS_SEG:	TODO
+			case PHYS_SEG:	
+				physAddr[i] = virAddr[i]->offset;
+				break;
+			default:
+				return EINVAL;
+		}
+
+		/* Check if mapping succeeded. */
+		if (physAddr[i] <= 0 && virAddr[i]->segment != PHYS_SEG)
+		  return EFAULT;
+	}
+
+	/* Now copy bytes between physical addresses */
+	physCopy(physAddr[_SRC_], physAddr[_DST_], bytes);
+	return OK;
+}
 
 
 

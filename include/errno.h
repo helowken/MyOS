@@ -20,6 +20,7 @@ extern int errno;
 #define EFAULT		(_SIGN 14)	/* Bad address */
 #define EINVAL		(_SIGN 22)	/* Invalid argument */
 #define ENOSPC		(_SIGN 28)	/* No space left on device */
+#define EDOM		(_SIGN 33)	/* Domain error (from ANSI C std) */
 #define ERANGE		(_SIGN 34)	/* Result too large */
 #define ENOSYS		(_SIGN 38)	/* Function not implemented */
 

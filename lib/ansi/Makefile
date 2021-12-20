@@ -20,6 +20,7 @@ OBJS_M32 = memcpy.o \
 		   atoi.o \
 		   atol.o \
 		   $(OTHER)/errno.o \
+		   $(OTHER)/syscall.o \
 		   $(MISC)/io_inb.o \
 		   $(MISC)/io_inw.o \
 		   $(MISC)/io_inl.o \

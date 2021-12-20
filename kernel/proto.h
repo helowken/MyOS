@@ -1,12 +1,12 @@
 #ifndef PROTO_H
 #define PROTO_H
 
-struct Proc;
+typedef struct Proc Proc;
 
 /* protect.c */
 phys_bytes seg2Phys(U16_t seg);
 void protectInit();
-void allocSegments(struct Proc *rp);
+void allocSegments(Proc *rp);
 
 /* clock.c */
 void clockTask();
@@ -19,8 +19,8 @@ void kprintf(const char *fmt, ...);
 void panic(const char *s, int n);
 
 /* proc.c */
-void lockEnqueue(struct Proc *rp);
-void lockDequeue(struct Proc *rp);
+void lockEnqueue(Proc *rp);
+void lockDequeue(Proc *rp);
 int sys_call(int function, int srcDst, Message *msg);
 
 /* start.c */
@@ -38,13 +38,14 @@ int lockSend(int dst, Message *msg);
 int lockNotify(int src, int dst);
 
 /* system.c */
-int getPriv(register struct Proc *rp, int procType);
+int getPriv(register Proc *rp, int procType);
 void sysTask();
 #define nUmapLocal(pNum, virAddr, bytes) \
 	umapLocal(procAddr(pNum), D, (virAddr), (bytes))
-phys_bytes umapLocal(struct Proc *rp, int seg, vir_bytes virAddr, vir_bytes bytes);
+phys_bytes umapLocal(Proc *rp, int seg, vir_bytes virAddr, vir_bytes bytes);
 void sendSig(int pNum, int sig);
 void causeSig(int pNum, int sig);
+int virtualCopy(VirAddr *src, VirAddr *dst, vir_bytes bytes);
 
 /* klib386.S */
 void copyMessage(int src, phys_clicks srcAddr, vir_bytes srcOffset, 
