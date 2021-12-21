@@ -11,6 +11,8 @@
 
 typedef enum { false, true } bool;
 
+typedef unsigned reg_t;		/* Machine register */
+
 /* Type definition. */
 typedef unsigned long phys_bytes;	/* Physical addr/length in bytes */
 typedef unsigned int phys_clicks;	/* Physical addr/length in clicks */
@@ -65,5 +67,26 @@ typedef struct {
 	vir_bytes sm_sig_return;	/* Address of _sigReturn in C library */
 	vir_bytes sm_stack_ptr;		/* User stack pointer */
 } SigMsg;
+
+typedef struct StackFrame {
+	reg_t gs;
+	reg_t fs;
+	reg_t es;
+	reg_t ds;
+	reg_t edi;			/* edi through ecx are not accessed in C */
+	reg_t esi;			/* Order is to match pusha/popa */
+	reg_t ebp;			
+	reg_t temp;			
+	reg_t ebx;
+	reg_t edx;
+	reg_t ecx;
+	reg_t eax;			/* gs through eax are all pushed by save() in assembly */
+	reg_t retAddr;		/* Return address for save() in assembly */
+	reg_t pc;			/* pc(eip), cs, psw(eflags) are pushed by interrupt */
+	reg_t cs;
+	reg_t psw;			/* psw (program status word) = eflags */
+	reg_t esp;			/* esp, ss are pushed by processor when a stack switched */
+	reg_t ss;
+} StackFrame;
 
 #endif

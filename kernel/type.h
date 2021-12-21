@@ -7,7 +7,6 @@ typedef void (*taskFunc)();
 
 typedef int proc_nr_t;		/* Process table entry number */
 typedef short sys_id_t;		/* System process index */
-typedef unsigned reg_t;		/* Machine register */
 typedef struct {			/* Bitmap for System indexes */
 	bitchunk_t chunk[BITMAP_CHUNKS(NR_SYS_PROCS)];
 } SysMap;
@@ -44,27 +43,6 @@ typedef struct {
 		unsigned short r_buf[RANDOM_ELEMENTS];	/* Buffer for random info */
 	} bin[RANDOM_SOURCES];
 } Randomness;
-
-typedef struct StackFrame {
-	reg_t gs;
-	reg_t fs;
-	reg_t es;
-	reg_t ds;
-	reg_t edi;			/* edi through ecx are not accessed in C */
-	reg_t esi;			/* Order is to match pusha/popa */
-	reg_t ebp;			
-	reg_t temp;			
-	reg_t ebx;
-	reg_t edx;
-	reg_t ecx;
-	reg_t eax;			/* gs through eax are all pushed by save() in assembly */
-	reg_t retAddr;		/* Return address for save() in assembly */
-	reg_t pc;			/* pc(eip), cs, psw(eflags) are pushed by interrupt */
-	reg_t cs;
-	reg_t psw;			/* psw (program status word) = eflags */
-	reg_t esp;			/* esp, ss are pushed by processor when a stack switched */
-	reg_t ss;
-} StackFrame;
 
 typedef struct {
 	u16_t limitLow;

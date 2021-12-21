@@ -328,3 +328,40 @@ int doSigAction() {
 	currMp->mp_sig_return = (vir_bytes) inMsg.sig_return;
 	return OK;
 }
+
+void checkPending(register MProc *rmp) {
+/* Check to see if any pending signals have been unblocked. The
+ * first such signal found is delivered.
+ *
+ * If multiple pending unmasked signals are found, they will be
+ * delivered sequentially.
+ *
+ * There are several places in this file where the signal mask is 
+ * changed. At each such place, checkPending() should be called to
+ * check for newly unblocked signals.
+ */
+	int i;
+
+	for (i = 1; i < NSIG; ++i) {
+		if (sigismember(&rmp->mp_sig_pending, i) &&
+			! sigismember(&rmp->mp_sig_mask, i)) {
+			sigdelset(&rmp->mp_sig_pending, i);
+			signalProc(rmp, i);
+			break;
+		}
+	}
+}
+
+int doSigReturn() {
+/* A user signal handler is done. Restore context and check for
+ * pending unblocked signals.
+ */
+	int r;
+
+	currMp->mp_sig_mask = (sigset_t) inMsg.sig_set;
+	sigdelset(&currMp->mp_sig_mask, SIGKILL);
+
+	r = sysSigReturn(who, (SigMsg *) inMsg.sig_context);
+	checkPending(currMp);
+	return r;
+}

@@ -44,8 +44,8 @@ static void initialize() {
 	map(SYS_KILL, doKill);
 	map(SYS_GETKSIG, doGetKernelSig);
 	map(SYS_ENDKSIG, doEndKernelSig);
-//	map(SYS_SIGSEND, doSigSend);
-	//map(SYS_SIGRETURN, doSigReturn);
+	map(SYS_SIGSEND, doSigSend);
+	map(SYS_SIGRETURN, doSigReturn);
 
 	/* Device I/O. */
 	/*
@@ -64,10 +64,10 @@ static void initialize() {
 	map(SYS_MEMSET, doMemset);
 	
 	/* Copying. */
-	/*
-	map(SYS_UMAP, doUMap);
 	map(SYS_VIRCOPY, doVirCopy);
 	map(SYS_PHYSCOPY, doPhysCopy);
+	/*
+	map(SYS_UMAP, doUMap);
 	map(SYS_VIRVCOPY, doVirVecCopy);
 	map(SYS_PHYSVCOPY, doPhysVecCopy);
 	*/

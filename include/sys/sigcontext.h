@@ -8,7 +8,7 @@ typedef struct StackFrame	SigRegs;
 typedef struct {
 	int sc_flags;		/* Sigstack state to restore */
 	long sc_mask;		/* Signal mask to restore */
-	SigRegs *sc_regs;	/* Register set to restore */
+	SigRegs sc_regs;	/* Register set to restore */
 } SigContext;
 
 typedef struct {
