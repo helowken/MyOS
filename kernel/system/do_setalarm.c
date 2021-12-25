@@ -28,12 +28,12 @@ int doSetAlarm(Message *msg) {
 	/* Get the timer structure and set the parameters for this alarm. */
 	tp = &(priv(rp)->s_alarm_timer);
 	timerArg(tp)->ta_int = pNum;
-	tp->func = causeAlarm;
+	tp->tmr_func = causeAlarm;
 	
 	/* Return the ticks left on the previous alarm. */
 	uptime = getUptime();
-	if (tp->expiredTime != TIMER_NEVER && uptime < tp->expiredTime) 
-	  msg->ALARM_TIME_LEFT = tp->expiredTime - uptime;
+	if (tp->tmr_exp_time != TIMER_NEVER && uptime < tp->tmr_exp_time) 
+	  msg->ALARM_TIME_LEFT = tp->tmr_exp_time - uptime;
 	else
 	  msg->ALARM_TIME_LEFT = 0;
 
@@ -41,8 +41,8 @@ int doSetAlarm(Message *msg) {
 	if (expTime == 0) {
 		resetTimer(tp);
 	} else {
-		tp->expiredTime = useAbsTime ? expTime : expTime + getUptime();
-		setTimer(tp, tp->expiredTime, tp->func);
+		tp->tmr_exp_time = useAbsTime ? expTime : expTime + getUptime();
+		setTimer(tp, tp->tmr_exp_time, tp->tmr_func);
 	}
 	return OK;
 }

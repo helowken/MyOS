@@ -1,10 +1,12 @@
 all:
-	cd kernel && make
-	cd servers && make
-	cd boot && make install
+	cd lib && $(MAKE)
+	cd kernel && $(MAKE)
+	cd servers && $(MAKE)
+	cd boot && $(MAKE) install
 
 clean:
-	cd kernel && make clean
-	cd servers && make clean
-	cd boot && make clean
+	cd lib && $(MAKE) clean
+	cd kernel && $(MAKE) clean
+	cd servers && $(MAKE) clean
+	cd boot && $(MAKE) clean
 

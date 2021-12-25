@@ -3,7 +3,8 @@ include $(MY_HOME)/common.mk
 LIBS = -L$(MY_HOME)/lib \
 	   -lmysys -lmysysutil -lmytimers -lmyc 
 
-OBJS = entry.o main.o table.o utility.o alloc.o timers.o signal.o
+OBJS = entry.o main.o table.o utility.o alloc.o timers.o signal.o \
+	   forkexit.o trace.o exec.o
 SERVER = pm.bin
 
 all: $(SERVER)

@@ -125,7 +125,7 @@ static int doClockTick() {
 	/* Check if a clock timer expired and run its watchdog function. */
 	if (nextTimeout <= realTime) {
 		timersExpTimers(&clockTimers, realTime, NULL);
-		nextTimeout = clockTimers == NULL ? TIMER_NEVER : clockTimers->expiredTime;
+		nextTimeout = clockTimers == NULL ? TIMER_NEVER : clockTimers->tmr_exp_time;
 	}
 
 	return EDONTREPLY;
@@ -163,7 +163,7 @@ void setTimer(Timer *tp, clock_t expTime, TimerFunc watchdog) {
  * next timeout time by setting it to the front of the active list.
  */
 	timersSetTimer(&clockTimers, tp, expTime, watchdog, NULL);
-	nextTimeout = clockTimers->expiredTime;
+	nextTimeout = clockTimers->tmr_exp_time;
 }
 
 void resetTimer(Timer *tp) {
@@ -172,5 +172,5 @@ void resetTimer(Timer *tp) {
  * it to the front of the active list.
  */
 	timersClearTimer(&clockTimers, tp, NULL);
-	nextTimeout = (clockTimers == NULL) ? TIMER_NEVER : clockTimers->expiredTime;
+	nextTimeout = (clockTimers == NULL) ? TIMER_NEVER : clockTimers->tmr_exp_time;
 }

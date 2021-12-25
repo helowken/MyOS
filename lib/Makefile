@@ -2,6 +2,7 @@ MAKE_M16 = $(MAKE) MODE=M16
 
 all:
 	cd ansi && $(MAKE) && $(MAKE_M16)
+	cd syslib && $(MAKE) && $(MAKE_M16)
 	cd sysutil && $(MAKE) && $(MAKE_M16)
 	cd timers && $(MAKE) && $(MAKE_M16)
 

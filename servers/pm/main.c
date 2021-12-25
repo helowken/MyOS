@@ -16,12 +16,12 @@
 	((unsigned) ((((unsigned long) (n) << CLICK_SHIFT) + 512) / 1024))
 
 
-void setReply(int pIdx, int result) {
+void setReply(int pNum, int result) {
 /* Fill in a reply message to be sent later to a user process. System calls
  * may occasionally fill in other fields, this is only for the main return
  * value, and for setting the "must send reply" flag.
  */
-	register MProc *rmp = &mprocTable[pIdx];
+	register MProc *rmp = &mprocTable[pNum];
 
 	rmp->mp_reply.reply_res = result;
 	rmp->mp_flags |= REPLY;		/* Reply pending */
@@ -176,7 +176,7 @@ static void pmInit() {
 			/* Set process details found in the image table. */
 			rmp = &mprocTable[ip->procNum];
 			strncpy(rmp->mp_name, ip->procName, PROC_NAME_LEN);
-			rmp->mp_parent_idx = RS_PROC_NR;
+			rmp->mp_parent = RS_PROC_NR;
 			rmp->mp_nice = getNiceValue(ip->priority);
 			if (ip->procNum == INIT_PROC_NR) {	/* User Process */
 				rmp->mp_pid = INIT_PID;
@@ -208,7 +208,7 @@ static void pmInit() {
 
 	/* Override some details. PM is somewhat special. */
 	mprocTable[PM_PROC_NR].mp_pid = PM_PID;
-	mprocTable[PM_PROC_NR].mp_parent_idx = PM_PROC_NR;	/* PM doesn't have parent */
+	mprocTable[PM_PROC_NR].mp_parent = PM_PROC_NR;	/* PM doesn't have parent */
 
 	/* Tell FS that no more system processes follow and synchronize. */
 	// TODO
@@ -226,11 +226,11 @@ static void pmInit() {
 
 static void getWork() {
 /* Wait for the next message and extract useful information from it. */
-	if (receive(ANY, &inMsg) != OK)
+	if (receive(ANY, &inputMsg) != OK)
 	  panic(__FILE__, "PM receive error", NO_NUM);
 	
-	who = inMsg.m_source;		/* Who sent the message */
-	callNum = inMsg.m_type;		/* System call number */
+	who = inputMsg.m_source;		/* Who sent the message */
+	callNum = inputMsg.m_type;		/* System call number */
 
 	/* Process slot of caller. Misuse PM's own process slot if the kernel is
 	 * calling. This can happen in case of synchronous alarms (CLOCK) or event
@@ -241,7 +241,8 @@ static void getWork() {
 
 int main() {
 /* Main routine of the process manager. */
-	int result;
+	int result, s, pNum;
+	MProc *rmp;
 	sigset_t sigset;
 
 	pmInit();		/* Initialize process manager tables. */
@@ -251,10 +252,10 @@ int main() {
 
 		/* Check for system notifications first. Special cases. */
 		if (callNum == SYN_ALARM) {
-			pmExpireTimers(inMsg.NOTIFY_TIMESTAMP);
+			pmExpireTimers(inputMsg.NOTIFY_TIMESTAMP);
 			result = SUSPEND;		/* Don't reply */
 		} else if (callNum == SYS_SIG) {	/* Signals pending */
-			sigset = inMsg.NOTIFY_ARG;
+			sigset = inputMsg.NOTIFY_ARG;
 			if (sigismember(&sigset, SIGKSIG))
 			  kernelSigPending();
 			result = SUSPEND;		/* Don't reply */
@@ -270,8 +271,25 @@ int main() {
 		if (result != SUSPEND) 
 		  setReply(who, result);
 	
-		// TODO swap_in()
-	}
+		swapIn();	/* Maybe a process can be swapped in? */
 
+		/* Send out all pending reply messages, including the answer to
+		 * the call just made above. The processes must not be swapped out.
+		 */
+		for (pNum = 0, rmp = mprocTable; pNum < NR_PROCS; ++pNum, ++rmp) {
+			/* In the meantime, the process may have been killed by a
+			 * signal (e.g. if a lethal pending signal was unblocked)
+			 * without the PM realizing it. If the slot is no longer in
+			 * use or just a zombie, don't try to reply.
+			 */
+			if ((rmp->mp_flags & (REPLY | ONSWAP | IN_USE | ZOMBIE)) ==
+					(REPLY | IN_USE)) {
+				if ((s = send(pNum, &rmp->mp_reply)) != OK) {
+					panic(__FILE__, "PM can't reply to", pNum);
+				}
+				rmp->mp_flags &= ~REPLY;
+			}
+		}
+	}
 	return OK;
 }

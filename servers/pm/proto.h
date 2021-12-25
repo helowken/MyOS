@@ -6,6 +6,7 @@ typedef struct Memory Memory;
 /* alloc.c */
 void initMemory(Memory *chunks, phys_clicks *free);
 void freeMemory(phys_clicks base, phys_clicks clicks);
+void swapIn();
 void swapInQueue(MProc *rmp);
 
 /* utility.c */
@@ -21,7 +22,7 @@ int getStackPtr(int pNum, vir_bytes *sp);
 int doBrk();
 
 /* timers.c */
-void pmSetTimer(Timer *tp, int delta, TimerFunc watchdog, int arg);
+void pmSetTimer(Timer *tp, clock_t delta, TimerFunc watchdog, int arg);
 void pmExpireTimers(clock_t now);
 void pmCancelTimer(Timer *tp);
 
@@ -33,6 +34,7 @@ void pmExit(MProc *rmp, int exitStatus);
 
 /* exec.c */
 int doExec();
+MProc *findShare(MProc *mp, ino_t ino, dev_t dev, time_t ctime);
 
 /* trace.c */
 int doTrace();
@@ -46,7 +48,7 @@ int doSvrCtl();
 int doAllocMem();
 int doFreeMem();
 int doGetSetPriority();
-void setReply(int pIdx, int result);
+void setReply(int pNum, int result);
 
 /* table.c */
 void initSysCalls();
@@ -59,7 +61,7 @@ int doAlarm();
 int doKill();
 int kernelSigPending();
 int doPause();
-int setAlarm(int pNum, int sec);
+clock_t setAlarm(int pNum, clock_t sec);
 int checkSig(pid_t pid, int sigNum);
 void signalProc(MProc *rmp, int sigNum);
 int doSigAction();

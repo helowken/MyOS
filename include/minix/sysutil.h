@@ -3,5 +3,6 @@
 
 int printf(const char *fmt, ...);
 void kputc(int c);
+clock_t getUptime(clock_t *ticks);
 
 #endif

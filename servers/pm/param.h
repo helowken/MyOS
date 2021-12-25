@@ -5,7 +5,7 @@
 #define func			m6_f1
 #define group_id		m1_i1
 #define name_len		m1_i2
-#define pid				m1_i1
+#define proc_id			m1_i1
 #define	proc_num		m1_i1
 #define seconds			m1_i1
 #define	sig				m6_i1

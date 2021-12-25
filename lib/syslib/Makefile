@@ -7,6 +7,10 @@ OBJS_M32 = sys_getinfo.o \
 		   sys_sigsend.o \
 		   sys_sigreturn.o \
 		   sys_vircopy.o \
+		   sys_kill.o \
+		   sys_trace.o \
+		   sys_exit.o \
+		   sys_times.o \
 		   taskcall.o 
 		   
 	

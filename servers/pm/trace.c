@@ -9,7 +9,7 @@
 
 void stopProc(register MProc *rmp, int sigNum) {
 /* A traced process got a signal so stop it. */
-	register MProc *parentMp = mprocTable + rmp->mp_parent_idx;
+	register MProc *parentMp = mprocTable + rmp->mp_parent;
 
 	if (sysTrace(-1, (int) (rmp - mprocTable), 0L, (long *) 0) != OK)
 	  return;
@@ -17,7 +17,7 @@ void stopProc(register MProc *rmp, int sigNum) {
 	if (parentMp->mp_flags & WAITING) {
 		parentMp->mp_flags &= ~WAITING;	/* Parent is no longer waiting */
 		parentMp->mp_reply.reply_res2 = 0177 | (sigNum << 8);
-		setReply(rmp->mp_parent_idx, rmp->mp_pid);
+		setReply(rmp->mp_parent, rmp->mp_pid);
 	} else {
 		rmp->mp_sig_status = sigNum;
 	}

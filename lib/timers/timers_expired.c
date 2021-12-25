@@ -7,15 +7,15 @@ void timersExpTimers(Timer **timers, clock_t now, clock_t *newHead) {
  */
 	Timer *tp;
 	
-	while ((tp = *timers) != NULL && tp->expiredTime <= now) {
-		*timers = tp->next;
-		tp->expiredTime = TIMER_NEVER;
-		(*tp->func)(tp);
+	while ((tp = *timers) != NULL && tp->tmr_exp_time <= now) {
+		*timers = tp->tmr_next;
+		tp->tmr_exp_time = TIMER_NEVER;
+		(*tp->tmr_func)(tp);
 	}
 
 	if (newHead) {
 		if (*timers) 
-		  *newHead = (*timers)->expiredTime;
+		  *newHead = (*timers)->tmr_exp_time;
 		else
 		  *newHead = 0;
 	}

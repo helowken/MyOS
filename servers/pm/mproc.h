@@ -10,7 +10,7 @@ EXTERN struct MProc {
 	pid_t mp_pid;			/* Process id */
 	pid_t mp_proc_grp;		/* Pid of process group (used for signals) */
 	pid_t mp_wait_pid;		/* Pid this process is waiting for */
-	int mp_parent_idx;		/* Index of parent process */
+	int mp_parent;			/* Index of parent process */
 
 	/* Child user and system times. Accounting done on child exit. */
 	clock_t mp_child_utime;		/* Cumulative user time of children */
@@ -21,6 +21,11 @@ EXTERN struct MProc {
 	uid_t mp_euid;			/* Process' effective uid */
 	gid_t mp_rgid;			/* Process' real gid */
 	gid_t mp_egid;			/* Process' effective gid */
+
+	/* File identification for sharing. */
+	ino_t mp_ino;			/* Inode number of file */
+	dev_t mp_dev;			/* Device number of file system */
+	time_t mp_ctime;		/* Inode changed time */
 
 	/* Signal handling information. */
 	sigset_t mp_sig_ignore;		/* 1 means ignore the signal, 0 means don't */

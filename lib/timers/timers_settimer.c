@@ -11,21 +11,21 @@ clock_t timersSetTimer(Timer **timers, Timer *tp, clock_t expTime,
 	clock_t oldHead = 0;
 
 	if (*timers)
-	  oldHead = (*timers)->expiredTime;
+	  oldHead = (*timers)->tmr_exp_time;
 	
 	timersClearTimer(timers, tp, NULL);
-	tp->expiredTime = expTime;
-	tp->func = watchdog;
+	tp->tmr_exp_time = expTime;
+	tp->tmr_func = watchdog;
 
 	/* Add the timer to the active timers. The next timer due is in front. */
-	for (atp = timers; *atp != NULL; atp = &(*atp)->next) {
-		if (expTime < (*atp)->expiredTime)
+	for (atp = timers; *atp != NULL; atp = &(*atp)->tmr_next) {
+		if (expTime < (*atp)->tmr_exp_time)
 		  break;
 	}
-	tp->next = *atp;
+	tp->tmr_next = *atp;
 	*atp = tp;
 	if (newHead)
-	  *newHead = (*timers)->expiredTime;
+	  *newHead = (*timers)->tmr_exp_time;
 
 	return oldHead;
 }

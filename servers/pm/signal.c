@@ -7,7 +7,7 @@
 #include "mproc.h"
 #include "param.h"
 
-static void unpause(int pIdx) {
+static void unpause(int pNum) {
 /* A signal is to be sent to a process. If that process is hanging on a 
  * system call, the system call must be terminated with EINTR. Possible
  * calls are PAUSE, WAIT, READ and WRITE, the latter two for pipes and ttys.
@@ -17,18 +17,18 @@ static void unpause(int pIdx) {
 	register struct MProc *rmp;
 	int flags;
 
-	rmp = &mprocTable[pIdx];
+	rmp = &mprocTable[pNum];
 	flags = PAUSED | WAITING | SIGSUSPENDED;
 
 	/* Check to see if process is hanging on a PAUSE, WAIT or SIGSUSPEND call. */
 	if (rmp->mp_flags & flags) {
 		rmp->mp_flags &= ~flags;
-		setReply(pIdx, EINTR);
+		setReply(pNum, EINTR);
 		return;
 	}
 
 	/* Process is not hanging on an PM call. Ask FS to take a look. */
-	tellFS(UNPAUSE, pIdx, 0, 0);
+	tellFS(UNPAUSE, pNum, 0, 0);
 }
 
 static void dumpCore(register MProc *rmp) {
@@ -209,6 +209,11 @@ int checkSig(pid_t procId, int sigNum) {
 	return count > 0 ? OK : errCode;
 }
 
+int doKill() {
+/* Perform the kill(pid, sigNum) system call. */
+	return checkSig(inputMsg.proc_id, inputMsg.sig_num);
+}
+
 static void handleSig(int pNum, sigset_t sigMap) {
 	register MProc *rmp;
 	int sig;
@@ -279,24 +284,24 @@ int doSigAction() {
 	struct sigaction sa;
 	struct sigaction *oldSa;
 
-	sigNum = inMsg.sig_num;
-	if (inMsg.sig_num == SIGKILL)
+	sigNum = inputMsg.sig_num;
+	if (inputMsg.sig_num == SIGKILL)
 	  return OK;
-	if (inMsg.sig_num < 1 || inMsg.sig_num > NSIG)
+	if (inputMsg.sig_num < 1 || inputMsg.sig_num > NSIG)
 	  return EINVAL;
 	oldSa = &currMp->mp_sig_actions[sigNum]; 
-	if ((struct sigaction *) inMsg.sig_old_sa != (struct sigaction *) NULL) {
+	if ((struct sigaction *) inputMsg.sig_old_sa != (struct sigaction *) NULL) {
 		r = sysDataCopy(PM_PROC_NR, (vir_bytes) oldSa, 
-				who, (vir_bytes) inMsg.sig_old_sa, (phys_bytes) sizeof(sa));
+				who, (vir_bytes) inputMsg.sig_old_sa, (phys_bytes) sizeof(sa));
 		if (r != OK)
 		  return r;
 	}
 
-	if ((struct sigaction *) inMsg.sig_new_sa == (struct sigaction *) NULL)
+	if ((struct sigaction *) inputMsg.sig_new_sa == (struct sigaction *) NULL)
 	  return OK;
 
 	/* Read in the sigaction structure. */
-	r = sysDataCopy(who, (vir_bytes) inMsg.sig_new_sa,
+	r = sysDataCopy(who, (vir_bytes) inputMsg.sig_new_sa,
 				PM_PROC_NR, (vir_bytes) &sa, (phys_bytes) sizeof(sa));
 	if (r != OK)
 	  return r;
@@ -325,7 +330,7 @@ int doSigAction() {
 	sigdelset(&sa.sa_mask, SIGKILL);
 	oldSa->sa_mask = sa.sa_mask;
 	oldSa->sa_flags = sa.sa_flags;
-	currMp->mp_sig_return = (vir_bytes) inMsg.sig_return;
+	currMp->mp_sig_return = (vir_bytes) inputMsg.sig_return;
 	return OK;
 }
 
@@ -358,10 +363,72 @@ int doSigReturn() {
  */
 	int r;
 
-	currMp->mp_sig_mask = (sigset_t) inMsg.sig_set;
+	currMp->mp_sig_mask = (sigset_t) inputMsg.sig_set;
 	sigdelset(&currMp->mp_sig_mask, SIGKILL);
 
-	r = sysSigReturn(who, (SigMsg *) inMsg.sig_context);
+	r = sysSigReturn(who, (SigMsg *) inputMsg.sig_context);
 	checkPending(currMp);
 	return r;
 }
+
+static void causeSigAlarm(Timer *tp) {
+	int pNum;
+	register MProc *rmp;
+
+	pNum = timerArg(tp)->ta_int;	/* Get process from timer */
+	rmp = &mprocTable[pNum];
+
+	if ((rmp->mp_flags & (IN_USE | ZOMBIE)) != IN_USE)
+	  return;
+	if (! (rmp->mp_flags & ALARM_ON))
+	  return;
+	rmp->mp_flags &= ~ALARM_ON;
+	checkSig(rmp->mp_pid, SIGALRM);
+}
+
+int doAlarm() {
+/* Perform the setAlarm(seconds) system call. */
+	return setAlarm(who, inputMsg.seconds);
+}
+
+clock_t setAlarm(int pNum, clock_t sec) {
+/* This routine is used by doAlarm() to set the alarm timer. It is also used
+ * to turn the timer off when a process exits with the timer still on.
+ */
+	MProc *rmp;
+	clock_t ticks;		/* Number of ticks for alarm */
+	clock_t expTime;	/* Needed for remaining time on previous alarm */
+	clock_t uptime;		/* Current system time */
+	clock_t remaining;	/* Previous time left in seconds */
+	int s;
+
+	rmp = &mprocTable[pNum];
+	/* First determine remaining time of previous alarm, if set. */
+	if (rmp->mp_flags & ALARM_ON) {
+		if ((s = getUptime(&uptime)) != OK)
+		  panic(__FILE__, "setAlarm couldn't get uptime", s);
+		expTime = *timerExpTime(&rmp->mp_timer);
+		if (expTime > uptime) 
+		  remaining = (clock_t) ((expTime - uptime + (HZ - 1)) / HZ);
+		else
+		  remaining = 0;
+	} else {
+		remaining = 0;
+	}
+
+	/* Tell the clock task to provide a signal message when the time comes. */
+	ticks = sec * HZ;
+	if ((clock_t) ticks / HZ != sec)
+	  ticks = ULONG_MAX;	/* Eternity (really TIMER_NEVER) */
+	
+	if (ticks != 0) {
+		pmSetTimer(&rmp->mp_timer, ticks, causeSigAlarm, pNum);
+		rmp->mp_flags |= ALARM_ON;
+	} else if (rmp->mp_flags & ALARM_ON) {
+		pmCancelTimer(&rmp->mp_timer);
+		rmp->mp_flags &= ~ALARM_ON;
+	}
+	return remaining;
+}
+
+

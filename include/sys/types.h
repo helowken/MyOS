@@ -3,7 +3,7 @@
 
 #ifndef _CLOCK_T
 #define _CLOCK_T
-typedef long	clock_t;	/* Unit for system accounting */
+typedef unsigned long	clock_t;	/* Unit for system accounting */
 #endif
 
 #ifndef _SIGSET_T
@@ -11,6 +11,12 @@ typedef long	clock_t;	/* Unit for system accounting */
 typedef unsigned long	sigset_t;
 #endif
 
+#ifndef _TIME_T
+#define _TIME_T
+typedef long time_t;				/* Time in sec since 1 Jan 1970 0000 GMT */
+#endif
+
+typedef short			dev_t;		/* Holds (major|minor) device pair */
 typedef int				pid_t;		/* Process id (must be signed) */
 typedef	short			uid_t;		/* User id */
 typedef char			gid_t;		/* Group id */

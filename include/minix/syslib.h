@@ -6,11 +6,17 @@
 
 #define SYSTASK	SYSTEM
 
+/*=====================================================================*
+ *					Minix system library                *
+ *=====================================================================*/
 int taskCall(int who, int sysCallNum, Message *msg);
+
+int sysTrace(int req, int proc, long addr, long *data);
 
 /* Clock functionality: get system times or (un)schedule an alarm call. */
 int sysTimes(int pNum, clock_t *ptr);
 int sysSetAlarm(clock_t expTime, int absTime);
+int sysExit(int pNum);
 
 /* Shorthands for sys_getinfo() system call. */
 #define sysGetMonParams(v, vl)	sysGetInfo(GET_MONPARAMS, v, vl, 0, 0)

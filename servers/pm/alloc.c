@@ -168,3 +168,10 @@ void swapInQueue(register MProc *rmp) {
 	rmp->mp_swap_in_q = NULL;
 	rmp->mp_flags |= SWAPIN;
 }
+
+void swapIn() {
+/* Try to swap in a process on the inswap queue. We want to send it a message,
+ * interrupt it, or something.
+ */	
+	//TODO
+}
