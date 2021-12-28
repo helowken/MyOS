@@ -417,7 +417,7 @@ clock_t setAlarm(int pNum, clock_t sec) {
 	}
 
 	/* Tell the clock task to provide a signal message when the time comes. */
-	ticks = sec * HZ;
+	ticks = (clock_t) ((unsigned long) sec * HZ);
 	if ((clock_t) ticks / HZ != sec)
 	  ticks = ULONG_MAX;	/* Eternity (really TIMER_NEVER) */
 	
@@ -431,4 +431,57 @@ clock_t setAlarm(int pNum, clock_t sec) {
 	return remaining;
 }
 
+int doSigProcMask() {
+/* The library interface must set SIG_INQUIRE if the 'act' argument is NULL. */
 
+	int i;
+	sigset_t *set;
+	
+	currMp->mp_reply.reply_mask = currMp->mp_sig_mask;
+	set = (sigset_t *) &inputMsg.sig_set;
+	sigdelset(set, SIGKILL);
+
+	switch (inputMsg.sig_how) {
+		case SIG_BLOCK:
+			for (i = 1; i <= NSIG; ++i) {
+				if (sigismember(set, i))
+				  sigaddset(&currMp->mp_sig_mask, i);
+			}
+			break;
+		case SIG_UNBLOCK:
+			for (i = 1; i <= NSIG; ++i) {
+				if (sigismember(set, i))
+				  sigdelset(&currMp->mp_sig_mask, i);
+			}
+			checkPending(currMp);
+			break;
+		case SIG_SETMASK:
+			currMp->mp_sig_mask = *set;
+			checkPending(currMp);
+			break;
+		case SIG_INQUIRE:
+			break;
+		default:
+			return EINVAL;
+	}
+	return OK;
+}
+
+int doSigSuspend() {
+	currMp->mp_sig_mask2 = currMp->mp_sig_mask;		/* Save the old mask */
+	currMp->mp_sig_mask = (sigset_t) inputMsg.sig_set;
+	sigdelset(&currMp->mp_sig_mask, SIGKILL);
+	currMp->mp_flags |= SIGSUSPENDED;
+	checkPending(currMp);
+	return SUSPEND;
+}
+
+int doSigPending() {
+	currMp->mp_reply.reply_mask = (long) currMp->mp_sig_pending;
+	return OK;
+}
+
+int doPause() {
+	currMp->mp_flags |= PAUSED;
+	return SUSPEND;
+}

@@ -17,6 +17,7 @@ pid_t getFreePid();
 int noSys();
 void tellFS(int what, int p1, int p2, int p3);
 int getStackPtr(int pNum, vir_bytes *sp);
+int getPNumFromPid(pid_t pid);
 
 /* break.c */
 int doBrk();

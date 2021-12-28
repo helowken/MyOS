@@ -56,11 +56,11 @@ typedef struct {
 struct IrqHook;
 typedef unsigned long irq_policy_t;
 typedef unsigned long irq_id_t;
-typedef int (*irq_handler_t)(struct IrqHook *);
+typedef int (*IrqHandler)(struct IrqHook *);
 
 typedef struct IrqHook {
 	struct IrqHook *next;	/* Next hook in chain */
-	irq_handler_t handler;	/* Interrupt handler */
+	IrqHandler handler;	/* Interrupt handler */
 	int irq;				/* IRQ vector number */
 	int id;					/* Id of this hook */
 	int procNum;			/* NONE if not in use */

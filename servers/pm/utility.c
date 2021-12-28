@@ -89,3 +89,13 @@ int getStackPtr(int pNum, vir_bytes *sp) {
 	*sp = p.p_reg.esp;
 	return OK;
 }
+
+int getPNumFromPid(pid_t pid) {
+	int pNum;
+
+	for (pNum = 0; pNum < NR_PROCS; ++pNum) {
+		if (mprocTable[pNum].mp_pid == pid)
+		  return pNum;
+	}
+	return -1;
+}

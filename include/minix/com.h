@@ -161,8 +161,6 @@
 #define T_PROC_NR		m4_l1		/* Process to request time info for */
 #define T_USER_TIME		m4_l1		/* User time consumed by prcoess */
 #define T_SYSTEM_TIME	m4_l2		/* System time consumed by process */
-#define	T_CHILD_UTIME	m4_l3		/* User time consumed by process' children */
-#define T_CHILD_STIME	m4_l4		/* Sys time consumed by process' children */
 #define T_BOOT_TICKS	m4_l5		/* Number of clock ticks since boot time */
 
 /* Field names for SYS_TRACE, SYS_SVRCTL. */

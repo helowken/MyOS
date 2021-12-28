@@ -31,7 +31,7 @@ void handleException(unsigned vectorNum);
 
 /* i8259.c */
 void initInterrupts();
-void putIrqHandler(IrqHook *hook, int irq, irq_handler_t handler);
+void putIrqHandler(IrqHook *hook, int irq, IrqHandler handler);
 void handleInterrupt(IrqHook *hook);
 void removeIrqHandler(IrqHook *hook);
 int lockSend(int dst, Message *msg);

@@ -10,8 +10,8 @@
  *					Minix system library                *
  *=====================================================================*/
 int taskCall(int who, int sysCallNum, Message *msg);
-
 int sysTrace(int req, int proc, long addr, long *data);
+int sysNice(int pNum, int priority);
 
 /* Clock functionality: get system times or (un)schedule an alarm call. */
 int sysTimes(int pNum, clock_t *ptr);

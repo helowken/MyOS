@@ -44,7 +44,7 @@ void pmExit(register MProc *rmp, int exitStatus) {
 	bool parentWaiting, rightChild;
 	pid_t waitingPid, procGrp;
 	MProc *parentMp, *initMp;
-	clock_t t[5];
+	clock_t t[3];
 
 	pNum = (int) (rmp - mprocTable);	/* Get process slot number */
 

@@ -21,6 +21,9 @@ OBJS_M32 = memcpy.o \
 		   atol.o \
 		   $(OTHER)/errno.o \
 		   $(OTHER)/syscall.o \
+		   $(OTHER)/settimeofday.o \
+		   $(OTHER)/_getprocnr.o \
+		   $(OTHER)/_findproc.o \
 		   $(MISC)/io_inb.o \
 		   $(MISC)/io_inw.o \
 		   $(MISC)/io_inl.o \
@@ -33,7 +36,22 @@ OBJS_M32 = memcpy.o \
 		   $(POSIX)/sigset.o \
 		   $(POSIX)/_sigaction.o \
 		   $(POSIX)/_sigreturn.o \
-		   $(POSIX)/_sigprocmask.o
+		   $(POSIX)/_sigprocmask.o \
+		   $(POSIX)/_sigsuspend.o \
+		   $(POSIX)/_sigpending.o \
+		   $(POSIX)/_times.o \
+		   $(POSIX)/_stime.o \
+		   $(POSIX)/_time.o \
+		   $(POSIX)/gettimeofday.o \
+		   $(POSIX)/priority.o \
+		   $(POSIX)/_getegid.o \
+		   $(POSIX)/_geteuid.o \
+		   $(POSIX)/_getgid.o \
+		   $(POSIX)/_getuid.o \
+		   $(POSIX)/_getpid.o \
+		   $(POSIX)/_getppid.o \
+		   $(POSIX)/_getpgrp.o \
+		   $(POSIX)/_setsid.o 
 		
 
 OBJS_M16 = memcpy.o \

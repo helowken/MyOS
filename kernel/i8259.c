@@ -228,7 +228,7 @@ void initInterrupts() {
 }
 
 /* Register an interrupt handler. */
-void putIrqHandler(IrqHook *hook, int irq, irq_handler_t handler) {
+void putIrqHandler(IrqHook *hook, int irq, IrqHandler handler) {
 	int id;
 	IrqHook **line;
 

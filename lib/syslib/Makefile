@@ -11,6 +11,7 @@ OBJS_M32 = sys_getinfo.o \
 		   sys_trace.o \
 		   sys_exit.o \
 		   sys_times.o \
+		   sys_nice.o \
 		   taskcall.o 
 		   
 	

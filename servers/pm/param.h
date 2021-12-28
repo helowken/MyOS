@@ -29,6 +29,9 @@
 #define reboot_flag		m1_i1
 #define	reboot_code		m1_p1
 #define reboot_str_len	m1_i2
+#define stime			m2_l1
+#define	mem_size		m4_l1
+#define	mem_base		m4_l2
 
 /* The following names are synonyms for the variables in a reply message. */
 #define reply_res		m_type
