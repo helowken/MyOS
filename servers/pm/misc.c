@@ -81,3 +81,33 @@ int doGetProcNum() {
 	currMp->mp_reply.proc_num = pNum;
 	return OK;
 }
+
+int doGetSysInfo() {
+	vir_bytes srcAddr, dstAddr;
+	KernelInfo kernelInfo;
+	size_t len;
+	int s;
+
+	switch (inputMsg.info_what) {
+		case SI_KINFO:		/* Kernel info is obtained via PM */
+			sysGetKernelInfo(&kernelInfo);
+			srcAddr = (vir_bytes) &kernelInfo;
+			len = sizeof(KernelInfo);
+			break;
+		case SI_PROC_ADDR:
+			srcAddr = (vir_bytes) &mprocTable[0];
+			len = sizeof(MProc);
+			break;
+		case SI_PROC_TAB:
+			srcAddr = (vir_bytes) mprocTable;
+			len = sizeof(MProc) * NR_PROCS;
+			break;
+		default:
+			return EINVAL;
+	}
+
+	dstAddr = (vir_bytes) inputMsg.info_where;
+	if ((s = sysDataCopy(SELF, srcAddr, who, dstAddr, len)) != OK)
+	  return s;
+	return OK;
+}

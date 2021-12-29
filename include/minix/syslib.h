@@ -18,7 +18,7 @@ int sysTimes(int pNum, clock_t *ptr);
 int sysSetAlarm(clock_t expTime, int absTime);
 int sysExit(int pNum);
 
-/* Shorthands for sys_getinfo() system call. */
+/* Shorthands for sysGetInfo() system call. */
 #define sysGetMonParams(v, vl)	sysGetInfo(GET_MONPARAMS, v, vl, 0, 0)
 #define sysGetKernelInfo(dst)	sysGetInfo(GET_KINFO, dst, 0, 0, 0)
 #define sysGetProc(dst, num)	sysGetInfo(GET_PROC, dst, 0, 0, num)

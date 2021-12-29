@@ -5,6 +5,11 @@
 #include "sys/types.h"
 #endif
 
+/* What system info to retrieve with sysGetInfo(). */
+#define SI_KINFO		0	/* Get kernle info via PM. */
+#define SI_PROC_ADDR	1	/* Address of process table */
+#define SI_PROC_TAB		2	/* Copy of entire process table */
+
 gid_t getegid();
 uid_t geteuid();
 gid_t getgid();

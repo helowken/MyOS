@@ -109,3 +109,64 @@ void pmExit(register MProc *rmp, int exitStatus) {
 	if (procGrp != 0)
 	  checkSig(-procGrp, SIGHUP);
 }
+
+int doWaitPid() {
+/* A process wants to wait for a child to terminate. If a child is already
+ * waiting, go clean it up and let this WAIT call terminate. Otherwise,
+ * really wait.
+ * A process calling WAIT never gets a reply in the usual way at the end
+ * of the main loop (unless WNOHANG is set or no qualifying child exists).
+ * If a child has already exited, the routine cleanup() sends the reply
+ * to awaken the caller.
+ * Both WAIT and WAITPID are handled by this code.
+ */
+	register MProc *rmp;
+	int pid, options, children;
+
+	pid = (callNum == WAIT ? -1 : inputMsg.proc_id);	/* 1st param of waitpid */
+	options = (callNum == WAIT ? 0 : inputMsg.sig_num);	/* 3rd param of waitpid */
+	if (pid == 0)
+	  pid = -currMp->mp_proc_grp;
+
+	/* Is there a child waiting to be collected? At this point, pid != 0:
+	 *	  pid  >  0 means pid is pid of a specific process to wait for
+	 *	  pid == -1 means wait for any child
+	 *	  pid  < -1 means wait for any child whose process group = -pid
+	 */
+	children = 0;
+	for (rmp = &mprocTable[0]; rmp < &mprocTable[NR_PROCS]; ++rmp) {
+		if ((rmp->mp_flags & IN_USE) && rmp->mp_parent == who) {
+			/* The value of pid determines which children qualify. */
+			if (pid > 0 && pid != rmp->mp_pid)
+			  continue;
+			if (pid < -1 && -pid != rmp->mp_proc_grp)
+			  continue;
+
+			++children;		/* This child is acceptable */
+			if (rmp->mp_flags & ZOMBIE) {
+				/* This child meets the pid test and has exited. */
+				cleanup(rmp);	
+				return SUSPEND;
+			} 
+			if ((rmp->mp_flags & STOPPED) && rmp->mp_sig_status) {
+				/* This child meets the pid test and is being traced. */
+				currMp->mp_reply.reply_res2 = 0177 | (rmp->mp_sig_status << 8);
+				rmp->mp_sig_status = 0;
+				return rmp->mp_pid;
+			}
+		}
+	}
+
+	/* No qualifying child has exited. Wait for one, unless none exists. */
+	if (children > 0) {
+		/* At least 1 child meets the pid test exists, but has not exited. */
+		if (options & WNOHANG)
+		  return 0;		/* Parent does not want to wait. */
+		currMp->mp_flags |= WAITING;		/* Parent wants to wait */
+		currMp->mp_wait_pid = (pid_t) pid;	/* Save pid for later */
+		return SUSPEND;
+	} else {
+		/* No child even meets the pid test. Return error immediately. */
+		return ECHILD;
+	}
+}

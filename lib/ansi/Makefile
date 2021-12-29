@@ -51,7 +51,9 @@ OBJS_M32 = memcpy.o \
 		   $(POSIX)/_getpid.o \
 		   $(POSIX)/_getppid.o \
 		   $(POSIX)/_getpgrp.o \
-		   $(POSIX)/_setsid.o 
+		   $(POSIX)/_setsid.o \
+		   $(POSIX)/_waitpid.o \
+		   $(POSIX)/_wait.o 
 		
 
 OBJS_M16 = memcpy.o \
