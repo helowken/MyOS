@@ -358,9 +358,7 @@ int sys_call(int callNum, int srcDst, Message *msg) {
 	 * if the caller doesn't do receive().
 	 */
 	if (! (priv(caller)->s_trap_mask & (1 << function)) ||
-			(isKernelNum(srcDst) && 
-			 function != SENDREC && 
-			 function != RECEIVE)) {
+			(isKernelNum(srcDst) && function != SENDREC && function != RECEIVE)) {
 		kprintf("sys_call: trap %d not allowed, caller %d, src_dst %d\n", 
 					function, procNum(caller), srcDst);
 		return ECALLDENIED;		/* Trap denied by mask or kernel. */

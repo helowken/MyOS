@@ -97,7 +97,7 @@ static int clockHandler(IrqHook *hook) {
 
 static void initClock() {
 	/* Initialize the CLOCK's interrupt hook. */
-	clockHook.procNum = CLOCK;
+	clockHook.pNum = CLOCK;
 
 	/* Initialize channel 0 of the 8253A timer to, e.g., 60 HZ. */
 	outb(TIMER_MODE, SQUARE_WAVE);		/* Set timer to run continuously */

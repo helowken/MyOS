@@ -4,7 +4,6 @@
 #include "util.h"
 #include "sys/dir.h"
 #include "limits.h"
-#include "unistd.h"
 #include "image.h"
 #include "boot.h"
 
@@ -308,6 +307,7 @@ static void execImage(char *image) {
 	char *buf;
 	char *console;
 	u16_t mode;
+	extern char *sbrk(int);
 
 	sbrk(0);
 

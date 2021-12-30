@@ -19,7 +19,7 @@ static void initialize() {
 
 	/* Initialize IRQ handler hooks. Mark all hooks available. */
 	for (i = 0; i < NR_IRQ_HOOKS; ++i) {
-		irqHooks[i].procNum = NONE;
+		irqHooks[i].pNum = NONE;
 	}
 
 	/* Initialize all alarm timers for all processes. */

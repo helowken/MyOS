@@ -35,9 +35,9 @@ static void clearProc(register Proc *rc) {
 
 	/* Check the table with IRQ hooks to see if hooks should be released. */
 	for (i = 0; i < NR_IRQ_HOOKS; ++i) {
-		if (irqHooks[i].procNum == procNum(rc)) {
+		if (irqHooks[i].pNum == procNum(rc)) {
 			removeIrqHandler(&irqHooks[i]);		/* Remove interrupt handler. */
-			irqHooks[i].procNum = NONE;		/* Mark hook as free. */
+			irqHooks[i].pNum = NONE;		/* Mark hook as free. */
 		}
 	}
 	

@@ -45,7 +45,7 @@ void main() {
 	//for (i = 0; i < NR_BOOT_PROCS; ++i) { TODO
 	for (i = 0; i < 5; ++i) {
 		ip = &images[i];					/* Process' attributes */			
-		rp = procAddr(ip->procNum);	/* Get process pointer */
+		rp = procAddr(ip->pNum);	/* Get process pointer */
 		rp->p_max_priority = ip->priority;	/* Max scheduling priority */
 		rp->p_priority = ip->priority;		/* Current priority */
 		rp->p_quantum_size = ip->quantum;	/* Quantum size in ticks */

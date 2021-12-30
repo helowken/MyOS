@@ -12,7 +12,7 @@ typedef struct {			/* Bitmap for System indexes */
 } SysMap;
 
 typedef struct {
-	proc_nr_t procNum;			/* Process number to use */
+	proc_nr_t pNum;				/* Process number to use */
 	taskFunc initialPC;			/* Start function for tasks */
 	int flags;					/* Process flags */
 	unsigned char quantum;		/* Quantum (tick count) */
@@ -60,10 +60,10 @@ typedef int (*IrqHandler)(struct IrqHook *);
 
 typedef struct IrqHook {
 	struct IrqHook *next;	/* Next hook in chain */
-	IrqHandler handler;	/* Interrupt handler */
+	IrqHandler handler;		/* Interrupt handler */
 	int irq;				/* IRQ vector number */
 	int id;					/* Id of this hook */
-	int procNum;			/* NONE if not in use */
+	int pNum;				/* NONE if not in use */
 	irq_id_t notifyId;		/* Id to return on interrupt */
 	irq_policy_t policy;	/* Bit mask for policy */
 } IrqHook;

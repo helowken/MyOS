@@ -120,6 +120,7 @@ static void pmInit() {
 	static char ignoreSigs[] = { SIGCHLD };
 	register MProc *rmp;
 	register char *sigPtr;
+	Message msg;
 	Memory memChunks[NR_MEMS];
 	MemMap memMap[NR_LOCAL_SEGS];
 	phys_clicks minixClicks, totalClicks, freeClicks;
@@ -170,15 +171,15 @@ static void pmInit() {
 	//for (i = 0; i < NR_BOOT_PROCS; ++i) { // TODO
 	for (i = 0; i < 5; ++i) {
 		ip = &images[i];
-		if (ip->procNum >= 0) {
+		if (ip->pNum >= 0) {
 			++procsInUse;		/* Found user process */
 
 			/* Set process details found in the image table. */
-			rmp = &mprocTable[ip->procNum];
+			rmp = &mprocTable[ip->pNum];
 			strncpy(rmp->mp_name, ip->procName, PROC_NAME_LEN);
 			rmp->mp_parent = RS_PROC_NR;
 			rmp->mp_nice = getNiceValue(ip->priority);
-			if (ip->procNum == INIT_PROC_NR) {	/* User Process */
+			if (ip->pNum == INIT_PROC_NR) {	/* User Process */
 				rmp->mp_pid = INIT_PID;
 				rmp->mp_flags |= IN_USE;
 				sigemptyset(&rmp->mp_sig_ignore);
@@ -192,14 +193,17 @@ static void pmInit() {
 			sigemptyset(&rmp->mp_sig_to_msg);
 
 			/* Get memory map for this process from the kernel. */
-			if ((s = getMemMap(ip->procNum, rmp->mp_memmap)) != OK)
+			if ((s = getMemMap(ip->pNum, rmp->mp_memmap)) != OK)
 			  panic(__FILE__, "couldn't get process entry", s);
 			minixClicks = rmp->mp_memmap[S].physAddr + 
 				rmp->mp_memmap[S].len - rmp->mp_memmap[T].physAddr;
 			patchMemChunks(memChunks, rmp->mp_memmap);
 
 			/* Tell FS about this system process. */
-			// TODO
+			msg.PR_PROC_NR = ip->pNum;
+			msg.PR_PID = rmp->mp_pid;
+			if ((s = send(FS_PROC_NR, &msg)) != OK)
+			  panic(__FILE__, "can't sync up with FS", s);
 
 			printf(" %s", ip->procName);	/* Display process name */
 		}
@@ -211,7 +215,9 @@ static void pmInit() {
 	mprocTable[PM_PROC_NR].mp_parent = PM_PROC_NR;	/* PM doesn't have parent */
 
 	/* Tell FS that no more system processes follow and synchronize. */
-	// TODO
+	msg.PR_PROC_NR = NONE;
+	if (sendRec(FS_PROC_NR, &msg) != OK || msg.m_type != OK)
+	  panic(__FILE__, "can't sync up with FS", NO_NUM);
 	
 	// TODO bootDev
 	
