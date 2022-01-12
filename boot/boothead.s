@@ -23,7 +23,7 @@ stosb
 
 # Calculate boot run size (text + data + bss + stack)
 movw	$end, %ax			# ax = text + data + bss
-addw	$STACK_SIZE, %ax		# ax += stack
+addw	$STACK_SIZE, %ax	# ax += stack
 andw	$0xFFFE, %ax		# Round down to even (for sp)
 movw	%ax, runSize
 

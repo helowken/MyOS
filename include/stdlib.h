@@ -7,6 +7,7 @@
 #define EXIT_SUCCESS		1		/* Successful return using exit() */
 
 
+void exit(int status);
 void *malloc(size_t size);
 void free(void *op);
 void *realloc(void *op, size_t size);

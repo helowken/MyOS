@@ -4,11 +4,9 @@ include $(MY_HOME)/common.mk
 
 DISK_IMAGE = device/testOS.img
 # Floppy: ARGS = "file=$(BIN),format=raw,index=0,if=floppy"
-LINUX_LIB = $(MY_HOME)/linuxLib
-INSTALL_BOOT = installboot.bin
-
 LIBS = -L$(MY_HOME)/lib/m16 \
 	   -lmyc -lmysysutil
+INSTALL = $(MY_HOME)/tools/installboot.bin
 
 PROGRAMS = ../kernel/kernel.bin \
 		   ../servers/pm/pm.bin
@@ -36,26 +34,23 @@ boot.elf: \
 boot.bin: boot.elf
 	objcopy -O binary -j .text -j .rodata -j .data $< $@ 
 
-installboot: installboot.c 
-	$(CC) -o $(INSTALL_BOOT) $< -I$(LINUX_LIB) $(LINUX_LIB)/*.o
-
 install: \
 	install_masterboot \
 	install_device \
 	install_bootable \
 	install_image
 
-install_masterboot: masterboot.bin installboot
-	./$(INSTALL_BOOT) -m $(DISK_IMAGE) $<
+install_masterboot: masterboot.bin 
+	$(INSTALL) -m $(DISK_IMAGE) $<
 
-install_device: bootblock.bin boot.bin installboot
-	./$(INSTALL_BOOT) -d $(DISK_IMAGE) $< boot.bin 
+install_device: bootblock.bin boot.bin 
+	$(INSTALL) -d $(DISK_IMAGE) $< boot.bin 
 
-install_bootable: boot.bin installboot
-	./$(INSTALL_BOOT) -b $(DISK_IMAGE) $<
+install_bootable: boot.bin 
+	$(INSTALL) -b $(DISK_IMAGE) $<
 
-install_image: installboot
-	./$(INSTALL_BOOT) -i $(DISK_IMAGE) $(PROGRAMS)
+install_image: 
+	$(INSTALL) -i $(DISK_IMAGE) $(PROGRAMS)
 
 reset:
 	cd device && ./run && cd ..

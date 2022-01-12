@@ -1,15 +1,16 @@
-#ifndef TLPI_HDR_H
-#define TLPI_HDR_H
+#ifndef COMMON_H
+#define COMMON_H
 
 #include <sys/types.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-
-#include "get_num.h"
 
 #include "error_functions.h"
 

@@ -10,6 +10,13 @@ typedef struct __iobuf {
 	unsigned char	*_ptr;
 } FILE;
 
+FILE *fopen(const char *path, const char *mode);
+int fclose(FILE *stream);
 size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
+int fseek(FILE *stream, long offset, int whence);
+int ferror(FILE *stream);
+int printf(const char *format, ...);
+
+int snprintf(char *str, size_t size, const char *format, ...);
 
 #endif

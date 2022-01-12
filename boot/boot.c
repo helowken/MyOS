@@ -111,13 +111,18 @@ static void determineAvailableMemory() {
 static void copyToFarAway() {
 	u32_t memEnd, newAddr, dma64k, oldAddr;
 
+	/* Copy the boot program to the far end of low memory (below 640K), 
+	 * this must be done to get out of the way of Minix (starts from 2K), 
+	 * and to put the data area cleanly inside a 64K chunk if using 
+	 * BIOS I/O (no DMA problems).
+	 */
 	oldAddr = caddr;
 	memEnd = memList[0].base + memList[0].size;
 	newAddr = (memEnd - runSize) & ~0x0000FL;
 	dma64k = (memEnd - 1) & ~0x0FFFFL;
 
 	/* Check if code and data segment cross a 64K boundary. */
-	if (newAddr < dma64k) 
+	if (newAddr < dma64k)	/* We need to copy with stack data */
 	  newAddr = dma64k - runSize;
 
 	/* Keep program counter concurrent. */

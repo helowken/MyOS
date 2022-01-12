@@ -1,21 +1,21 @@
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <stdio.h>
-#include <sys/types.h>
+#include "common.h"
 #include "image.h"
-#include "partition.h"
-#include "tlpi_hdr.h"
+#include "../boot/partition.h"
 
 #define MASTER_BOOT_LEN		440
-#define BOOT_BLOCK_LEN		512
-#define PARAM_SEC_OFF		1
+#define BOOT_BLOCK_LEN		512			/* Like standard UNIX, reserves 1K block of disk device
+										   as a bootblock, but only one 512-byte sector is loaded
+										   by the master boot sector, so 512 bytes are available
+										   for saving settings (params) */
+#define PARAM_SEC_OFF		1			/* next to the bootblock */
 #define PARAM_LEN			512
 #define SIGNATURE_POS		510
 #define SIGNATURE			0XAA55
 #define SECTOR_SIZE			512
-#define BOOT_MAX_SECTORS	0x80		/* bootable max size must be <= 64K */
+#define BOOT_MAX_SECTORS	0x80		/* bootable max size must be <= 64K, since BIOS has a 
+										   DMA 64K boundary on loading data from disk. 
+										   See biosDiskError(0x09) in boot.c. */
 #define BOOT_SEC_OFF		8			/* bootable offset in device */
-#define	BOOT_STACK_SIZE		0x2800		/* Assume boot code using 10K stack */
 
 #define SECTORS(n)			(((n) + ((SECTOR_SIZE) - 1)) / (SECTOR_SIZE))
 #define isRX(p)				(((p)->p_flags & PF_R) && ((p)->p_flags & PF_X))
@@ -143,7 +143,7 @@ static void installBootable(char *device, char *boot) {
 	int deviceFd, bootFd, sectors;
 	uint32_t lba;
 
-	size = getFileSize(boot) + BOOT_STACK_SIZE;
+	size = getFileSize(boot);
 	sectors = SECTORS(size);
 	if (sectors > BOOT_MAX_SECTORS)
 	  fatal("Bootable size > 64K.");
@@ -186,7 +186,7 @@ static void checkElfHeader(char *procName, Elf32_Ehdr *ehdrPtr) {
 static long totalText = 0, totalData = 0, totalBss = 0;
 
 static void readHeader(char *procName, FILE *procFile, ImageHeader *imgHdr) {
-	int n, i, sn = 0;
+	int i, sn = 0;
 	static bool banner = false;
 	Exec *proc = &imgHdr->process;
 	Elf32_Ehdr *ehdrPtr = &proc->ehdr;
@@ -231,7 +231,7 @@ static void readHeader(char *procName, FILE *procFile, ImageHeader *imgHdr) {
 		printf("     text     data      bss     size\n");
 		banner = true;
 	}
-	printf(" %8ld %8ld %8ld %8ld	%s\n", textSize, dataSize, bssSize, 
+	printf(" %8d %8d %8d %8d	%s\n", textSize, dataSize, bssSize, 
 				textSize + dataSize + bssSize, imgHdr->name);
 
 	totalText += textSize;

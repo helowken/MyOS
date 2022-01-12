@@ -5,6 +5,12 @@
 #include "sys/types.h"
 #endif
 
+/* Values used for whence in lseek(fd, offset, whence). POSIX table 2-9. */
+#define SEEK_SET		0	/* Offset is absolute */
+#define SEEK_CUR		1	/* Offset is relative to current position */
+#define SEEK_END		2	/* Offset is relative to end of file */
+
+
 /* What system info to retrieve with sysGetInfo(). */
 #define SI_KINFO		0	/* Get kernle info via PM. */
 #define SI_PROC_ADDR	1	/* Address of process table */
@@ -28,5 +34,7 @@ int brk(char *addr);
 char *sbrk(int incr);
 int getProcNum();
 int findProc(char *procName, int *pNum);
+ssize_t write(int fd, const void *buf, size_t count);
+int close(int fd);
 
 #endif

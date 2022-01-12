@@ -10,7 +10,8 @@ char *strcat(char *ret, const char *s2);
 int strcmp(const char *s1, const char *s2);
 int strncmp(const char *s1, const char *s2, size_t n);
 size_t strlen(const char *s);
-char *strchr(const char *s1, int c);
+char *strchr(const char *s, int c);
+char *strrchr(const char *s, int c);
 char *strstr(const char *s, const char *wanted);
 void *memset(void *s, int c, size_t n);
 

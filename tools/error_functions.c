@@ -1,6 +1,6 @@
 #include <stdarg.h>
 #include "error_functions.h"
-#include "tlpi_hdr.h"
+#include "common.h"
 #include "ename.c.inc"
 
 #ifdef __GNUC__
@@ -57,7 +57,6 @@ void errMsg(const char *format, ...) {
 
 void printErrMsg(int errnum, const char *format, ...) {
 	va_list argList;
-	int savedErrno;
 	
 	va_start(argList, format);
 	outputError(true, errnum, true, format, argList);
