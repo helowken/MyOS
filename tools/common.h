@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "error_functions.h"
+#include "../boot/partition.h"
 
 typedef enum { false, true } bool;
 

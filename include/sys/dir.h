@@ -9,4 +9,9 @@
 #define DIR_SIZE		60
 #endif
 
+typedef struct {
+	ino_t d_ino;
+	char d_name[DIR_SIZE];
+} Directory;
+
 #endif

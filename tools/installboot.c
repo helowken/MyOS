@@ -1,26 +1,22 @@
 #include "common.h"
+#include "util.h"
 #include "image.h"
-#include "../boot/partition.h"
 
 #define MASTER_BOOT_LEN		440
 #define BOOT_BLOCK_LEN		512			/* Like standard UNIX, reserves 1K block of disk device
 										   as a bootblock, but only one 512-byte sector is loaded
 										   by the master boot sector, so 512 bytes are available
 										   for saving settings (params) */
-#define PARAM_SEC_OFF		1			/* next to the bootblock */
 #define PARAM_LEN			512
 #define SIGNATURE_POS		510
 #define SIGNATURE			0XAA55
-#define SECTOR_SIZE			512
 #define BOOT_MAX_SECTORS	0x80		/* bootable max size must be <= 64K, since BIOS has a 
 										   DMA 64K boundary on loading data from disk. 
 										   See biosDiskError(0x09) in boot.c. */
 #define BOOT_SEC_OFF		8			/* bootable offset in device */
 
-#define SECTORS(n)			(((n) + ((SECTOR_SIZE) - 1)) / (SECTOR_SIZE))
 #define isRX(p)				(((p)->p_flags & PF_R) && ((p)->p_flags & PF_X))
 #define isRW(p)				(((p)->p_flags & PF_R) && ((p)->p_flags & PF_W))
-#define OFFSET(n)			((n) * (SECTOR_SIZE))
 #define ALIGN(n)			(((n) + ((SECTOR_SIZE) - 1)) & ~((SECTOR_SIZE) - 1))
 
 static char *paramsTpl = 
@@ -50,80 +46,13 @@ static void usage() {
 }
 
 static uint32_t getLowSector(int deviceFd) {
-	int i, activeCount = 0;
 	PartitionEntry pe;
-	uint32_t lba;
 
-	if (lseek(deviceFd, PART_TABLE_OFF, SEEK_SET) == -1)
-	  errExit("lseek partition table");
-	
-	for (i = 0; i < NR_PARTITIONS; ++i) {
-		if (read(deviceFd, &pe, sizeof(pe)) != sizeof(pe))
-		  errExit("read partition %d from device", i);
-		//printf("%d, %u, %u, %u\n", i, pe.status, pe.type, pe.lowSector);
-		if (BOOTABLE(&pe)) {
-			if (activeCount++ > 0)
-			  fatal("more than 1 active partition");
-			lba = pe.lowSector;
-		}
-	}
-	if (activeCount == 0)
-	  fatal("no active partition found");
-
-	return lba;
+	getActivePartition(deviceFd, &pe);
+	return pe.lowSector;
 }
 
 typedef void (*preCopyFunc)(int destFd, int srcFd);
-
-static int Open(char *fileName, int flags) {
-	int fd;
-
-	if ((fd = open(fileName, flags)) == -1)
-	  errExit("open %s", fileName);
-	return fd;
-}
-
-static int ROpen(char *fileName) {
-	return Open(fileName, O_RDONLY);
-}
-
-static int WOpen(char *fileName) {
-	return Open(fileName, O_WRONLY);
-}
-
-static int RWOpen(char *fileName) {
-	return Open(fileName, O_RDWR);
-}
-
-static off_t getFileSize(char *pathName) {
-	struct stat sb;
-	if (stat(pathName, &sb) == -1)
-	  errExit("stat");
-	return sb.st_size;
-}
-
-static ssize_t Read(char *fileName, int fd, char *buf, size_t len) {
-	ssize_t count;
-
-	if ((count = read(fd, buf, len)) == -1)
-	  errExit("read %s", fileName);
-	return count;
-}
-
-static void Write(char *fileName, int fd, char *buf, size_t len) {
-	if (write(fd, buf, len) != len)
-	  errExit("write %s", fileName);
-}
-
-static void Lseek(char *fileName, int fd, off_t offset) {
-	if (lseek(fd, offset, SEEK_SET) == -1)
-	  errExit("lseek %s", fileName);
-}
-
-static void Close(char *fileName, int fd) {
-	if (close(fd) == -1)
-	  errExit("close %s", fileName);
-}
 
 static void installMasterboot(char *device, char *masterboot) {
 	int deviceFd, mbrFd;
@@ -240,7 +169,7 @@ static void readHeader(char *procName, FILE *procFile, ImageHeader *imgHdr) {
 }
 
 static char *imgBuf = NULL;
-static size_t bufLen = 3;
+static size_t bufLen = 512;
 static off_t bufOff = 0;
 
 #define currBuf	(imgBuf + bufOff)
@@ -382,15 +311,13 @@ static void installDevice(char *device, char *bootblock, char *boot) {
 	buf[SIGNATURE_POS] = SIGNATURE & 0xFF;
 	buf[SIGNATURE_POS + 1] = (SIGNATURE >> 8) & 0xFF;
 
-	/* Get the first sector absolute address of the bootable partition. */
 	deviceFd = RWOpen(device);
+	/* Get the first sector absolute address of the bootable partition. */
 	lba = getLowSector(deviceFd);
 	/* Move to LBA. */
-	if (lseek(deviceFd, OFFSET(lba), SEEK_SET) == -1)
-	  errExit("lseek %s", device);
+	Lseek(device, deviceFd, OFFSET(lba));
 	/* Write bootblock to device. */
-	if (write(deviceFd, buf, BOOT_BLOCK_LEN) != BOOT_BLOCK_LEN)
-	  errExit("write bootblock to %s", device);
+	Write(device, deviceFd, buf, BOOT_BLOCK_LEN);
 
 	/* Install params. */
 	installParams(device, deviceFd, lba, "");
