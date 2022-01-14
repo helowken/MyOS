@@ -10,13 +10,15 @@ all: installboot.bin \
 	 mkfs.bin
 
 installboot.bin: installboot.o util.o error_functions.o
-	$(CC) -m32 -o $@ $^ 
+	$(CC) -g -m32 -o $@ $^ 
 
 mkfs.bin: mkfs.o util.o error_functions.o
-	$(CC) -m32 -o $@ $^ 
+	$(CC) -g -m32 -o $@ $^ 
 
 .PHONY:	clean 
 
 clean:
 	rm -f *.o *.bin
 
+test: mkfs.bin
+	./mkfs.bin ../boot/device/testOS.img

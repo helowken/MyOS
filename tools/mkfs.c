@@ -11,6 +11,8 @@
 #define UMAP_SIZE		(ULONG_MAX / MAX_BLOCK_SIZE)		
 #define BLOCK_OFF(n)	(OFFSET(lba) + (n) * blockSize)
 #define ZONE_SHIFT		0
+#define BOOT_BLOCK		0
+#define SUPER_BLOCK		1
 #define INODE_MAP		2
 #define MAX_MAX_SIZE	((unsigned long) 0xffffffff)
 
@@ -33,7 +35,7 @@ static block_t numBlocks;
 static unsigned int numInodes;
 static char umap[UMAP_SIZE];
 static int inodeOffset;
-static int nextZone, nextInode, zoneOffset, zoneSize;
+static int nextZone, nextInode, zoneOffset, blocksPerZone;
 static zone_t zoneMap;
 
 static void usage(char *s) {
@@ -117,7 +119,7 @@ static bool readAndSet(block_t n) {
 	off = n % CHAR_BIT;
 	mask = 1 << off;
 	r = umap[idx] & mask ? true : false;
-	umap[off] |= mask;
+	umap[idx] |= mask;
 	return r;
 }
 
@@ -234,12 +236,10 @@ static void initSuperBlock(zone_t zones, ino_t inodes) {
 	int inodeBlocks, initBlocks;
 	zone_t indirectZones, doubleIndirectZones;
 	zone_t totalZones;
-	char *buf;
 	SuperBlock *sup;
 	int i;
 
-	buf = allocBlock();
-	sup = (SuperBlock *) buf;
+	sup = (SuperBlock *) allocBlock();
 
 	sup->s_inodes = inodes;
 	sup->s_zones = zones;
@@ -263,10 +263,10 @@ static void initSuperBlock(zone_t zones, ino_t inodes) {
 						MAX_MAX_SIZE : totalZones * blockSize;
 
 	/* number of blocks per zone */
-	zoneSize = 1 << ZONE_SHIFT;		
+	blocksPerZone = 1 << ZONE_SHIFT;		
 
 	/* Write super block. */
-	putBlock(1, buf);
+	putBlock(SUPER_BLOCK, (char *) sup);
 	
 	/* Clear maps and inodes. */
 	for (i = INODE_MAP; i < initBlocks; ++i) {
@@ -280,7 +280,7 @@ static void initSuperBlock(zone_t zones, ino_t inodes) {
 	insertBit(zoneMap, 0);		/* bit zero must always be allocated */
 	insertBit(INODE_MAP, 0);	/* inode zero not used but must be allocated */
 
-	free(buf);
+	free(sup);
 }
 
 static ino_t allocInode(int mode, int uid, int gid) {
@@ -298,7 +298,7 @@ static ino_t allocInode(int mode, int uid, int gid) {
 	b = ((num - 1) / inodesPerBlock) + inodeOffset;
 	off = (num - 1) % inodesPerBlock;
 
-	if (! (inodes = malloc(INODES_PER_BLOCK(blockSize) * INODE_SIZE)))
+	if (! (inodes = malloc(blockSize)))
 	  errExit("couldn't allocate a block of inodes");
 
 	getBlock(b, (char *) inodes);
@@ -322,9 +322,9 @@ static zone_t allocZone() {
 
 	z = nextZone++;
 	b = z << ZONE_SHIFT;
-	if (b + zoneSize > numBlocks)
+	if (b + blocksPerZone > numBlocks)
 	  fatal("File system not big enough for all the files");
-	for (i = 0; i < zoneSize; ++i) {
+	for (i = 0; i < blocksPerZone; ++i) {
 		putBlock(b + i, zero);
 	}
 	insertBit(zoneMap, z - zoneOffset);
@@ -332,7 +332,7 @@ static zone_t allocZone() {
 	return z;
 }
 
-static void addZone(ino_t n, zone_t z, size_t bytes, time_t currTime) {
+static void addZone(ino_t n, zone_t z, size_t bytes, long currTime) {
 	block_t b;
 	int off, i;
 	zone_t indirZone;
@@ -340,10 +340,10 @@ static void addZone(ino_t n, zone_t z, size_t bytes, time_t currTime) {
 	INode *inp;		
 	INode *inodes;	/* an array of INode */
 
-	if (! (zones = malloc(INDIRECT_ZONES(blockSize) * ZONE_NUM_SIZE)))
+	if (! (zones = malloc(blockSize)))
 	  errExit("couldn't allocate indirect block");
 
-	if (! (inodes = malloc(INODES_PER_BLOCK(blockSize) * INODE_SIZE)))
+	if (! (inodes = malloc(blockSize)))
 	  errExit("couldn't allocate block of inodes");
 
 	b = ((n - 1) / inodesPerBlock) + inodeOffset;
@@ -382,11 +382,79 @@ static void addZone(ino_t n, zone_t z, size_t bytes, time_t currTime) {
 	fatal("File has grown beyond single indirect");
 }
 
-static void initRootDir(ino_t rootInum) {
+static void createDir(ino_t parent, char *name, ino_t child) {
+	int k, l, i;
+	zone_t z;
+	block_t b, zoneBlocks;
+	int off;
+	DirEntry *dirs;	/* an array of Directory */
+	INode *inodes;		/* an array of INode */
+
+	b = ((parent - 1) / inodesPerBlock) + inodeOffset;
+	off = (parent - 1) % inodesPerBlock;
+	
+	if (! (dirs = malloc(blockSize)))
+	  fatal("couldn't allocate directory entry");
+
+	if (! (inodes = malloc(blockSize)))
+	  fatal("couldn't allocate block of inodes entry");
+
+	getBlock(b, (char *) inodes);
+	for (k = 0; k < NR_DIRECT_ZONES; ++k) {
+		z = inodes[off].zones[k];
+		if (z == 0) {
+			z = allocZone();
+			inodes[off].zones[k] = z;
+			putBlock(b, (char *) inodes);
+		}
+		zoneBlocks = z << ZONE_SHIFT;
+		for (l = 0; l < blocksPerZone; ++l) {
+			getBlock(zoneBlocks + l, (char *) dirs);
+			for (i = 0; i < NR_DIR_ENTRIES(blockSize); ++i) {
+				if (dirs[i].d_ino == 0) {
+					dirs[i].d_ino = child;
+					memcpy(dirs[i].d_name, name, 
+							min(strlen(name), DIR_SIZE));
+					putBlock(zoneBlocks + l, (char *) dirs);
+					free(dirs);
+					free(inodes);
+					return;
+				}
+			}
+		}
+	}
+	fprintf(stderr, 
+		"Directory-inode %lu beyond direct blocks.  Could not enter %s\n", 
+		parent, name);
+	fatal("Halt");
+}
+
+static void increseLink(ino_t n, int linkCount) {
+	block_t b;
+	int off;
+	INode *inodes;	
+
+	b = ((n - 1) / inodesPerBlock) + inodeOffset;
+	off = (n - 1) % inodesPerBlock;
+	
+	if (! (inodes = malloc(blockSize)))
+	  errExit("couldn't allocate a block of inodes");
+
+	getBlock(b, (char *) inodes);
+	inodes[off].nlinks += linkCount;
+	putBlock(b, (char *) inodes);
+
+	free(inodes);
+}
+
+static void initRootDir(ino_t inoNum) {
 	zone_t z;
 
 	z = allocZone();
-	addZone(rootInum, z, 2 * sizeof(Directory), currentTime);
+	addZone(inoNum, z, 2 * sizeof(DirEntry), currentTime);
+	createDir(inoNum, ".", inoNum);
+	createDir(inoNum, "..", inoNum);
+	increseLink(inoNum, 2);
 }
 
 static void flush() {
@@ -400,11 +468,89 @@ static void flush() {
 	}
 }
 
+static void printMap(char *buf, uint16_t mapBlocks, uint16_t startBlock) {
+#define COLS	8
+	int j, k, row, len;
+	short *maps;
+	bool print, empty;
+
+	len = blockSize / sizeof(short);
+	for (k = 0; k < mapBlocks; ++k) {
+		getBlock(startBlock + k, buf);
+		maps = (short *) buf;
+		row = 1;
+		empty = false;
+		while (len > 0) {
+			print = false;
+			/* determine if this row is printable */
+			for (j = 0; j < COLS && j < len; ++j) {
+				if (maps[j] != 0) {
+					print = true;
+					break;
+				}
+			}
+			if (print || len <= COLS) {	/* printable or the last row */
+				if (empty) 
+				  printf("        ...\n");
+				empty = false;
+
+				printf("  [%03d] ", row);
+				for (j = 0; j < COLS && j < len; ++j) {
+					printf("%06o ", maps[j]);
+				}
+				printf("\n");
+			} else {
+				empty = true;
+			}
+			maps += COLS;
+			len -= COLS;
+			++row;
+		}
+	}
+}
+
+static void printFS() {
+	//INode *inodes;
+	//DirEntry *dirs;
+	SuperBlock *sup;
+	char *buf;
+	uint16_t imapBlocks, zmapBlocks;
+
+	if (! (buf = malloc(blockSize)))
+	  errExit("couldn't allocate a block of super block");
+
+	/* print super block */
+	getBlock(SUPER_BLOCK, buf);
+	sup = (SuperBlock *) buf;
+	printf("\nSuperBlock:\n");
+	printf("  magic: 0x%x\n", sup->s_magic);
+	printf("  block size: %u bytes\n", sup->s_block_size);
+	printf("  inodes: %u\n", sup->s_inodes);
+	printf("  zones: %u\n", sup->s_zones);
+	printf("  inode-map blocks: %u\n", sup->s_imap_blocks);
+	printf("  zone-map blocks: %u\n", sup->s_zmap_blocks);
+	printf("  first data zone: %u\n", sup->s_first_data_zone);
+	printf("  log zone size: %u\n", sup->s_log_zone_size);
+	printf("  max file size: 0x%x bytes\n", sup->s_max_size);
+
+	imapBlocks = sup->s_imap_blocks;
+	zmapBlocks = sup->s_zmap_blocks;
+
+	/* print inode-map */
+	printf("\nInode-Map:\n");
+	printMap(buf, imapBlocks, INODE_MAP);
+
+	/* print zone-map */
+	printf("\nZone-Map:\n");
+	printMap(buf, zmapBlocks, zoneMap);
+
+	free(buf);
+}
+
 int main(int argc, char *argv[]) {
 	zone_t zones;
 	int mode, uid, gid;
-	ino_t rootInum;
-
+	ino_t rootInoNum;
 
 	if (argc < 2 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)
 	  usage(argv[0]);
@@ -426,15 +572,16 @@ int main(int argc, char *argv[]) {
 	initCache();
 	
 	/* Write a null boot block. */
-	putBlock(0, zero);
+	putBlock(BOOT_BLOCK, zero);
 
 	zones = numBlocks >> ZONE_SHIFT;
 
 	initSuperBlock(zones, numInodes);
-	rootInum = allocInode(mode, uid, gid);
-	initRootDir(rootInum);
+	rootInoNum = allocInode(mode, uid, gid);
+	initRootDir(rootInoNum);
 
 	flush();
+	printFS();
 
 	Close(device, deviceFd);
 

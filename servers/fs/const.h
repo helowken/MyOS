@@ -16,3 +16,5 @@
 #define INDIRECT_ZONES(b)		((b) / ZONE_NUM_SIZE)	/* zones / indirect block */
 #define INODES_PER_BLOCK(b)		((b) / INODE_SIZE)	/* disk inodes / blk */
 
+#define DIR_ENTRY_SIZE			usizeof(DirEntry)
+#define NR_DIR_ENTRIES(b)		((b) / DIR_ENTRY_SIZE)

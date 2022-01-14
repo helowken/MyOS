@@ -12,6 +12,6 @@
 typedef struct {
 	ino_t d_ino;
 	char d_name[DIR_SIZE];
-} Directory;
+} DirEntry;
 
 #endif
