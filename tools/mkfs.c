@@ -468,60 +468,8 @@ static void flush() {
 	}
 }
 
-static void printMap(char *buf, uint16_t mapBlocks, uint16_t startBlock) {
-#define COLS	8
-	int j, k, row, len;
-	short *maps;
-	bool print, empty;
-
-	len = blockSize / sizeof(short);
-	for (k = 0; k < mapBlocks; ++k) {
-		getBlock(startBlock + k, buf);
-		maps = (short *) buf;
-		row = 1;
-		empty = false;
-		while (len > 0) {
-			print = false;
-			/* determine if this row is printable */
-			for (j = 0; j < COLS && j < len; ++j) {
-				if (maps[j] != 0) {
-					print = true;
-					break;
-				}
-			}
-			if (print || len <= COLS) {	/* printable or the last row */
-				if (empty) 
-				  printf("        ...\n");
-				empty = false;
-
-				printf("  [%03d] ", row);
-				for (j = 0; j < COLS && j < len; ++j) {
-					printf("%06o ", maps[j]);
-				}
-				printf("\n");
-			} else {
-				empty = true;
-			}
-			maps += COLS;
-			len -= COLS;
-			++row;
-		}
-	}
-}
-
-static void printFS() {
-	//INode *inodes;
-	//DirEntry *dirs;
-	SuperBlock *sup;
-	char *buf;
-	uint16_t imapBlocks, zmapBlocks;
-
-	if (! (buf = malloc(blockSize)))
-	  errExit("couldn't allocate a block of super block");
-
-	/* print super block */
-	getBlock(SUPER_BLOCK, buf);
-	sup = (SuperBlock *) buf;
+static void printSuperBlock(SuperBlock *sup) {
+	getBlock(SUPER_BLOCK, (char *) sup);
 	printf("\nSuperBlock:\n");
 	printf("  magic: 0x%x\n", sup->s_magic);
 	printf("  block size: %u bytes\n", sup->s_block_size);
@@ -529,22 +477,146 @@ static void printFS() {
 	printf("  zones: %u\n", sup->s_zones);
 	printf("  inode-map blocks: %u\n", sup->s_imap_blocks);
 	printf("  zone-map blocks: %u\n", sup->s_zmap_blocks);
+	printf("  zone blocks: %u\n", 1 << sup->s_log_zone_size);
 	printf("  first data zone: %u\n", sup->s_first_data_zone);
-	printf("  log zone size: %u\n", sup->s_log_zone_size);
-	printf("  max file size: 0x%x bytes\n", sup->s_max_size);
+	printf("  max file size: 0x%X bytes\n", sup->s_max_size);
+}
 
-	imapBlocks = sup->s_imap_blocks;
-	zmapBlocks = sup->s_zmap_blocks;
+static void printMap(uint16_t mapBlocks, uint16_t startBlock) {
+#define COLS	8
+	static const char *ellipsis = "......";
+	int j, k, row, mapsCnt;
+	short *maps;
+	bool print, empty;
+	char *buf;
 
-	/* print inode-map */
-	printf("\nInode-Map:\n");
-	printMap(buf, imapBlocks, INODE_MAP);
+	if (! (buf = malloc(blockSize)))
+	  errExit("couldn't allocate a block of maps");
 
-	/* print zone-map */
-	printf("\nZone-Map:\n");
-	printMap(buf, zmapBlocks, zoneMap);
+	mapsCnt = blockSize / sizeof(short);
+	for (k = 0; k < mapBlocks; ++k) {
+		getBlock(startBlock + k, buf);
+		maps = (short *) buf;
+		row = 1;
+		empty = false;
+		while (mapsCnt > 0) {
+			print = false;
+			/* determine if this row is printable */
+			for (j = 0; j < COLS && j < mapsCnt; ++j) {
+				if (maps[j] != 0) {
+					print = true;
+					break;
+				}
+			}
+			if (mapsCnt <= COLS && empty) {	/* if last row and empty before */
+				printf("        %s\n", ellipsis);
+			}
+			if (print) {	/* if printable */
+				empty = false;
+
+				printf("  [%03d] ", row);
+				for (j = 0; j < COLS && j < mapsCnt; ++j) {
+					printf("%06o ", maps[j]);
+				}
+				printf("\n");
+			} else {
+				if (mapsCnt <= COLS) /* if last row and empty */
+				  printf("  [%03d] %s\n", row, ellipsis);
+
+				empty = true;
+			}
+			maps += COLS;
+			mapsCnt -= COLS;
+			++row;
+		}
+	}
 
 	free(buf);
+}
+
+static void printInode(INode *inodes, DirEntry *dirs, int inoOff, ino_t inoNum) {
+	int insPerBlock;
+	block_t b;
+	int off, i;
+
+	insPerBlock = INODES_PER_BLOCK(blockSize);
+	b = ((inoNum - 1) / insPerBlock) + inoOff;
+	off = (inoNum - 1) % insPerBlock;
+	getBlock(b, (char *) inodes);
+
+	printf("  %lu: ", inoNum);
+	printf("mode=%06o, ", inodes[off].mode);
+	printf("uid=%d, gid=%d, size=%u, ", inodes[off].uid, inodes[off].gid, inodes[off].size);
+	printf("zone[0]=%u\n", inodes[off].zones[0]);
+
+	if ((inodes[off].mode & I_TYPE) == I_DIRECTORY) {
+		getBlock(inodes[off].zones[0], (char *) dirs);
+		for (i = 0; i < NR_DIR_ENTRIES(blockSize); ++i) {
+			if (dirs[i].d_ino) {
+				printf("     %s\n", dirs[i].d_name);
+			}
+		}
+	}
+}
+
+static void printInodes(SuperBlock *sup) {
+	INode *inodes;
+	DirEntry *dirs;
+	unsigned short *maps, map;
+	uint32_t inoOff;
+	ino_t inoNum;
+	int k, j, i, mapsCnt;
+
+	if (! (maps = malloc(blockSize)))
+	  errExit("couldn't allocate a block of maps");
+
+	if (! (inodes = malloc(blockSize)))
+	  errExit("couldn't allocate a block of inodes");
+
+	if (! (dirs = malloc(blockSize)))
+	  errExit("couldn't allocate a block of directories");
+	
+	mapsCnt = blockSize / FS_BITCHUNK_BITS;
+	inoOff = INODE_MAP + sup->s_imap_blocks + sup->s_zmap_blocks;
+	for (k = 0; k < sup->s_imap_blocks; ++k) {
+		getBlock(INODE_MAP + k, (char *) maps);
+		for (j = 0; j < mapsCnt; ++j) {
+			map = maps[j];
+			for (i = 0; i < FS_BITCHUNK_BITS && map; ++i, map = map >> 1) {
+				if (map & 0x1) {
+					inoNum = k * FS_BITS_PER_BLOCK(blockSize) + j * FS_BITCHUNK_BITS + i;
+					if (inoNum > 0)
+					  printInode(inodes, dirs, inoOff, inoNum);
+				}
+			}
+		}
+	}
+
+	free(maps);
+	free(inodes);
+	free(dirs);
+}
+
+static void printFS() {
+	SuperBlock *sup;
+
+	if (! (sup = malloc(blockSize)))
+	  errExit("couldn't allocate a block of super block");
+
+	printSuperBlock(sup);
+
+	printf("\n\nInode-Map:\n");
+	printMap(sup->s_imap_blocks, INODE_MAP);
+
+	printf("\nZone-Map:\n");
+	printMap(sup->s_zmap_blocks, zoneMap);
+
+	printf("\n\nInodes:\n");
+	printInodes(sup);
+
+	printf("\n");
+
+	free(sup);
 }
 
 int main(int argc, char *argv[]) {
@@ -565,7 +637,7 @@ int main(int argc, char *argv[]) {
 	numBlocks = computeBlocks();
 	numInodes = computeInodes(numBlocks);
 
-	mode = 040777;
+	mode = I_DIRECTORY | RWX_MODES;
 	uid = BIN;
 	gid	= BINGRP;
 

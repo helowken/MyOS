@@ -4,6 +4,7 @@ typedef unsigned long	block_t;	/* block number */
 
 #include "../include/limits.h"
 #include "../include/dirent.h"
+#include "../include/minix/const.h"
 #include "../servers/fs/const.h"
 #include "../servers/fs/type.h"
 #include "../servers/fs/super.h"
