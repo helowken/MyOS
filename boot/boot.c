@@ -4,7 +4,7 @@
 #include "stdlib.h"
 #include "limits.h"
 #include "util.h"
-#include "partition.h"
+#include "ibm/partition.h"
 
 #undef EXTERN
 #define EXTERN			/* Empty, allocate space for variables */

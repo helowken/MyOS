@@ -43,7 +43,7 @@ void main() {
 	kernelTaskStackBase = (reg_t) taskStack;
 
 	//for (i = 0; i < NR_BOOT_PROCS; ++i) { TODO
-	for (i = 0; i < 5; ++i) {
+	for (i = 0; i < 6; ++i) {
 		ip = &images[i];					/* Process' attributes */			
 		rp = procAddr(ip->pNum);	/* Get process pointer */
 		rp->p_max_priority = ip->priority;	/* Max scheduling priority */

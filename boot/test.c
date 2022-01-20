@@ -5,7 +5,7 @@
 #include "limits.h"
 #include "util.h"
 #include "boot.h"
-#include "partition.h"
+#include "ibm/partition.h"
 
 #if DEBUG
 static void testPrint() {

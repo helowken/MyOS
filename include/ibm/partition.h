@@ -1,6 +1,8 @@
 #ifndef _PARTITION_H
 #define _PARTITION_H
 
+#include "stdint.h"
+
 typedef struct {
 	uint8_t status;
 	uint8_t startHead;

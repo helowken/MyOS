@@ -41,6 +41,12 @@
 #define CLICK_SIZE		1024	/* Unit in which memory is allocated */
 #define CLICK_SHIFT		10		/* log2 of CLICK_SIZE */
 
+/* Click to byte conversions (and vice versa). */
+#define HCLICK_SHIFT	4		/* log2 of HCLICK_SIZE */
+#define HCLICK_SIZE		16		/* Hardware segment conversion magic */
+#define hclickToPhys(n)	((phys_bytes) (n) << HCLICK_SHIFT)
+#define physToHClick(n)	((n) >> HCLICK_SHIFT)
+
 /* Flag bits for i_node in the INode. */
 #define I_TYPE			0170000	/* This field gives inode type */
 #define I_REGULAR		0100000	/* Regular file, not dir or special */

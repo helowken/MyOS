@@ -4,6 +4,7 @@
 #include "unistd.h"
 #include "protect.h"
 #include "signal.h"
+#include "ibm/memory.h"
 
 int (*callVec[NR_SYS_CALLS])(Message *msg);
 
@@ -208,6 +209,23 @@ void causeSig(int pNum, int sig) {
 	}
 }
 
+static phys_bytes umapBios(register Proc *rp, vir_bytes virAddr, vir_bytes bytes) {
+/* Calculate the physical memory address at the BIOS. Note: currently, BIOS
+ * address zero (the first BIOS interrupt vector) is not considered as an
+ * error here, but since the physical address will be zero as well, the
+ * calling function will think an error occurred. This is not a problem,
+ * since no one uses the first BIOS interrupt vector.
+ */
+
+	/* Check all acceptable ranges. */
+	if (virAddr >= BIOS_MEM_BEGIN && virAddr + bytes <= BIOS_MEM_END)
+	  return (phys_bytes) virAddr;
+	else if (virAddr >= BASE_MEM_TOP && virAddr + bytes <= UPPER_MEM_END)
+	  return (phys_bytes) virAddr;
+	kprintf("Warning, error in umapBios, virtual address 0x%x\n", virAddr);
+	return 0;
+}
+
 int virtualCopy(VirAddr *srcAddr, VirAddr *dstAddr, vir_bytes bytes) {
 /* Copy bytes from virtual address srcAddr to virtual address dstAddr.
  * Virtual addresses can be in ABS, LOCAL_SEG, REMOTE_SEG, or BIOS_SEG.
@@ -233,7 +251,10 @@ int virtualCopy(VirAddr *srcAddr, VirAddr *dstAddr, vir_bytes bytes) {
 							virAddr[i]->offset, bytes);
 				break;
 			// case REMOTE_SEG: TODO
-			// case BIOS_SEG:	TODO
+			case BIOS_SEG:
+				physAddr[i] = umapBios(procAddr(virAddr[i]->pNum), 
+								virAddr[i]->offset, bytes);
+				break;
 			case PHYS_SEG:	
 				physAddr[i] = virAddr[i]->offset;
 				break;

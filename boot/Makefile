@@ -9,7 +9,8 @@ LIBS = -L$(MY_HOME)/lib/m16 \
 INSTALL = $(MY_HOME)/tools/installboot.bin
 
 PROGRAMS = ../kernel/kernel.bin \
-		   ../servers/pm/pm.bin
+		   ../servers/pm/pm.bin \
+		   AT:../drivers/at_wini/at_wini.bin
 
 all: install run
 
