@@ -1,9 +1,10 @@
 #!/bin/bash
 
 img=testOS.img
-size=100M
+size=100
 
-qemu-img create -f raw $img $size
+rm -f $img
+bximage -hd -size=$size -mode=flat $img -q
 
 fdisk $img<<EOF
 I

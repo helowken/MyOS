@@ -1,4 +1,6 @@
 boot: disk
-ata0-master: type=disk, path=device/testOS.img
+ata0-master: type=disk, path="device/testOS.img"
+ata1-master: type=disk, path="device/test2.img"
+#pci: chipset=i440bx
 cpu: count=1:1:1
 gdbstub: enabled=1, port=1234, text_base=0, data_base=0, bss_base=0

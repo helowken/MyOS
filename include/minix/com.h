@@ -118,6 +118,20 @@
 #define MEM_COUNT		m2_l1		/* Count */
 #define MEM_PATTERN		m2_l2		/* Pattern to write */
 
+/* Field names for SYS_DEVIO, SYS_VDEVIO, SYS_SDEVIO. */
+#define DIO_REQUEST		m2_i3		/* Device in or output */
+#	define DIO_INPUT	0			/* Input */
+#	define DIO_OUTPUT	1			/* Output */
+#define DIO_TYPE		m2_i1		/* Flag indicating byte, word, or long */
+#	define DIO_BYTE		'b'			/* Byte type values */
+#	define DIO_WORD		'w'			/* Word type values */
+#	define DIO_LONG		'l'			/* Long type values */
+#define DIO_PORT		m2_l1		/* Single port address */
+#define DIO_VALUE		m2_l2		/* Single I/O value */
+#define DIO_VEC_ADDR	m2_p1		/* Address of buffer or (p,v)-pairs */
+#define	DIO_VEC_SIZE	m2_l2		/* Number of elements in vector */
+#define DIO_VEC_PROC	m2_i2		/* Number of process where vector is */
+
 /* Field names for SYS_SETALARM. */
 #define ALARM_EXP_TIME	m2_l1		/* Expire time for the alarm call */
 #define ALARM_ABS_TIME	m2_i2		/* Set to 1 to use absolute alarm time */

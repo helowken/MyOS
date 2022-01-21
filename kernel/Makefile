@@ -1,5 +1,6 @@
 MY_HOME = ..
 include $(MY_HOME)/common.mk
+DIR_SYSTEM = system
 SYSTEM = mysystem
 LIB_SYSTEM = lib$(SYSTEM).a
 LIBS = -L$(MY_HOME)/lib -L. \
@@ -11,8 +12,8 @@ KERNEL = kernel.bin
 
 all: $(KERNEL)
 
-$(LIB_SYSTEM):
-	cd system && make
+$(LIB_SYSTEM): $(DIR_SYSTEM)/*.o
+	cd $(DIR_SYSTEM) && make
 
 $(KERNEL): $(OBJS) $(LIB_SYSTEM)
 	$(call link,$(OBJS),$(LIBS),$@) 

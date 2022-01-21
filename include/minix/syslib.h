@@ -40,4 +40,16 @@ int sysEndKernelSig(int pNum);
 int sysVirCopy(int srcProc, int srcSeg, vir_bytes srcVir, 
 		int dstProc, int dstSeg, vir_bytes dstVir, phys_bytes bytes);
 
+/* Shorthands for sysOut() system call. */
+#define sysOutb(p, v)	sysOut((p), (unsigned long) (v), DIO_BYTE)
+#define sysOutw(p, v)	sysOut((p), (unsigned long) (v), DIO_WORD)
+#define sysOutl(p, v)	sysOut((p), (unsigned long) (v), DIO_LONG)
+int sysOut(int port, unsigned long value, int type);
+
+/* Shorthands for sysIn() system call. */
+#define sysInb(p, v)	sysIn((p), (unsigned long *) (v), DIO_BYTE)
+#define sysInw(p, v)	sysIn((p), (unsigned long *) (v), DIO_WORD)
+#define sysInl(p, v)	sysIn((p), (unsigned long *) (v), DIO_LONG)
+int sysIn(int port, unsigned long *value, int type);
+
 #endif

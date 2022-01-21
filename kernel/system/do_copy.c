@@ -1,5 +1,5 @@
 #include "../system.h"
-#include "minix/type.h"
+#include "minix/type.h" 
 
 int doCopy(register Message *msg) {
 /* Handle sysVirCopy() and sysPhysCopy(). Copy data using virtual or

@@ -19,3 +19,9 @@
 
 //#include "minix/partition.h"
 //#include "minix/u64.h"
+
+
+/* Parameters for the disk drive. */
+#define SECTOR_SIZE		512		/* Physical sector size in bytes */
+#define SECTOR_SHIFT	9		/* For division */
+#define SECTOR_MASK		511		/* and remainder */
