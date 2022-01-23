@@ -14,12 +14,14 @@ PROGRAMS = ../kernel/kernel.bin \
 
 all: install run
 
+# Please see README for how to install Bochs.
+# Need to use a Bochs without gdb support.
 run: 
-	#qemu-system-i386 -drive "file=$(DISK_IMAGE),format=raw,index=0,media=disk"
 	bochs
 
+# Need to use a Bochs with gdb support.
 gdb:
-	/usr/local/bin/bochs -q -f .bochsrc_gdb
+	/home/helowken/bochs/build/bin/bochs -q -f .bochsrc_gdb
 
 %.bin: %.asm
 	nasm -f bin $< -o $@

@@ -32,11 +32,11 @@ typedef struct {
 	u16_t (*pb_rd_status)(int busInd);
 	void (*pb_wr_status)(int busInd, u16_t value);
 } PciBus;
-static PciBus pciBus[NR_PCI_BUS];
+static PciBus pciBusList[NR_PCI_BUS];
 static int numPciBus = 0;
 
 typedef struct {
-	u8_t pd_busInd;
+	u8_t pd_bus_ind;
 	u8_t pd_dev;
 	u8_t pd_func;
 	u8_t pd_base_class;
@@ -46,8 +46,8 @@ typedef struct {
 	u16_t pd_did;
 	u8_t pd_in_use;
 } PciDev;
-static PciDev pciDev[NR_PCI_DEV];
-//static int numPciDev = 0;
+static PciDev pciDevList[NR_PCI_DEV];
+static int numPciDev = 0;
 
 void disablePci() {
 	int s;
@@ -58,9 +58,9 @@ void disablePci() {
 static u8_t pci_rd_reg8(int busInd, int devInd, int port) {
 	u8_t v;
 
-	v = PCI_RD_REG8(pciBus[busInd].pb_bus, 
-				pciDev[devInd].pd_dev, 
-				pciDev[devInd].pd_func, 
+	v = PCI_RD_REG8(pciBusList[busInd].pb_bus, 
+				pciDevList[devInd].pd_dev, 
+				pciDevList[devInd].pd_func, 
 				port);
 	disablePci();
 	return v;
@@ -69,9 +69,9 @@ static u8_t pci_rd_reg8(int busInd, int devInd, int port) {
 static u16_t pci_rd_reg16(int busInd, int devInd, int port) {
 	u16_t v;
 
-	v = PCI_RD_REG16(pciBus[busInd].pb_bus, 
-				pciDev[devInd].pd_dev, 
-				pciDev[devInd].pd_func, 
+	v = PCI_RD_REG16(pciBusList[busInd].pb_bus, 
+				pciDevList[devInd].pd_dev, 
+				pciDevList[devInd].pd_func, 
 				port);
 	disablePci();
 	return v;
@@ -80,26 +80,26 @@ static u16_t pci_rd_reg16(int busInd, int devInd, int port) {
 static u32_t pci_rd_reg32(int busInd, int devInd, int port) {
 	u32_t v;
 
-	v = PCI_RD_REG32(pciBus[busInd].pb_bus, 
-				pciDev[devInd].pd_dev, 
-				pciDev[devInd].pd_func, 
+	v = PCI_RD_REG32(pciBusList[busInd].pb_bus, 
+				pciDevList[devInd].pd_dev, 
+				pciDevList[devInd].pd_func, 
 				port);
 	disablePci();
 	return v;
 }
 
 static void pci_wr_reg16(int busInd, int devInd, int port, u16_t value) {
-	PCI_WR_REG16(pciBus[busInd].pb_bus, 
-				pciDev[devInd].pd_dev, 
-				pciDev[devInd].pd_func, 
+	PCI_WR_REG16(pciBusList[busInd].pb_bus, 
+				pciDevList[devInd].pd_dev, 
+				pciDevList[devInd].pd_func, 
 				port, value);
 	disablePci();
 }
 
 static void pci_wr_reg32(int busInd, int devInd, int port, u32_t value) {
-	PCI_WR_REG32(pciBus[busInd].pb_bus, 
-				pciDev[devInd].pd_dev, 
-				pciDev[devInd].pd_func, 
+	PCI_WR_REG32(pciBusList[busInd].pb_bus, 
+				pciDevList[devInd].pd_dev, 
+				pciDevList[devInd].pd_func, 
 				port, value);
 	disablePci();
 }
@@ -107,18 +107,18 @@ static void pci_wr_reg32(int busInd, int devInd, int port, u32_t value) {
 static u16_t pci_rd_status(int busInd) {
 	u16_t v;
 
-	v = PCI_RD_REG16(pciBus[busInd].pb_bus, 0, 0, PCI_STATUS);
+	v = PCI_RD_REG16(pciBusList[busInd].pb_bus, 0, 0, PCI_STATUS);
 	disablePci();
 	return v;
 }
 
 static void pci_wr_status(int busInd, u16_t value) {
-	PCI_WR_REG16(pciBus[busInd].pb_bus, 0, 0, PCI_STATUS, value);
+	PCI_WR_REG16(pciBusList[busInd].pb_bus, 0, 0, PCI_STATUS, value);
 	disablePci();
 
 }
 
-static char *pciVidName(u16_t vid) {
+static char *pciVendorName(u16_t vid) {
 	int i;
 
 	for (i = 0; pciVendorTable[i].name; ++i) {
@@ -126,6 +126,150 @@ static char *pciVidName(u16_t vid) {
 		  return pciVendorTable[i].name;
 	}
 	return "unknown";
+}
+
+static char *pciDevName(u16_t vid, u16_t did) {
+	int i;
+
+	for (i = 0; pciDeviceTable[i].name; ++i) {
+		if (pciDeviceTable[i].vid == vid &&
+			pciDeviceTable[i].did == did)
+		  return pciDeviceTable[i].name;
+	}
+	return NULL;
+}
+
+static u16_t pciReadStatus(int devInd) {
+	int busInd;
+
+	busInd = pciDevList[devInd].pd_bus_ind;
+	return pciBusList[busInd].pb_rd_status(busInd);
+}
+
+static void pciWriteStatus(int devInd, u16_t value) {
+	int busInd;
+
+	busInd = pciDevList[devInd].pd_bus_ind;
+	pciBusList[busInd].pb_wr_status(busInd, value);
+}
+
+u8_t pciAttrR8(int devInd, int port) {
+	int busInd;
+
+	busInd = pciDevList[devInd].pd_bus_ind;
+	return pciBusList[busInd].pb_rd_reg8(busInd, devInd, port);
+}
+
+u16_t pciAttrR16(int devInd, int port) {
+	int busInd;
+
+	busInd = pciDevList[devInd].pd_bus_ind;
+	return pciBusList[busInd].pb_rd_reg16(busInd, devInd, port);
+}
+
+u32_t pciAttrR32(int devInd, int port) {
+	int busInd;
+
+	busInd = pciDevList[devInd].pd_bus_ind;
+	return pciBusList[busInd].pb_rd_reg32(busInd, devInd, port);
+}
+
+void pciAttrW16(int devInd, int port, U16_t value) {
+	int busInd;
+
+	busInd = pciDevList[devInd].pd_bus_ind;
+	pciBusList[busInd].pb_wr_reg16(busInd, devInd, port, value);
+}
+
+void pciAttrW32(int devInd, int port, u32_t value) {
+	int busInd;
+
+	busInd = pciDevList[devInd].pd_bus_ind;
+	pciBusList[busInd].pb_wr_reg32(busInd, devInd, port, value);
+}
+
+static char *pciSubClassName(u8_t baseClass, u8_t subClass, u8_t intfClass) {
+	int i;
+
+	for (i = 0; pciSubClassTable[i].name; ++i) {
+		if (pciSubClassTable[i].baseClass != baseClass || 
+			pciSubClassTable[i].subClass != subClass)
+		  continue;
+		if (pciSubClassTable[i].intfClass != intfClass && 
+			pciSubClassTable[i].intfClass != -1)
+		  continue;
+		return pciSubClassTable[i].name;
+	}
+	return NULL;
+}
+
+static char *pciBaseClassName(u8_t baseClass) {
+	int i;
+
+	for (i = 0; pciBaseClassTable[i].name; ++i) {
+		if (pciBaseClassTable[i].baseClass == baseClass) 
+		  return pciBaseClassTable[i].name;
+	}
+	return NULL;
+}
+
+static void probeBus(int busInd) {
+	u8_t dev, func;
+	u16_t vid, did, status;
+	u8_t headerType;
+	u8_t baseClass, subClass, intfClass;
+	int devInd;
+	char *devStr, *s;
+
+	if (numPciDev >= NR_PCI_DEV) 
+	  panic("PCI", "too many PCI devices", numPciDev);
+	devInd = numPciDev;
+
+	for (dev = 0; dev < 32; ++dev) {
+		for (func = 0; func < 8; ++func) {
+			pciDevList[devInd].pd_bus_ind = busInd;
+			pciDevList[devInd].pd_dev = dev;
+			pciDevList[devInd].pd_func = func;
+			
+			pciWriteStatus(devInd, PSR_SSE | PSR_RMAS | PSR_RTAS);
+			vid = pciAttrR16(devInd, PCI_VID);
+			did = pciAttrR16(devInd, PCI_DID);
+			headerType = pciAttrR8(devInd, PCI_HEADER_TYPE);
+			status = pciReadStatus(devInd);
+			
+			if (vid == NO_VID)
+			  break;	/* Nothing here */
+
+			if (status & (PSR_SSE | PSR_RMAS | PSR_RTAS)) {
+			//  break;
+			}
+
+			devStr = pciDevName(vid, did);
+			if (devStr) {
+				printf("%d.%u.%u: %s (%04X/%04X)\n",
+					busInd, dev, func, devStr, vid, did);
+			} else {
+				printf("%d.%u.%u: Unknown device, vendor %04X (%s), device %04X\n",
+					busInd, dev, func, vid, pciVendorName(vid), did);
+			}
+
+			baseClass = pciAttrR8(devInd, PCI_BASE_CLASS);
+			subClass = pciAttrR8(devInd, PCI_SUB_CLASS);
+			intfClass = pciAttrR8(devInd, PCI_PROG_IF);
+			s = pciSubClassName(baseClass, subClass, intfClass);
+			if (!s) {
+				s = pciBaseClassName(baseClass);	
+				if (!s)
+				  s = "(unknown class)";
+			}
+			printf("\tclass %s (%X/%X/%X)\n", s, baseClass, subClass, intfClass);
+
+
+		}
+	}
+
+	if (false)
+	  printf("%s", headerType);
 }
 
 static void initIntelPci() {
@@ -138,6 +282,7 @@ static void initIntelPci() {
 	u32_t bus, dev, func;
 	u16_t vid, did;
 	int i, busInd;
+	char *devStr;
 
 	bus = dev = func = 0;
 
@@ -145,7 +290,7 @@ static void initIntelPci() {
 	did = PCI_RD_REG16(bus, dev, func, PCI_DID);
 	disablePci();
 
-	if (vid == 0xFFFF && did == 0xFFFF)
+	if (vid == NO_VID && did == NO_DID)
 	  return;	/* Nothing here */
 
 	for (i = 0; pciIntelCtrlTable[i].vid; ++i) {
@@ -157,26 +302,31 @@ static void initIntelPci() {
 	if (! pciIntelCtrlTable[i].vid)
 	  printf("initIntelPci (warning): unknown PCI-controller:\n"
 			"\tvendor %04X (%s), device %04X\n",
-			vid, pciVidName(vid), did);
+			vid, pciVendorName(vid), did);
 
 	if (numPciBus >= NR_PCI_BUS)
 	  panic("PCI", "too many PCI busses", numPciBus);
 
 	busInd = numPciBus++;
-	pciBus[busInd].pb_type = PBT_INTEL;
-	pciBus[busInd].pb_isa_bridge_dev = -1;
-	pciBus[busInd].pb_isa_bridge_type = 0;
-	pciBus[busInd].pb_dev_ind = -1;
-	pciBus[busInd].pb_bus = 0;
-	pciBus[busInd].pb_rd_reg8 = pci_rd_reg8;
-	pciBus[busInd].pb_rd_reg16 = pci_rd_reg16;
-	pciBus[busInd].pb_rd_reg32 = pci_rd_reg32;
-	pciBus[busInd].pb_wr_reg16 = pci_wr_reg16;
-	pciBus[busInd].pb_wr_reg32 = pci_wr_reg32;
-	pciBus[busInd].pb_rd_status = pci_rd_status;
-	pciBus[busInd].pb_wr_status = pci_wr_status;
+	pciBusList[busInd].pb_type = PBT_INTEL;
+	pciBusList[busInd].pb_isa_bridge_dev = -1;
+	pciBusList[busInd].pb_isa_bridge_type = 0;
+	pciBusList[busInd].pb_dev_ind = -1;
+	pciBusList[busInd].pb_bus = 0;
+	pciBusList[busInd].pb_rd_reg8 = pci_rd_reg8;
+	pciBusList[busInd].pb_rd_reg16 = pci_rd_reg16;
+	pciBusList[busInd].pb_rd_reg32 = pci_rd_reg32;
+	pciBusList[busInd].pb_wr_reg16 = pci_wr_reg16;
+	pciBusList[busInd].pb_wr_reg32 = pci_wr_reg32;
+	pciBusList[busInd].pb_rd_status = pci_rd_status;
+	pciBusList[busInd].pb_wr_status = pci_wr_status;
 
+	devStr = pciDevName(vid, did);
+	if (!devStr)
+	  devStr = "unknown device";
+	printf("initIntelPci: %s (%04X/%04X)\n", devStr, vid, did);
 
+	probeBus(busInd);
 }
 
 void initPci() {

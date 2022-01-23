@@ -17,6 +17,6 @@
 		(((bus) << PCI_BUS_SHIFT) & PCI_BUS_MASK) | \
 		(((dev) << PCI_DEV_SHIFT) & PCI_DEV_MASK) | \
 		(((func) << PCI_FUNC_SHIFT) & PCI_FUNC_MASK) | \
-		(((reg / 4) << PCI_REG_SHIFT) & PCI_REG_MASK))		/* Naturally 4-byte aligned */
+		((((reg) / 4) << PCI_REG_SHIFT) & PCI_REG_MASK))		/* Naturally 4-byte aligned */
 #define PCI_UNSEL			0
 

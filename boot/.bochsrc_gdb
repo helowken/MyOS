@@ -1,6 +1,11 @@
 boot: disk
 ata0-master: type=disk, path="device/testOS.img"
 ata1-master: type=disk, path="device/test2.img"
-#pci: chipset=i440bx
 cpu: count=1:1:1
 gdbstub: enabled=1, port=1234, text_base=0, data_base=0, bss_base=0
+
+# test for pci bus
+#pci: chipset=i440bx
+
+# test for pci device
+plugin_ctrl: e1000=1, es1370=1, sb16=1, usb_ehci=1, usb_ohci=1, usb_uhci=1, usb_xhci=1, voodoo=1
