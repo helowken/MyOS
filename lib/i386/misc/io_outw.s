@@ -1,6 +1,6 @@
 # Ouput one word. 
 #
-# void outw(U16_t port, U16_t value);
+# void outw(u16_t port, u16_t value);
 
 	.text
 	.globl	outw

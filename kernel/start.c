@@ -18,10 +18,10 @@ static char *getValue(char *params, char *name) {
 	return NULL;
 }
 
-void cstart(U16_t cs, U16_t ds,	/* Kernel code and data segment. */
-			U16_t mds,					/* Moniotr data/stack segment. */
-			U16_t paramOffset,			/* Boot parameters offset. */
-			U16_t paramSize)			/* Boot parameters size. */
+void cstart(u16_t cs, u16_t ds,	/* Kernel code and data segment. */
+			u16_t mds,					/* Moniotr data/stack segment. */
+			u16_t paramOffset,			/* Boot parameters offset. */
+			u16_t paramSize)			/* Boot parameters size. */
 {			
 	char params[128 * sizeof(char *)];	/* One sector size, 512 bytes. */
 	register char *value;				/* Value in (key = value) pair. */	

@@ -1,6 +1,6 @@
 # Ouput one byte. 
 #
-# void outb(U16_t port, U8_t value);
+# void outb(u16_t port, u8_t value);
 
 	.text
 	.globl	outb

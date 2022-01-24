@@ -4,7 +4,7 @@
 typedef struct Proc Proc;
 
 /* protect.c */
-phys_bytes seg2Phys(U16_t seg);
+phys_bytes seg2Phys(u16_t seg);
 void protectInit();
 void allocSegments(Proc *rp);
 
@@ -24,7 +24,7 @@ void lockDequeue(Proc *rp);
 int sys_call(int function, int srcDst, Message *msg);
 
 /* start.c */
-void cstart(U16_t cs, U16_t ds,	U16_t mds, U16_t paramOffset,U16_t paramSize);	
+void cstart(u16_t cs, u16_t ds,	u16_t mds, u16_t paramOffset,u16_t paramSize);	
 
 /* exception.c */
 void handleException(unsigned vectorNum);

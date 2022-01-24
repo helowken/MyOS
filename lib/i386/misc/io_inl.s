@@ -1,6 +1,6 @@
 # Input one dword.
 #
-# unsigned inl(U16_t port);
+# unsigned inl(u16_t port);
 
 	.text
 	.globl	inl

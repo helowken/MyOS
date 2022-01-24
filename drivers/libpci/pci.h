@@ -1,23 +1,15 @@
-u8_t PCI_RD_REG8(int bus, u8_t dev, u8_t func, int reg);
-u16_t PCI_RD_REG16(int bus, u8_t dev, u8_t func, int reg);
-u32_t PCI_RD_REG32(int bus, u8_t dev, u8_t func, int reg);
+unsigned pciInb(u16_t port);
+unsigned pciInw(u16_t port);
+unsigned pciInl(u16_t port);
 
-void PCI_WR_REG8(int bus, u8_t dev, u8_t func, int reg, u8_t value);
-void PCI_WR_REG16(int bus, u8_t dev, u8_t func, int reg, u16_t value);
-void PCI_WR_REG32(int bus, u8_t dev, u8_t func, int reg, u32_t value);
-
-unsigned pciInb(U16_t port);
-unsigned pciInw(U16_t port);
-unsigned pciInl(U16_t port);
-
-void pciOutb(U16_t port, U8_t value);
-void pciOutw(U16_t port, U16_t value);
-void pciOutl(U16_t port, U32_t value);
+void pciOutb(u16_t port, u8_t value);
+void pciOutw(u16_t port, u16_t value);
+void pciOutl(u16_t port, u32_t value);
 
 u8_t pciAttrR8(int devInd, int port);
 u16_t pciAttrR16(int devInd, int port);
 u32_t pciAttrR32(int devInd, int port);
-void pciAttrW16(int devInd, int port, U16_t value);
+void pciAttrW16(int devInd, int port, u16_t value);
 void pciAttrW32(int devInd, int port, u32_t value);
 
 void initPci();

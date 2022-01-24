@@ -1,6 +1,6 @@
 # Input one word. 
 #
-# unsigned inw(U16_t port);
+# unsigned inw(u16_t port);
 
 	.text
 	.globl	inw

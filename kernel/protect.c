@@ -58,7 +58,7 @@ TSS tss;
 /* 
  * Return the base address of a segment, with a 386 segment selector.
  */
-phys_bytes seg2Phys(U16_t segSelector) {
+phys_bytes seg2Phys(u16_t segSelector) {
 	phys_bytes base;
 	SegDesc *segDp;
 

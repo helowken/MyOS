@@ -1,6 +1,6 @@
 # Ouput one dword. 
 #
-# void outl(U16_t port, U32_t value);
+# void outl(u16_t port, u32_t value);
 
 	.text
 	.globl	outl

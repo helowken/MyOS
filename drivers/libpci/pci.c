@@ -115,7 +115,6 @@ static u16_t pci_rd_status(int busInd) {
 static void pci_wr_status(int busInd, u16_t value) {
 	PCI_WR_REG16(pciBusList[busInd].pb_bus, 0, 0, PCI_STATUS, value);
 	disablePci();
-
 }
 
 static char *pciVendorName(u16_t vid) {
@@ -174,7 +173,7 @@ u32_t pciAttrR32(int devInd, int port) {
 	return pciBusList[busInd].pb_rd_reg32(busInd, devInd, port);
 }
 
-void pciAttrW16(int devInd, int port, U16_t value) {
+void pciAttrW16(int devInd, int port, u16_t value) {
 	int busInd;
 
 	busInd = pciDevList[devInd].pd_bus_ind;
@@ -239,10 +238,8 @@ static void probeBus(int busInd) {
 			
 			if (vid == NO_VID)
 			  break;	/* Nothing here */
-
-			if (status & (PSR_SSE | PSR_RMAS | PSR_RTAS)) {
-			//  break;
-			}
+			if (status & (PSR_SSE | PSR_RMAS | PSR_RTAS)) 
+			  break;
 
 			devStr = pciDevName(vid, did);
 			if (devStr) {
@@ -263,7 +260,6 @@ static void probeBus(int busInd) {
 				  s = "(unknown class)";
 			}
 			printf("\tclass %s (%X/%X/%X)\n", s, baseClass, subClass, intfClass);
-
 
 		}
 	}
@@ -346,43 +342,43 @@ void initPci() {
 /*=====================================================================*
  *                helper functions for I/O                *
  *=====================================================================*/ 
-unsigned pciInb(U16_t port) {
-	U8_t value;
+unsigned pciInb(u16_t port) {
+	u8_t value;
 	int s;
 	if ((s = sysInb(port, &value)) != OK)
 	  printf("PCI: warning, sysInb failed: %d\n", s);
 	return value;
 }
 
-unsigned pciInw(U16_t port) {
-	U16_t value;
+unsigned pciInw(u16_t port) {
+	u16_t value;
 	int s;
 	if ((s = sysInw(port, &value)) != OK)
 	  printf("PCI: warning, sysInw failed: %d\n", s);
 	return value;
 }
 
-unsigned pciInl(U16_t port) {
-	U32_t value;
+unsigned pciInl(u16_t port) {
+	u32_t value;
 	int s;
 	if ((s = sysInl(port, &value)) != OK)
 	  printf("PCI: warning, sysInl failed: %d\n", s);
 	return value;
 }
 
-void pciOutb(U16_t port, U8_t value) {
+void pciOutb(u16_t port, u8_t value) {
 	int s;
 	if ((s = sysOutb(port, value)) != OK)
 	  printf("PCI: warning, sysOutb failed: %d\n", s);
 }
 
-void pciOutw(U16_t port, U16_t value) {
+void pciOutw(u16_t port, u16_t value) {
 	int s;
 	if ((s = sysOutw(port, value)) != OK)
 	  printf("PCI: warning, sysOutw failed: %d\n", s);
 }
 
-void pciOutl(U16_t port, U32_t value) {
+void pciOutl(u16_t port, u32_t value) {
 	int s;
 	if ((s = sysOutl(port, value)) != OK)
 	  printf("PCI: warning, sysOutl failed: %d\n", s);

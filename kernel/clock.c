@@ -101,8 +101,8 @@ static void initClock() {
 
 	/* Initialize channel 0 of the 8253A timer to, e.g., 60 HZ. */
 	outb(TIMER_MODE, SQUARE_WAVE);		/* Set timer to run continuously */
-	outb(TIMER0, TIMER_COUNT);			/* Load timer low byte */
-	outb(TIMER0, TIMER_COUNT >> 8);		/* Load timer high byte */
+	outb(TIMER0, (u8_t) TIMER_COUNT);			/* Load timer low byte */
+	outb(TIMER0, (u8_t) (TIMER_COUNT >> 8));		/* Load timer high byte */
 	putIrqHandler(&clockHook, CLOCK_IRQ, clockHandler);	/* Register handler */
 	enableIrq(&clockHook);
 }

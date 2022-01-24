@@ -1,7 +1,7 @@
 all:
-	cd libpci && make
-	cd at_wini && make
+	cd libpci && $(MAKE)
+	cd at_wini && $(MAKE)
 
 clean:
-	cd libpci && make clean
-	cd at_wini && make clean
+	cd libpci && $(MAKE) clean
+	cd at_wini && $(MAKE) clean

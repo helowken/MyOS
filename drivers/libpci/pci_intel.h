@@ -20,3 +20,24 @@
 		((((reg) / 4) << PCI_REG_SHIFT) & PCI_REG_MASK))		/* Naturally 4-byte aligned */
 #define PCI_UNSEL			0
 
+#define PCI_RD_REG8(bus, dev, func, reg) \
+	(pciOutl(PCI_CONF_ADDR, PCI_SEL_REG(bus, dev, func, reg)), \
+	 pciInb(PCI_CONF_DATA + ((reg) & 3)))
+#define PCI_RD_REG16(bus, dev, func, reg) \
+	(PCI_RD_REG8(bus, dev, func, reg) | \
+	 PCI_RD_REG8(bus, dev, func, reg + 1) << 8)
+#define PCI_RD_REG32(bus, dev, func, reg) \
+	(PCI_RD_REG16(bus, dev, func, reg) | \
+	 PCI_RD_REG16(bus, dev, func, reg + 2) << 16)
+
+#define PCI_WR_REG8(bus, dev, func, reg, val) \
+	(pciOutl(PCI_CONF_ADDR, PCI_SEL_REG(bus, dev, func, reg)), \
+	 pciOutb(PCI_CONF_DATA + ((reg) & 3), (val)))
+#define PCI_WR_REG16(bus, dev, func, reg, val) \
+	(PCI_WR_REG8(bus, dev, func, reg, (val)), \
+	 PCI_WR_REG8(bus, dev, func, reg + 1, (val) >> 8))
+#define PCI_WR_REG32(bus, dev, func, reg, val) \
+	(PCI_WR_REG16(bus, dev, func, reg, (val)), \
+	 PCI_WR_REG16(bus, dev, func, reg, (val) >> 16))
+
+

@@ -1,6 +1,6 @@
 # Input one byte.
 #
-# unsigned inb(U16_t port);
+# unsigned inb(u16_t port);
 
 	.text
 	.globl	inb

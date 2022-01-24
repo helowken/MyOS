@@ -51,8 +51,4 @@ typedef long			i32_t;
 
 typedef struct { u32_t _[2]; } u64_t;
 
-typedef int				U8_t;
-typedef int				U16_t;
-typedef unsigned long	U32_t;
-
 #endif
