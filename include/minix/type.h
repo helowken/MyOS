@@ -89,4 +89,9 @@ typedef struct StackFrame {
 	reg_t ss;
 } StackFrame;
 
+typedef struct {
+	vir_bytes iov_addr;		/* Address of an I/O buffer */
+	vir_bytes iov_size;		/* Sizeof an I/O buffer */
+} IOVec;
+
 #endif

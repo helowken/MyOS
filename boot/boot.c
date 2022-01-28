@@ -530,7 +530,7 @@ static Token **tokenize(Token **acmds, char *line) {
 
 static u32_t getProcessor() {
 	/* TODO */
-	return 386;
+	return 586;
 }
 
 static void getParameters() {

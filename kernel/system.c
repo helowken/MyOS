@@ -49,9 +49,7 @@ static void initialize() {
 	map(SYS_SIGRETURN, doSigReturn);
 
 	/* Device I/O. */
-	/*
 	map(SYS_IRQCTL, doIrqCtl);
-	*/
 	map(SYS_DEVIO, doDevIO);
 	/*
 	map(SYS_SDEVIO, doStrDevIO);
@@ -274,5 +272,30 @@ int virtualCopy(VirAddr *srcAddr, VirAddr *dstAddr, vir_bytes bytes) {
 	return OK;
 }
 
+void getRandomness(int source) {
+/* On machines with the RDTSC (cycle counter read instruction - pentium
+ * and up), use that for high-resolution raw entropy gathering. Otherwise,
+ * use the realtime clock (tick resolution).
+ *
+ * Unfortunately this test is run-time - we don't want to bother with
+ * compiling different kernels for different machines.
+ *
+ * On machines without RDTSC, we use readClock().
+ */
+	int rNext;
+	unsigned long tscHigh, tscLow;
 
+	source %= RANDOM_SOURCES;
+	rNext = kernelRandom.bin[source].r_next;
+	if (machine.processor > 486) {
+		readTsc(&tscHigh, &tscLow);
+		kernelRandom.bin[source].r_buf[rNext] = tscLow;
+	} else {
+		kernelRandom.bin[source].r_buf[rNext] = readClock();
+	}
+	if (kernelRandom.bin[source].r_size < RANDOM_ELEMENTS) {
+		++kernelRandom.bin[source].r_size;
+	}
+	kernelRandom.bin[source].r_next = (rNext + 1) % RANDOM_ELEMENTS;
+}
 

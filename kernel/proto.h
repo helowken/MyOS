@@ -13,6 +13,7 @@ void clockTask();
 clock_t getUptime();
 void setTimer(struct Timer *tp, clock_t expTime, TimerFunc watchDog);
 void resetTimer(struct Timer *tp);
+unsigned long readClock();
 
 /* utility.c */
 void kprintf(const char *fmt, ...);
@@ -46,6 +47,7 @@ phys_bytes umapLocal(Proc *rp, int seg, vir_bytes virAddr, vir_bytes bytes);
 void sendSig(int pNum, int sig);
 void causeSig(int pNum, int sig);
 int virtualCopy(VirAddr *src, VirAddr *dst, vir_bytes bytes);
+void getRandomness(int source);
 
 /* klib386.S */
 void copyMessage(int src, phys_clicks srcAddr, vir_bytes srcOffset, 
@@ -55,6 +57,7 @@ void physMemset(phys_bytes source, unsigned long pattern, phys_bytes count);
 void enableIrq(IrqHook *hook);
 void disableIrq(IrqHook *hook);
 void level0(void (*func)());
+void readTsc(unsigned long *high, unsigned long *low);
 
 /* mpx.S */
 void idleTask();

@@ -209,5 +209,19 @@
 #define PR_IP_PTR		m1_p3		/* Initial value for ip after exec */
 #define	PR_MEM_PTR		m1_p1		/* Tells where memory map */
 
+/* Field names for SYS_IRQCTL. */
+#define IRQ_REQUEST		m5_c1		/* What to do? */
+#  define IRQ_SET_POLICY	1		/* Manage a slot of the IRQ table */
+#  define IRQ_RM_POLICY		2		/* Remove a slot of the IRQ table */
+#  define IRQ_ENABLE		3		/* Enable interrupts */
+#  define IRQ_DISABLE		4		/* Disable interrupts */
+#define IRQ_VECTOR		m5_c2		/* Irq vector */
+#define IRQ_POLICY		m5_i1		/* Options for IRQCTL request */
+#  define IRQ_REENABLE	0x001		/* Reenable IRQ line after interrupt */
+#  define IRQ_BYTE		0x100		/* Byte values */
+#  define IRQ_WORD		0x200		/* Word values */
+#  define IRQ_LONG		0x400		/* Long values */
+#define IRQ_PROC_NR		m5_i2		/* Process number, SELF, NONE */
+#define	IRQ_HOOK_ID		m5_l3		/* Id of irq hook at kernel */
 
 #endif

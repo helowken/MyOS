@@ -15,10 +15,13 @@
 #define LDH_LBA				0x40	/* Use LBA addressing */
 #define ldhInit(drive)		(LDH_DEFAULT | ((drive) << 4))
 
-
 #define MAX_SECTORS			256		/* Controller can transfer this many sectors */
 #define MAX_DRIVES			8
 #define COMPAT_DRIVES		4
+#define IGNORING			0x20	/* wIdentify failed once */
+
+#define ATA_IF_NOT_COMPAT1	(1L << 0)
+#define ATA_IF_NOT_COMPAT2	(1L << 2)
 
 /* Interrupt request lines. */
 #define NO_IRQ				0		/* No IRQ set yet */
@@ -49,8 +52,12 @@ typedef struct {		/* Main drive struct, one entry per drive */
 } Wini;
 static Wini wini[MAX_DRIVES];
 
-static int wDrive;				/* Selected drive */
+/* Entry points to this driver. */
+static Driver wDriver = {
 
+};
+
+static int wDrive;				/* Selected drive */
 static char *wName() {
 	static char name[] = "AT-D0";
 
@@ -73,7 +80,66 @@ static void initDrive(Wini *w, int baseCmd, int baseCtl, int irq, int ack, int h
 }
 
 static void initPciParams(int skip) {
+	int r, drive, devInd, s;
+	u16_t vid, did;
+	int interface, irq, irqHook;
+
 	initPci();
+
+	for (drive = wNextDrive; drive < MAX_DRIVES; ++drive) {
+		wini[drive].state = IGNORING;
+	}
+	for (r = pciFirstAvailDev(&devInd, &vid, &did);
+		r != 0 && wNextDrive < MAX_DRIVES; 
+		r = pciNextAvailDev(&devInd, &vid, &did)) {
+		if (pciAttrDevR8(devInd, PCI_BASE_CLASS) != 0x01 ||
+			pciAttrDevR8(devInd, PCI_SUB_CLASS) != 0x01) {
+		/* Base class must be 0x01 (mass storage), sub class 
+		 * must be 0x01 (ATA). 
+		 */
+			continue;
+		}
+		/* Found a controller.
+		 * Programming interface register tells us more.
+		 */
+		interface = pciAttrDevR8(devInd, PCI_PROG_IF);
+		irq = pciAttrDevR8(devInd, PCI_INTR_LINE);
+
+		/* Any non-compat drives? */
+		if (interface & (ATA_IF_NOT_COMPAT1 | ATA_IF_NOT_COMPAT2)) {
+			irqHook = irq;
+			if (skip > 0) {
+				printf("atapci skipping controller (remain %d)\n", skip);
+				--skip;
+				continue;
+			}
+			if ((s = sysIrqSetPolicy(irq, 0, &irqHook)) != OK) {
+				printf("atapci: couldn't set IRQ policy %d\n", irq);
+				continue;
+			}
+			if ((s = sysIrqEnable(&irqHook)) != OK) {
+				printf("atapci: couldn't enable IRQ line %d\n", irq);
+				continue;
+			}
+		} else {
+			/* If not.. this is not the ata-pci controller we're
+			 * looking for.
+			 */
+			printf("atapci skipping compatability controller\n");
+			continue;
+		}
+
+		/* Primary channel not in compatability mode? */
+		if (interface & ATA_IF_NOT_COMPAT1) {
+			// TODO
+		}
+
+		/* Secondary channel not in compatability mode? */
+		if (interface & ATA_IF_NOT_COMPAT2) {
+			// TODO
+		}
+		wNextDrive += 4;
+	}
 }
 
 static void initParams() {
@@ -138,5 +204,6 @@ static void initParams() {
 
 int main() {
 	initParams();
+	driverTask(&wDriver);
 	return OK;
 }

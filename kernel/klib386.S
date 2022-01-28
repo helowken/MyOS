@@ -115,8 +115,12 @@ physCopy:
  *
  * Equivalent C code:
  *
- *	if ((irqActiveIds[hook->irq] &= ~hook->id) == 0) 
- *	  outb(INT_CTLMASK, inb(INT_CTLMASK) & ~(1 << hook->irq));
+ *	if ((irqActiveIds[hook->irq] &= ~hook->id) != 0) 
+ *    return;
+ *  v = ~(1 << (hook->irq % 8));
+ *  port = (hook->irq < 8) ? INT_CTL_MASK : INT2_CTL_MASK;
+ *  mask = inb(port);
+ *	outb(port, mask & v);
  */
 	
 	.globl	enableIrq
@@ -137,13 +141,65 @@ enableIrq:
 	rolb	%cl, %ah		/* ah = ~(1 << (irq % 8)) */
 	movl	$INT_CTL_MASK, %edx	/* Enable irq < 8 at the master 8259 */
 	cmpb	$8, %cl			
-	jb	.enableIrqAtSlave	
+	jb	0f
 	movl	$INT2_CTL_MASK, %edx	/* Enable irq >=8 at the slave 8259 */ 
-.enableIrqAtSlave:
-	inb	%dx					/* inb(INT(2)_CTLMASK)a */
+0:
+	inb	%dx					/* inb(INT(2)_CTL_MASK) */
 	andb	%ah, %al		/* al = MASK */
 	outb	%dx				/* Clear bit at the 8259 */
 .enableIrqDone:
+	popfl
+	leave
+	retl
+
+/*=====================================================================*
+ *                disableIrq                *
+ *=====================================================================*/
+
+/* void disableIrq(IrqHook *hook);
+ *
+ * Disable an interrupt request line by setting an 8259 bit.
+ * Equivalent C code for:
+ *
+ *	irqActiveId[hook->irq] |= hook->id;
+ *  v = 1 << (hook->irq % 8);
+ *  port = (hook->irq < 8) ? INT_CTL_MASK : INT2_CTL_MASK;
+ *  mask = inb(port);
+ *  if (mask & v)
+ *    return 0;
+ *  outb(port, mask | v);
+ *  return 1;
+ */
+	.globl	disableIrq
+	.type	disableIrq, @function
+	.align	16
+disableIrq:
+	pushl	%ebp
+	movl	%esp, %ebp
+	pushfl
+	cli
+	movl	8(%ebp), %eax		/* hook */
+	movl	8(%eax), %ecx		/* hook->irq */
+	movl	12(%eax), %eax		/* hook->id */
+	orl	%eax, irqActiveIds(,%ecx,4)		/* Set this id bit */
+	movb	$1, %ah
+	rolb	%cl, %ah			/* ah = 1 << (irq % 8) */
+	movl	$INT_CTL_MASK, %edx		/* Disable irq < 8 at the master 8259 */
+	cmpb	8, %cl
+	jb	0f
+	movl	$INT2_CTL_MASK, %edx	/* Disable irq >= 8 at the slave 8259 */
+0:	
+	inb	%dx						/* inb(INT(2)_CTL_MASK) */
+	testb	%ah, %al
+	jnz .irqDisabledAlready		/* Already disabled? */
+	orb	%ah, %al
+	outb	%dx					/* Set bit at the 8259 */
+	movl	$1, %eax			/* Return true since disabled by this function */
+	popfl
+	leave
+	retl
+.irqDisabledAlready:
+	xorl	%eax, %eax			/* Return false since already disabled */
 	popfl
 	leave
 	retl
@@ -246,6 +302,26 @@ physMemset:
 	popl	%ebp
 	retl
 
+/*=====================================================================*
+ *                readTsc                *
+ *=====================================================================*/
+
+/* void readTsc(unsigned long *high, unsigned long *low);
+ *
+ * Read the cycle counter of the CPU. Pentium and up.
+ */
+	.globl	readTsc
+	.type	readTsc, @function
+	.align	16
+readTsc:
+	rdtsc
+	pushl	%ebp
+	movl	8(%esp), %ebp		
+	movl	%edx, (%ebp)		/* High 32-bit */
+	movl	12(%esp), %ebp		
+	movl	%eax, (%ebp)		/* Low 32-bit */
+	popl	%ebp
+	retl
 
 
 

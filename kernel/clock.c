@@ -43,6 +43,7 @@
 #include "minix/com.h"
 
 /* Clock parameters. */
+#define LATCH_COUNT		0x00	
 #define SQUARE_WAVE		0x36	/* Channel=0, Access=low byte + high byte, 
 								   Operating mode=square wave generator, 16-bit binary. */
 #define TIMER_COUNT	((unsigned) (TIMER_FREQ / HZ))	/* Initial value for counter */
@@ -173,4 +174,19 @@ void resetTimer(Timer *tp) {
  */
 	timersClearTimer(&clockTimers, tp, NULL);
 	nextTimeout = (clockTimers == NULL) ? TIMER_NEVER : clockTimers->tmr_exp_time;
+}
+
+unsigned long readClock() {
+/* Read the counter of channel 0 of the 8253A timer. This counter counts
+ * down at a rate of TIMER_FREQ and restarts at TIMER_COUNT-1 when it
+ * reaches zero. A hardware interrupt (clock tick) occurs when the counter
+ * gets to zero and restarts its cycle.
+ */
+	unsigned count;
+
+	outb(TIMER_MODE, LATCH_COUNT);
+	count = inb(TIMER0);
+	count |= inb(TIMER0) << 8;
+
+	return count;
 }

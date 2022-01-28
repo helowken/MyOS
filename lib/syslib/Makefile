@@ -14,6 +14,7 @@ OBJS_M32 = sys_getinfo.o \
 		   sys_nice.o \
 		   sys_out.o \
 		   sys_in.o \
+		   sys_irqctl.o \
 		   taskcall.o 
 		   
 	

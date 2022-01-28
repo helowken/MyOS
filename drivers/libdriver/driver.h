@@ -17,11 +17,38 @@
 #include "stddef.h"
 #include "errno.h"
 
-//#include "minix/partition.h"
+#include "minix/partition.h"
 //#include "minix/u64.h"
+
+/* Base and size of a partition in bytes. */
+typedef struct {
+	u64_t dv_base;
+	u64_t dv_size;
+} Device;
+
+/* Info about and entry points into the device dependent code. */
+typedef struct Driver {
+	char *(*drName)();
+	int (*drOpen)(struct Driver *dp, Message *msg);
+	int (*drClose)(struct Driver *dp, Message *msg);
+	int (*drIoctl)(struct Driver *dp, Message *msg);
+	Device *(*drPrepare)(int device);
+	int (*drTransfer)(int pNum, int opCode, off_t position,
+				IOVec *iov, unsigned numReq);
+	void (*drCleanup)();
+	void (*drGeometry)(Partition *entry);
+	void (*drSignal)(struct Driver *dp, Message *msg);
+	void (*drAlarm)(struct Driver *dp, Message *msg);
+	void (*drCancel)(struct Driver *dp, Message *msg);
+	void (*drSelect)(struct Driver *dp, Message *msg);
+	void (*drOther)(struct Driver *dp, Message *msg);
+	void (*drHwInt)(struct Driver *dp, Message *msg);
+} Driver;
 
 
 /* Parameters for the disk drive. */
 #define SECTOR_SIZE		512		/* Physical sector size in bytes */
 #define SECTOR_SHIFT	9		/* For division */
 #define SECTOR_MASK		511		/* and remainder */
+
+

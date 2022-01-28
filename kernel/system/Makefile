@@ -20,7 +20,8 @@ OBJS = do_unused.o \
 	   do_sigsend.o \
 	   do_sigreturn.o \
 	   do_copy.o \
-	   do_devio.o
+	   do_devio.o \
+	   do_irqctl.o
 
 all: $(LIB)
 

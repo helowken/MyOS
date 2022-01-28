@@ -52,4 +52,13 @@ int sysOut(int port, unsigned long value, int type);
 #define sysInl(p, v)	sysIn((p), (unsigned long *) (v), DIO_LONG)
 int sysIn(int port, unsigned long *value, int type);
 
+/* Shorthands for sysIrqCtl() system call. */
+#define sysIrqDisable(hookId) sysIrqCtl(IRQ_DISABLE, 0, 0, hookId)
+#define sysIrqEnable(hookId)  sysIrqCtl(IRQ_ENABLE, 0, 0, hookId)
+#define	sysIrqSetPolicy(irqVec, policy, hookId) \
+	sysIrqCtl(IRQ_SET_POLICY, irqVec, policy, hookId)
+#define sysIrqRmPolicy(irqVec, hookId) \
+	sysIrqCtl(IRQ_RM_POLICY, irqVec, 0, hookId)
+int sysIrqCtl(int request, int irqVec, int policy, int *irqHookId);
+
 #endif

@@ -40,4 +40,13 @@
 	(PCI_WR_REG16(bus, dev, func, reg, (val)), \
 	 PCI_WR_REG16(bus, dev, func, reg, (val) >> 16))
 
+/* PIIX configuration registers */
+#define	PIIX_PIRQRCA	0x60
+#define		PIIX_IRQ_DISABLE	0x80
+#define		PIIX_IRQ_MASK		0x0F
+
+/* PIIX extensions to the PIC */
+#define PIIX_ELCR1	0x4D0
+#define PIIX_ELCR2	0x4D1
+
 

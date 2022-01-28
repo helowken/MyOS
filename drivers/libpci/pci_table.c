@@ -115,3 +115,15 @@ PciSubClass pciSubClassTable[] = {
 
 	{ 0x00, 0x00, 0x00, NULL }
 };
+
+PciIsaBridge pciIsaBridgeTable[] = {
+	{ 0x8086, 0x7000, 1, PCI_IB_PIIX },		/* Intel 82371SB */
+	{ 0x0000, 0x0000, 0, 0 }
+};
+
+PciPciBridge pciPciBridgeTable[] = {
+	{ 0x8086, 0x244e, PCI_PCIB_INTEL },		/* Intel 82801 PCI Bridge */
+	{ 0x8086, 0x2561, PCI_AGPB_INTEL },		/* Intel 82845 AGP Bridge */
+	{ 0x8086, 0x7191, PCI_AGPB_INTEL },		/* Intel 82443BX (AGP bridge) */ 
+	{ 0x0000, 0x0000, 0 }
+};
