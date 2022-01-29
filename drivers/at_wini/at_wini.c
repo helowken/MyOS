@@ -52,11 +52,6 @@ typedef struct {		/* Main drive struct, one entry per drive */
 } Wini;
 static Wini wini[MAX_DRIVES];
 
-/* Entry points to this driver. */
-static Driver wDriver = {
-
-};
-
 static int wDrive;				/* Selected drive */
 static char *wName() {
 	static char name[] = "AT-D0";
@@ -201,6 +196,12 @@ static void initParams() {
 	else
 	  initPciParams(wInstance * 2 - 1);
 }
+
+/* Entry points to this driver. */
+static Driver wDriver = {
+	wName,		/* Current device's name */
+	wDoOpen,	/* Open or mount request, initialize device */
+};
 
 int main() {
 	initParams();

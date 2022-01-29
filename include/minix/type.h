@@ -26,6 +26,12 @@ typedef struct {
 } MemMap;
 
 typedef struct {
+	int inUse;						/* Entry in use, unless zero */
+	phys_clicks physAddr;			/* Physical address */
+	vir_clicks len;					/* Length */
+} FarMem;
+
+typedef struct {
 	int pNum;
 	int segment;
 	vir_bytes offset;

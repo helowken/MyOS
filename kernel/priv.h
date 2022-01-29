@@ -21,6 +21,7 @@ typedef struct {
 	sigset_t s_sig_pending;	/* Pending signals */
 
 	Timer s_alarm_timer;	/* Synchronous alarm timer */
+	FarMem s_far_mem[NR_REMOTE_SEGS];	/* Remote memory map */
 	reg_t *s_stack_guard;	/* Stack guard word for kernel tasks */
 } Priv;
 

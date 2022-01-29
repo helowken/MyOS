@@ -43,9 +43,12 @@
 #include "minix/com.h"
 
 /* Clock parameters. */
-#define LATCH_COUNT		0x00	
+#define LATCH_COUNT		0x00	/* Channel=0, Access=Latch count value command,
+								   Operating mode=interrupt on terminal count, 
+								   Binary mode=16-bit binary. */
 #define SQUARE_WAVE		0x36	/* Channel=0, Access=low byte + high byte, 
-								   Operating mode=square wave generator, 16-bit binary. */
+								   Operating mode=square wave generator, 
+								   Binary mode=16-bit binary. */
 #define TIMER_COUNT	((unsigned) (TIMER_FREQ / HZ))	/* Initial value for counter */
 #define TIMER_FREQ	1193182L	/* Clock frequency for timer in PC and AT */
 

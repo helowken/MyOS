@@ -89,7 +89,7 @@ int doMemset(Message *msg);
  *=====================================================================*/ 
 
 /* Map virtual to physcal address. */
-int doUmap(Message *msg);
+int doUMap(Message *msg);
 
 /* Use pure virtual addressing. */
 #define doVirCopy	doCopy

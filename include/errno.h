@@ -15,6 +15,7 @@ extern int errno;
 #define ESRCH		(_SIGN 3)	/* No such process */
 #define EINTR		(_SIGN 4)	/* Interrupted function call */
 #define	EIO			(_SIGN 5)	/* Input/output error */
+#define ENXIO		(_SIGN 6)	/* No such device or address */
 #define E2BIG		(_SIGN 7)	/* Arg list too long */
 #define ENOEXEC		(_SIGN 8)	/* Exec format error */
 #define ECHILD		(_SIGN 10)	/* No child process */

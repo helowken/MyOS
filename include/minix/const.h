@@ -7,7 +7,7 @@
 
 #define SUPER_USER		0		/* uid_t of superuser */
 
-#define NR_REMOTE_SEGS	3		/* Remote memory regions */
+#define NR_IO_REQS		MIN(NR_BUFS, 64)	/* Maximum number of entries in an I/O request */
 
 /* Memory related constants. */
 #define SEGMENT_TYPE	0xFF00	/* Bit mask to get segment type */

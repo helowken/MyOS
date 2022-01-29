@@ -23,8 +23,8 @@ test: entry.o test.o
 	$(LD) $^ -Ttext 0x0 -m elf_i386 -nostdlib -o $(KERNEL)
 
 clean: 
-	$(call cleanCommon)
 	cd system && make clean
+	$(call cleanCommon)
 
 disasm: $(DEBUG)
 	$(call disasmCode,$<,32)

@@ -39,16 +39,22 @@ typedef struct Driver {
 	void (*drGeometry)(Partition *entry);
 	void (*drSignal)(struct Driver *dp, Message *msg);
 	void (*drAlarm)(struct Driver *dp, Message *msg);
-	void (*drCancel)(struct Driver *dp, Message *msg);
-	void (*drSelect)(struct Driver *dp, Message *msg);
-	void (*drOther)(struct Driver *dp, Message *msg);
-	void (*drHwInt)(struct Driver *dp, Message *msg);
+	int (*drCancel)(struct Driver *dp, Message *msg);
+	int (*drSelect)(struct Driver *dp, Message *msg);
+	int (*drOther)(struct Driver *dp, Message *msg);
+	int (*drHwInt)(struct Driver *dp, Message *msg);
 } Driver;
 
+/* Functions defined by driver.c */
+void driverTask(Driver *dr);
+
+#define NIL_DEV			((Device *) 0)
 
 /* Parameters for the disk drive. */
 #define SECTOR_SIZE		512		/* Physical sector size in bytes */
 #define SECTOR_SHIFT	9		/* For division */
 #define SECTOR_MASK		511		/* and remainder */
 
+/* Size of the DMA buffer in bytes. */
+#define DMA_BUF_SIZE	(DMA_SECTORS * SECTOR_SIZE)
 

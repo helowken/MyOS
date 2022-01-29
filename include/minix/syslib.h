@@ -61,4 +61,7 @@ int sysIn(int port, unsigned long *value, int type);
 	sysIrqCtl(IRQ_RM_POLICY, irqVec, 0, hookId)
 int sysIrqCtl(int request, int irqVec, int policy, int *irqHookId);
 
+int sysUMap(int pNum, int seg, vir_bytes virAddr, vir_bytes bytes, 
+			phys_bytes *physAddr);
+
 #endif

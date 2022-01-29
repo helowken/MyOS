@@ -67,8 +67,8 @@ static void initialize() {
 	/* Copying. */
 	map(SYS_VIRCOPY, doVirCopy);
 	map(SYS_PHYSCOPY, doPhysCopy);
-	/*
 	map(SYS_UMAP, doUMap);
+	/*
 	map(SYS_VIRVCOPY, doVirVecCopy);
 	map(SYS_PHYSVCOPY, doPhysVecCopy);
 	*/
@@ -168,6 +168,23 @@ phys_bytes umapLocal(Proc *rp, int seg, vir_bytes virAddr, vir_bytes bytes) {
 			(rp->p_memmap[seg].virAddr << CLICK_SHIFT);
 }
 
+phys_bytes umapRemote(Proc *rp, int seg, vir_bytes virAddr, vir_bytes bytes) {
+/* Calculate the physical memory address for a given virtual address. */
+	FarMem *fm;
+
+	if (bytes <= 0)
+	  return 0;
+	if (seg < 0 || seg >= NR_REMOTE_SEGS)
+	  return 0;
+
+	fm = &rp->p_priv->s_far_mem[seg];
+	if (! fm->inUse)
+	  return 0;
+	if (virAddr + bytes > fm->len)
+	  return 0;
+	return fm->physAddr + (phys_bytes) virAddr;
+}
+
 void sendSig(int pNum, int sig) {
 /* Notify a system process about a signal. This is straightforward. Simply
  * set the signal that is to be delivered in the pending signals map and
@@ -209,7 +226,7 @@ void causeSig(int pNum, int sig) {
 	}
 }
 
-static phys_bytes umapBios(register Proc *rp, vir_bytes virAddr, vir_bytes bytes) {
+phys_bytes umapBios(register Proc *rp, vir_bytes virAddr, vir_bytes bytes) {
 /* Calculate the physical memory address at the BIOS. Note: currently, BIOS
  * address zero (the first BIOS interrupt vector) is not considered as an
  * error here, but since the physical address will be zero as well, the

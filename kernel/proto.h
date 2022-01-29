@@ -44,6 +44,8 @@ void sysTask();
 #define nUmapLocal(pNum, virAddr, bytes) \
 	umapLocal(procAddr(pNum), D, (virAddr), (bytes))
 phys_bytes umapLocal(Proc *rp, int seg, vir_bytes virAddr, vir_bytes bytes);
+phys_bytes umapRemote(Proc *rp, int seg, vir_bytes virAddr, vir_bytes bytes);
+phys_bytes umapBios(Proc *rp, vir_bytes virAddr, vir_bytes bytes);
 void sendSig(int pNum, int sig);
 void causeSig(int pNum, int sig);
 int virtualCopy(VirAddr *src, VirAddr *dst, vir_bytes bytes);
