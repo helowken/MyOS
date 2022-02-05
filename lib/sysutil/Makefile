@@ -4,7 +4,8 @@ OBJS_M32 = kprintf.o \
 		   kputc.o \
 		   kmalloc.o \
 		   panic.o \
-		   getuptime.o
+		   getuptime.o \
+		   tickdelay.o
 	
 
 OBJS_M16 = kprintf.o \

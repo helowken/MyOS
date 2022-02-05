@@ -51,11 +51,9 @@ static void initialize() {
 	/* Device I/O. */
 	map(SYS_IRQCTL, doIrqCtl);
 	map(SYS_DEVIO, doDevIO);
-	/*
 	map(SYS_SDEVIO, doStrDevIO);
 	map(SYS_VDEVIO, doVecDevIO);
-	map(SYS_INT86, doInt86);
-	*/
+	//map(SYS_INT86, doInt86);
 
 	/* Memory management. */
 	/*

@@ -18,7 +18,7 @@
 #include "errno.h"
 
 #include "minix/partition.h"
-//#include "minix/u64.h"
+#include "minix/u64.h"
 
 /* Base and size of a partition in bytes. */
 typedef struct {
@@ -44,6 +44,9 @@ typedef struct Driver {
 	int (*drOther)(struct Driver *dp, Message *msg);
 	int (*drHwInt)(struct Driver *dp, Message *msg);
 } Driver;
+
+extern u8_t *tmpBuf;			/* The DMA buffer */
+extern phys_bytes tmpPhysAddr;	/* Phys address of DMA buffer */
 
 /* Functions defined by driver.c */
 void driverTask(Driver *dr);

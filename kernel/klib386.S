@@ -323,7 +323,117 @@ readTsc:
 	popl	%ebp
 	retl
 
+/*=====================================================================*
+ *                physInsb                *
+ *=====================================================================*/
 
+/* void physInsb(u16_t port, phys_bytes buf, size_t count);
+ * 
+ * Input an array from an I/O port. Absolute address version of insb().
+ */
+	.globl	physInsb
+	.type	physInsb, @function
+	.align	16
+physInsb:
+	pushl	%ebp
+	movl	%esp, %ebp
+	cld
+	pushl	%edi
+	pushl	%es
+	movl	$FLAT_ES_SELECTOR, %ecx
+	movw	%cx, %es
+	movl	8(%ebp), %edx		/* Port to read from */
+	movl	12(%ebp), %edi		/* Destination addr */
+	movl	16(%ebp), %ecx		/* byte count */
+	rep	insb					/* Input many bytes */
+	popl	%es
+	popl	%edi
+	popl	%ebp
+	retl
+
+/*=====================================================================*
+ *                physInsw                *
+ *=====================================================================*/
+
+/* void physInsw(u16_t port, phys_bytes buf, size_t count);
+ *
+ * Input an array from an I/O port. Absolute address version of insw().
+ */
+	.globl	physInsw
+	.type	physInsw, @function
+	.align	16
+physInsw:
+	pushl	%ebp
+	movl	%esp, %ebp
+	cld
+	pushl	%edi
+	pushl	%es
+	movl	$FLAT_ES_SELECTOR, %ecx
+	movw	%cx, %es
+	movl	8(%ebp), %edx		/* Port to read from */
+	movl	12(%ebp), %edi		/* Destination addr */
+	movl	16(%ebp), %ecx		/* byte count */
+	shrl	$1,	%ecx			/* Word count */
+	rep	insb					/* Input many bytes */
+	popl	%es
+	popl	%edi
+	popl	%ebp
+	retl
+
+/*=====================================================================*
+ *                physOutsb                *
+ *=====================================================================*/
+
+/* void physOutsb(u16_t port, phys_bytes buf, size_t count);
+ *
+ * Output an array to an I/O port. Absolute address version of outsb().
+ */
+	.globl	physOutsb
+	.type	physOutsb, @function
+physOutsb:
+	pushl	%ebp
+	movl	%esp, %ebp
+	cld
+	pushl	%esi
+	pushl	%ds
+	movl	$FLAT_ES_SELECTOR, %ecx
+	movw	%cx, %ds
+	movl	8(%ebp), %edx		/* Port to write to */
+	movl	12(%ebp), %esi		/* Source addr */
+	movl	16(%ebp), %ecx		/* Byte count */
+	rep	outsb					/* Output many bytes */
+	popl	%ds
+	popl	%esi
+	popl	%ebp
+	retl
+
+/*=====================================================================*
+ *                physOutsw                *
+ *=====================================================================*/
+
+/* void physOutsw(u16_t port, phys_bytes buf, size_t count);
+ *
+ * Output an array to an I/O port. Absolute address version of outsw().
+ */
+	.globl	physOutsw
+	.type	physOutsw, @function
+physOutsw:
+	pushl	%ebp
+	movl	%esp, %ebp
+	cld
+	pushl	%esi
+	pushl	%ds
+	movl	$FLAT_ES_SELECTOR, %ecx
+	movw	%cx, %ds
+	movl	8(%ebp), %edx		/* Port to write to */
+	movl	12(%ebp), %esi		/* Source addr */
+	movl	16(%ebp), %ecx		/* Byte count */
+	shrl	$1, %ecx			/* Word count */
+	rep	outsb					/* Output many bytes */
+	popl	%ds
+	popl	%esi
+	popl	%ebp
+	retl
 
 
 

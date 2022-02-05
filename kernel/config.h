@@ -13,7 +13,13 @@
  */
 #define KMESS_BUF_SIZE	256
 
-#define NR_IRQ_HOOKS	16		/* Number of interrupt hooks */
+/* This section contains defines for valuable system resources that are used
+ * by device drivers. The number of elements of the vectors is determined by
+ * the maximum needed by any given driver. The number of interrupt hooks may
+ * be incremented on systems with many device drivers.
+ */
+#define NR_IRQ_HOOKS		16		/* Number of interrupt hooks */
+#define VDEVIO_BUF_SIZE		64		/* Max elements per VDEVIO request */
 
 /* Buffer to gather randomness. This is used to generate a random stream by
  * the MEMORY driver when reading from /dev/random

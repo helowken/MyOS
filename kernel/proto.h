@@ -41,7 +41,7 @@ int lockNotify(int src, int dst);
 /* system.c */
 int getPriv(register Proc *rp, int procType);
 void sysTask();
-#define nUmapLocal(pNum, virAddr, bytes) \
+#define nUMapLocal(pNum, virAddr, bytes) \
 	umapLocal(procAddr(pNum), D, (virAddr), (bytes))
 phys_bytes umapLocal(Proc *rp, int seg, vir_bytes virAddr, vir_bytes bytes);
 phys_bytes umapRemote(Proc *rp, int seg, vir_bytes virAddr, vir_bytes bytes);
@@ -60,6 +60,11 @@ void enableIrq(IrqHook *hook);
 void disableIrq(IrqHook *hook);
 void level0(void (*func)());
 void readTsc(unsigned long *high, unsigned long *low);
+void physInsb(u16_t port, phys_bytes buf, size_t count);
+void physInsw(u16_t port, phys_bytes buf, size_t count);
+void physOutsb(u16_t port, phys_bytes buf, size_t count);
+void physOutsw(u16_t port, phys_bytes buf, size_t count);
+
 
 /* mpx.S */
 void idleTask();

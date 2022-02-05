@@ -1,8 +1,17 @@
 #ifndef _SYSLIB_H
 #define	_SYSLIB_H
 
+#ifndef _TYPES_H
 #include "sys/types.h"
+#endif
+
+#ifndef _IPC_H
 #include "minix/ipc.h"
+#endif
+
+#ifndef _DEVIO_H
+#include "minix/devio.h"
+#endif
 
 #define SYSTASK	SYSTEM
 
@@ -17,6 +26,17 @@ int sysNice(int pNum, int priority);
 int sysTimes(int pNum, clock_t *ptr);
 int sysSetAlarm(clock_t expTime, int absTime);
 int sysExit(int pNum);
+
+/* Shorthands for sysStrDevIO() system call. */
+#define sysInsb(port, pNum, buffer, count) \
+	sysStrDevIO(DIO_INPUT, port, DIO_BYTE, pNum, buffer, count)
+#define sysInsw(port, pNum, buffer, count) \
+	sysStrDevIO(DIO_INPUT, port, DIO_WORD, pNum, buffer, count)
+#define sysOutsb(port, pNum, buffer, count) \
+	sysStrDevIO(DIO_OUTPUT, port, DIO_BYTE, pNum, buffer, count)
+#define sysOutsw(port, pNum, buffer, count) \
+	sysStrDevIO(DIO_OUTPUT, port, DIO_WORD, pNum, buffer, count)
+int sysStrDevIO(int req, long port, int type, int pNum, void *buffer, int count);
 
 /* Shorthands for sysGetInfo() system call. */
 #define sysGetMonParams(v, vl)	sysGetInfo(GET_MONPARAMS, v, vl, 0, 0)
@@ -39,6 +59,13 @@ int sysEndKernelSig(int pNum);
 	sysVirCopy(srcProc, T, srcVir, dstProc, T, dstVir, bytes)
 int sysVirCopy(int srcProc, int srcSeg, vir_bytes srcVir, 
 		int dstProc, int dstSeg, vir_bytes dstVir, phys_bytes bytes);
+
+int sysVecOutb(PvBytePair *pair, int num);
+int sysVecOutw(PvWordPair *pair, int num);
+int sysVecOutl(PvLongPair *pair, int num);
+int sysVecInb(PvBytePair *pair, int num);
+int sysVecInw(PvWordPair *pair, int num);
+int sysVecInl(PvLongPair *pair, int num);
 
 /* Shorthands for sysOut() system call. */
 #define sysOutb(p, v)	sysOut((p), (unsigned long) (v), DIO_BYTE)

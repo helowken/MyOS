@@ -22,6 +22,8 @@ OBJS = do_unused.o \
 	   do_copy.o \
 	   do_devio.o \
 	   do_irqctl.o \
+	   do_vdevio.o \
+	   do_sdevio.o \
 	   do_umap.o
 
 all: $(LIB)

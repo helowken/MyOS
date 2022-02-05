@@ -3,6 +3,7 @@ OTHER = ../other
 I386 = ../i386
 MISC = $(I386)/misc
 RTS = $(I386)/rts
+INT64 = $(I386)/int64
 POSIX = ../posix
 
 OBJS_M32 = memcpy.o \
@@ -53,7 +54,8 @@ OBJS_M32 = memcpy.o \
 		   $(POSIX)/_getpgrp.o \
 		   $(POSIX)/_setsid.o \
 		   $(POSIX)/_waitpid.o \
-		   $(POSIX)/_wait.o 
+		   $(POSIX)/_wait.o \
+		   $(INT64)/mul64u.o
 		
 
 OBJS_M16 = memcpy.o \

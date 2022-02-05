@@ -47,7 +47,7 @@
 #define hclickToPhys(n)	((phys_bytes) (n) << HCLICK_SHIFT)
 #define physToHClick(n)	((n) >> HCLICK_SHIFT)
 
-/* Flag bits for i_node in the INode. */
+/* Flag bits for i_mode in the INode. */
 #define I_TYPE			0170000	/* This field gives inode type */
 #define I_REGULAR		0100000	/* Regular file, not dir or special */
 #define I_BLOCK_SPECIAL 0060000 /* Block special file */
@@ -62,5 +62,8 @@
 #define W_BIT			0000002	/* rWx protection bit */
 #define X_BIT			0000001	/* rwX protection bit */
 #define I_NOT_ALLOC		0000000	/* This inode is free */
+
+/* Flag used only in flags argument of devOpen. */
+#define RO_BIT			0200000	/* Open device readonly; fail if writable. */
 
 #endif

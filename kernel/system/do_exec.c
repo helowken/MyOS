@@ -20,7 +20,7 @@ int doExec(register Message *msg) {
 	  lockEnqueue(rp);
 
 	/* Save command name for debugging, ps(1) output, etc. */
-	physName = nUmapLocal(msg->m_source, (vir_bytes) msg->PR_NAME_PTR,
+	physName = nUMapLocal(msg->m_source, (vir_bytes) msg->PR_NAME_PTR,
 					(vir_bytes) P_NAME_LEN - 1);
 	if (physName != 0) {
 		physCopy(physName, vir2Phys(rp->p_name), (phys_bytes) P_NAME_LEN - 1);

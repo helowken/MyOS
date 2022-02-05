@@ -36,7 +36,7 @@ int doGetInfo(Message *msg) {
 			 */
 			length = sizeof(Proc) * NR_SCHED_QUEUES;
 			src = vir2Phys(readyProcHead);
-			dst = nUmapLocal(msg->m_source, (vir_bytes) msg->I_VAL_PTR2, length);
+			dst = nUMapLocal(msg->m_source, (vir_bytes) msg->I_VAL_PTR2, length);
 			if (src == 0 || dst == 0)
 			  return EFAULT;
 			physCopy(src, dst, length);
@@ -83,7 +83,7 @@ int doGetInfo(Message *msg) {
 	if (msg->I_VAL_LEN > 0 && length > msg->I_VAL_LEN)
 	  return E2BIG;
 	pNum = msg->m_source;		/* Only caller can request copy */
-	dst = nUmapLocal(pNum, (vir_bytes) msg->I_VAL_PTR, length);
+	dst = nUMapLocal(pNum, (vir_bytes) msg->I_VAL_PTR, length);
 	if (src == 0 || dst == 0)
 	  return EFAULT;
 	physCopy(src, dst, length);

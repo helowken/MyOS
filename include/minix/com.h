@@ -174,7 +174,6 @@
 #define ALARM_EXP_TIME	m2_l1	/* Expire time for the alarm call */
 #define ALARM_ABS_TIME	m2_i2	/* Set to 1 to use absolute alarm time */
 #define ALARM_TIME_LEFT	m2_l1	/* How many ticks were remaining */
-#define ALARM_PROC_NR	m2_i1	/* Which process wants the alarm? */
 #define ALARM_FLAG_PTR	m2_p1	/* Virtual address of timeout flag */
 
 /* Field names for UMAP, VIRCOPY, PHYSCOPY. */
