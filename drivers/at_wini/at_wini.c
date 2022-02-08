@@ -52,8 +52,6 @@
 /* ATAPI */
 #define ATAPI_IDENTIFY		0xA1	/* Identify device */
 
-#define CD_SECTOR_SIZE		2048	/* Sector size of a CD-ROM */
-
 #define MAX_SECTORS			256		/* Controller can transfer this many sectors */
 #define MAX_DRIVES			8
 #define COMPAT_DRIVES		4
@@ -298,6 +296,21 @@ static Device *wPrepare(int device) {
 /* Prepare for I/O on a device. */
 	wDevice = device;
 
+	/* Disk drive has a partition table which has 4 partitions at most.
+	 * Wini has DEV_PER_DRIVE partitions and SUB_PER_DRIVE sub-partitions at most.
+	 *   DEV_PER_DRIVE = 1 + NR_PARTITIONS(4) = 5, the 1 is a logic partition for the total drive.
+	 *   SUB_PER_DRIVE = NR_PARTITIONS(4) * NR_PARTITIONS(4) = 16
+	 *
+	 * We assume machine has MAX_DRIVES(8) disk drives at most.
+	 *   NR_MINORS(40) = MAX_DRIVES(8) * DEV_PER_DRIVE(5) = 40
+	 *
+	 * 1. When using partition number to represent the device, 
+	 *     device = winiIdx * DEV_PER_DRIVE(5) + partNum;
+	 * 2. When using sub-partition number to represent the device, 
+	 *     device = MINOR_d0p0s0 + winiIdx * SUB_PER_DRIVE(16) + subPartIdx
+	 *
+	 *   MINOR_d0p0s0 = MAX_DRIVES(8) * SUB_PER_DRIVE(16) = 128 (drive[0-7], part[0-3], sub-part[0-3])
+	 */
 	if (device < NR_MINORS) {	/* d0, d0p[0-3], d1, ... */
 		wDrive = device / DEV_PER_DRIVE;	/* Save drive number */
 		currWn = &winiList[wDrive];
@@ -815,7 +828,7 @@ static int wDoOpen(Driver *dp, Message *msg) {
 			  return r;
 		}
 		/* Partition the disk. */
-		partition(&wDriver, wDrive * DEV_PER_DRIVE, P_PRIMARY, wn->state & ATAPI);
+		partition(&wDriver, wDrive * DEV_PER_DRIVE, P_PRIMARY);
 	}
 	++wn->openCount;
 	return OK;
@@ -825,6 +838,7 @@ static int wTransfer(int pNum, int opCode, off_t position, IOVec *iov, unsigned 
 	// TODO
 	return OK;
 }
+
 
 int main() {
 	initParams();

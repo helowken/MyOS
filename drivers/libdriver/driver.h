@@ -20,6 +20,8 @@
 #include "minix/partition.h"
 #include "minix/u64.h"
 
+#define CD_SECTOR_SIZE		2048	/* Sector size of a CD-ROM */
+
 /* Base and size of a partition in bytes. */
 typedef struct {
 	u64_t dv_base;

@@ -19,6 +19,10 @@ typedef struct {
 #define NR_PARTITIONS		4		/* Number of entries in partition table */
 #define PART_TABLE_OFF		0x1BE	/* Offset of partition table in boot sector */
 
+/* Partition types. */
+#define NO_PART				0x00	/* Unused entry */
+#define MINIX_PART			0x81	/* Minix partition type */
+
 #define BOOTABLE(p)			((p)->status & 0x80)	/* Is it bootable */
 
 #endif
