@@ -52,6 +52,15 @@ extern phys_bytes tmpPhysAddr;	/* Phys address of DMA buffer */
 
 /* Functions defined by driver.c */
 void driverTask(Driver *dr);
+char *noName();
+int doNop(Driver *dp, Message *msg);
+Device *nopPrepare(int device);
+void nopCleanup();
+void nopSignal(Driver *dp, Message *msg);
+void nopAlarm(Driver *dp, Message *msg);
+int nopCancel(Driver *dp, Message *msg);
+int nopSelect(Driver *dp, Message *msg);
+int doDrIoctl(Driver *dp, Message *msg);
 
 #define NIL_DEV			((Device *) 0)
 

@@ -58,8 +58,10 @@ OBJS_M32 = memcpy.o \
 		   $(INT64)/mul64u.o \
 		   $(INT64)/cmp64.o \
 		   $(INT64)/div64u.o \
-		
+		   $(INT64)/cv64u.o \
+		   $(INT64)/add64u.o 
 
+		
 OBJS_M16 = memcpy.o \
 		   strcat.o \
 		   strcpy.o \

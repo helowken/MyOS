@@ -8,7 +8,7 @@
 #include "minix/callnr.h"
 #include "sys/types.h"
 #include "minix/const.h"
-//#include "minix/devio.h"
+#include "minix/devio.h"
 #include "minix/syslib.h"
 #include "minix/sysutil.h"
 //#include "minix/bitmap.h"

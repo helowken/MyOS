@@ -16,7 +16,9 @@
 
 #define PBT_INTEL	1 
 #define PBT_PCI_BRIDGE	2
- 
+
+static int debug = 0;
+
 typedef struct {
 	int pb_type;
 	int pb_isa_bridge_dev;
@@ -235,6 +237,9 @@ static void probeBus(int busInd) {
 	int devInd;
 	char *devStr, *s;
 
+	if (debug)
+	  printf("probeBus(%d)\n", busInd);
+
 	if (numPciDev >= NR_PCI_DEV) 
 	  panic("PCI", "too many PCI devices", numPciDev);
 	devInd = numPciDev;
@@ -257,12 +262,14 @@ static void probeBus(int busInd) {
 			  break;
 
 			devStr = pciDevName(vid, did);
-			if (devStr) {
-				printf("%d.%u.%u: %s (%04X/%04X)\n",
-					busInd, dev, func, devStr, vid, did);
-			} else {
-				printf("%d.%u.%u: Unknown device, vendor %04X (%s), device %04X\n",
-					busInd, dev, func, vid, pciVendorName(vid), did);
+			if (debug) {
+				if (devStr) {
+					printf("%d.%u.%u: %s (%04X/%04X)\n",
+						busInd, dev, func, devStr, vid, did);
+				} else {
+					printf("%d.%u.%u: Unknown device, vendor %04X (%s), device %04X\n",
+						busInd, dev, func, vid, pciVendorName(vid), did);
+				}
 			}
 
 			baseClass = pciAttrDevR8(devInd, PCI_BASE_CLASS);
@@ -274,7 +281,8 @@ static void probeBus(int busInd) {
 				if (!s)
 				  s = "(unknown class)";
 			}
-			printf("\tclass %s (%X/%X/%X)\n", s, baseClass, subClass, intfClass);
+			if (debug)
+			  printf("\tclass %s (%X/%X/%X)\n", s, baseClass, subClass, intfClass);
 
 			pciDevList[devInd].pd_base_class = baseClass;
 			pciDevList[devInd].pd_sub_class = subClass;
@@ -297,6 +305,9 @@ static int doPiix(int devInd) {
 	int s, i, irq, irqRc;
 	u16_t elcr1, elcr2, elcr;	/* Edge/Level Control Registers */
 
+	if (debug)
+	  printf("In piix\n");
+
 	if ((s = sysInb(PIIX_ELCR1, &elcr1)) != OK)
 	  printf("Warning, sysInb failed: %d\n", s);
 	if ((s = sysInb(PIIX_ELCR2, &elcr2)) != OK)
@@ -306,13 +317,16 @@ static int doPiix(int devInd) {
 	for (i = 0; i < 4; ++i) {
 		irqRc = pciAttrDevR8(devInd, PIIX_PIRQRCA + i);
 		if (irqRc & PIIX_IRQ_DISABLE) {
-			printf("INT%c: disabled\n", 'A' + i);
+			if (debug)
+			  printf("INT%c: disabled\n", 'A' + i);
 		} else {
 			irq = irqRc & PIIX_IRQ_MASK;
-			printf("INT%c: %d\n", 'A' + i, irq);
+			if (debug) 
+			  printf("INT%c: %d\n", 'A' + i, irq);
 
 			if (!(elcr & (1 << irq))) {
-				printf("(warning) IRQ %d is not level triggered\n", irq);
+				if (debug)
+				  printf("(warning) IRQ %d is not level triggered\n", irq);
 			}
 			// irqModePci(irq);
 		}
@@ -361,7 +375,8 @@ static int doIsaBridge(int busInd) {
 		devStr = pciDevName(vid, did);
 		if (!devStr)
 		  devStr = "unknown device";
-		printf("Found ISA bridge (%04X/%04X) %s\n", vid, did, devStr);
+		if (debug) 
+		  printf("Found ISA bridge (%04X/%04X) %s\n", vid, did, devStr);
 		
 		pciBusList[busInd].pb_isa_bridge_dev = bridgeDev;
 		type = pciIsaBridgeTable[j].type;
@@ -413,26 +428,29 @@ static void doPciBridge(int busInd) {
 			break;
 		}
 		if (pciPciBridgeTable[i].vid == 0) {
-			baseClass = pciAttrDevR8(devInd, PCI_BASE_CLASS);
-			subClass = pciAttrDevR8(devInd, PCI_SUB_CLASS);
-			intfClass = pciAttrDevR8(devInd, PCI_PROG_IF);
-			if (baseClass != 0x06 || 
-				subClass != 0x04 ||
-				(intfClass != 0x00 && intfClass != 0x01)) {
-				/* No a PCI-to-PCI bridge */
-				continue;
+			if (debug) {
+				baseClass = pciAttrDevR8(devInd, PCI_BASE_CLASS);
+				subClass = pciAttrDevR8(devInd, PCI_SUB_CLASS);
+				intfClass = pciAttrDevR8(devInd, PCI_PROG_IF);
+				if (baseClass != 0x06 || 
+					subClass != 0x04 ||
+					(intfClass != 0x00 && intfClass != 0x01)) {
+					/* No a PCI-to-PCI bridge */
+					continue;
+				}
+				printf("Ignoring unknown PCI-to-PCI bridge: %04X/%04X\n",
+							vid, did);
 			}
-			printf("Ignoring unknown PCI-to-PCI bridge: %04X/%04X\n",
-						vid, did);
 			continue;
 		}
-
 		type = pciPciBridgeTable[i].type;
-		printf("PCI-to-PCI bridge: %04X/%04X\n", vid, did);
+		if (debug)
+		  printf("PCI-to-PCI bridge: %04X/%04X\n", vid, did);
 
 		/* Assume that the BIOS initialized the secondary bus number. */
 		subBusNum = pciAttrDevR8(devInd, PPB_SUB_BUS_NR);
-		printf("Sub bus num = %d\n", subBusNum);
+		if (debug)
+		  printf("Sub bus num = %d\n", subBusNum);
 
 		if (numPciBus >= NR_PCI_BUS)
 		  panic("PCI", "too many PCI buses", numPciBus);
@@ -515,7 +533,8 @@ static void initIntelPci() {
 	devStr = pciDevName(vid, did);
 	if (!devStr)
 	  devStr = "unknown device";
-	printf("initIntelPci: %s (%04X/%04X)\n", devStr, vid, did);
+	if (debug)
+	  printf("initIntelPci: %s (%04X/%04X)\n", devStr, vid, did);
 
 	probeBus(busInd);
 

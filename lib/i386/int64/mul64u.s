@@ -12,7 +12,7 @@
 	.globl	mul64u
 	.type	mul64u, @function
 mul64u:
-	movl	4(%esp), %ecx		# result pointer 
+	movl	4(%esp), %ecx		# ecx = result pointer 
 	movl	8(%esp), %eax		# eax = i
 	mull	12(%esp)			# edx:eax = i * j
 	movl	%eax, (%ecx)		# result[low 32-bit] = eax

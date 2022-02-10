@@ -1,7 +1,9 @@
 #include "at_wini.h"
 #include "../libpci/pci.h"
-
 #include "minix/sysutil.h"
+#include "sys/ioc_disk.h"
+
+#define ATAPI_DEBUG			0		/* To debug ATAPI code. */
 
 /* I/O Ports used by winchester disk controllers. */
 
@@ -27,6 +29,7 @@
 #define   STATUS_BSY		0x80	/* Controller busy */
 #define   STATUS_RDY		0x40	/* Drive ready */
 #define   STATUS_WF			0x20	/* Write fault */
+#define	  STATUS_DRQ		0x08	/* Data transfer request */
 #define	  STATUS_ERR		0x01	/* Error */
 #define   STATUS_ADMBSY		0x100	/* Administratively busy (software) */
 #define REG_ERROR			1		/* Error code */
@@ -34,7 +37,7 @@
 
 /* Write only register */
 #define REG_COMMAND			7		/* Command */
-#define   CMD_IDLE			0x00	/* For wCurrCmd: drive idle */
+#define   CMD_IDLE			0x00	/* For currCmd: drive idle */
 #define	  CMD_RECALIBRATE	0x10	/* Recalibrate drive */
 #define   CMD_READ			0X20	/* Read data */
 #define   CMD_WRITE			0x30	/* Write data */
@@ -50,7 +53,14 @@
 #define	  CTL_INT_DISABLE	0x02	/* Disable interrupts */
 
 /* ATAPI */
+#define ATAPI_PACKET_CMD	0xA0	/* Packet command */
 #define ATAPI_IDENTIFY		0xA1	/* Identify device */
+#define SCSI_READ_10		0X28	/* Read from disk */
+
+#define REG_FEAT			1		/* Features register */
+#define REG_IRR				2		/* Interrupt reason register */
+#define REG_CNT_LO			4		/* Byte count low register */
+#define REG_CNT_HI			5		/* Byte count high register */
 
 #define MAX_SECTORS			256		/* Controller can transfer this many sectors */
 #define MAX_DRIVES			8
@@ -74,6 +84,8 @@
 /* Interrupt request lines. */
 #define NO_IRQ				0		/* No IRQ set yet */
 
+#define ATAPI_PACKET_SIZE	12
+
 #define SUB_PER_DRIVE	(NR_PARTITIONS * NR_PARTITIONS)
 #define NR_SUB_DEVS		(MAX_DRIVES * SUB_PER_DRIVE)
 
@@ -87,7 +99,8 @@
 /* Timeouts and max retries. */
 static int timeoutTicks = DEF_TIMEOUT_TICKS, maxErrors = MAX_ERRORS;
 static int wakeupTicks = WAKEUP;
-static int wTesting = 0, wSilent = 0, wLba48 = 0, wStandardTimeouts = 0;
+static int wTesting = 0, wSilent = 0, wLba48 = 0, wStandardTimeouts = 0, 
+		   wPciDebug = 0, atapiDebug = 0;
 static int wInstance = 0;
 static int wNextDrive = 0;
 
@@ -126,32 +139,48 @@ typedef struct {		/* Main drive struct, one entry per drive */
 	Device subPart[SUB_PER_DRIVE];	/* Sub partitions */
 } Wini;
 static Wini winiList[MAX_DRIVES], *currWn;
-static int wDevice = -1;
+static int currDevNum = -1;
 //static int wController = -1;
 //static int wMajor = -1;
 static char wIdString[40];
 
-static int wCurrCmd;		/* Current command in execution */
-static int wDrive;			/* Selected drive */
-static Device * wDev;		/* Device's base and size */
-static int wDrive;			/* Selected drive */
+static int currCmd;		/* Current command in execution */
+static int currDrive;			/* Selected drive */
+static Device * currDev;		/* Device's base and size */
 
 static char *wName();
+static Device *wPrepare(int dev);
 static int wDoOpen(Driver *dp, Message *msg);
+static int wDoClose(Driver *dp, Message *msg);
 static int wReset();
 static int wTransfer(int pNum, int opCode, off_t position, IOVec *iov, unsigned numReq);
 static int atapiOpen();
+static void wGeometry(Partition *entry);
+static int wHwInt(Driver *dp, Message *msg);
+static int wOther(Driver *dp, Message *msg);
 
 /* Entry points to this driver. */
-static Driver wDriver = {
+static Driver currDriver = {
 	wName,		/* Current device's name */
 	wDoOpen,	/* Open or mount request, initialize device */
+	wDoClose,	/* Release device */
+	doDrIoctl,	/* Get or set a partition's geometry */
+	wPrepare,	/* Prepare for I/O on a given minor device */
+	wTransfer,	/* Do the I/O */
+	nopCleanup,	/* Nothing to clean up */
+	wGeometry,	/* Tell the geometry of the disk */
+	nopSignal,	/* No cleanup needed on shutdown */
+	nopAlarm,	/* Ignore leftover alarms */
+	nopCancel,	/* Ignore CANCELs */
+	nopSelect,	/* Ignore selects */
+	wOther,		/* Catch-all for unrecognized commands and ioctls */
+	wHwInt,		/* Leftover hardware interrupts */
 };
 
 static char *wName() {
 	static char name[] = "AT-D0";
 
-	name[4] = '0' + wDrive;
+	name[4] = '0' + currDrive;
 	return name;
 }
 
@@ -199,7 +228,8 @@ static void initPciParams(int skip) {
 		if (interface & (ATA_IF_NOT_COMPAT1 | ATA_IF_NOT_COMPAT2)) {
 			irqHook = irq;
 			if (skip > 0) {
-				printf("atapci skipping controller (remain %d)\n", skip);
+				if (wPciDebug)
+				  printf("atapci skipping controller (remain %d)\n", skip);
 				--skip;
 				continue;
 			}
@@ -215,7 +245,8 @@ static void initPciParams(int skip) {
 			/* If not.. this is not the ata-pci controller we're
 			 * looking for.
 			 */
-			printf("atapci skipping compatability controller\n");
+			if (wPciDebug)
+			  printf("atapci skipping compatability controller\n");
 			continue;
 		}
 
@@ -294,7 +325,7 @@ static void initParams() {
 
 static Device *wPrepare(int device) {
 /* Prepare for I/O on a device. */
-	wDevice = device;
+	currDevNum = device;
 
 	/* Disk drive has a partition table which has 4 partitions at most.
 	 * Wini has DEV_PER_DRIVE partitions and SUB_PER_DRIVE sub-partitions at most.
@@ -312,18 +343,18 @@ static Device *wPrepare(int device) {
 	 *   MINOR_d0p0s0 = MAX_DRIVES(8) * SUB_PER_DRIVE(16) = 128 (drive[0-7], part[0-3], sub-part[0-3])
 	 */
 	if (device < NR_MINORS) {	/* d0, d0p[0-3], d1, ... */
-		wDrive = device / DEV_PER_DRIVE;	/* Save drive number */
-		currWn = &winiList[wDrive];
-		wDev = &currWn->part[device % DEV_PER_DRIVE];
+		currDrive = device / DEV_PER_DRIVE;	/* Save drive number */
+		currWn = &winiList[currDrive];
+		currDev = &currWn->part[device % DEV_PER_DRIVE];
 	} else if ((unsigned) (device -= MINOR_d0p0s0) < NR_SUB_DEVS) {	/* d[0-7]p[0-3]s[0-3] */
-		wDrive = device / SUB_PER_DRIVE;
-		currWn = &winiList[wDrive];
-		wDev = &currWn->subPart[device % SUB_PER_DRIVE];
+		currDrive = device / SUB_PER_DRIVE;
+		currWn = &winiList[currDrive];
+		currDev = &currWn->subPart[device % SUB_PER_DRIVE];
 	} else {
-		wDevice = -1;
+		currDevNum = -1;
 		return NIL_DEV;
 	}
-	return wDev;
+	return currDev;
 }
 
 static void wNeedReset() {
@@ -397,7 +428,7 @@ static int cmdOut(Command *cmd) {
 	sysSetAlarm(wakeupTicks, 0);
 
 	wn->wStatus = STATUS_ADMBSY;
-	wCurrCmd = cmd->command;
+	currCmd = cmd->command;
 	pvSet(outBPs[0], baseCtl + REG_CTL, wn->pHeads >= 8 ? CTL_EIGHT_HEADS : 0);
 	pvSet(outBPs[1], baseCmd + REG_PRECOMP, cmd->precomp);
 	pvSet(outBPs[2], baseCmd + REG_COUNT, cmd->count);
@@ -414,7 +445,7 @@ static int cmdOut(Command *cmd) {
 static void wTimeout() {
 	Wini *wn = currWn;
 
-	switch (wCurrCmd) {
+	switch (currCmd) {
 		case CMD_IDLE:
 			break;	/* fine */
 		case CMD_READ:
@@ -433,7 +464,7 @@ static void wTimeout() {
 			if (wTesting)
 			  wn->state |= IGNORING;	/* Kick out this drive. */
 			else if (!wSilent)
-			  printf("%s: timeout on command %02x\n", wName(), wCurrCmd);
+			  printf("%s: timeout on command %02x\n", wName(), currCmd);
 			wNeedReset();
 			wn->wStatus = 0;
 	}
@@ -444,8 +475,7 @@ static void ackIrqs(unsigned int irqs) {
 	unsigned int dr;
 	for (dr = 0; dr < MAX_DRIVES && irqs; ++dr) {
 		wn = &winiList[dr];
-		if (!(wn->state & IGNORING) && wn->irqNeedAck &&
-				(wn->irqMask & irqs)) {
+		if (!(wn->state & IGNORING) && wn->irqNeedAck && (wn->irqMask & irqs)) {
 			if (sysInb(wn->baseCmd + REG_STATUS, &wn->wStatus) != OK)
 			  printf("couldn't ack irq an drive %d\n", dr);
 			if (sysIrqEnable(&wn->irqHookId) != OK)
@@ -508,7 +538,7 @@ static int cmdSimple(Command *cmd) {
 
 	if ((r = cmdOut(cmd)) == OK)
 	  r = atIntrWait();
-	wCurrCmd = CMD_IDLE;
+	currCmd = CMD_IDLE;
 	return r;
 }
 
@@ -524,7 +554,7 @@ static int wSpecify() {
 		/* Specify parameters: precompensation, number of heads and sectors. */
 		cmd.precomp = wn->precomp;
 		cmd.count = wn->pSectors;
-		cmd.ldh = wn->ldhPref | (wn->pHeads - 1);
+		cmd.ldh = wn->ldhPref | (wn->pHeads - 1);	/* Max head number */
 		cmd.command = CMD_SPECIFY;
 
 		/* Output command block and see if controller accepts the parameters. */
@@ -662,7 +692,7 @@ static int wIdentify() {
 
 	if (wn->irq == NO_IRQ) {
 		/* Everything looks OK; register IRQ so we can stop polling. */
-		wn->irq = wDrive < 2 ? AT_WINI_0_IRQ : AT_WINI_1_IRQ;
+		wn->irq = currDrive < 2 ? AT_WINI_0_IRQ : AT_WINI_1_IRQ;
 		wn->irqHookId = wn->irq;	/* Id to be returned if interrupt occurs */
 		if ((s = sysIrqSetPolicy(wn->irq, IRQ_REENABLE, &wn->irqHookId)) != OK) 
 		  panic(wName(), "couldn't set IRQ policy", s);
@@ -722,7 +752,7 @@ static int wTestIO() {
 
 	iov.iov_addr = (vir_bytes) buf;
 	iov.iov_size = sizeof(buf);
-	saveDev = wDevice;
+	saveDev = currDevNum;
 
 	/* Reduce timeout values for this test transaction. */
 	saveTimeout = timeoutTicks;
@@ -737,7 +767,7 @@ static int wTestIO() {
 	wTesting = 1;
 
 	/* Try I/O on the actual drive (not any (sub)partition). */
-	if (wPrepare(wDrive * DEV_PER_DRIVE) == NIL_DEV)
+	if (wPrepare(currDrive * DEV_PER_DRIVE) == NIL_DEV)
 	  panic(wName(), "Couldn't switch devices", NO_NUM);
 
 	r = wTransfer(SELF, DEV_GATHER, 0, &iov, 1);
@@ -828,20 +858,380 @@ static int wDoOpen(Driver *dp, Message *msg) {
 			  return r;
 		}
 		/* Partition the disk. */
-		partition(&wDriver, wDrive * DEV_PER_DRIVE, P_PRIMARY);
+		partition(&currDriver, currDrive * DEV_PER_DRIVE, P_PRIMARY);
 	}
 	++wn->openCount;
 	return OK;
 }
 
-static int wTransfer(int pNum, int opCode, off_t position, IOVec *iov, unsigned numReq) {
-	// TODO
+static void atapiClose() {
+/* Shoul unlock the device. For now do nothing. */
+}
+
+static int wDoClose(Driver *dp, Message *msg) {
+/*Device close: Release a device. */
+	if (wPrepare(msg->DEVICE) == NIL_DEV)
+	  return ENXIO;
+	--currWn->openCount;
+	if (currWn->openCount == 0 && (currWn->state & ATAPI))
+	  atapiClose();
 	return OK;
 }
 
+static int doTransfer(Wini *wn, unsigned int precomp, unsigned int count, 
+			unsigned int blockAddr, unsigned int opCode) {
+	Command cmd;
+	unsigned sectorsPerCylinder;
+	int cylinder, head, sector;
+
+	cmd.precomp = precomp;
+	cmd.count = count;
+	cmd.command = opCode == DEV_GATHER ? CMD_WRITE : CMD_READ;
+
+	if (wn->ldhPref & LDH_LBA) {
+		cmd.sector = (blockAddr >> 0) & 0xFF;
+		cmd.cylinderLow = (blockAddr >> 8) & 0xFF;
+		cmd.cylinderHigh = (blockAddr >> 16) & 0xFF;
+		cmd.ldh = wn->ldhPref | ((blockAddr >> 24) & 0xF);
+	} else {
+		/* Refer to CHS. */
+		sectorsPerCylinder = wn->pHeads * wn->pSectors;
+		cylinder = blockAddr / sectorsPerCylinder;
+		head = (blockAddr % sectorsPerCylinder) / wn->pSectors;
+		sector = blockAddr % wn->pSectors;
+		
+		cmd.sector = sector + 1;
+		cmd.cylinderLow = cylinder & BYTE;
+		cmd.cylinderHigh = (cylinder >> 8) & BYTE;
+		cmd.ldh = wn->ldhPref | head;
+	}
+	return cmdOut(&cmd);
+}
+
+static int atapiSendPacket(u8_t *packet, unsigned count) {
+/* Send an ATAPI Packet Command. */
+	Wini *wini = currWn;
+	PvBytePair outBPs[6];		
+	int s;
+
+	if (wn->state & IGNORING)
+	  return ERR;
+
+	/* Select Master/Slave drive */
+	if ((s = sysOutb(wn->baseCmd + REG_LDH, wn->ldhPref)) != OK)
+	  panic(wName(), "Couldn't select master/slave drive", s);
+
+	if (!wWaitFor(STATUS_BSY | STATUS_DRQ, 0)) {
+		printf("%s: atapiSendPacket: drive not ready\n", wName());
+		return ERR;
+	}
+
+	sysSetAlarm(wakeupTicks, 0);
+
+	/* The value FFFFh is interpreted by the device as though the 
+	 * value were FFFEh.
+	 */
+	if (count > 0xFFFE)		
+	  count = 0xFFFE;		/* Max data per interrupt. */
+	
+	currCmd = ATAPI_PACKET_CMD;
+	pvSet(outBPs[0], wn->baseCmd + REG_FEAT, 0);
+	pvSet(outBPs[1], wn->baseCmd + REG_IRR, 0);
+	pvSet(outBPs[2], wn->baseCmd + REG_SECTOR, 0);
+	pvSet(outBPs[3], wn->baseCmd + REG_CNT_LO, (count >> 0) & 0xFF);
+	pvSet(outBPs[4], wn->baseCmd + REG_CNT_HI, (count >> 8) & 0xFF);
+	pvSet(outBPs[5], wn->baseCmd + REG_COMMAND, currCmd);
+
+	if (atapiDebug)
+	  printf("cmd: %x  ", currCmd);
+	if ((s = sysVecOutb(outBPs, 6)) != OK)
+	  panic(wName(), "Couldn't write registers with sysVecOutb()", s);
+	
+	if (!wWaitFor(STATUS_BSY | STATUS_DRQ, STATUS_DRQ)) {
+		printf("%s: timeout (BSY|DRQ -> DRQ)\n", wName());
+		return ERR;
+	}
+	wn->wStatus |= STATUS_ADMBSY;	/* Command not at all done yet. */
+
+	/* Send the command packet to the device. */
+	if ((s = sysOutsw(wn->baseCmd + REG_DATA, SELF, packet, ATAPI_PACKET_SIZE)) != OK)
+	  panic(wName(), "sysOutsw failed", s);
+
+	return OK;
+}
+
+static int atapiTransfer(int pNum, int opCode, off_t position, 
+			IOVec *iov, unsigned numReq) {
+	Wini *wn = currWn;
+	IOVec *iop, *iovEnd = iov + numReq;
+	int r, s, errors, fresh;
+	u64_t dvPos;
+	unsigned long blockAddr;
+	unsigned long dvSize = cv64ul(currDev->dv_size);
+	unsigned numBytes, numBlocks, count, before;
+	u8_t packet[ATAPI_PACKET_SIZE];
+
+	errors = fresh = 0;
+
+	while (numReq > 0 && !fresh) {
+		/* The Minix block size is smaller than the CD block size, so we
+		 * may have to read extra before or after the good data.
+		 */
+		dvPos = add64ul(currDev->dv_base, position);
+		blockAddr = div64u(pos, CD_SECTOR_SIZE);
+		before = rem64u(pos, CD_SECTOR_SIZE);
+
+		/* How many bytes to transfer? */
+		numBytes = count = 0;
+		for (iop = iov; iop < iovEnd; ++iop) {
+			numBytes += iop->iov_size;
+			if ((before + numBytes) % CD_SECTOR_SIZE == 0)
+			  count = numBytes;
+		}
+
+		/* Does one of the memory chunks end nicely on a CD sector multiple? */
+		if (count != 0)
+		  numBytes = count;
+
+		/* Data comes in as words, so we have to enforce even byte counts. */
+		if ((before | numBytes) & 1)
+		  return EINVAL;
+
+		/* Which block on disk and how close to EOF? */
+		if (position >= dvSize)
+		  return OK;	/* At EOF */
+		if (position + numBytes > dvSize)
+		  numBytes = dvSize - position;
+
+		numBlocks = (before + numBytes + CD_SECTOR_SIZE - 1) / CD_SECTOR_SIZE;
+		if (ATAPI_DEBUG) {
+			printf("block=%lu, before=%u, numBytes=%u, numBlocks=%u\n", 
+						blockAddr, before, numBytes, numBlocks);
+		}
+
+		/* First check to see if a reinitialization is needed. */
+		if (!(wn->state &INITIALIZED) && wSpecify() != OK)
+		  return EIO;
+
+		/* Build an ATAPI command packet. Refer to SCSI commands. */
+		packet[0] = SCSI_READ_10;
+		packet[1] = 0;		/* RDPROTECT, DP0, FUA, RARC */
+		packet[2] = (blockAddr >> 24) & 0xFF;	/* 2-5 is the logical block address */
+		packet[3] = (blockAddr >> 16) & 0xFF;
+		packet[4] = (blockAddr >> 8) & 0xFF;
+		packet[5] = (blockAddr >> 0) & 0xFF;
+		packet[6] = 0;		/* Reserved & Group Number */
+		packet[7] = (numBlocks >> 8) & 0xFF;	/* 7-8 is the transfer length */
+		packet[8] = (numBlocks >> 0) & 0xFF;
+		packet[9] = 0;		/* Control */
+		packet[10] = 0;
+		packet[11] = 0;
+
+		/* Tell the controller to execute the packet command. */
+		if ((r = atapiSendPacket(packet, numBlocks * CD_SECTOR_SIZE)) != OK)
+		  goto err;
+	
+		/* Read chunks of data. */
+		while ((r = atapiIntrWait()) > 0) {
+
+		}
+	}
+}
+
+static int wTransfer(int pNum, int opCode, off_t position, IOVec *iov, 
+		unsigned numReq) {
+	Wini *wn = currWn;
+	IOVec *iop, *iovEnd = iov + numReq;
+	int r, s, errors;
+	unsigned long blockAddr;
+	unsigned long dvSize = cv64ul(currDev->dv_size);
+	unsigned numBytes;
+	
+	if (wn->state & ATAPI)
+	  return atapiTransfer(pNum, opCode, position, iov, numReq);
+
+	/* Check disk address. */
+	if ((position & SECTOR_MASK) != 0)
+	  return EINVAL;
+
+	errors = 0;
+	while (numReq > 0) {
+		/* How many bytes to transfer? */
+		numBytes = 0;
+		for (iop = iov; iop < iovEnd; ++iop) {
+			numBytes += iop->iov_size;
+		}
+		if ((numBytes & SECTOR_MASK) != 0)
+		  return EINVAL;
+
+		/* Which block on disk and how close to EOF? */
+		if (position >= dvSize)
+		  return OK;		/* At EOF */
+		if (position + numBytes > dvSize)
+		  numBytes = dvSize - position;
+
+		/* Calculate sector number which may be LBA or CHS, 
+		 * depends on the drive. 
+		 * */
+		blockAddr = div64u(add64ul(currDev->dv_base, position), 
+						SECTOR_SIZE);
+
+		if (numBytes >= wn->maxCount) {
+			/* The drive can't do more than maxCount at once. */
+			numBytes = wn->maxCount;
+		}
+
+		/* First check to see if a reinitialization is needed. */
+		if (!(wn->state & INITIALIZED) && wSpecify() != OK)
+		  return EIO;
+
+		/* Tell the controller to transfer numBytes bytes. 
+		 * The sector count register only support 256 sectors. (00h - FFh)
+		 * 00h indicates 256 sectors.
+		 *
+		 * 'block' may be LBA or CHS, depends on the drive.
+		 */
+		r = doTransfer(wn, wn->precomp, (numBytes >> SECTOR_SHIFT) & BYTE, 
+					blockAddr, opCode);
+
+		while (r == OK && numBytes > 0) {
+			/* For each sector, wait for an interrupt and fetch the data
+			 * (read), or supply data to the controller and wait for an
+			 * interrupt (write).
+			 */
+			if (opCode == DEV_GATHER) {
+				/* First an interrupt, then data. */
+				if ((r == atIntrWait()) != OK) {
+					/* An error, send data to the bit bucket. */
+					if (wn->wStatus & STATUS_DRQ) {
+						if ((s = sysInsw(wn->baseCmd + REG_DATA, SELF, 
+									tmpBuf, SECTOR_SIZE)) != OK)
+						  panic(wName(), "Call to sysInsw() failed", s);
+					}
+					break;
+				}
+			}
+
+			/* Wait for data transfer requested. */
+			if (!wWaitFor(STATUS_DRQ, STATUS_DRQ)) {
+				r = ERR;
+				break;
+			}
+
+			/* Copy bytes to or from the device's buffer. */
+			if (opCode == DEV_GATHER) {
+				if ((s = sysInsw(wn->baseCmd + REG_DATA, pNum, 
+							(void *) iov->iov_addr, SECTOR_SIZE)) != OK)
+				  panic(wName(), "Call to sysInsw() failed", s);
+			} else {
+				if ((s = sysOutsw(wn->baseCmd + REG_DATA, pNum,
+							(void *) iov->iov_addr, SECTOR_SIZE)) != OK)
+				  panic(wName(), "Call to sysOutsw() failed", s);
+
+				/* Data sent, wait for an interrupt. */
+				if ((r = atIntrWait()) != OK)
+				  break;
+			}
+
+			/* Book the bytes successfully transferred. */
+			numBytes -= SECTOR_SIZE;
+			position += SECTOR_SIZE;
+			iov->iov_addr += SECTOR_SIZE;
+			if ((iov->iov_size -= SECTOR_SIZE) == 0) {
+				++iov;
+				--numReq;
+			}
+		}
+
+		/* Any errors? */
+		if (r != OK) {
+			/* Don't retry if sector marked bad or too many errors. */
+			if (r == ERR_BAD_SECTOR || ++errors == maxErrors) {
+				currCmd = CMD_IDLE;
+				return EIO;
+			}
+		}
+	}
+
+	currCmd = CMD_IDLE;
+	return OK;
+}
+
+static void wGeometry(Partition *entry) {
+	Wini *wn = currWn;
+
+	if (wn->state & ATAPI) {	/* Make up some numbers. */
+		entry->cylinders = div64u(wn->part[0].dv_size, SECTOR_SIZE) / (64 * 32);
+		entry->heads = 64;
+		entry->sectors = 32;
+	} else {	/* Return logical geometry */
+		entry->cylinders = wn->lCylinders;
+		entry->heads = wn->lHeads;
+		entry->sectors = wn->lSectors;
+	}
+}
+
+static int wHwInt(Driver *dp, Message *msg) {
+/* Leftover interrupt(s) received; ack it/them. */
+	ackIrqs(msg->NOTIFY_ARG);
+	return OK;
+}
+
+static int wOther(Driver *dp, Message *msg) {
+	int r, timeout, prev, count;
+
+	if (msg->m_type != DEV_IOCTL) 
+	  return EINVAL;
+
+	if (msg->REQUEST == DIOC_TIMEOUT) {
+		if ((r = sysDataCopy(msg->PROC_NR, (vir_bytes) msg->ADDRESS, 
+					SELF, (vir_bytes) &timeout, sizeof(timeout))) != OK)
+		  return r;
+
+		if (timeout == 0) {
+			/* Restore defaults. */
+			timeoutTicks = DEF_TIMEOUT_TICKS;
+			maxErrors = MAX_ERRORS;
+			wakeupTicks = WAKEUP;
+			wSilent = 0;
+		} else if (timeout < 0) {
+			return EINVAL;
+		} else {
+			prev = wakeupTicks;
+
+			if (!wStandardTimeouts) {
+				/* Set (lower) timeout, lower error tolerance and 
+				 * set silent mode.
+				 */
+				wakeupTicks = timeout;
+				maxErrors = 3;
+				wSilent = 1;
+
+				if (timeoutTicks > timeout)
+				  timeoutTicks = timeout;
+			}
+
+			if ((r = sysDataCopy(SELF, (vir_bytes) &prev,
+						msg->PROC_NR, (vir_bytes) msg->ADDRESS, sizeof(prev))) != OK)
+			  return r;
+		}
+		return OK;
+	} else if (msg->REQUEST == DIOC_OPEN_COUNT) {
+		if (wPrepare(msg->DEVICE) == NIL_DEV)
+		  return ENXIO;
+		count = currWn->openCount;
+		if ((r = sysDataCopy(SELF, (vir_bytes) &count,
+					msg->PROC_NR, (vir_bytes) msg->ADDRESS, sizeof(count))) != OK)
+		  return r;
+		return OK;
+	}
+	return EINVAL;
+}
 
 int main() {
 	initParams();
-	driverTask(&wDriver);
+	driverTask(&currDriver);
 	return OK;
 }
+
+

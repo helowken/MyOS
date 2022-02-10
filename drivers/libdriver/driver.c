@@ -27,6 +27,7 @@
  */
 
 #include "../drivers.h"
+#include "sys/ioc_disk.h"
 #include "driver.h"
 
 #define dmaBytesLeft(addr)	((unsigned) 0x10000 - (unsigned) ((addr) & 0xFFFF))
@@ -203,3 +204,86 @@ void driverTask(Driver *dp) {
 		}
 	}
 }
+
+char *noName() {
+	static char name[] = "noName";
+	return name;
+}
+
+int doNop(Driver *dp, Message *msg) {
+/* Nothing there, or nothing to do. */
+
+	switch (msg->m_type) {
+		case DEV_OPEN:
+			return ENODEV;
+		case DEV_CLOSE:
+			return OK;
+		case DEV_IOCTL:
+			return ENOTTY;
+		default:
+			return EIO;
+	}
+}
+
+Device *nopPrepare(int device) {
+/* Nothing to prepare for. */
+	return NIL_DEV;
+}
+
+void nopCleanup() {
+/* Nothing to clean up. */
+}
+
+void nopSignal(Driver *dp, Message *msg) {
+/* Default action for signal is to ignore. */
+}
+
+void nopAlarm(Driver *dp, Message *msg) {
+/* Ignore the leftover alarm. */
+}
+
+int nopCancel(Driver *dp, Message *msg) {
+/* Nothing to do for cancel. */
+	return OK;
+}
+
+int nopSelect(Driver *dp, Message *msg) {
+/* Nothing to do for select. */
+	return OK;
+}
+
+int doDrIoctl(Driver *dp, Message *msg) {
+/* Carry out a partition setting/getting request. */
+	Device *dv;
+	Partition entry;
+	int s;
+
+	if (msg->REQUEST != DIOC_SET_PART && msg->REQUEST != DIOC_GET_PART) {
+		if (dp->drOther) 
+		  return dp->drOther(dp, msg);
+		return ENOTTY;
+	}
+
+	/* Decode the message parameters. */
+	if ((dv = (*dp->drPrepare)(msg->DEVICE)) == NIL_DEV)
+	  return ENXIO;
+
+	if (msg->REQUEST == DIOC_SET_PART) {
+		/* Copy just this one partition table entry. */
+		if ((s = sysDataCopy(msg->PROC_NR, (vir_bytes) msg->ADDRESS,
+					SELF, (vir_bytes) &entry, sizeof(entry))) != OK)
+		  return s;
+		dv->dv_base = entry.base;
+		dv->dv_size = entry.size;
+	} else {
+		/* Return a partition table entry and the geometry of the drive. */
+		entry.base = dv->dv_base;
+		entry.size = dv->dv_size;
+		(*dp->drGeometry)(&entry);
+		if ((s = sysDataCopy(SELF, (vir_bytes) &entry,
+					msg->PROC_NR, (vir_bytes) msg->ADDRESS, sizeof(entry))) != OK)
+		  return s;
+	}
+	return OK;
+}
+
