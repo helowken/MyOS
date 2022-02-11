@@ -3,7 +3,7 @@
 #include "minix/sysutil.h"
 #include "sys/ioc_disk.h"
 
-#define ATAPI_DEBUG			0		/* To debug ATAPI code. */
+#define ATAPI_DEBUG			1		/* To debug ATAPI code. */
 
 /* I/O Ports used by winchester disk controllers. */
 
@@ -27,13 +27,23 @@
 /* Read only registers */
 #define REG_STATUS			7		/* Status */
 #define   STATUS_BSY		0x80	/* Controller busy */
-#define   STATUS_RDY		0x40	/* Drive ready */
+#define   STATUS_DRDY		0x40	/* Drive ready */
 #define   STATUS_WF			0x20	/* Write fault */
+#define   STATUS_DMADF		0x20	/* DMA ready / drive fault */
+#define   STATUS_SRVCDSC	0x10	/* Service or dsc */
 #define	  STATUS_DRQ		0x08	/* Data transfer request */
+#define   STATUS_CORR		0x04	/* Correctable error occured */
 #define	  STATUS_ERR		0x01	/* Error */
+#define   STATUS_CHECK		0x01	/* Check error */
 #define   STATUS_ADMBSY		0x100	/* Administratively busy (software) */
+
 #define REG_ERROR			1		/* Error code */
 #define   ERROR_BB			0x80	/* Bad block */
+#define	  ERROR_ECC			0x40	/* Bad ecc bytes */
+#define   ERROR_ID			0x10	/* Id not found */
+#define	  ERROR_AC			0x04	/* Aborted command */
+#define   ERROR_TK			0x02	/* Track zero error */
+#define   ERROR_DM			0x01	/* No data address mark */
 
 /* Write only register */
 #define REG_COMMAND			7		/* Command */
@@ -59,6 +69,9 @@
 
 #define REG_FEAT			1		/* Features register */
 #define REG_IRR				2		/* Interrupt reason register */
+#define   IRR_REL			0x04	/* Bus release */
+#define   IRR_IO			0x02	/* Direction for transfer */
+#define   IRR_COD			0x01	/* Command or data */
 #define REG_CNT_LO			4		/* Byte count low register */
 #define REG_CNT_HI			5		/* Byte count high register */
 
@@ -100,7 +113,7 @@
 static int timeoutTicks = DEF_TIMEOUT_TICKS, maxErrors = MAX_ERRORS;
 static int wakeupTicks = WAKEUP;
 static int wTesting = 0, wSilent = 0, wLba48 = 0, wStandardTimeouts = 0, 
-		   wPciDebug = 0, atapiDebug = 0;
+		   wPciDebug = 1, atapiDebug = 1;
 static int wInstance = 0;
 static int wNextDrive = 0;
 
@@ -910,7 +923,7 @@ static int doTransfer(Wini *wn, unsigned int precomp, unsigned int count,
 
 static int atapiSendPacket(u8_t *packet, unsigned count) {
 /* Send an ATAPI Packet Command. */
-	Wini *wini = currWn;
+	Wini *wn = currWn;
 	PvBytePair outBPs[6];		
 	int s;
 
@@ -960,6 +973,119 @@ static int atapiSendPacket(u8_t *packet, unsigned count) {
 	return OK;
 }
 
+#define STSTR(a)	if (status & STATUS_ ## a) { strcat(str, #a); strcat(str, " "); }
+#define ERRSTR(a)	if (e & ERROR_ ## a) { strcat(str, #a); strcat(str, " "); }
+static char *strStatus(int status) {
+	static char str[200];
+	str[0] = '\0';
+
+	STSTR(BSY);
+	STSTR(DRDY);
+	STSTR(DMADF);
+	STSTR(SRVCDSC);
+	STSTR(DRQ);
+	STSTR(CORR);
+	STSTR(ERR);
+
+	return str;
+}
+
+static char *strError(int e) {
+	static char str[200];
+	str[0] = '\0';
+
+	ERRSTR(BB);
+	ERRSTR(ECC);
+	ERRSTR(ID);
+	ERRSTR(AC);
+	ERRSTR(TK);
+	ERRSTR(DM);
+
+	return str;
+}
+
+static int atapiIntrWait() {
+/* Wait for an interrupt and study the results. Returns a number of bytes
+ * that need to be transferred, or an error code.
+ */
+	Wini *wn = currWn;
+	PvBytePair inBPs[4];
+	int err, len, irr, s, r, phase;
+
+	inBPs[0].port = wn->baseCmd + REG_ERROR;
+	inBPs[1].port = wn->baseCmd + REG_CNT_LO;
+	inBPs[2].port = wn->baseCmd + REG_CNT_HI;
+	inBPs[3].port = wn->baseCmd + REG_IRR;
+	if ((s = sysVecInb(inBPs, 4)) != OK)
+	  panic(wName(), "ATAPI failed sysVecInb()", s);
+	err = inBPs[0].value;
+	len = inBPs[1].value;
+	len |= inBPs[2].value << 8;
+	irr = inBPs[3].value;
+	
+	if (ATAPI_DEBUG)
+	  printf("wn %p  S=%x=%s E=%02x=%s L=%04x I=%02x\n", wn, wn->wStatus, 
+			strStatus(wn->wStatus), err, strError(err), len, irr);
+
+	if (wn->wStatus & (STATUS_BSY | STATUS_CHECK)) {
+		if (atapiDebug) 
+		  printf("atapi fail:  S=%x=%s E=%02x=%s L=%04x I=%02x\n", wn, wn->wStatus, 
+			strStatus(wn->wStatus), err, strError(err), len, irr);
+		return ERR;
+	}
+
+	phase = (wn->wStatus & STATUS_DRQ) | (irr & (IRR_COD | IRR_IO));
+	
+	switch (phase) {
+		/* Successful command completion: DRQ=0, I/O=1, C/D=1 */
+		case IRR_COD | IRR_IO:
+			if (ATAPI_DEBUG)
+			  printf("ACD: Phase Command Complete\n");
+			r = OK;
+			break;
+
+		/* Bus release: DRQ=0, I/O=0, C/D=0 */
+		case 0:
+			if (ATAPI_DEBUG)
+			  printf("ACD: Phase Command Aborted\n");
+			r = ERR;
+			break;
+
+		/* Device awaiting command: DRQ=1, I/O=0, C/D=1 */
+		case STATUS_DRQ | IRR_COD:
+			if (ATAPI_DEBUG)
+			  printf("ACD: Phase Command Out\n");
+			r = ERR;
+			break;
+
+		/* Data transfer to device: DRQ=1, I/O=0, C/D=0 */
+		case STATUS_DRQ:
+			if (ATAPI_DEBUG)
+			  printf("ACD: Phase Data Out %d\n", len);
+			r = len;
+			break;
+	
+		/* Data transfer to host: DRQ=1, I/O=1, C/D=0 */
+		case STATUS_DRQ | IRR_IO:
+			if (ATAPI_DEBUG)
+			  printf("ACD: Phase Data In %d\n", len);
+			r = len;
+			break;
+
+		default:
+			if (ATAPI_DEBUG)
+			  printf("ACD: Phase Unknown\n");
+			r = ERR;
+			break;
+	}
+
+	/* We need to read data after receiving this interrupt if 
+	 * the data transmission is from device to host.
+	 * */
+	wn->wStatus |= STATUS_ADMBSY;		
+	return r;
+}
+
 static int atapiTransfer(int pNum, int opCode, off_t position, 
 			IOVec *iov, unsigned numReq) {
 	Wini *wn = currWn;
@@ -968,7 +1094,7 @@ static int atapiTransfer(int pNum, int opCode, off_t position,
 	u64_t dvPos;
 	unsigned long blockAddr;
 	unsigned long dvSize = cv64ul(currDev->dv_size);
-	unsigned numBytes, numBlocks, count, before;
+	unsigned numBytes, numBlocks, count, before, chunk;
 	u8_t packet[ATAPI_PACKET_SIZE];
 
 	errors = fresh = 0;
@@ -978,8 +1104,8 @@ static int atapiTransfer(int pNum, int opCode, off_t position,
 		 * may have to read extra before or after the good data.
 		 */
 		dvPos = add64ul(currDev->dv_base, position);
-		blockAddr = div64u(pos, CD_SECTOR_SIZE);
-		before = rem64u(pos, CD_SECTOR_SIZE);
+		blockAddr = div64u(dvPos, CD_SECTOR_SIZE);
+		before = rem64u(dvPos, CD_SECTOR_SIZE);
 
 		/* How many bytes to transfer? */
 		numBytes = count = 0;
@@ -1033,9 +1159,73 @@ static int atapiTransfer(int pNum, int opCode, off_t position,
 	
 		/* Read chunks of data. */
 		while ((r = atapiIntrWait()) > 0) {
+			count = r;
 
+			if (ATAPI_DEBUG) 
+			  printf("before=%u, numBytes=%u, count=%u\n", before, numBytes, count);
+
+			/* Discard before. */
+			while (before > 0 && count > 0) {
+				chunk = before;
+				if (chunk > count)
+				  chunk = count;
+				if (chunk > DMA_BUF_SIZE)
+				  chunk = DMA_BUF_SIZE;
+				if ((s = sysInsw(wn->baseCmd + REG_DATA, SELF, tmpBuf, chunk)) != OK)
+				  panic(wName(), "Call to sysInsw() failed", s);
+				before -= chunk;
+				count -= chunk;
+			}
+
+			/* Read requested data */
+			while (numBytes > 0 && count > 0) {
+				chunk = numBytes;
+				if (chunk > count)
+				  chunk = count;
+				if (chunk > iov->iov_size)
+				  chunk = iov->iov_size;
+				if ((s = sysInsw(wn->baseCmd + REG_DATA, pNum, 
+							(void *) iov->iov_addr, chunk)) != OK)
+				  panic(wName(), "Call to sysInsw() failed", s);
+				position += chunk;
+				numBytes -= chunk;
+				count -= chunk;
+				iov->iov_addr += chunk;
+				fresh = 0;
+				
+				if ((iov->iov_size -= chunk) == 0) {
+					++iov;
+					--numReq;
+					fresh = 1;		/* New element is optional */
+				}
+			}
+
+			/* Excess data */
+			while (count > 0) {
+				chunk = count;
+				if (chunk > DMA_BUF_SIZE)
+				  chunk = DMA_BUF_SIZE;
+				if ((s = sysInsw(wn->baseCmd + REG_DATA, SELF, 
+							tmpBuf, chunk)) != OK)
+				  panic(wName(), "Call to sysInsw() failed", s);
+				count -= chunk;
+			}
+		}
+
+		if (r < 0) {
+err:		/* Don't retry if too many errors. */
+			if (++errors == maxErrors) {
+				currCmd = CMD_IDLE;
+				if (atapiDebug)
+				  printf("giving up (%d)\n", errors);
+				return EIO;
+			}
+			if (atapiDebug)
+			  printf("retry (%d)\n", errors);
 		}
 	}
+	currCmd = CMD_IDLE;
+	return OK;
 }
 
 static int wTransfer(int pNum, int opCode, off_t position, IOVec *iov, 
