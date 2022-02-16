@@ -2,11 +2,12 @@ MY_HOME = ..
 MODE = M16
 include $(MY_HOME)/common.mk
 
-DISK_IMAGE = device/testOS.img
-# Floppy: ARGS = "file=$(BIN),format=raw,index=0,if=floppy"
+DIR_DEVICE = device
+DISK_IMAGE = $(DIR_DEVICE)/testOS.img
 LIBS = -L$(MY_HOME)/lib/m16 \
 	   -lmyc -lmysysutil
 INSTALL = $(MY_HOME)/tools/installboot.bin
+BOOT = boot.bin
 
 PROGRAMS = ../kernel/kernel.bin \
 		   ../servers/pm/pm.bin \
@@ -34,7 +35,7 @@ boot.elf: \
 	$(call link,$^,$(LIBS),$@) 
 	$(call createDebug,$@,$(DEBUG))
 
-boot.bin: boot.elf
+$(BOOT): boot.elf
 	objcopy -O binary -j .text -j .rodata -j .data $< $@ 
 
 install: \
@@ -46,17 +47,17 @@ install: \
 install_masterboot: masterboot.bin 
 	$(INSTALL) -m $(DISK_IMAGE) $<
 
-install_device: bootblock.bin boot.bin 
-	$(INSTALL) -d $(DISK_IMAGE) $< boot.bin 
+install_device: bootblock.bin $(BOOT)
+	$(INSTALL) -d $(DISK_IMAGE) $< $(BOOT)
 
-install_bootable: boot.bin 
+install_bootable: $(BOOT)
 	$(INSTALL) -b $(DISK_IMAGE) $<
 
 install_image: 
 	$(INSTALL) -i $(DISK_IMAGE) $(PROGRAMS)
 
 reset:
-	cd device && ./run && cd ..
+	cd $(DIR_DEVICE) && ./run && cd ..
 
 disasm: $(DEBUG)
 	$(call disasmCode,$<,16)

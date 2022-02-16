@@ -153,8 +153,6 @@ typedef struct {		/* Main drive struct, one entry per drive */
 } Wini;
 static Wini winiList[MAX_DRIVES], *currWn;
 static int currDevNum = -1;
-//static int wController = -1;
-//static int wMajor = -1;
 static char wIdString[40];
 
 static int currCmd;		/* Current command in execution */

@@ -61,8 +61,8 @@ BootImage images[] = {
 	{ SYSTEM,  sysTask, TSK_F, 64, TASK_Q, TSK_S, TSK_T,     0,     0, "SYSTEM" },
 	{ HARDWARE,		 0, TSK_F, 64, TASK_Q, HRD_S,     0,     0,	    0, "KERNEL" },
 	{ PM_PROC_NR,    0, SRV_F, 32,      3, 0,     SRV_T, SRV_M,  PM_C, "pm"	    }, 
-	/*
 	{ FS_PROC_NR,    0, SRV_F, 32,      4, 0,     SRV_T, SRV_M,  FS_C, "fs"		}, 
+	/*
 	{ RS_PROC_NR,    0, SRV_F,  4,      3, 0,     SRV_T, SYS_M,  RS_C, "rs"		}, 
 	{ TTY_PROC_NR,   0, SRV_F,  4,      1, 0,     SRV_T, SYS_M, DRV_C, "tty"	}, 
 	{ MEM_PROC_NR,   0, SRV_F,  4,      2, 0,     SRV_T, DRV_M, MEM_C, "memory"	}, 

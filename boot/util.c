@@ -25,10 +25,8 @@ bool numeric(char *s) {
 	return numPrefix(s, (char **) NULL);
 }
 
-/*
- * Transform a long number to ascii at base b, (b >= 8).
- */
 char *ul2a(u32_t n, unsigned b) {
+/* Transform a long number to ascii at base b, (b >= 8). */
 	static char num[(CHAR_BIT * sizeof(n) + 2) / 3 + 1];
 	char *a = arrayLimit(num) - 1;
 	static char hex[16] = "0123456789ABCDEF";
@@ -38,10 +36,8 @@ char *ul2a(u32_t n, unsigned b) {
 	return a;
 }
 
-/*
- * Transform a long number to ascii at base 10.
- */
 char *ul2a10(u32_t n) {
+/* Transform a long number to ascii at base 10. */
 	return ul2a(n, 10);
 }
 
@@ -58,8 +54,8 @@ long a2l(char *a) {
 	return n * sign;
 }
 
-/* Ascii to hex. */
 unsigned a2x(char *a) {
+/* Ascii to hex. */
 	unsigned n = 0;
 	int c;
 

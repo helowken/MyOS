@@ -1,5 +1,7 @@
 all:
-	cd pm && make
+	cd pm && $(MAKE)
+	cd fs && $(MAKE)
 
 clean:
-	cd pm && make clean
+	cd pm && $(MAKE) clean
+	cd fs && $(MAKE) clean

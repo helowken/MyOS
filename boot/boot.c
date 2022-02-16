@@ -4,6 +4,7 @@
 #include "stdlib.h"
 #include "limits.h"
 #include "util.h"
+#include "minix/dmap.h"
 #include "ibm/partition.h"
 
 #undef EXTERN
@@ -20,8 +21,8 @@ typedef struct Token {
 static Token *cmds;
 static bool tokErr = false;
 
-/* BIOS INT 13h errors */
 static char *biosDiskError(int err) {
+/* BIOS INT 13h errors */
 	static struct errEntry {
 		int err;
 		char *what;
@@ -73,6 +74,15 @@ void readDiskError(off_t sector, int err) {
 
 static void writeDiskError(off_t sector, int err) {
 	rwDiskError("Write", sector, err);
+}
+
+dev_t name2Dev(char *name) {
+/* Translate , say, /dev/c0d0p2 to a device number. If the name can't be
+ * found on the boot device, then do some guesswork. The global structure
+ * "tmpDev" will be filled in based on the name, so that "boot d1p0" knows
+ * what device to boot without interpreting device numbers.
+ */
+
 }
 
 static void determineAvailableMemory() {
@@ -152,9 +162,10 @@ static void copyToFarAway() {
 static struct biosDev {
 	char name[8];
 	int device, primary, secondary;
-} bootDev;
+} bootDev, tmpDev;
 
 static int getMaster(char *master, PartitionEntry **table, u32_t pos) {
+/* Read a master boot sector and its partition table. */
 	int r, n;
 	PartitionEntry *pe, **pt;
 	if ((r = readSectors(mon2Abs(master), pos, 1)) != 0)
@@ -169,7 +180,8 @@ static int getMaster(char *master, PartitionEntry **table, u32_t pos) {
 	n = NR_PARTITIONS;
 	do {
 		for (pt = table; pt < table + NR_PARTITIONS - 1; ++pt) {
-			if (BOOTABLE(pt[0]) || pt[0]->lowSector < pt[1]->lowSector) {
+			if (pt[0]->type == NO_PART || 
+					pt[0]->lowSector > pt[1]->lowSector) {
 				pe = pt[0];
 				pt[0] = pt[1];
 				pt[1] = pe;
@@ -198,6 +210,11 @@ static void initialize() {
 		return;
 	}
 
+	/* Disk: Get the partition table from the very first sector, and
+	 * determine the partition we booted from using the information from
+	 * the booted partition entry as passed on by the bootstrap.
+	 * All we need from it is the partition offset.
+	 */
 	rawCopy(mon2Abs(&lowSector),
 		vec2Abs(&bootPartEntry) + offsetof(PartitionEntry, lowSector),
 		sizeof(lowSector));
@@ -228,7 +245,10 @@ static void initialize() {
 		
 		if (p == NR_PARTITIONS || 
 					bootDev.primary >= 0 ||
-					BOOTABLE(table[p])) {
+					table[p]->type != MINIX_PART) {
+			/* The boot partition cannot be named, this only means
+			 * that "bootdev" doesn't work.
+			 */
 			bootDev.device = -1;
 			return;
 		}
@@ -391,11 +411,10 @@ static char *getFuncBody(char *name) {
 	return e == NULL || !(e->flags & E_FUNCTION) ? NULL : e->value;
 }
 
-/*
- *	Change the value of an environment variable.
- *	Returns the flags of the variable if you are not allowed to change it, 0 otherwise.
- */
 static int setEnv(int flags, char *name, char *arg, char *value) {
+/* Change the value of an environment variable.
+ * Returns the flags of the variable if you are not allowed to change it, 0 otherwise.
+ */
 	Environment **aenv, *e;
 	if (*(aenv = searchEnv(name)) == NULL) {
 		if (reserved(name))
@@ -429,11 +448,10 @@ static int setVar(int flags, char *name, char *value) {
 	return setEnv(flags, name, NULL, value);
 }
 
-/*
- * Remove a variable from the environment.
+static void unset(char *name) {
+/* Remove a variable from the environment.
  * A special variable is reset to its default value.
  */
-static void unset(char *name) {
 	Environment **aenv, *e;
 
 	if ((e = *(aenv = searchEnv(name))) == NULL)
@@ -700,12 +718,11 @@ typedef enum MenuFuncType {
 	NOT_FUNC, SELECT, DEF_FUNC, USER_FUNC 
 } MenuFuncType;
 
-/*
- * a()ls	: NOT_FUNC
+static MenuFuncType getMenuFuncType(Environment *e) {
+/* a()ls	: NOT_FUNC
  * a(aa)ls	: SELECT
  * a(a,b)ls	: USER_FUNC / DEF_FUNC
  */
-static MenuFuncType getMenuFuncType(Environment *e) {
 	if (!(e->flags & E_FUNCTION) || 
 				e->arg == NULL || 
 				e->arg[0] == 0)
@@ -1137,11 +1154,10 @@ static char *readLine() {
 	return line;
 }
 
-/*
- * Run the trailer function between loading Minix and handing control to it.
+bool runTrailer() {
+/* Run the trailer function between loading Minix and handing control to it.
  * Return true iff there was no error.
  */
-bool runTrailer() {
 	Token *savedCmds = cmds;
 
 	cmds = NULL;

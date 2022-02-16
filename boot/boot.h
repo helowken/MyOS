@@ -113,6 +113,9 @@ extern int writeSectors(char *buf, u32_t pos, int count);
 /* Exit the monitor. */
 extern void exit(int status);
 
+/* Translate a device name to a device number. */
+dev_t name2Dev(char *name);
+
 /* System bus type, XT, AT, or MCA. */
 extern int getBus();
 

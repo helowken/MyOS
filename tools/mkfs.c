@@ -5,11 +5,12 @@
 
 #define NULL			((void *)0)
 #define KB				1024
+#define KB_SHIFT		10
 #define BIN				2
 #define BINGRP			2
 #define CACHE_SIZE		20
 #define UMAP_SIZE		(ULONG_MAX / MAX_BLOCK_SIZE)		
-#define BLOCK_OFF(n)	(OFFSET(lba) + (n) * blockSize)
+#define BLOCK_OFF(n)	(OFFSET(lowSector) + (n) * blockSize)
 #define ZONE_SHIFT		0
 #define BOOT_BLOCK		0
 #define SUPER_BLOCK		1
@@ -27,7 +28,7 @@ static Cache cache[CACHE_SIZE];
 static long currentTime;
 static char *device;
 static int deviceFd;
-static uint32_t lba;
+static uint32_t lowSector;
 static unsigned int blockSize;
 static int inodesPerBlock;
 static char *zero;
@@ -38,9 +39,11 @@ static int inodeOffset;
 static int nextZone, nextInode, zoneOffset, blocksPerZone;
 static zone_t zoneMap;
 
-static void usage(char *s) {
-	fprintf(stderr, "Usage: %s device\n", s);
-	exit(1);
+static char *procName;
+static char *units[] = {"bytes", "KB", "MB", "GB"};
+
+static void usage() {
+	usageErr("%s [-b blocks] [-i inodes] [-B blocksize] device\n", procName);
 }
 
 static char *allocBlock() {
@@ -53,14 +56,26 @@ static char *allocBlock() {
 	return buf;
 }
 
-static block_t computeBlocks() {
+static block_t sizeup() {
 	PartitionEntry pe;
-	block_t blocks;
 
 	getActivePartition(deviceFd, &pe);
+	lowSector = pe.lowSector;	/* Save the lowSector for writing data to disk */
+	return pe.sectorCount * (blockSize / SECTOR_SIZE);
+}
 
-	lba = pe.lowSector;		/* Save the lba for writing data to disk */
-	blocks = pe.sectorCount * SECTOR_SIZE / blockSize;
+static block_t computeBlocks(block_t blocks) {
+	block_t maxBlocks;
+	
+	maxBlocks = sizeup();
+	if (blocks == 0) {
+		blocks = maxBlocks;
+		if (blocks < 1)
+		  fatal("%s: this device can't hold a filesystem.\n", procName);
+	}
+	if (blocks > maxBlocks) 
+	  fatal("%s: number of blocks too large for device.\n", procName);
+
 	if (blocks < 5)
 	  fatal("Block count too small");
 
@@ -73,30 +88,31 @@ static block_t computeBlocks() {
 	return blocks;
 }
 
-static ino_t computeInodes(block_t blocks) {
-	ino_t inodes;
+static ino_t computeInodes(block_t blocks, ino_t inodes) {
 	int kb;
 
-	kb = blocks * blockSize / KB;
-	/* We assume the default average file size is 2KB, but may 
-	 * become larger when the disk size is above 20M, so reduce 
-	 * the default number of inodes.
-	 */
-	if (kb >= 100000)
-	  inodes = kb / 7;
-	else if (kb >= 80000)
-	  inodes = kb / 6;
-	else if (kb >= 60000)
-	  inodes = kb / 5;
-	else if (kb >= 40000)
-	  inodes = kb / 4;
-	else if (kb >= 20000)
-	  inodes = kb / 3;
-	else
-	  inodes = kb / 2;
+	if (inodes == 0) {
+		kb = blocks * blockSize / KB;
+		/* We assume the default average file size is 2KB, but may 
+		 * become larger when the disk size is above 20M, so reduce 
+		 * the default number of inodes.
+		 */
+		if (kb >= 100000)
+		  inodes = kb / 7;
+		else if (kb >= 80000)
+		  inodes = kb / 6;
+		else if (kb >= 60000)
+		  inodes = kb / 5;
+		else if (kb >= 40000)
+		  inodes = kb / 4;
+		else if (kb >= 20000)
+		  inodes = kb / 3;
+		else
+		  inodes = kb / 2;
 
-	/* Round up to fill inode block */
-	inodes = (inodes + inodesPerBlock - 1) / inodesPerBlock * inodesPerBlock;
+		/* Round up to fill inode block */
+		inodes = (inodes + inodesPerBlock - 1) / inodesPerBlock * inodesPerBlock;
+	}
 
 	if (inodes < 1)
 	  fatal("Inode count too small");
@@ -240,7 +256,6 @@ static void initSuperBlock(zone_t zones, ino_t inodes) {
 	int i;
 
 	sup = (SuperBlock *) allocBlock();
-
 	sup->s_inodes = inodes;
 	sup->s_zones = zones;
 	sup->s_imap_blocks = bitmapSize(inodes + 1, blockSize);
@@ -287,8 +302,8 @@ static ino_t allocInode(int mode, int uid, int gid) {
 	ino_t num;
 	block_t b;
 	int off;
-	INode *inp;
-	INode *inodes;	/* an array of INode */
+	Inode *inp;
+	Inode *inodes;	/* an array of Inode */
 
 	num = nextInode++;
 	if (num > numInodes) {
@@ -337,8 +352,8 @@ static void addZone(ino_t n, zone_t z, size_t bytes, long currTime) {
 	int off, i;
 	zone_t indirZone;
 	zone_t *zones;	/* an array of zone_t */
-	INode *inp;		
-	INode *inodes;	/* an array of INode */
+	Inode *inp;		
+	Inode *inodes;	/* an array of Inode */
 
 	if (! (zones = malloc(blockSize)))
 	  errExit("couldn't allocate indirect block");
@@ -388,7 +403,7 @@ static void createDir(ino_t parent, char *name, ino_t child) {
 	block_t b, zoneBlocks;
 	int off;
 	DirEntry *dirs;	/* an array of Directory */
-	INode *inodes;		/* an array of INode */
+	Inode *inodes;		/* an array of Inode */
 
 	b = ((parent - 1) / inodesPerBlock) + inodeOffset;
 	off = (parent - 1) % inodesPerBlock;
@@ -432,7 +447,7 @@ static void createDir(ino_t parent, char *name, ino_t child) {
 static void increseLink(ino_t n, int linkCount) {
 	block_t b;
 	int off;
-	INode *inodes;	
+	Inode *inodes;	
 
 	b = ((n - 1) / inodesPerBlock) + inodeOffset;
 	off = (n - 1) % inodesPerBlock;
@@ -468,18 +483,44 @@ static void flush() {
 	}
 }
 
+static void printSize(char *format, size_t size) {
+	int i = 0;
+
+	if (size == ULONG_MAX) {
+	    size = 4;
+		i = 3;
+	} else {
+		while (size >= KB) {
+			size = size >> KB_SHIFT;
+			++i;
+		}
+	}
+	printf(format, size, units[i]);
+}
+
 static void printSuperBlock(SuperBlock *sup) {
 	getBlock(SUPER_BLOCK, (char *) sup);
 	printf("\nSuperBlock:\n");
 	printf("  magic: 0x%x\n", sup->s_magic);
-	printf("  block size: %u bytes\n", sup->s_block_size);
+	printSize("  inode size: %d %s\n", INODE_SIZE);
+	printSize("  block size: %d %s\n", sup->s_block_size);
+	printSize("  max file size: %d %s\n", sup->s_max_size);
+
+	printf("\n");
 	printf("  inodes: %u\n", sup->s_inodes);
 	printf("  zones: %u\n", sup->s_zones);
+	printf("  blocks: %u\n", sup->s_zones << ZONE_SHIFT);
+
+	printf("\n");
+	printf("  inodes per block: %d\n", inodesPerBlock);
+	printf("  blocks per zone: %u\n", 1 << sup->s_log_zone_size);
+
+	printf("\n");
+	printf("  start offset blocks: %d\n", INODE_MAP);
 	printf("  inode-map blocks: %u\n", sup->s_imap_blocks);
 	printf("  zone-map blocks: %u\n", sup->s_zmap_blocks);
-	printf("  zone blocks: %u\n", 1 << sup->s_log_zone_size);
+	printf("  inode blocks: %u\n", (sup->s_inodes + inodesPerBlock - 1) / inodesPerBlock);
 	printf("  first data zone: %u\n", sup->s_first_data_zone);
-	printf("  max file size: 0x%X bytes\n", sup->s_max_size);
 }
 
 static void printMap(uint16_t mapBlocks, uint16_t startBlock) {
@@ -534,7 +575,7 @@ static void printMap(uint16_t mapBlocks, uint16_t startBlock) {
 	free(buf);
 }
 
-static void printInode(INode *inodes, DirEntry *dirs, int inoOff, ino_t inoNum) {
+static void printInode(Inode *inodes, DirEntry *dirs, int inoOff, ino_t inoNum) {
 	int insPerBlock;
 	block_t b;
 	int off, i;
@@ -560,7 +601,7 @@ static void printInode(INode *inodes, DirEntry *dirs, int inoOff, ino_t inoNum) 
 }
 
 static void printInodes(SuperBlock *sup) {
-	INode *inodes;
+	Inode *inodes;
 	DirEntry *dirs;
 	unsigned short *maps, map;
 	uint32_t inoOff;
@@ -619,32 +660,72 @@ static void printFS() {
 	free(sup);
 }
 
+static void calibrateBlockSize() {
+	if (!blockSize)
+	  blockSize = MAX_BLOCK_SIZE;	
+	if (blockSize % SECTOR_SIZE || blockSize < MIN_BLOCK_SIZE)
+	  fatal("block size must be multiple of sector (%d) "
+			"and at least %d bytes\n", 
+			SECTOR_SIZE, MIN_BLOCK_SIZE);
+	if (blockSize % INODE_SIZE)
+	  fatal("block size must be multiple of inode size (%d bytes)\n",
+				INODE_SIZE);
+}
+
 int main(int argc, char *argv[]) {
 	zone_t zones;
+	block_t blocks;
+	ino_t inodes;
 	int mode, uid, gid;
 	ino_t rootInoNum;
+	int ch;
+
+	procName = argv[0];
 
 	if (argc < 2 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)
-	  usage(argv[0]);
+	  usage();
 
-	currentTime = time(NULL);
-	device = argv[1];
+	blocks = 0;
+	inodes = 0;
+	while ((ch = getopt(argc, argv, "b:i:B:")) != EOF) {
+		switch (ch) {
+			case 'b':
+				blocks = strtoul(optarg, (char **) NULL, 0);
+				break;
+			case 'i':
+				inodes = strtoul(optarg, (char **) NULL, 0);
+				break;
+			case 'B':
+				blockSize = atoi(optarg);
+				break;
+			default:
+				usage();
+		}
+	}
+	if (argc - optind < 1)
+	  usage();
+
+	device = argv[optind];
 	deviceFd = RWOpen(device);
-	blockSize = MAX_BLOCK_SIZE;	
+	currentTime = time(NULL);
+
+	calibrateBlockSize();
+
 	inodesPerBlock = INODES_PER_BLOCK(blockSize);
-	zero = allocBlock();
 
-	numBlocks = computeBlocks();
-	numInodes = computeInodes(numBlocks);
+	blocks = computeBlocks(blocks);
+    inodes = computeInodes(blocks, inodes);
 
+	numBlocks = blocks;
+	numInodes = inodes;
 	mode = I_DIRECTORY | RWX_MODES;
 	uid = BIN;
 	gid	= BINGRP;
 
 	initCache();
 	
-	/* Write a null boot block. */
-	putBlock(BOOT_BLOCK, zero);
+	zero = allocBlock();
+	putBlock(BOOT_BLOCK, zero);		/* Write a null boot block. */
 
 	zones = numBlocks >> ZONE_SHIFT;
 

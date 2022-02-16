@@ -255,6 +255,7 @@ static bool copyParams(char *params, size_t size) {
 	size_t i = 0, n;
 	Environment *e;
 	char *name, *value;
+	dev_t dev;
 
 	memset(params, 0, size);
 
@@ -264,7 +265,9 @@ static bool copyParams(char *params, size_t size) {
 			value = e->value;
 
 			if (e->flags & E_DEV) {
-				// TODO name2dev
+				if ((dev = name2Dev(value)) == -1)
+				  return 0;
+				value = ul2a10((u16_t) dev);
 			}
 			/* Format: name=value\0 */
 			n = i + strlen(name) + 1 + strlen(value) + 1;

@@ -12,7 +12,7 @@
 #define FS_BITS_PER_BLOCK(b)	(FS_BITMAP_CHUNKS(b) * FS_BITCHUNK_BITS)
 
 #define ZONE_NUM_SIZE			usizeof(zone_t)		/* bytes in zone */
-#define	INODE_SIZE				usizeof(INode)		/* bytes in disk INode */	
+#define	INODE_SIZE				usizeof(Inode)		/* bytes in disk Inode */	
 #define INDIRECT_ZONES(b)		((b) / ZONE_NUM_SIZE)	/* zones / indirect block */
 #define INODES_PER_BLOCK(b)		((b) / INODE_SIZE)	/* disk inodes / blk */
 

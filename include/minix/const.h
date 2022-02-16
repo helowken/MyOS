@@ -47,7 +47,7 @@
 #define hclickToPhys(n)	((phys_bytes) (n) << HCLICK_SHIFT)
 #define physToHClick(n)	((n) >> HCLICK_SHIFT)
 
-/* Flag bits for i_mode in the INode. */
+/* Flag bits for i_mode in the Inode. */
 #define I_TYPE			0170000	/* This field gives inode type */
 #define I_REGULAR		0100000	/* Regular file, not dir or special */
 #define I_BLOCK_SPECIAL 0060000 /* Block special file */
@@ -65,5 +65,16 @@
 
 /* Flag used only in flags argument of devOpen. */
 #define RO_BIT			0200000	/* Open device readonly; fail if writable. */
+
+/* Some limits. */
+#define MAX_BLOCK_NR	((block_t)  077777777)	/* Largest block number */
+#define HIGHEST_ZONE	((zone_t)   077777777)	/* Largest zone number */
+#define MAX_INODE_NR	((ino_)	 037777777777)	/* Largest inode number */
+#define MAX_FILE_POS	((off_t) 037777777777)	/* Largest legal file offset */
+
+#define NO_BLOCK		((block_t) 0)	/* Absence of a block number */
+#define NO_ENTRY		((ino_t)   0)	/* Absence of a dir entry */
+#define NO_ZONE			((zone_t)  0)	/* Absence of a zone number */
+#define NO_DEV			((dev_t)   0)	/* Absence of a device number */
 
 #endif

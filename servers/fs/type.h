@@ -8,4 +8,4 @@ typedef struct {
 	int32_t mtime;		/* When was file data last changed */
 	int32_t ctime;		/* When was inode data last changed */
 	uint32_t zones[NR_TOTAL_ZONES];	/* Block nums for direct, indirect, and double indirect */
-} INode;
+} Inode;

@@ -168,8 +168,7 @@ static void pmInit() {
 	  panic(__FILE__, "couldn't get image table: %d\n", s);
 	procsInUse = 0;		/* Start populating table */
 	printf("Building process table:");		/* Show what's happening */
-	//for (i = 0; i < NR_BOOT_PROCS; ++i) { // TODO
-	for (i = 0; i < 6; ++i) {
+	for (i = 0; i < NR_BOOT_PROCS; ++i) { 
 		ip = &images[i];
 		if (ip->pNum >= 0) {
 			++procsInUse;		/* Found user process */

@@ -70,7 +70,7 @@ static void installMasterboot(char *device, char *masterboot) {
 static void installBootable(char *device, char *boot) {
 	off_t size;
 	int deviceFd, bootFd, sectors;
-	uint32_t lowSector;
+	uint32_t lba;
 
 	size = getFileSize(boot);
 	sectors = SECTORS(size);
@@ -86,8 +86,8 @@ static void installBootable(char *device, char *boot) {
 	Close(boot, bootFd);
 
 	deviceFd = RWOpen(device);
-	lowSector = getLowSector(deviceFd);
-	Lseek(device, deviceFd, OFFSET(BOOT_SEC_OFF + lowSector));
+	lba = getLowSector(deviceFd);
+	Lseek(device, deviceFd, OFFSET(BOOT_SEC_OFF + lba));
 	Write(device, deviceFd, buf, len);
 	Close(device, deviceFd);
 }
@@ -216,14 +216,14 @@ static void copyExec(char *procName, FILE *procFile, Elf32_Phdr *hdr) {
 	padImage(padLen);
 }
 
-static void installParams(char *device, int deviceFd, uint32_t lowSector, char *other) {
+static void installParams(char *device, int deviceFd, uint32_t lba, char *other) {
 	char buf[PARAM_LEN];
 
 	memset(buf, ';', PARAM_LEN);
 	if (snprintf(buf, PARAM_LEN, paramsTpl, device, device, other) < 0)
 	  errExit("snprintf params");
 
-	Lseek(device, deviceFd, OFFSET(lowSector + PARAM_SEC_OFF));
+	Lseek(device, deviceFd, OFFSET(lba + PARAM_SEC_OFF));
 	Write(device, deviceFd, buf, PARAM_LEN);
 }
 
@@ -235,7 +235,7 @@ static void installImage(char *device, char **procNames) {
 	imgBuf = malloc(bufLen);
 	ImageHeader imgHdr;
 	Exec *proc;
-	uint32_t lowSector;
+	uint32_t lba;
 	off_t secOff;
 	int deviceFd, n;
 
@@ -270,16 +270,16 @@ static void installImage(char *device, char **procNames) {
 				totalText + totalData + totalBss);
 
 	deviceFd = RWOpen(device);
-	lowSector = getLowSector(deviceFd);
+	lba = getLowSector(deviceFd);
 	secOff = BOOT_SEC_OFF + BOOT_MAX_SECTORS;
-	Lseek(device, deviceFd, OFFSET(lowSector + secOff));
+	Lseek(device, deviceFd, OFFSET(lba + secOff));
 	Write(device, deviceFd, imgBuf, bufOff);
 	free(imgBuf);
 
 	if ((n = snprintf(imgStr, IMG_STR_LEN, imgTpl, secOff, SECTORS(bufOff))) < 0)
 	  fatal("create image string");
 	imgStr[n] = '\0';
-	installParams(device, deviceFd, lowSector, imgStr);
+	installParams(device, deviceFd, lba, imgStr);
 
 	Close(device, deviceFd);
 }
@@ -291,7 +291,7 @@ static void installDevice(char *device, char *bootblock, char *boot) {
 	ssize_t size;
 	off_t bootSize;
 	char *ap;
-	uint32_t lowSector;
+	uint32_t lba;
 
 	memset(buf, 0, BOOT_BLOCK_LEN);
 
@@ -313,27 +313,17 @@ static void installDevice(char *device, char *bootblock, char *boot) {
 
 	deviceFd = RWOpen(device);
 	/* Get the first sector absolute address of the bootable partition. */
-	lowSector = getLowSector(deviceFd);
-	/* Move to the first sector of partition. */
-	Lseek(device, deviceFd, OFFSET(lowSector));
+	lba = getLowSector(deviceFd);
+	/* Move to LBA. */
+	Lseek(device, deviceFd, OFFSET(lba));
 	/* Write bootblock to device. */
 	Write(device, deviceFd, buf, BOOT_BLOCK_LEN);
 
 	/* Install params. */
-	installParams(device, deviceFd, lowSector, "");
+	installParams(device, deviceFd, lba, "");
 
 	Close(device, deviceFd);
 }
-
-/*
-static void installBootableWithFS(char *device, char *bootblock, char *boot) {
-	int deviceFd, bootblockFd, bootFd;
-
-	deviceFd = RWOpen(device);
-	
-	readSuper
-}
-*/
 
 static bool isOpt(char *opt, char *test) {
 	if (strcmp(opt, test) == 0) return true;
@@ -346,23 +336,16 @@ int main(int argc, char *argv[]) {
 	if (argc < 4 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)
 	  usage();
 
-	if (isOpt(argv[1], "-master")) {
-		/* Install masterboot to the first sector of device */
-	    installMasterboot(argv[2], argv[3]);
-	} else if (isOpt(argv[1], "-image")) {
-		/* Install image */
-	    installImage(argv[2], argv + 3);
-	} else if (argc >= 5 && isOpt(argv[1], "-device")) {
-	    /* Install bootblock to the boot sector with boot's disk addresses 
-		 * and sizes patched into the data segment of bootblock. 
-		 */
-	    installDevice(argv[2], argv[3], argv[4]);		
-	} else if (isOpt(argv[1], "-bootable")) {
-		/* Install boot without a file system. */
-	    installBootable(argv[2], argv[3]);
-	} else {
+	if (isOpt(argv[1], "-master"))
+	  installMasterboot(argv[2], argv[3]);
+	else if (isOpt(argv[1], "-image"))
+	  installImage(argv[2], argv + 3);
+	else if (argc >= 5 && isOpt(argv[1], "-device"))
+	  installDevice(argv[2], argv[3], argv[4]);
+	else if (isOpt(argv[1], "-bootable"))
+	  installBootable(argv[2], argv[3]);
+	else 
 	  usage();
-	}
 
 	exit(EXIT_SUCCESS);
 }
