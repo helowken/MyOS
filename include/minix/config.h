@@ -14,5 +14,6 @@
 
 /* The buffer cache should be made as large as you can afford. */
 #define NR_BUFS			1280	/* Blocks in the buffer cache */
+#define NR_BUF_HASH		2048	/* Size of buf hash table; MUST BE POWER OF 2 */
 
 #endif

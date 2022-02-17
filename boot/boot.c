@@ -13,6 +13,11 @@
 
 static char *version = "1.0.0";
 
+static struct biosDev {
+	char name[8];
+	int device, primary, secondary;
+} bootDev, tmpDev;
+
 typedef struct Token {
 	struct Token *next;
 	char	*token;
@@ -82,7 +87,7 @@ dev_t name2Dev(char *name) {
  * "tmpDev" will be filled in based on the name, so that "boot d1p0" knows
  * what device to boot without interpreting device numbers.
  */
-
+	return tmpDev.device; // DELETE
 }
 
 static void determineAvailableMemory() {
@@ -158,11 +163,6 @@ static void copyToFarAway() {
 	memList[0].base += CLICK_SIZE << 1;
 	memList[0].size -= CLICK_SIZE << 1;
 }
-
-static struct biosDev {
-	char name[8];
-	int device, primary, secondary;
-} bootDev, tmpDev;
 
 static int getMaster(char *master, PartitionEntry **table, u32_t pos) {
 /* Read a master boot sector and its partition table. */

@@ -1,6 +1,7 @@
 #include "common.h"
 #include "util.h"
 #include "image.h"
+#include "rawfs.h"
 
 #define MASTER_BOOT_LEN		440
 #define BOOT_BLOCK_LEN		512			/* Like standard UNIX, reserves 1K block of disk device
@@ -18,6 +19,15 @@
 #define isRX(p)				(((p)->p_flags & PF_R) && ((p)->p_flags & PF_X))
 #define isRW(p)				(((p)->p_flags & PF_R) && ((p)->p_flags & PF_W))
 #define ALIGN(n)			(((n) + ((SECTOR_SIZE) - 1)) & ~((SECTOR_SIZE) - 1))
+
+#define sDev(off)		Lseek(device, deviceFd, (off))
+#define rDev(buf,size)	Read(device, deviceFd, (buf), (size))
+#define wDev(buf,size)	Write(device, deviceFd, (buf), (size)) 
+
+static char *procName;
+static char *device;
+static int deviceFd;
+static uint32_t lowSector;
 
 static char *paramsTpl = 
 	"rootdev=%s;"
@@ -54,23 +64,20 @@ static uint32_t getLowSector(int deviceFd) {
 
 typedef void (*preCopyFunc)(int destFd, int srcFd);
 
-static void installMasterboot(char *device, char *masterboot) {
-	int deviceFd, mbrFd;
+static void installMasterboot(char *masterboot) {
+	int mbrFd;
 	char buf[MASTER_BOOT_LEN];
 
 	memset(buf, 0, MASTER_BOOT_LEN);
-	deviceFd = WOpen(device);
 	mbrFd = ROpen(masterboot);
 	Read(masterboot, mbrFd, buf, MASTER_BOOT_LEN);
-	Write(device, deviceFd, buf, MASTER_BOOT_LEN);
+	wDev(buf, MASTER_BOOT_LEN);
 	Close(masterboot, mbrFd);
-	Close(device, deviceFd);
 }
 
-static void installBootable(char *device, char *boot) {
+static void installBootable(char *boot) {
 	off_t size;
-	int deviceFd, bootFd, sectors;
-	uint32_t lowSector;
+	int bootFd, sectors;
 
 	size = getFileSize(boot);
 	sectors = SECTORS(size);
@@ -85,11 +92,8 @@ static void installBootable(char *device, char *boot) {
 	Read(boot, bootFd, buf, len);
 	Close(boot, bootFd);
 
-	deviceFd = RWOpen(device);
-	lowSector = getLowSector(deviceFd);
-	Lseek(device, deviceFd, OFFSET(BOOT_SEC_OFF + lowSector));
-	Write(device, deviceFd, buf, len);
-	Close(device, deviceFd);
+	sDev(OFFSET(BOOT_SEC_OFF + lowSector));
+	wDev(buf, len);
 }
 
 static void checkElfHeader(char *procName, Elf32_Ehdr *ehdrPtr) {
@@ -216,18 +220,18 @@ static void copyExec(char *procName, FILE *procFile, Elf32_Phdr *hdr) {
 	padImage(padLen);
 }
 
-static void installParams(char *device, int deviceFd, uint32_t lowSector, char *other) {
+static void installParams(char *other) {
 	char buf[PARAM_LEN];
 
 	memset(buf, ';', PARAM_LEN);
 	if (snprintf(buf, PARAM_LEN, paramsTpl, device, device, other) < 0)
 	  errExit("snprintf params");
 
-	Lseek(device, deviceFd, OFFSET(lowSector + PARAM_SEC_OFF));
-	Write(device, deviceFd, buf, PARAM_LEN);
+	sDev(OFFSET(lowSector + PARAM_SEC_OFF));
+	wDev(buf, PARAM_LEN);
 }
 
-static void installImage(char *device, char **procNames) {
+static void installImage(char **procNames) {
 	FILE *procFile;
 #define IMG_STR_LEN	50
 	char *procName, *file, imgStr[IMG_STR_LEN];
@@ -235,9 +239,8 @@ static void installImage(char *device, char **procNames) {
 	imgBuf = malloc(bufLen);
 	ImageHeader imgHdr;
 	Exec *proc;
-	uint32_t lowSector;
 	off_t secOff;
-	int deviceFd, n;
+	int n;
 
 	while ((procName = *procNames++) != NULL) {
 		if ((file = strrchr(procName, ':')) != NULL)
@@ -269,29 +272,24 @@ static void installImage(char *device, char **procNames) {
 	printf(" %8ld %8ld %8ld %8ld	total\n", totalText, totalData, totalBss, 
 				totalText + totalData + totalBss);
 
-	deviceFd = RWOpen(device);
-	lowSector = getLowSector(deviceFd);
 	secOff = BOOT_SEC_OFF + BOOT_MAX_SECTORS;
-	Lseek(device, deviceFd, OFFSET(lowSector + secOff));
-	Write(device, deviceFd, imgBuf, bufOff);
+	sDev(OFFSET(lowSector + secOff));
+	wDev(imgBuf, bufOff);
 	free(imgBuf);
 
 	if ((n = snprintf(imgStr, IMG_STR_LEN, imgTpl, secOff, SECTORS(bufOff))) < 0)
 	  fatal("create image string");
 	imgStr[n] = '\0';
-	installParams(device, deviceFd, lowSector, imgStr);
-
-	Close(device, deviceFd);
+	installParams(imgStr);
 }
 
-static void installDevice(char *device, char *bootblock, char *boot) {
+static void installDevice(char *bootblock, char *boot) {
 	int addr = BOOT_SEC_OFF;
 	char buf[BOOT_BLOCK_LEN];
-	int deviceFd, bootblockFd;
+	int bootblockFd;
 	ssize_t size;
 	off_t bootSize;
 	char *ap;
-	uint32_t lowSector;
 
 	memset(buf, 0, BOOT_BLOCK_LEN);
 
@@ -311,29 +309,39 @@ static void installDevice(char *device, char *bootblock, char *boot) {
 	buf[SIGNATURE_POS] = SIGNATURE & 0xFF;
 	buf[SIGNATURE_POS + 1] = (SIGNATURE >> 8) & 0xFF;
 
-	deviceFd = RWOpen(device);
-	/* Get the first sector absolute address of the bootable partition. */
-	lowSector = getLowSector(deviceFd);
 	/* Move to the first sector of partition. */
-	Lseek(device, deviceFd, OFFSET(lowSector));
+	sDev(OFFSET(lowSector));
 	/* Write bootblock to device. */
-	Write(device, deviceFd, buf, BOOT_BLOCK_LEN);
+	wDev(buf, BOOT_BLOCK_LEN);
 
 	/* Install params. */
-	installParams(device, deviceFd, lowSector, "");
-
-	Close(device, deviceFd);
+	installParams("");
 }
 
-/*
-static void installBootableWithFS(char *device, char *bootblock, char *boot) {
-	int deviceFd, bootblockFd, bootFd;
-
-	deviceFd = RWOpen(device);
-	
-	readSuper
+void readBlock(Off_t blockNum, char *buf, int blockSize) {
+/* For rawfs, so that it can read blocks. */
+	sDev(blockNum * blockSize);
+	rDev(buf, blockSize);
 }
-*/
+
+void installBootableWithFS(char *bootblock, char *boot) {
+	//int bootblockFd, bootFd;
+	Off_t fsSize;
+	Ino_t ino;
+	int blockSize = 0;
+
+	/* Read and check the superblock. */
+	fsSize = rawSuper(&blockSize);
+	if (fsSize == 0)
+	  fatal("%s: %s is not a Minix file system\n", procName, device);
+
+	/* See if the boot code can be found on the file system. */
+	if ((ino = rawLookup(ROOT_INO, boot)) == 0) {
+		if (errno != ENOENT)
+		  fatal("%s: %s\n", procName, boot);
+	}
+
+}
 
 static bool isOpt(char *opt, char *test) {
 	if (strcmp(opt, test) == 0) return true;
@@ -346,23 +354,30 @@ int main(int argc, char *argv[]) {
 	if (argc < 4 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)
 	  usage();
 
+	procName = argv[0];
+	device = argv[2];
+	deviceFd = RWOpen(device);
+	lowSector = getLowSector(deviceFd);
+
 	if (isOpt(argv[1], "-master")) {
 		/* Install masterboot to the first sector of device */
-	    installMasterboot(argv[2], argv[3]);
+	    installMasterboot(argv[3]);
 	} else if (isOpt(argv[1], "-image")) {
 		/* Install image */
-	    installImage(argv[2], argv + 3);
+	    installImage(argv + 3);
 	} else if (argc >= 5 && isOpt(argv[1], "-device")) {
 	    /* Install bootblock to the boot sector with boot's disk addresses 
 		 * and sizes patched into the data segment of bootblock. 
 		 */
-	    installDevice(argv[2], argv[3], argv[4]);		
+	    installDevice(argv[3], argv[4]);		
 	} else if (isOpt(argv[1], "-bootable")) {
 		/* Install boot without a file system. */
-	    installBootable(argv[2], argv[3]);
+	    installBootable(argv[3]);
 	} else {
 	  usage();
 	}
+
+	Close(device, deviceFd);
 
 	exit(EXIT_SUCCESS);
 }

@@ -1,7 +1,13 @@
 #include <time.h>
 #include "common.h"
 #include "util.h"
-#include "mkfs.h"
+
+#include "../include/limits.h"
+#include "../include/dirent.h"
+#include "../include/minix/const.h"
+#include "../servers/fs/const.h"
+#include "../servers/fs/type.h"
+#include "../servers/fs/super.h"
 
 #define NULL			((void *)0)
 #define KB				1024
@@ -11,33 +17,24 @@
 #define CACHE_SIZE		20
 #define UMAP_SIZE		(ULONG_MAX / MAX_BLOCK_SIZE)		
 #define BLOCK_OFF(n)	(OFFSET(lowSector) + (n) * blockSize)
-#define ZONE_SHIFT		0
-#define BOOT_BLOCK		0
-#define SUPER_BLOCK		1
-#define INODE_MAP		2
+#define SUPER_OFFSET	BLOCK_OFF(0) + SUPER_OFFSET_BYTES
+#define INODE_MAP		2		/* Inode-map offset blocks */
 #define MAX_MAX_SIZE	((unsigned long) 0xffffffff)
+#define ZONE_SHIFT				0
 
-typedef struct {
-	char blockBuf[MAX_BLOCK_SIZE];
-	block_t blockNum;
-	bool dirty;
-	int useCount;
-} Cache;
-
-static Cache cache[CACHE_SIZE];
 static long currentTime;
 static char *device;
 static int deviceFd;
 static uint32_t lowSector;
 static unsigned int blockSize;
-static int inodesPerBlock;
+static unsigned inodesPerBlock;
 static char *zero;
-static block_t numBlocks;
+static Block_t numBlocks;
 static unsigned int numInodes;
 static char umap[UMAP_SIZE];
 static int inodeOffset;
 static int nextZone, nextInode, zoneOffset, blocksPerZone;
-static zone_t zoneMap;
+static Zone_t zoneMap;
 
 static char *procName;
 static char *units[] = {"bytes", "KB", "MB", "GB"};
@@ -56,7 +53,7 @@ static char *allocBlock() {
 	return buf;
 }
 
-static block_t sizeup() {
+static Block_t sizeup() {
 	PartitionEntry pe;
 
 	getActivePartition(deviceFd, &pe);
@@ -64,8 +61,8 @@ static block_t sizeup() {
 	return pe.sectorCount * (blockSize / SECTOR_SIZE);
 }
 
-static block_t computeBlocks(block_t blocks) {
-	block_t maxBlocks;
+static Block_t computeBlocks(Block_t blocks) {
+	Block_t maxBlocks;
 	
 	maxBlocks = sizeup();
 	if (blocks == 0) {
@@ -88,7 +85,7 @@ static block_t computeBlocks(block_t blocks) {
 	return blocks;
 }
 
-static ino_t computeInodes(block_t blocks, ino_t inodes) {
+static Ino_t computeInodes(Block_t blocks, Ino_t inodes) {
 	int kb;
 
 	if (inodes == 0) {
@@ -120,14 +117,7 @@ static ino_t computeInodes(block_t blocks, ino_t inodes) {
 	return inodes;
 }
 
-static void initCache() {
-	Cache *bp;
-	for (bp = cache; bp < &cache[CACHE_SIZE]; ++bp) {
-		bp->blockNum = -1;
-	}
-}
-
-static bool readAndSet(block_t n) {
+static bool readAndSet(Block_t n) {
 	int idx, off, mask;
 	bool r;
 
@@ -139,87 +129,20 @@ static bool readAndSet(block_t n) {
 	return r;
 }
 
-static void mxRead(block_t n, char *buf) {
-	Lseek(device, deviceFd, BLOCK_OFF(n));
-	Read(device, deviceFd, buf, blockSize);
-}
-
-static void mxWrite(block_t n, char *buf) {
-	Lseek(device, deviceFd, BLOCK_OFF(n));
-	Write(device, deviceFd, buf, blockSize);
-}
-
-typedef void (*CopyFunc)(char *cacheBuf, char *userBuf, size_t size); 
-typedef void (*PostTransferFunc)(block_t n, char *userBuf, Cache *fp);
-
-static void transferBlock(block_t n, char *buf, CopyFunc copyFunc, PostTransferFunc postFunc) {
-	Cache *bp, *fp;
-
-	/* Look for block in cache */
-	fp = NULL;
-	for (bp = cache; bp < &cache[CACHE_SIZE]; ++bp) {
-		if (bp->blockNum == n) {
-			copyFunc(bp->blockBuf, buf, blockSize);
-			bp->dirty = true;
-			return;
-		}
-
-		/* Remember clean block. */
-		if (!bp->dirty) {
-			if (!fp || fp->useCount > bp->useCount) {
-			  fp = bp;
-			}
-		}
-	}
-
-	/* Block not in cache */
-	if (!fp) {
-		/* No clean buf, flush one. */
-		for (bp = cache, fp = cache; bp < &cache[CACHE_SIZE]; ++bp) {
-			if (fp->useCount > bp->useCount)
-			  fp = bp;
-		}
-		mxWrite(fp->blockNum, fp->blockBuf);
-	}
-
-	postFunc(n, buf, fp);
-
-	copyFunc(fp->blockBuf, buf, blockSize);
-}
-
-static void copyFromCache(char *cacheBuf, char *userBuf, size_t size) {
-	memcpy(userBuf, cacheBuf, size);
-}
-
-static void postGetBlock(block_t n, char *userBuf, Cache *fp) {
-	mxRead(n, fp->blockBuf);
-	fp->dirty = false;
-	fp->useCount = 0;
-	fp->blockNum = n;
-}
-
-static void getBlock(block_t n, char *buf) {
+static void getBlock(Block_t n, char *buf) {
 	/* First access returns a zero block. */
 	if (!readAndSet(n)) {
 		memcpy(buf, zero, blockSize);
 		return;
 	}
-	transferBlock(n, buf, copyFromCache, postGetBlock);
+	Lseek(device, deviceFd, BLOCK_OFF(n));
+	Read(device, deviceFd, buf, blockSize);
 }
 
-static void copyToCache(char *cacheBuf, char *userBuf, size_t size) {
-	memcpy(cacheBuf, userBuf, size);
-}
-
-static void postPutBlock(block_t n, char *userBuf, Cache *fp) {
-	fp->dirty = true;
-	fp->useCount = 1;
-	fp->blockNum = n;
-}
-
-static void putBlock(block_t n, char *buf) {
+static void putBlock(Block_t n, char *buf) {
 	readAndSet(n);
-	transferBlock(n, buf, copyToCache, postPutBlock);	
+	Lseek(device, deviceFd, BLOCK_OFF(n));
+	Write(device, deviceFd, buf, blockSize);
 }
 
 static int bitmapSize(uint32_t numBits, int blkSize) {
@@ -231,7 +154,7 @@ static int bitmapSize(uint32_t numBits, int blkSize) {
 	return blocks;
 }
 
-static void insertBit(block_t n, int bit) {
+static void insertBit(Block_t n, int bit) {
 	int idx, off;
 	short *buf;		/* an array of short */
 
@@ -248,10 +171,10 @@ static void insertBit(block_t n, int bit) {
 	free(buf);
 }
 
-static void initSuperBlock(zone_t zones, ino_t inodes) {
+static void initSuperBlock(Zone_t zones, Ino_t inodes) {
 	int inodeBlocks, initBlocks;
-	zone_t indirectZones, doubleIndirectZones;
-	zone_t totalZones;
+	Zone_t indirectZones, doubleIndirectZones;
+	Zone_t totalZones;
 	SuperBlock *sup;
 	int i;
 
@@ -281,7 +204,8 @@ static void initSuperBlock(zone_t zones, ino_t inodes) {
 	blocksPerZone = 1 << ZONE_SHIFT;		
 
 	/* Write super block. */
-	putBlock(SUPER_BLOCK, (char *) sup);
+	Lseek(device, deviceFd, SUPER_OFFSET);
+	Write(device, deviceFd, (char *) sup, SUPER_BLOCK_BYTES);
 	
 	/* Clear maps and inodes. */
 	for (i = INODE_MAP; i < initBlocks; ++i) {
@@ -298,12 +222,12 @@ static void initSuperBlock(zone_t zones, ino_t inodes) {
 	free(sup);
 }
 
-static ino_t allocInode(int mode, int uid, int gid) {
-	ino_t num;
-	block_t b;
+static Ino_t allocInode(int mode, int uid, int gid) {
+	Ino_t num;
+	Block_t b;
 	int off;
-	Inode *inp;
-	Inode *inodes;	/* an array of Inode */
+	DiskInode *inp;
+	DiskInode *inodes;	/* an array of DiskInode */
 
 	num = nextInode++;
 	if (num > numInodes) {
@@ -330,9 +254,9 @@ static ino_t allocInode(int mode, int uid, int gid) {
 	return num;
 }
 
-static zone_t allocZone() {
-	zone_t z;
-	block_t b;
+static Zone_t allocZone() {
+	Zone_t z;
+	Block_t b;
 	int i;
 
 	z = nextZone++;
@@ -347,13 +271,13 @@ static zone_t allocZone() {
 	return z;
 }
 
-static void addZone(ino_t n, zone_t z, size_t bytes, long currTime) {
-	block_t b;
+static void addZone(Ino_t n, Zone_t z, size_t bytes, long currTime) {
+	Block_t b;
 	int off, i;
-	zone_t indirZone;
-	zone_t *zones;	/* an array of zone_t */
-	Inode *inp;		
-	Inode *inodes;	/* an array of Inode */
+	Zone_t indirZone;
+	Zone_t *zones;	/* an array of Zone_t */
+	DiskInode *inp;		
+	DiskInode *inodes;	/* an array of DiskInode */
 
 	if (! (zones = malloc(blockSize)))
 	  errExit("couldn't allocate indirect block");
@@ -397,13 +321,13 @@ static void addZone(ino_t n, zone_t z, size_t bytes, long currTime) {
 	fatal("File has grown beyond single indirect");
 }
 
-static void createDir(ino_t parent, char *name, ino_t child) {
+static void createDir(Ino_t parent, char *name, Ino_t child) {
 	int k, l, i;
-	zone_t z;
-	block_t b, zoneBlocks;
+	Zone_t z;
+	Block_t b, zoneBlocks;
 	int off;
 	DirEntry *dirs;	/* an array of Directory */
-	Inode *inodes;		/* an array of Inode */
+	DiskInode *inodes;		/* an array of DiskInode */
 
 	b = ((parent - 1) / inodesPerBlock) + inodeOffset;
 	off = (parent - 1) % inodesPerBlock;
@@ -444,10 +368,10 @@ static void createDir(ino_t parent, char *name, ino_t child) {
 	fatal("Halt");
 }
 
-static void increseLink(ino_t n, int linkCount) {
-	block_t b;
+static void increseLink(Ino_t n, int linkCount) {
+	Block_t b;
 	int off;
-	Inode *inodes;	
+	DiskInode *inodes;	
 
 	b = ((n - 1) / inodesPerBlock) + inodeOffset;
 	off = (n - 1) % inodesPerBlock;
@@ -462,25 +386,14 @@ static void increseLink(ino_t n, int linkCount) {
 	free(inodes);
 }
 
-static void initRootDir(ino_t inoNum) {
-	zone_t z;
+static void initRootDir(Ino_t inoNum) {
+	Zone_t z;
 
 	z = allocZone();
 	addZone(inoNum, z, 2 * sizeof(DirEntry), currentTime);
 	createDir(inoNum, ".", inoNum);
 	createDir(inoNum, "..", inoNum);
 	increseLink(inoNum, 2);
-}
-
-static void flush() {
-	Cache *bp;
-	
-	for (bp = cache; bp < &cache[CACHE_SIZE]; ++bp) {
-		if (bp->dirty) {
-			mxWrite(bp->blockNum, bp->blockBuf);
-			bp->dirty = false;
-		}
-	}
 }
 
 static void printSize(char *format, size_t size) {
@@ -499,7 +412,10 @@ static void printSize(char *format, size_t size) {
 }
 
 static void printSuperBlock(SuperBlock *sup) {
-	getBlock(SUPER_BLOCK, (char *) sup);
+	memset((char *) sup, 0, blockSize);
+	Lseek(device, deviceFd, SUPER_OFFSET);
+	Read(device, deviceFd, (char *) sup, SUPER_BLOCK_BYTES);
+
 	printf("\nSuperBlock:\n");
 	printf("  magic: 0x%x\n", sup->s_magic);
 	printSize("  inode size: %d %s\n", INODE_SIZE);
@@ -507,9 +423,9 @@ static void printSuperBlock(SuperBlock *sup) {
 	printSize("  max file size: %d %s\n", sup->s_max_size);
 
 	printf("\n");
-	printf("  inodes: %u\n", sup->s_inodes);
-	printf("  zones: %u\n", sup->s_zones);
-	printf("  blocks: %u\n", sup->s_zones << ZONE_SHIFT);
+	printf("  inodes: %lu\n", sup->s_inodes);
+	printf("  zones: %lu\n", sup->s_zones);
+	printf("  blocks: %lu\n", sup->s_zones << ZONE_SHIFT);
 
 	printf("\n");
 	printf("  inodes per block: %d\n", inodesPerBlock);
@@ -519,8 +435,8 @@ static void printSuperBlock(SuperBlock *sup) {
 	printf("  start offset blocks: %d\n", INODE_MAP);
 	printf("  inode-map blocks: %u\n", sup->s_imap_blocks);
 	printf("  zone-map blocks: %u\n", sup->s_zmap_blocks);
-	printf("  inode blocks: %u\n", (sup->s_inodes + inodesPerBlock - 1) / inodesPerBlock);
-	printf("  first data zone: %u\n", sup->s_first_data_zone);
+	printf("  inode blocks: %lu\n", (sup->s_inodes + inodesPerBlock - 1) / inodesPerBlock);
+	printf("  first data zone: %lu\n", sup->s_first_data_zone);
 }
 
 static void printMap(uint16_t mapBlocks, uint16_t startBlock) {
@@ -575,9 +491,9 @@ static void printMap(uint16_t mapBlocks, uint16_t startBlock) {
 	free(buf);
 }
 
-static void printInode(Inode *inodes, DirEntry *dirs, int inoOff, ino_t inoNum) {
+static void printInode(DiskInode *inodes, DirEntry *dirs, int inoOff, Ino_t inoNum) {
 	int insPerBlock;
-	block_t b;
+	Block_t b;
 	int off, i;
 
 	insPerBlock = INODES_PER_BLOCK(blockSize);
@@ -587,8 +503,8 @@ static void printInode(Inode *inodes, DirEntry *dirs, int inoOff, ino_t inoNum) 
 
 	printf("  %lu: ", inoNum);
 	printf("mode=%06o, ", inodes[off].mode);
-	printf("uid=%d, gid=%d, size=%u, ", inodes[off].uid, inodes[off].gid, inodes[off].size);
-	printf("zone[0]=%u\n", inodes[off].zones[0]);
+	printf("uid=%d, gid=%d, size=%lu, ", inodes[off].uid, inodes[off].gid, inodes[off].size);
+	printf("zone[0]=%lu\n", inodes[off].zones[0]);
 
 	if ((inodes[off].mode & I_TYPE) == I_DIRECTORY) {
 		getBlock(inodes[off].zones[0], (char *) dirs);
@@ -601,11 +517,11 @@ static void printInode(Inode *inodes, DirEntry *dirs, int inoOff, ino_t inoNum) 
 }
 
 static void printInodes(SuperBlock *sup) {
-	Inode *inodes;
+	DiskInode *inodes;
 	DirEntry *dirs;
 	unsigned short *maps, map;
 	uint32_t inoOff;
-	ino_t inoNum;
+	Ino_t inoNum;
 	int k, j, i, mapsCnt;
 
 	if (! (maps = malloc(blockSize)))
@@ -673,11 +589,11 @@ static void calibrateBlockSize() {
 }
 
 int main(int argc, char *argv[]) {
-	zone_t zones;
-	block_t blocks;
-	ino_t inodes;
+	Zone_t zones;
+	Block_t blocks;
+	Ino_t inodes;
 	int mode, uid, gid;
-	ino_t rootInoNum;
+	Ino_t rootInoNum;
 	int ch;
 
 	procName = argv[0];
@@ -710,9 +626,7 @@ int main(int argc, char *argv[]) {
 	currentTime = time(NULL);
 
 	calibrateBlockSize();
-
 	inodesPerBlock = INODES_PER_BLOCK(blockSize);
-
 	blocks = computeBlocks(blocks);
     inodes = computeInodes(blocks, inodes);
 
@@ -722,8 +636,6 @@ int main(int argc, char *argv[]) {
 	uid = BIN;
 	gid	= BINGRP;
 
-	initCache();
-	
 	zero = allocBlock();
 	putBlock(BOOT_BLOCK, zero);		/* Write a null boot block. */
 
@@ -733,7 +645,6 @@ int main(int argc, char *argv[]) {
 	rootInoNum = allocInode(mode, uid, gid);
 	initRootDir(rootInoNum);
 
-	flush();
 	printFS();
 
 	Close(device, deviceFd);
