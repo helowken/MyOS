@@ -363,7 +363,7 @@ static void createDir(Ino_t parent, char *name, Ino_t child) {
 		}
 	}
 	fprintf(stderr, 
-		"Directory-inode %lu beyond direct blocks.  Could not enter %s\n", 
+		"Directory-inode %u beyond direct blocks.  Could not enter %s\n", 
 		parent, name);
 	fatal("Halt");
 }
@@ -423,9 +423,9 @@ static void printSuperBlock(SuperBlock *sup) {
 	printSize("  max file size: %d %s\n", sup->s_max_size);
 
 	printf("\n");
-	printf("  inodes: %lu\n", sup->s_inodes);
-	printf("  zones: %lu\n", sup->s_zones);
-	printf("  blocks: %lu\n", sup->s_zones << ZONE_SHIFT);
+	printf("  inodes: %u\n", sup->s_inodes);
+	printf("  zones: %u\n", sup->s_zones);
+	printf("  blocks: %u\n", sup->s_zones << ZONE_SHIFT);
 
 	printf("\n");
 	printf("  inodes per block: %d\n", inodesPerBlock);
@@ -435,8 +435,8 @@ static void printSuperBlock(SuperBlock *sup) {
 	printf("  start offset blocks: %d\n", INODE_MAP);
 	printf("  inode-map blocks: %u\n", sup->s_imap_blocks);
 	printf("  zone-map blocks: %u\n", sup->s_zmap_blocks);
-	printf("  inode blocks: %lu\n", (sup->s_inodes + inodesPerBlock - 1) / inodesPerBlock);
-	printf("  first data zone: %lu\n", sup->s_first_data_zone);
+	printf("  inode blocks: %u\n", (sup->s_inodes + inodesPerBlock - 1) / inodesPerBlock);
+	printf("  first data zone: %u\n", sup->s_first_data_zone);
 }
 
 static void printMap(uint16_t mapBlocks, uint16_t startBlock) {
@@ -501,10 +501,10 @@ static void printInode(DiskInode *inodes, DirEntry *dirs, int inoOff, Ino_t inoN
 	off = (inoNum - 1) % insPerBlock;
 	getBlock(b, (char *) inodes);
 
-	printf("  %lu: ", inoNum);
+	printf("  %u: ", inoNum);
 	printf("mode=%06o, ", inodes[off].mode);
-	printf("uid=%d, gid=%d, size=%lu, ", inodes[off].uid, inodes[off].gid, inodes[off].size);
-	printf("zone[0]=%lu\n", inodes[off].zones[0]);
+	printf("uid=%d, gid=%d, size=%u, ", inodes[off].uid, inodes[off].gid, inodes[off].size);
+	printf("zone[0]=%u\n", inodes[off].zones[0]);
 
 	if ((inodes[off].mode & I_TYPE) == I_DIRECTORY) {
 		getBlock(inodes[off].zones[0], (char *) dirs);

@@ -22,14 +22,17 @@ typedef enum { false, true } bool;
 
 #define EXTERN	extern
 
-typedef unsigned long	Ino_t;		/* i-node numer */
-typedef unsigned long	Block_t;	/* block number */
-typedef unsigned long	Off_t;		/* Offset within a file */
-typedef unsigned short	Mode_t;		/* File type and permissions bits */
-typedef unsigned long	Zone_t;		/* Zone number */
-typedef unsigned short	Bitchunk_t;	/* Collection of bits in a bitmap */
-typedef short			Dev_t;		/* Holds (major|minor) device pair */
-typedef short			Nlink_t;	/* Number of links to a file */
-typedef long			Time_t;
+/* Mapping Linux types to Minix types. */
+typedef	int16_t			Uid_t;		/* User id */
+typedef int8_t			Gid_t;		/* Group id */
+typedef uint32_t		Ino_t;		/* i-node numer */
+typedef uint32_t		Block_t;	/* block number */
+typedef uint32_t		Off_t;		/* Offset within a file */
+typedef uint16_t		Mode_t;		/* File type and permissions bits */
+typedef uint32_t		Zone_t;		/* Zone number */
+typedef uint16_t		Bitchunk_t;	/* Collection of bits in a bitmap */
+typedef int16_t			Dev_t;		/* Holds (major|minor) device pair */
+typedef int16_t			Nlink_t;	/* Number of links to a file */
+typedef int32_t			Time_t;
 
 #endif

@@ -6,23 +6,23 @@
 #endif
 
 struct stat {
-	dev_t st_dev;		/* major/minor device number */
-	ino_t st_ino;		/* i-node number */
-	mode_t st_mode;		/* file mode, protection bits, etc. */
-	nlink_t st_nlink;	/* links */
-	uid_t st_uid;		/* the file's owner */
-	gid_t st_gid;		/* the file's group */
-	dev_t st_rdev;
-	off_t st_size;		/* file size */
-	time_t st_atime;	/* time of last access */
-	time_t st_mtime;	/* time of last data modification */
-	time_t st_ctime;	/* time of last file status change */
+	Dev_t st_dev;		/* Major/minor device number */
+	Ino_t st_ino;		/* I-node number */
+	Mode_t st_mode;		/* File mode, protection bits, etc. */
+	Nlink_t st_nlink;	/* Links */
+	uid_t st_uid;		/* The file's owner */
+	gid_t st_gid;		/* The file's group */
+	Dev_t st_rdev;		/* Device ID (if special file) */
+	Off_t st_size;		/* File size */
+	Time_t st_atime;	/* Time of last access */
+	Time_t st_mtime;	/* Time of last data modification */
+	Time_t st_ctime;	/* Time of last file status change */
 };
 
 /* Traditional mask definitions for st_mode. */
-#define S_IFMT		((mode_t) 0170000)	/* Type of file */
-#define S_IFLNK		((mode_t) 0120000)	/* Symbolic link, not implemented */
-#define S_IFREG		((mode_t) 0100000)	/* Regular */
+#define S_IFMT		((Mode_t) 0170000)	/* Type of file */
+#define S_IFLNK		((Mode_t) 0120000)	/* Symbolic link, not implemented */
+#define S_IFREG		((Mode_t) 0100000)	/* Regular */
 #define S_IFBLK		0060000		/* Block special */
 #define S_IFDIR		0040000		/* Directory */
 #define S_IFCHR		0020000		/* Character special */

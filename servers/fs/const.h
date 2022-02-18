@@ -27,3 +27,9 @@
 #define SUPER_BLOCK_BYTES		1024	/* Super block size */
 #define SUPER_OFFSET_BYTES		1024	/* Super block bytes offset */
 #define START_BLOCK				2		/* First block of FS (not counting super block) */
+
+/* Zone index */
+#define INDIR_ZONE_IDX			7		/* Single indirect zone index */
+#define	DBL_IND_ZONE_IDX		(INDIR_ZONE_IDX + 1)	/* Double indirect zone index */
+
+

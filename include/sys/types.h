@@ -51,7 +51,7 @@ typedef long			i32_t;
 
 typedef struct { u32_t _[2]; } u64_t;
 
-/* To avoid confliting with linux types */
+/* To avoid confliting with Linux types */
 typedef off_t			Off_t;		
 typedef mode_t			Mode_t;
 typedef time_t			Time_t;
@@ -61,5 +61,7 @@ typedef ino_t			Ino_t;
 typedef nlink_t			Nlink_t;
 typedef bitchunk_t		Bitchunk_t;
 typedef dev_t			Dev_t;
+typedef uid_t			Uid_t;
+typedef gid_t			Gid_t;
 
 #endif
