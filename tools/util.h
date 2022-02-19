@@ -1,10 +1,10 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#define PARAM_SEC_OFF		1			/* next to the bootblock */
 #define SECTOR_SIZE			512
 #define SECTORS(n)			(((n) + ((SECTOR_SIZE) - 1)) / (SECTOR_SIZE))
 #define OFFSET(n)			((n) * (SECTOR_SIZE))
+#define RATIO(n)			((n) / SECTOR_SIZE)
 
 void getActivePartition(int deviceFd, PartitionEntry *pe);
 

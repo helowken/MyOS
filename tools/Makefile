@@ -21,4 +21,7 @@ clean:
 	rm -f *.o *.bin
 
 test: mkfs.bin
-	./mkfs.bin ../boot/device/testOS.img
+	./$< ../boot/device/testOS.img
+
+
+

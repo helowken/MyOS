@@ -40,21 +40,13 @@ $(BOOT): boot.elf
 
 install: \
 	install_masterboot \
-	install_device \
-	install_bootable \
-	install_image
+	install_device 
 
 install_masterboot: masterboot.bin 
 	$(INSTALL) -m $(DISK_IMAGE) $<
 
 install_device: bootblock.bin $(BOOT)
-	$(INSTALL) -d $(DISK_IMAGE) $< $(BOOT)
-
-install_bootable: $(BOOT)
-	$(INSTALL) -b $(DISK_IMAGE) $<
-
-install_image: 
-	$(INSTALL) -i $(DISK_IMAGE) $(PROGRAMS)
+	$(INSTALL) -d $(DISK_IMAGE) $< $(BOOT) $(PROGRAMS)
 
 reset:
 	cd $(DIR_DEVICE) && ./run && cd ..

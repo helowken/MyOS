@@ -1,20 +1,18 @@
 #include "common.h"
-#include "util.h"
 #include "image.h"
 #include "rawfs.h"
 
-#define MASTER_BOOT_LEN		440
-#define BOOT_BLOCK_LEN		512			/* Like standard UNIX, reserves 1K block of disk device
-										   as a bootblock, but only one 512-byte sector is loaded
+#define MASTER_BOOT_SIZE	440
+#define BOOT_BLOCK_SIZE		512			/* Like standard UNIX, reserves 1K block of disk device
+										   as a bootBlock, but only one 512-byte sector is loaded
 										   by the master boot sector, so 512 bytes are available
 										   for saving settings (params) */
-#define PARAM_LEN			512
+#define PARAM_SIZE			512
 #define SIGNATURE_POS		510
-#define SIGNATURE			0XAA55
-#define BOOT_MAX_SECTORS	0x80		/* bootable max size must be <= 64K, since BIOS has a 
+#define SIGNATURE			0xAA55
+#define BOOT_MAX			64			/* bootable max size must be <= 64K, since BIOS has a 
 										   DMA 64K boundary on loading data from disk. 
 										   See biosDiskError(0x09) in boot.c. */
-#define BOOT_SEC_OFF		8			/* bootable offset in device */
 
 #define isRX(p)				(((p)->p_flags & PF_R) && ((p)->p_flags & PF_X))
 #define isRW(p)				(((p)->p_flags & PF_R) && ((p)->p_flags & PF_W))
@@ -49,9 +47,7 @@ static char *imgTpl = "image=%d:%d;";
 static void usage() {
 	fprintf(stderr,
 	  "Usage: installboot -m(aster) device masterboot\n"
-	  "       installboot -i(mage) image kernel mm fs ... init\n"
-	  "       installboot -d(evice) device bootblock boot\n"
-	  "       installboot -b(ootable) device bootblock\n");
+	  "       installboot -d(evice) device bootBlock boot\n");
 	exit(1);
 }
 
@@ -65,60 +61,40 @@ static uint32_t getLowSector(int deviceFd) {
 typedef void (*preCopyFunc)(int destFd, int srcFd);
 
 static void installMasterboot(char *masterboot) {
+/* Install masterboot to the first sector of device */
 	int mbrFd;
-	char buf[MASTER_BOOT_LEN];
+	char buf[MASTER_BOOT_SIZE];
 
-	memset(buf, 0, MASTER_BOOT_LEN);
+	memset(buf, 0, MASTER_BOOT_SIZE);
 	mbrFd = ROpen(masterboot);
-	Read(masterboot, mbrFd, buf, MASTER_BOOT_LEN);
-	wDev(buf, MASTER_BOOT_LEN);
+	Read(masterboot, mbrFd, buf, MASTER_BOOT_SIZE);
+	wDev(buf, MASTER_BOOT_SIZE);
 	Close(masterboot, mbrFd);
 }
 
-static void installBootable(char *boot) {
-	off_t size;
-	int bootFd, sectors;
-
-	size = getFileSize(boot);
-	sectors = SECTORS(size);
-	if (sectors > BOOT_MAX_SECTORS)
-	  fatal("Bootable size > 64K.");
-
-	int len = OFFSET(sectors);
-	char buf[len];
-
-	memset(buf, 0, len);
-	bootFd = ROpen(boot);
-	Read(boot, bootFd, buf, len);
-	Close(boot, bootFd);
-
-	sDev(OFFSET(BOOT_SEC_OFF + lowSector));
-	wDev(buf, len);
-}
-
-static void checkElfHeader(char *procName, Elf32_Ehdr *ehdrPtr) {
+static void checkElfHeader(char *fileName, Elf32_Ehdr *ehdrPtr) {
 	if (ehdrPtr->e_ident[EI_MAG0] != ELFMAG0 ||
 				ehdrPtr->e_ident[EI_MAG1] != ELFMAG1 ||
 				ehdrPtr->e_ident[EI_MAG2] != ELFMAG2 ||
 				ehdrPtr->e_ident[EI_MAG3] != ELFMAG3)
-	  fatal("%s is not an ELF file.\n", procName);
+	  fatal("%s is not an ELF file.\n", fileName);
 	
 	if (ehdrPtr->e_ident[EI_CLASS] != ELFCLASS32)
-	  fatal("%s is not an 32-bit executable.\n", procName);
+	  fatal("%s is not an 32-bit executable.\n", fileName);
 
 	if (ehdrPtr->e_ident[EI_DATA] != ELFDATA2LSB)
-	  fatal("%s is not little endian.\n", procName);
+	  fatal("%s is not little endian.\n", fileName);
 
 	if (ehdrPtr->e_ident[EI_VERSION] != EV_CURRENT)
-	  fatal("%s has an invalid version.\n", procName);
+	  fatal("%s has an invalid version.\n", fileName);
 
 	if (ehdrPtr->e_type != ET_EXEC)
-	  fatal("%s is not an executable.\n", procName);
+	  fatal("%s is not an executable.\n", fileName);
 }
 
 static long totalText = 0, totalData = 0, totalBss = 0;
 
-static void readHeader(char *procName, FILE *procFile, ImageHeader *imgHdr) {
+static void readHeader(char *fileName, FILE *imgFile, ImageHeader *imgHdr) {
 	int i, sn = 0;
 	static bool banner = false;
 	Exec *proc = &imgHdr->process;
@@ -127,21 +103,21 @@ static void readHeader(char *procName, FILE *procFile, ImageHeader *imgHdr) {
 	size_t phdrSize, textSize = 0, dataSize = 0, bssSize = 0;
 
 	memset(imgHdr, 0, sizeof(*imgHdr));
-	strncpy(imgHdr->name, procName, IMG_NAME_MAX);
+	strncpy(imgHdr->name, fileName, IMG_NAME_MAX);
 
-	if (fread(ehdrPtr, sizeof(*ehdrPtr), 1, procFile) != 1 || 
-				ferror(procFile))
+	if (fread(ehdrPtr, sizeof(*ehdrPtr), 1, imgFile) != 1 || 
+				ferror(imgFile))
 	  errExit("fread elf header");
 
-	checkElfHeader(procName, ehdrPtr);
+	checkElfHeader(fileName, ehdrPtr);
 
-	if (fseek(procFile, ehdrPtr->e_phoff, SEEK_SET) != 0)
+	if (fseek(imgFile, ehdrPtr->e_phoff, SEEK_SET) != 0)
 	  errExit("fseek");
 
 	phdrSize = ehdrPtr->e_phentsize;	
 	for (i = 0; i < ehdrPtr->e_phnum; ++i) {
-		if (fread(&phdr, phdrSize, 1, procFile) != 1 || 
-					ferror(procFile))
+		if (fread(&phdr, phdrSize, 1, imgFile) != 1 || 
+					ferror(imgFile))
 		  errExit("fread program headers");
 
 		if (isPLoad(&phdr)) {
@@ -199,7 +175,7 @@ static void padImage(size_t len) {
 	bufOff += len;
 }
 
-static void copyExec(char *procName, FILE *procFile, Elf32_Phdr *hdr) {
+static void copyExec(char *procName, FILE *imgFile, Elf32_Phdr *hdr) {
 	size_t size = hdr->p_filesz;
 	int padLen;
 
@@ -210,9 +186,9 @@ static void copyExec(char *procName, FILE *procFile, Elf32_Phdr *hdr) {
 
 	adjustBuf(size);
 
-	if (fseek(procFile, hdr->p_offset, SEEK_SET) == -1)
+	if (fseek(imgFile, hdr->p_offset, SEEK_SET) == -1)
 	  errExit("fseek %s", procName);
-	if (fread(currBuf, size, 1, procFile) != 1 || ferror(procFile))
+	if (fread(currBuf, size, 1, imgFile) != 1 || ferror(imgFile))
 	  errExit("copyExec fread %s", procName);
 
 	bufOff += size;
@@ -220,127 +196,158 @@ static void copyExec(char *procName, FILE *procFile, Elf32_Phdr *hdr) {
 	padImage(padLen);
 }
 
-static void installParams(char *other) {
-	char buf[PARAM_LEN];
-
-	memset(buf, ';', PARAM_LEN);
-	if (snprintf(buf, PARAM_LEN, paramsTpl, device, device, other) < 0)
-	  errExit("snprintf params");
-
-	sDev(OFFSET(lowSector + PARAM_SEC_OFF));
-	wDev(buf, PARAM_LEN);
-}
-
-static void installImage(char **procNames) {
-	FILE *procFile;
-#define IMG_STR_LEN	50
-	char *procName, *file, imgStr[IMG_STR_LEN];
+static void installImages(char **imgNames, int pos, off_t currSize, off_t *imgSizePtr) {
+	FILE *imgFile;
+	char *imgName, *file;
 	struct stat st;
 	imgBuf = malloc(bufLen);
 	ImageHeader imgHdr;
 	Exec *proc;
-	off_t secOff;
-	int n;
 
-	while ((procName = *procNames++) != NULL) {
-		if ((file = strrchr(procName, ':')) != NULL)
+	while ((imgName = *imgNames++) != NULL) {
+		if ((file = strrchr(imgName, ':')) != NULL)
 		  ++file;
 		else
-		  file = procName;
+		  file = imgName;
 
 		if (stat(file, &st) < 0)
 		  errExit("stat \"%s\"", file);
 		if (!S_ISREG(st.st_mode))
 		  errExit("\"%s\" is not a file.", file);
-		if ((procFile = fopen(file, "r")) == NULL)
+		if ((imgFile = fopen(file, "r")) == NULL)
 		  errExit("fopen \"%s\"", file);
 
 		/* Use on sector to store exec header */
-		readHeader(procName, procFile, &imgHdr);
+		readHeader(imgName, imgFile, &imgHdr);
 		bwrite(&imgHdr, sizeof(imgHdr));
 		padImage(SECTOR_SIZE - sizeof(imgHdr));
 		
 		proc = &imgHdr.process;
 		if (isPLoad(&proc->codeHdr))
-		  copyExec(procName, procFile, &proc->codeHdr);
+		  copyExec(imgName, imgFile, &proc->codeHdr);
 		if (isPLoad(&proc->dataHdr))
-		  copyExec(procName, procFile, &proc->dataHdr);
+		  copyExec(imgName, imgFile, &proc->dataHdr);
 		
-		fclose(procFile);
+		fclose(imgFile);
+
+		if (currSize + bufOff > BOOT_IMG_SIZE)
+		  fatal("Total size of (boot + images) excceeds %dMB", 
+					  (BOOT_IMG_SIZE >> KB_SHIFT) >> KB_SHIFT);
 	}
 	printf("   ------   ------   ------   ------\n");
 	printf(" %8ld %8ld %8ld %8ld	total\n", totalText, totalData, totalBss, 
 				totalText + totalData + totalBss);
 
-	secOff = BOOT_SEC_OFF + BOOT_MAX_SECTORS;
-	sDev(OFFSET(lowSector + secOff));
+	sDev(OFFSET(pos));
 	wDev(imgBuf, bufOff);
 	free(imgBuf);
 
-	if ((n = snprintf(imgStr, IMG_STR_LEN, imgTpl, secOff, SECTORS(bufOff))) < 0)
-	  fatal("create image string");
-	imgStr[n] = '\0';
-	installParams(imgStr);
+	*imgSizePtr = bufOff;
 }
 
-static void installDevice(char *bootblock, char *boot) {
-	int addr = BOOT_SEC_OFF;
-	char buf[BOOT_BLOCK_LEN];
-	int bootblockFd;
-	ssize_t size;
-	off_t bootSize;
-	char *ap;
-
-	memset(buf, 0, BOOT_BLOCK_LEN);
-
-	bootblockFd = ROpen(bootblock);
-	size = Read(bootblock, bootblockFd, buf, BOOT_BLOCK_LEN);
-	Close(bootblock, bootblockFd);
-
-	/* Append boot size and address. */
-	bootSize = getFileSize(boot);
-	ap = &buf[size];
-	*ap++ = SECTORS(bootSize);
-	*ap++ = addr & 0xFF;
-	*ap++ = (addr >> 8) & 0xFF;
-	*ap++ = (addr >> 16) & 0xFF;
-
-	/* The last two bytes is signature. */
-	buf[SIGNATURE_POS] = SIGNATURE & 0xFF;
-	buf[SIGNATURE_POS + 1] = (SIGNATURE >> 8) & 0xFF;
-
-	/* Move to the first sector of partition. */
-	sDev(OFFSET(lowSector));
-	/* Write bootblock to device. */
-	wDev(buf, BOOT_BLOCK_LEN);
-
-	/* Install params. */
-	installParams("");
-}
-
-void readBlock(Off_t blockNum, char *buf, int blockSize) {
-/* For rawfs, so that it can read blocks. */
-	sDev(blockNum * blockSize);
-	rDev(buf, blockSize);
-}
-
-void installBootableWithFS(char *bootblock, char *boot) {
-	//int bootblockFd, bootFd;
-	Off_t fsSize;
-	Ino_t ino;
+static void installBoot(char *boot, off_t *bootSizePtr, int *bootAddrPtr, int *posPtr) {
+	char *bootBuf;
+	int bootFd;
+	Off_t fsSize;		/* Total blocks of the filesystem */
 	int blockSize = 0;
+	off_t bootSize;
+	int bootAddr, pos;
 
 	/* Read and check the superblock. */
 	fsSize = rawSuper(&blockSize);
 	if (fsSize == 0)
 	  fatal("%s: %s is not a Minix file system\n", procName, device);
 
-	/* See if the boot code can be found on the file system. */
-	if ((ino = rawLookup(ROOT_INO, boot)) == 0) {
-		if (errno != ENOENT)
-		  fatal("%s: %s\n", procName, boot);
-	}
+	/* Calculate boot size and addr. */
+	bootSize = getFileSize(boot);
+	if (bootSize > (BOOT_MAX << KB_SHIFT))
+	  fatal("Bootable size > %d KB.", BOOT_MAX);
+	bootAddr = fsSize * RATIO(blockSize);
 
+	/* Read boot to buf. */
+	bootBuf = (char *) malloc(bootSize);
+	if (bootBuf == NULL)
+	  errExit("malloc boot buf");
+	bootFd = ROpen(boot);
+	Read(boot, bootFd, bootBuf, bootSize);
+
+	/* Write boot buf to device. */
+	pos = lowSector + bootAddr;
+	sDev(OFFSET(pos));
+	wDev(bootBuf, bootSize);
+	free(bootBuf);
+
+	*bootSizePtr = bootSize;
+	*bootAddrPtr = bootAddr;
+	*posPtr = pos;
+}
+
+static void installParams(char *params, int pos, off_t imgSize) {
+#define IMG_STR_LEN	50
+	char imgStr[IMG_STR_LEN];
+	int n;
+
+	if ((n = snprintf(imgStr, IMG_STR_LEN, imgTpl, pos, SECTORS(imgSize))) < 0)
+	  fatal("create image param");
+	imgStr[n] = 0;
+	memset(params, ';', PARAM_SIZE);
+	if (snprintf(params, PARAM_SIZE, paramsTpl, device, device, imgStr) < 0)
+	  errExit("snprintf params");
+}
+
+static void installDevice(char *bootBlock, char *boot, char **imgNames) {
+/* Install bootBlock to the boot sector with boot's disk addresses and sizes patched 
+ * into the data segment of bootBlock. 
+ */
+	char buf[BOOT_BLOCK_SIZE];
+	int bootBlockFd;
+	ssize_t bootBlockSize;
+	char *ap;		
+	int pos, bootAddr;
+	off_t bootSize, imgSize;
+
+	/* Install boot to device. */
+	installBoot(boot, &bootSize, &bootAddr, &pos);
+	pos += SECTORS(bootSize);
+
+	/* Read bootBlock to buf. */
+	memset(buf, 0, BOOT_BLOCK_SIZE);
+	bootBlockFd = ROpen(bootBlock);
+	bootBlockSize = Read(bootBlock, bootBlockFd, buf, BOOT_BLOCK_SIZE);
+	Close(bootBlock, bootBlockFd);
+
+	if (bootBlockSize + 4 >= SIGNATURE_POS)	/* 1 size byte + 3 address bytes (showned below) */
+	  fatal("%s + addresses to %s don't fit in the boot sector.", bootBlock, boot);
+
+	/* Patch boot's size and address into the data segment of bootBlock. 
+	 * (See "boot/bootBlock.asm".)
+	 */
+	ap = &buf[bootBlockSize];
+	*ap++ = SECTORS(bootSize);		/* Boot sectors */
+	*ap++ = bootAddr & 0xFF;			/* Boot addr [0..7] */
+	*ap++ = (bootAddr >> 8) & 0xFF;		/* Boot addr [8..15] */
+	*ap++ = (bootAddr >> 16) & 0xFF;	/* Boot addr [16..23] */
+
+	/* The last two bytes is signature. */
+	buf[SIGNATURE_POS] = SIGNATURE & 0xFF;
+	buf[SIGNATURE_POS + 1] = (SIGNATURE >> 8) & 0xFF;
+
+
+	/* Install images to device. */
+	installImages(imgNames, pos, bootSize, &imgSize);
+
+	/* Install params. */
+	installParams(&buf[SECTOR_SIZE], pos, imgSize);
+
+	/* Write bootBlock to device. */
+	sDev(OFFSET(lowSector));
+	wDev(buf, BOOT_BLOCK_SIZE);
+}
+
+void readBlock(Off_t blockNum, char *buf, int blockSize) {
+/* For rawfs, so that it can read blocks. */
+	sDev(OFFSET(lowSector) + blockNum * blockSize);
+	rDev(buf, blockSize);
 }
 
 static bool isOpt(char *opt, char *test) {
@@ -360,19 +367,9 @@ int main(int argc, char *argv[]) {
 	lowSector = getLowSector(deviceFd);
 
 	if (isOpt(argv[1], "-master")) {
-		/* Install masterboot to the first sector of device */
 	    installMasterboot(argv[3]);
-	} else if (isOpt(argv[1], "-image")) {
-		/* Install image */
-	    installImage(argv + 3);
-	} else if (argc >= 5 && isOpt(argv[1], "-device")) {
-	    /* Install bootblock to the boot sector with boot's disk addresses 
-		 * and sizes patched into the data segment of bootblock. 
-		 */
-	    installDevice(argv[3], argv[4]);		
-	} else if (isOpt(argv[1], "-bootable")) {
-		/* Install boot without a file system. */
-	    installBootable(argv[3]);
+	} else if (argc >= 6 && isOpt(argv[1], "-device")) {
+	    installDevice(argv[3], argv[4], argv + 5);		
 	} else {
 	  usage();
 	}

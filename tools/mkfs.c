@@ -1,6 +1,5 @@
 #include <time.h>
 #include "common.h"
-#include "util.h"
 
 #include "../include/limits.h"
 #include "../include/dirent.h"
@@ -10,8 +9,6 @@
 #include "../servers/fs/super.h"
 
 #define NULL			((void *)0)
-#define KB				1024
-#define KB_SHIFT		10
 #define BIN				2
 #define BINGRP			2
 #define CACHE_SIZE		20
@@ -20,7 +17,7 @@
 #define SUPER_OFFSET	BLOCK_OFF(0) + SUPER_OFFSET_BYTES
 #define INODE_MAP		2		/* Inode-map offset blocks */
 #define MAX_MAX_SIZE	((unsigned long) 0xffffffff)
-#define ZONE_SHIFT				0
+#define ZONE_SHIFT		0
 
 static long currentTime;
 static char *device;
@@ -54,11 +51,17 @@ static char *allocBlock() {
 }
 
 static Block_t sizeup() {
+	Block_t maxBlocks;
 	PartitionEntry pe;
 
 	getActivePartition(deviceFd, &pe);
 	lowSector = pe.lowSector;	/* Save the lowSector for writing data to disk */
-	return pe.sectorCount * (blockSize / SECTOR_SIZE);
+	maxBlocks = pe.sectorCount / RATIO(blockSize);
+
+	/* Reserve space for the boot image */
+	maxBlocks -= RATIO(BOOT_IMG_SIZE) / RATIO(blockSize);
+
+	return maxBlocks;
 }
 
 static Block_t computeBlocks(Block_t blocks) {
@@ -597,13 +600,9 @@ int main(int argc, char *argv[]) {
 	int ch;
 
 	procName = argv[0];
-
-	if (argc < 2 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)
-	  usage();
-
 	blocks = 0;
 	inodes = 0;
-	while ((ch = getopt(argc, argv, "b:i:B:")) != EOF) {
+	while ((ch = getopt(argc, argv, "b:i:B:h")) != EOF) {
 		switch (ch) {
 			case 'b':
 				blocks = strtoul(optarg, (char **) NULL, 0);

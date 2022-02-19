@@ -14,11 +14,16 @@
 
 #include "error_functions.h"
 #include "../include/ibm/partition.h"
+#include "util.h"
 
 typedef enum { false, true } bool;
 
 #define min(m,n) ((m) < (n) ? (m) : (n))
 #define max(m,n) ((m) > (n) ? (m) : (n))
+
+#define KB				1024
+#define KB_SHIFT		10
+#define BOOT_IMG_SIZE	((10 << KB_SHIFT) << KB_SHIFT)
 
 #define EXTERN	extern
 
