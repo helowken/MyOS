@@ -3,10 +3,12 @@ MODE = M16
 include $(MY_HOME)/common.mk
 
 DIR_DEVICE = device
+DIR_TOOLS = $(MY_HOME)/tools
 DISK_IMAGE = $(DIR_DEVICE)/testOS.img
 LIBS = -L$(MY_HOME)/lib/m16 \
 	   -lmyc -lmysysutil
-INSTALL = $(MY_HOME)/tools/installboot.bin
+INSTALL = $(DIR_TOOLS)/installboot.bin
+MKFS = $(DIR_TOOLS)/mkfs.bin
 BOOT = boot.bin
 
 PROGRAMS = ../kernel/kernel.bin \
@@ -50,6 +52,7 @@ install_device: bootblock.bin $(BOOT)
 
 reset:
 	cd $(DIR_DEVICE) && ./run && cd ..
+	$(MKFS) $(DISK_IMAGE)
 
 disasm: $(DEBUG)
 	$(call disasmCode,$<,16)

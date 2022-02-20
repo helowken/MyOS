@@ -264,7 +264,7 @@ static bool copyParams(char *params, size_t size) {
 			name = e->name;
 			value = e->value;
 
-			if (e->flags & E_DEV) {
+			if (e->flags & E_DEV && false) {
 				if ((dev = name2Dev(value)) == -1)
 				  return 0;
 				value = ul2a10((u16_t) dev);

@@ -2,8 +2,10 @@
 #include "image.h"
 #include "rawfs.h"
 
+#define MASTER_BOOT_OFF		0			/* Master boot offset in device */
 #define MASTER_BOOT_SIZE	440
-#define BOOT_BLOCK_SIZE		512			/* Like standard UNIX, reserves 1K block of disk device
+#define BOOT_BLOCK_OFF		0			/* Boot block offset in partition */
+#define BOOT_BLOCK_SIZE		1024		/* Like standard UNIX, reserves 1K block of disk device
 										   as a bootBlock, but only one 512-byte sector is loaded
 										   by the master boot sector, so 512 bytes are available
 										   for saving settings (params) */
@@ -19,6 +21,7 @@
 #define ALIGN(n)			(((n) + ((SECTOR_SIZE) - 1)) & ~((SECTOR_SIZE) - 1))
 
 #define sDev(off)		Lseek(device, deviceFd, (off))
+#define sPart(off)		sDev(OFFSET(lowSector) + (off))
 #define rDev(buf,size)	Read(device, deviceFd, (buf), (size))
 #define wDev(buf,size)	Write(device, deviceFd, (buf), (size)) 
 
@@ -68,6 +71,7 @@ static void installMasterboot(char *masterboot) {
 	memset(buf, 0, MASTER_BOOT_SIZE);
 	mbrFd = ROpen(masterboot);
 	Read(masterboot, mbrFd, buf, MASTER_BOOT_SIZE);
+	sDev(MASTER_BOOT_OFF);
 	wDev(buf, MASTER_BOOT_SIZE);
 	Close(masterboot, mbrFd);
 }
@@ -196,7 +200,7 @@ static void copyExec(char *procName, FILE *imgFile, Elf32_Phdr *hdr) {
 	padImage(padLen);
 }
 
-static void installImages(char **imgNames, int pos, off_t currSize, off_t *imgSizePtr) {
+static void installImages(char **imgNames, int imgAddr, off_t bootSize, off_t *imgSizePtr) {
 	FILE *imgFile;
 	char *imgName, *file;
 	struct stat st;
@@ -230,7 +234,7 @@ static void installImages(char **imgNames, int pos, off_t currSize, off_t *imgSi
 		
 		fclose(imgFile);
 
-		if (currSize + bufOff > BOOT_IMG_SIZE)
+		if (bootSize + bufOff > BOOT_IMG_SIZE)
 		  fatal("Total size of (boot + images) excceeds %dMB", 
 					  (BOOT_IMG_SIZE >> KB_SHIFT) >> KB_SHIFT);
 	}
@@ -238,20 +242,20 @@ static void installImages(char **imgNames, int pos, off_t currSize, off_t *imgSi
 	printf(" %8ld %8ld %8ld %8ld	total\n", totalText, totalData, totalBss, 
 				totalText + totalData + totalBss);
 
-	sDev(OFFSET(pos));
+	sPart(OFFSET(imgAddr));
 	wDev(imgBuf, bufOff);
 	free(imgBuf);
 
 	*imgSizePtr = bufOff;
 }
 
-static void installBoot(char *boot, off_t *bootSizePtr, int *bootAddrPtr, int *posPtr) {
+static void installBoot(char *boot, off_t *bootSizePtr, int *bootAddrPtr) {
 	char *bootBuf;
 	int bootFd;
 	Off_t fsSize;		/* Total blocks of the filesystem */
 	int blockSize = 0;
 	off_t bootSize;
-	int bootAddr, pos;
+	int bootAddr;
 
 	/* Read and check the superblock. */
 	fsSize = rawSuper(&blockSize);
@@ -272,22 +276,20 @@ static void installBoot(char *boot, off_t *bootSizePtr, int *bootAddrPtr, int *p
 	Read(boot, bootFd, bootBuf, bootSize);
 
 	/* Write boot buf to device. */
-	pos = lowSector + bootAddr;
-	sDev(OFFSET(pos));
+	sPart(OFFSET(bootAddr));
 	wDev(bootBuf, bootSize);
 	free(bootBuf);
 
 	*bootSizePtr = bootSize;
 	*bootAddrPtr = bootAddr;
-	*posPtr = pos;
 }
 
-static void installParams(char *params, int pos, off_t imgSize) {
+static void installParams(char *params, int imgAddr, off_t imgSectors) {
 #define IMG_STR_LEN	50
 	char imgStr[IMG_STR_LEN];
 	int n;
 
-	if ((n = snprintf(imgStr, IMG_STR_LEN, imgTpl, pos, SECTORS(imgSize))) < 0)
+	if ((n = snprintf(imgStr, IMG_STR_LEN, imgTpl, imgAddr, imgSectors)) < 0)
 	  fatal("create image param");
 	imgStr[n] = 0;
 	memset(params, ';', PARAM_SIZE);
@@ -303,12 +305,14 @@ static void installDevice(char *bootBlock, char *boot, char **imgNames) {
 	int bootBlockFd;
 	ssize_t bootBlockSize;
 	char *ap;		
-	int pos, bootAddr;
+	int bootAddr, imgAddr;
 	off_t bootSize, imgSize;
+	int bootSectors, imgSectors;
 
 	/* Install boot to device. */
-	installBoot(boot, &bootSize, &bootAddr, &pos);
-	pos += SECTORS(bootSize);
+	installBoot(boot, &bootSize, &bootAddr);
+	bootSectors = SECTORS(bootSize);
+	imgAddr = bootAddr + SECTORS(bootSize);
 
 	/* Read bootBlock to buf. */
 	memset(buf, 0, BOOT_BLOCK_SIZE);
@@ -323,7 +327,7 @@ static void installDevice(char *bootBlock, char *boot, char **imgNames) {
 	 * (See "boot/bootBlock.asm".)
 	 */
 	ap = &buf[bootBlockSize];
-	*ap++ = SECTORS(bootSize);		/* Boot sectors */
+	*ap++ = bootSectors;		/* Boot sectors */
 	*ap++ = bootAddr & 0xFF;			/* Boot addr [0..7] */
 	*ap++ = (bootAddr >> 8) & 0xFF;		/* Boot addr [8..15] */
 	*ap++ = (bootAddr >> 16) & 0xFF;	/* Boot addr [16..23] */
@@ -334,19 +338,25 @@ static void installDevice(char *bootBlock, char *boot, char **imgNames) {
 
 
 	/* Install images to device. */
-	installImages(imgNames, pos, bootSize, &imgSize);
+	printf("\n");
+	installImages(imgNames, imgAddr, bootSize, &imgSize);
+	printf("\n");
+	imgSectors = SECTORS(imgSize);
 
 	/* Install params. */
-	installParams(&buf[SECTOR_SIZE], pos, imgSize);
+	installParams(&buf[SECTOR_SIZE], imgAddr, imgSectors);
 
 	/* Write bootBlock to device. */
-	sDev(OFFSET(lowSector));
+	sPart(BOOT_BLOCK_OFF);
 	wDev(buf, BOOT_BLOCK_SIZE);
+
+	printf("Boot addr: %d, sectors: %d\n", bootAddr, bootSectors);
+	printf("Image addr: %d, sectors: %d\n", imgAddr, imgSectors);
 }
 
 void readBlock(Off_t blockNum, char *buf, int blockSize) {
 /* For rawfs, so that it can read blocks. */
-	sDev(OFFSET(lowSector) + blockNum * blockSize);
+	sPart(blockNum * blockSize);
 	rDev(buf, blockSize);
 }
 
