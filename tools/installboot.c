@@ -1,6 +1,6 @@
 #include "common.h"
 #include "image.h"
-#include "rawfs.h"
+#include "../boot/rawfs.h"
 
 #define MASTER_BOOT_OFF		0			/* Master boot offset in device */
 #define MASTER_BOOT_SIZE	440
@@ -15,9 +15,10 @@
 #define BOOT_MAX			64			/* bootable max size must be <= 64K, since BIOS has a 
 										   DMA 64K boundary on loading data from disk. 
 										   See biosDiskError(0x09) in boot.c. */
-
-#define isRX(p)				(((p)->p_flags & PF_R) && ((p)->p_flags & PF_X))
-#define isRW(p)				(((p)->p_flags & PF_R) && ((p)->p_flags & PF_W))
+#define STACK_SIZE			0x1400		/* Stack and heap size. (since malloc() is allocate memory 
+										   on stack when booting).
+										   It should be aligned to the STACK_SIZE in boothead.s. */
+#define DEVICE				"c0d0p0s0"
 #define ALIGN(n)			(((n) + ((SECTOR_SIZE) - 1)) & ~((SECTOR_SIZE) - 1))
 
 #define sDev(off)		Lseek(device, deviceFd, (off))
@@ -41,7 +42,7 @@ static char *paramsTpl =
 	"main() { "
 		"echo By default, MINIX 3 will automatically load in 3 seconds.; "
 		"echo Press ESC to enter the monitor for special configuration.; "
-		"trap 3000 boot; "
+		//"trap 3000 boot; "   Bochs may have a bug on system timer
 		"menu; "
 	"};";
 
@@ -98,13 +99,14 @@ static void checkElfHeader(char *fileName, Elf32_Ehdr *ehdrPtr) {
 
 static long totalText = 0, totalData = 0, totalBss = 0;
 
-static void readHeader(char *fileName, FILE *imgFile, ImageHeader *imgHdr) {
+static size_t readHeader(char *fileName, FILE *imgFile, ImageHeader *imgHdr, bool print) {
 	int i, sn = 0;
 	static bool banner = false;
 	Exec *proc = &imgHdr->process;
 	Elf32_Ehdr *ehdrPtr = &proc->ehdr;
 	Elf32_Phdr phdr;
 	size_t phdrSize, textSize = 0, dataSize = 0, bssSize = 0;
+	size_t sizeInMemory = 0;
 
 	memset(imgHdr, 0, sizeof(*imgHdr));
 	strncpy(imgHdr->name, fileName, IMG_NAME_MAX);
@@ -127,12 +129,14 @@ static void readHeader(char *fileName, FILE *imgFile, ImageHeader *imgHdr) {
 		if (isPLoad(&phdr)) {
 			if (isRX(&phdr)) {
 				memcpy(&proc->codeHdr, &phdr, phdrSize);
-				textSize = proc->codeHdr.p_filesz;
+				textSize = phdr.p_filesz;
+				sizeInMemory = phdr.p_vaddr + phdr.p_memsz;
 				++sn;
 			} else if (isRW(&phdr)) {
 				memcpy(&proc->dataHdr, &phdr, phdrSize);
-				dataSize = proc->dataHdr.p_filesz;
-				bssSize = proc->dataHdr.p_memsz - dataSize;
+				dataSize = phdr.p_filesz;
+				bssSize = phdr.p_memsz - dataSize;
+				sizeInMemory = phdr.p_vaddr + phdr.p_memsz;
 				++sn;
 			}
 			if (sn >= 2)
@@ -140,16 +144,20 @@ static void readHeader(char *fileName, FILE *imgFile, ImageHeader *imgHdr) {
 		}
 	}
 
-	if (!banner) {
-		printf("     text     data      bss     size\n");
-		banner = true;
-	}
-	printf(" %8d %8d %8d %8d	%s\n", textSize, dataSize, bssSize, 
-				textSize + dataSize + bssSize, imgHdr->name);
+	if (print) {
+		if (!banner) {
+			printf("     text     data      bss     size\n");
+			banner = true;
+		}
+		printf(" %8d %8d %8d %8d	%s\n", textSize, dataSize, bssSize, 
+					textSize + dataSize + bssSize, imgHdr->name);
 
-	totalText += textSize;
-	totalData += dataSize;
-	totalBss += bssSize;
+		totalText += textSize;
+		totalData += dataSize;
+		totalBss += bssSize;
+	}
+	
+	return sizeInMemory;
 }
 
 static char *imgBuf = NULL;
@@ -200,10 +208,22 @@ static void copyExec(char *procName, FILE *imgFile, Elf32_Phdr *hdr) {
 	padImage(padLen);
 }
 
+FILE *openFile(char *file) {
+	FILE *imgFile;
+	struct stat st;
+
+	if (stat(file, &st) < 0)
+	  errExit("stat \"%s\"", file);
+	if (!S_ISREG(st.st_mode))
+	  errExit("\"%s\" is not a file.", file);
+	if ((imgFile = fopen(file, "r")) == NULL)
+	  errExit("fopen \"%s\"", file);
+	return imgFile;
+}
+
 static void installImages(char **imgNames, int imgAddr, off_t bootSize, off_t *imgSizePtr) {
 	FILE *imgFile;
 	char *imgName, *file;
-	struct stat st;
 	imgBuf = malloc(bufLen);
 	ImageHeader imgHdr;
 	Exec *proc;
@@ -214,15 +234,9 @@ static void installImages(char **imgNames, int imgAddr, off_t bootSize, off_t *i
 		else
 		  file = imgName;
 
-		if (stat(file, &st) < 0)
-		  errExit("stat \"%s\"", file);
-		if (!S_ISREG(st.st_mode))
-		  errExit("\"%s\" is not a file.", file);
-		if ((imgFile = fopen(file, "r")) == NULL)
-		  errExit("fopen \"%s\"", file);
-
+		imgFile = openFile(file);
 		/* Use on sector to store exec header */
-		readHeader(imgName, imgFile, &imgHdr);
+		readHeader(imgName, imgFile, &imgHdr, true);
 		bwrite(&imgHdr, sizeof(imgHdr));
 		padImage(SECTOR_SIZE - sizeof(imgHdr));
 		
@@ -249,6 +263,34 @@ static void installImages(char **imgNames, int imgAddr, off_t bootSize, off_t *i
 	*imgSizePtr = bufOff;
 }
 
+static void checkBootMemSize(char *boot) {
+	FILE *bootFile;
+	ImageHeader imgHdr;
+	size_t size;
+	char bootElf[20];
+	char *s;
+	int i, n;
+
+	s = strchr(boot, '.');
+	n = (s == NULL) ? strlen(boot) : s - boot;
+
+	for (i = 0; i < n; ++i) {
+		bootElf[i] = boot[i];
+	}
+	bootElf[i++] = '.';
+	bootElf[i++] = 'e';
+	bootElf[i++] = 'l';
+	bootElf[i++] = 'f';
+	bootElf[i] = 0;
+
+	bootFile = openFile(bootElf);
+	size = readHeader(bootElf, bootFile, &imgHdr, false);
+	printf("size: %x\n", size);
+	printf("size: %x\n", size + STACK_SIZE);
+	if (size + STACK_SIZE > (BOOT_MAX << KB_SHIFT))
+	  fatal("Boot size > %d KB.", BOOT_MAX);
+}
+
 static void installBoot(char *boot, off_t *bootSizePtr, int *bootAddrPtr) {
 	char *bootBuf;
 	int bootFd;
@@ -263,9 +305,8 @@ static void installBoot(char *boot, off_t *bootSizePtr, int *bootAddrPtr) {
 	  fatal("%s: %s is not a Minix file system\n", procName, device);
 
 	/* Calculate boot size and addr. */
+	checkBootMemSize(boot);
 	bootSize = getFileSize(boot);
-	if (bootSize > (BOOT_MAX << KB_SHIFT))
-	  fatal("Bootable size > %d KB.", BOOT_MAX);
 	bootAddr = fsSize * RATIO(blockSize);
 
 	/* Read boot to buf. */
@@ -290,10 +331,10 @@ static void installParams(char *params, int imgAddr, off_t imgSectors) {
 	int n;
 
 	if ((n = snprintf(imgStr, IMG_STR_LEN, imgTpl, imgAddr, imgSectors)) < 0)
-	  fatal("create image param");
+	  errExit("create image param");
 	imgStr[n] = 0;
 	memset(params, ';', PARAM_SIZE);
-	if (snprintf(params, PARAM_SIZE, paramsTpl, device, device, imgStr) < 0)
+	if (snprintf(params, PARAM_SIZE, paramsTpl, DEVICE, DEVICE, imgStr) < 0)
 	  errExit("snprintf params");
 }
 

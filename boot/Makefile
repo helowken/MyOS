@@ -15,7 +15,7 @@ PROGRAMS = ../kernel/kernel.bin \
 		   ../servers/pm/pm.bin \
 		   AT:../drivers/at_wini/at_wini.bin
 
-all: install run
+all: compile
 
 # Please see README for how to install Bochs.
 # Need to use a Bochs without gdb support.
@@ -26,6 +26,10 @@ run:
 gdb:
 	/home/helowken/bochs/build/bin/bochs -q -f .bochsrc_gdb
 
+compile: masterboot.bin \
+		 bootblock.bin \
+		 $(BOOT)
+
 %.bin: %.asm
 	nasm -f bin $< -o $@
 
@@ -33,6 +37,7 @@ boot.elf: \
 		boothead.o \
 		util.o \
 		boot.o \
+		rawfs.o \
 		bootimage.o
 	$(call link,$^,$(LIBS),$@) 
 	$(call createDebug,$@,$(DEBUG))
@@ -40,7 +45,7 @@ boot.elf: \
 $(BOOT): boot.elf
 	objcopy -O binary -j .text -j .rodata -j .data $< $@ 
 
-install: \
+install: reset \
 	install_masterboot \
 	install_device 
 

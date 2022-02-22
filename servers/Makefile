@@ -1,6 +1,6 @@
 all:
 	cd pm && $(MAKE)
-	cd fs && $(MAKE)
+	#cd fs && $(MAKE)
 
 clean:
 	cd pm && $(MAKE) clean

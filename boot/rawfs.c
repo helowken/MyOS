@@ -1,6 +1,13 @@
-#include "../include/code.h"
+#ifndef OTHER_OS
+#include "code.h"
+#include "sys/types.h"
+#include "stdint.h"
+#include "sys/stat.h"
+#include "errno.h"
+#include "string.h"
+#else
 #include "common.h"
-#include "rawfs.h"
+#endif
 
 #include "../include/limits.h"
 #include "../include/dirent.h"
@@ -11,6 +18,7 @@
 #include "../servers/fs/super.h"
 #include "../servers/fs/inode.h"
 #include "../servers/fs/buf.h"
+#include "../boot/rawfs.h" 
 
 static unsigned numDZones;				/* # of direct zones */
 static unsigned numIndZones;			/* # of indirect zones */
@@ -72,7 +80,7 @@ Ino_t rawLookup(Ino_t cwd, char *path) {
 
 	ino = path[0] == '/' ? ROOT_INO : cwd;
 
-	while (true) {
+	while (1) {
 		if (ino == 0) {
 			errno = ENOENT;
 			return 0;

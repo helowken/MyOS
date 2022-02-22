@@ -1,10 +1,12 @@
-all:
+all: compile
+
+compile:
 	cd tools && $(MAKE)
 	cd lib && $(MAKE)
 	cd kernel && $(MAKE)
 	cd servers && $(MAKE)
 	cd drivers && $(MAKE)
-	cd boot && $(MAKE) install
+	cd boot && $(MAKE) 
 
 clean:
 	cd tools && $(MAKE) clean

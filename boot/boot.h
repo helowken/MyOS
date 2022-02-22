@@ -4,6 +4,7 @@
 #include "sys/types.h"
 
 #define	SECTOR_SIZE		512
+#define RATIO(b)		((b) / SECTOR_SIZE)
 #define	SECTOR_SHIFT	9			/* 2^9 = 512 */
 #define PARAM_SECTOR	1			/* Sector containing boot parameters. */
 
@@ -80,6 +81,8 @@ EXTERN Environment *env;		/* Lists the environment. */
 
 /* Get value of env variable. */
 char *getVarValue(char *name);
+
+void readBlock(Off_t blockNum, char *buf, int bs);
 
 void delay(u32_t msec);
 

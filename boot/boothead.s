@@ -1,6 +1,6 @@
 	.code16gcc
 	.text
-.equ	STACK_SIZE,		0x4800
+.equ	STACK_SIZE,		0x1400		
 .equ	ESC,			0x1B	
 .equ	DS_SELECTOR,	3*8			# Kernel data selector
 .equ	ES_SELECTOR,	4*8			# Flat 4 GB
@@ -90,11 +90,16 @@ halt:
 	.type	getTick, @function
 getTick:
 	pushl	%ecx
-	xorb	%ah, %ah			# ah = 0, Read System-Timer Time Counter
+	xorl	%eax, %eax			# ah = 0, Read System-Timer Time Counter
+	xorl	%edx, %edx
 	int $0x1A
-	pushw	%cx
+	movw	%dx, %ax
+	movw	%cx, %dx			# dx:ax = cx:dx = tick count, for other functions
+
 	pushw	%dx
-	popl	%eax				# eax = cx:dx = tick count
+	pushw	%ax
+	popl	%eax				# For return value
+
 	popl	%ecx
 	retl
 
@@ -111,19 +116,34 @@ pause:
 	.type	getch, @function
 getch:
 	xorl	%eax, %eax			# Is there a ungotten character? (previously called ungetch)
-	xchgw	unchar, %ax
+	xchgw	unchar, %ax			# Ungotten character?
 	testw	%ax, %ax
 	jnz	.gotch
 .waitKey:
 	hlt							# Play dead until interrupted (see pause())
 	movb	$0x01, %ah			# Keyboard status
 	int $0x16
-	jz	.noKeyTyped
+	jz	.noKeyTyped				# Nothing typed
 	xorb	%ah, %ah			# Read character from keyboard
 	int $0x16
-	jmp .keyPressed		
+	jmp .keyPressed				# Keypress
 .noKeyTyped:
-	jmp .waitKey
+	movw	line, %dx			# Serial line?
+	testw	%dx, %dx			
+	jz .0f
+	addw	$5, %dx				# Line Status Register
+	inb	%dx
+	testb	$0x01, %al			# Data Ready?
+	jz .0f
+	movw	line, %dx
+	inb	%dx						# Get character
+	jmp .keyPressed
+.0f:
+	calll	expired				# Timer expired?
+	testw	%ax, %ax			
+	jz .waitKey
+	movw	$ESC, %ax			# Return ESC
+	retl
 .keyPressed:
 	cmpb	$0x0D, %al			# Is carriage typed?
 	jnz	.noCarriage
@@ -149,6 +169,7 @@ ungetch:
 	.globl	putch
 	.type	putch, @function	# Same as kputc
 putch:
+
 # void kputc(int ch);
 	.globl	kputc
 	.type	kputc, @function
@@ -1042,4 +1063,5 @@ memBreak:
 	.lcomm	escFlag, 2			# Escape typed?
 	.lcomm	mcStatus, 4			# Saved machine status (cr0)
 	.lcomm	pdbr, 4				# Saved page directory base register (cr3)
+	.lcomm	line, 2				# Serial line I/O port to coppy console I/O to.
 

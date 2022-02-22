@@ -67,6 +67,7 @@ OBJS_M16 = memcpy.o \
 		   strcpy.o \
 		   strncpy.o \
 		   strlen.o \
+		   strncmp.o \
 		   strcmp.o \
 		   strchr.o \
 		   memset.o \

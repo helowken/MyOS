@@ -9,6 +9,7 @@ INC_HEADERS = *.h \
 			  $(INC)/sys/*.h 
 
 CFLAGS = -g -c -m32 -ffreestanding -nostdinc -nodefaultlibs -Wall -Werror -I$(INC)
+O_CFLAGS = $(CFLAGS)
 ifeq ($(MODE), M16)
 	CFLAGS += -D_M16
 endif

@@ -4,14 +4,19 @@
 #include "stdlib.h"
 #include "limits.h"
 #include "util.h"
+#include "errno.h"
 #include "minix/dmap.h"
 #include "ibm/partition.h"
+#include "sys/stat.h"
+#include "rawfs.h"
 
 #undef EXTERN
 #define EXTERN			/* Empty, allocate space for variables */
 #include "boot.h"
 
-static char *version = "1.0.0";
+static char *version = "2.20";
+static int fsOK = -1;	/* File system state. Initially unknown. */
+static int blockSize;
 
 static struct biosDev {
 	char name[8];
@@ -25,6 +30,9 @@ typedef struct Token {
 
 static Token *cmds;
 static bool tokErr = false;
+
+static char *timerHandler;
+static u32_t timeBase, timeout;
 
 static char *biosDiskError(int err) {
 /* BIOS INT 13h errors */
@@ -81,13 +89,113 @@ static void writeDiskError(off_t sector, int err) {
 	rwDiskError("Write", sector, err);
 }
 
+/* Device numbers of standard MINIX devices. */
+#define DEV_FD0		0x0200
+static dev_t devCNd0[] = {	/* Refer to dmap.c */
+	0x0300,		/* /dev/c0 */
+	0x0800,		/* /dev/c1 */
+	0x0A00,		/* /dev/c2 */
+	0x0C00,		/* /dev/c3 */
+	0x1000		/* /dev/random */
+};
+#define MINOR_d0p0s0	128
+
 dev_t name2Dev(char *name) {
 /* Translate , say, /dev/c0d0p2 to a device number. If the name can't be
  * found on the boot device, then do some guesswork. The global structure
  * "tmpDev" will be filled in based on the name, so that "boot d1p0" knows
  * what device to boot without interpreting device numbers.
  */
-	return tmpDev.device; // DELETE
+	dev_t dev;
+	char *n;
+	int controllerNum;
+	
+	/* The special name "bootdev" must be translated to the boot device. */
+	if (strcmp(name, "bootdev") == 0) {
+		if (bootDev.device == -1) {
+			printf("The boot device could not be named.\n");
+			errno = 0;
+			return -1;
+		}
+		name = bootDev.name;
+	}
+
+	/* If our boot device doesn't have a file system, or we want to know
+	 * what a name means for the BIOS, then we need to interpret the
+	 * device name ourselves: "fd" = floppy, "c0d0" = hard disk, etc.
+	 */
+	tmpDev.device = tmpDev.primary = tmpDev.secondary = -1;
+	dev = -1;
+	n = name;
+	if (strncmp(n, "/dev/", 5) == 0)
+	  n += 5;
+	if (strcmp(n, "ram") == 0) {
+		dev = DEV_RAM;
+	} else if (strcmp(n, "boot") == 0) {
+		dev = DEV_BOOT;
+	} else if (n[0] == 'f' && n[1] == 'd' && numeric(n + 2)) {
+		/* Floppy. */
+		tmpDev.device = a2l(n + 2);
+		dev = DEV_FD0 + tmpDev.device;
+	} else {
+		/* Hard disk. */
+		if (n[0] == 'c' && between('0', n[1], '4')) {	/* c[0-3] */
+			controllerNum = n[1] - '0';		
+			tmpDev.device = 0;
+			n += 2;
+		}
+		if (n[0] == 'd' && between('0', n[1], '7')) {	/* d[0-7] */
+			tmpDev.device = n[1] - '0';
+			n += 2;
+			if (n[0] == 'p' && between('0', n[1], '3')) {	/* p[0-3] */
+				tmpDev.primary = n[1] - '0';
+				n += 2;
+				if (n[0] == 's' && between('0', n[1], '3')) {	/* s[0-3] */
+					tmpDev.secondary = n[1] - '0';
+					n+= 2;
+				}
+			}
+		}
+		if (*n == 0) {
+			dev = devCNd0[controllerNum];
+			/* Refer to wPrepare() in at_wini.c */
+			if (tmpDev.secondary < 0) {
+				dev += tmpDev.device * (NR_PARTITIONS + 1) + 
+					(tmpDev.primary + 1);
+			} else {
+				dev += MINOR_d0p0s0 + 
+					(tmpDev.device * NR_PARTITIONS + tmpDev.primary) * NR_PARTITIONS +
+					tmpDev.secondary;
+
+			}
+			tmpDev.device += 0x80;
+		}
+	}
+
+	/* Look the name up on the boot device for the UNIX device number. */
+	if (fsOK == -1) {
+	  //fsOK = rawSuper(&blockSize) != 0;
+	}
+
+	return -1; // TODO
+}
+
+void readBlock(Off_t blockNum, char *buf, int bs) {
+/* Read blocks for the rawfs package. */
+	int r, sectors;
+	u32_t pos;
+
+	if (!blockSize) {
+		printf("blockSize: 0\n");
+		exit(1);
+	}
+
+	sectors = RATIO(blockSize);
+	pos = lowSector + blockNum * sectors;
+	if ((r = readSectors(mon2Abs(buf), pos, sectors)) != 0) {
+		readDiskError(pos, r);
+		exit(1);
+	}
 }
 
 static void determineAvailableMemory() {
@@ -269,12 +377,12 @@ static void initialize() {
 
 enum ReservedNameEnum {
 	R_NULL, R_BOOT, R_CTTY, R_DELAY, R_ECHO, R_EXIT, R_HELP,
-	R_LS, R_MENU, R_OFF, R_SAVE, R_SET, R_TRAP, R_UNSET
+	R_LS, R_MENU, R_OFF, R_SAVE, R_SET, R_TRAP, R_TEST, R_UNSET 
 };
 
 char ReservedNames[][6] = {
 	"", "boot", "ctty", "delay", "echo", "exit", "help",
-	"ls", "menu", "off", "save", "set", "trap", "unset"
+	"ls", "menu", "off", "save", "set", "trap", "test", "unset", 
 };
 
 int reserved(char *s) {
@@ -640,7 +748,8 @@ static void help() {
 		{ "save /set",					"Save or show environment" },
 		{ "trap msec command",			"Schedule command " },
 		{ "unset name ...",				"Unset variable or set to default" },
-		{ "exit / off",					"Exit the Monitor / Power off" }
+		{ "exit / off",					"Exit the Monitor / Power off" },
+		{ "test",						"Test functions in this program" }
 	};
 
 	for (pi = info; pi < arrayLimit(info); ++pi) {
@@ -671,9 +780,6 @@ static u32_t milliTimeSince(u32_t base) {
 	return (milliTime() + msecOfDay - base) % msecOfDay;
 }
 
-static char *timerHandler;
-static u32_t timeBase, timeout;
-
 static void unschedule() {
 	if (timerHandler != NULL) {
 		free(timerHandler);
@@ -688,7 +794,7 @@ static void schedule(long msec, char *cmd) {
 	timeout = msec;
 }
 
-static bool expired() {
+bool expired() {
 	return timerHandler != NULL && 
 		milliTimeSince(timeBase) >= timeout;
 }
@@ -763,6 +869,7 @@ static void menu() {
 		}
 	}
 
+	/* Wait for a keypress. */
 	do {
 		c = getch();
 		if (interrupt() || expired())
@@ -786,6 +893,7 @@ static void menu() {
 		}
 	} while (choose == NULL);
 
+	/* Execute the chosen function. */
 	printf("%c\n", c);
 	tokenize(&cmds, choose);
 }
@@ -1078,8 +1186,12 @@ static void execute() {
 				/* TODO off(); */
 				ok = true;
 				break;
+			case R_TEST:
+				// For testing */
+				name2Dev("c0d0p0s0");
+				ok = true;
+				break;
 		}
-
 		if (strcmp(name, ":") == 0)
 		  ok = true;
 

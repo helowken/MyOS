@@ -23,6 +23,7 @@ extern int errno;
 #define EACCES		(_SIGN 13)	/* Permission denied */
 #define EFAULT		(_SIGN 14)	/* Bad address */
 #define ENODEV		(_SIGN 19)	/* No such device */
+#define ENOTDIR		(_SIGN 20)	/* Not a directory */
 #define EINVAL		(_SIGN 22)	/* Invalid argument */
 #define ENOTTY		(_SIGN 25)	/* Inappropriate I/O control operation */
 #define ENOSPC		(_SIGN 28)	/* No space left on device */
