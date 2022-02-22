@@ -23,7 +23,7 @@
 static unsigned numDZones;				/* # of direct zones */
 static unsigned numIndZones;			/* # of indirect zones */
 static unsigned inodesPerBlock;
-static uint16_t blockSize;	
+static int blockSize;	
 static SuperBlock super;				/* Superblock of file system */
 
 static Inode currInode;					/* Inode of file under examination */

@@ -16,7 +16,7 @@
 
 static char *version = "2.20";
 static int fsOK = -1;	/* File system state. Initially unknown. */
-static int blockSize;
+static int activate;
 
 static struct biosDev {
 	char name[8];
@@ -107,8 +107,14 @@ dev_t name2Dev(char *name) {
  * what device to boot without interpreting device numbers.
  */
 	dev_t dev;
+	ino_t ino;
 	char *n;
-	int controllerNum;
+	struct stat st;
+	int controllerNum, blockSize;
+
+	/* "boot *d0p2" means: make partition 2 active before you boot it. */
+	if ((activate = (name[0] == '*')))
+	  ++name;
 	
 	/* The special name "bootdev" must be translated to the boot device. */
 	if (strcmp(name, "bootdev") == 0) {
@@ -173,14 +179,34 @@ dev_t name2Dev(char *name) {
 	}
 
 	/* Look the name up on the boot device for the UNIX device number. */
-	if (fsOK == -1) {
-	  //fsOK = rawSuper(&blockSize) != 0;
+	if (fsOK == -1) 
+	  fsOK = rawSuper(&blockSize) != 0;
+	if (fsOK) {
+		/* The current working directory is "/dev". */
+		ino = rawLookup(rawLookup(ROOT_INO, "dev"), name);
+		if (ino != 0) {
+			/* Name has been found, extract the device number. */
+			rawStat(ino, &st);
+			if (!S_ISBLK(st.st_mode)) {
+				printf("%s is not a block device\n", name);
+				errno = 0;
+				return (dev_t) -1;
+			}
+			dev = st.st_rdev;
+		}
 	}
 
-	return -1; // TODO
+	if (tmpDev.primary < 0)
+	  activate = 0;
+
+	if (dev == -1) {
+		printf("Can't recognize '%s' as a device\n", name);
+		errno = 0;
+	}
+	return dev;
 }
 
-void readBlock(Off_t blockNum, char *buf, int bs) {
+void readBlock(Off_t blockNum, char *buf, int blockSize) {
 /* Read blocks for the rawfs package. */
 	int r, sectors;
 	u32_t pos;
