@@ -14,3 +14,5 @@ typedef struct {
 	/* The following items are only used when the SuperBlock is in memory. */
 } SuperBlock;
 
+EXTERN SuperBlock superBlocks[NR_SUPERS];
+

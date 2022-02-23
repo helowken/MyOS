@@ -16,4 +16,7 @@
 #define NR_BUFS			1280	/* Blocks in the buffer cache */
 #define NR_BUF_HASH		2048	/* Size of buf hash table; MUST BE POWER OF 2 */
 
+/* Number of controller tasks (/dev/cN device classes). */
+#define NR_CTRLRS		2
+
 #endif

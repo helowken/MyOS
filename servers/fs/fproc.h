@@ -2,7 +2,7 @@
  * process. Thus NR_PROCS must be the same as in the kernel. It is not
  * possible or even necessary to tell when a slot is free here.
  */
-typedef struct {
+typedef struct FProc {
 	mode_t fp_umask;	/* Mask set by umask system call */
 	uid_t fp_ruid;			/* Real user id */
 	uid_t fp_euid;			/* Effective user id */
@@ -12,3 +12,5 @@ typedef struct {
 } FProc;
 
 EXTERN FProc fprocTable[NR_PROCS];
+
+#define isOkProcNum(n)		((unsigned) ((n) + NR_TASKS) < NR_PROCS + NR_TASKS)

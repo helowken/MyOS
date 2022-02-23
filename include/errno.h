@@ -22,6 +22,7 @@ extern int errno;
 #define ENOMEM		(_SIGN 12)	/* No enough space */
 #define EACCES		(_SIGN 13)	/* Permission denied */
 #define EFAULT		(_SIGN 14)	/* Bad address */
+#define EBUSY		(_SIGN 16)	/* Resource busy */
 #define ENODEV		(_SIGN 19)	/* No such device */
 #define ENOTDIR		(_SIGN 20)	/* Not a directory */
 #define EINVAL		(_SIGN 22)	/* Invalid argument */

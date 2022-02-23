@@ -107,6 +107,9 @@
 #define RESP_STATUS		m2_i2	/* Bytes transferred or error number */
 #	define SUSPEND		-998	/* Status to suspend caller, reply later */
 
+/* Field names for messages to TTY driver. */
+#define TTY_FLAGS		m2_l2	/* Message parameter: ioctl tty mode */
+
 /*=====================================================================*
  *			SYSTASK	request types and field names			*
  *=====================================================================*/

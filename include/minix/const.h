@@ -7,6 +7,13 @@
 
 #define SUPER_USER		0		/* uid_t of superuser */
 
+/* Devices. */
+#define MAJOR			8		/* Major device = (dev >> MAJOR) & BYTE */
+#define MINOR			0		/* Minor device = (dev >> MINOR) & BYTE */
+
+#define majorDev(dev)	(((dev) >> MAJOR) & BYTE)
+#define minorDev(dev)	(((dev) >> MINOR) & BYTE)
+
 #define NR_IO_REQS		MIN(NR_BUFS, 64)	/* Maximum number of entries in an I/O request */
 
 /* Memory related constants. */

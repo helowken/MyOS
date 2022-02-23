@@ -32,4 +32,6 @@
 #define INDIR_ZONE_IDX			7		/* Single indirect zone index */
 #define	DBL_IND_ZONE_IDX		(INDIR_ZONE_IDX + 1)	/* Double indirect zone index */
 
-
+#define SU_UID			((uid_t) 0)		/* Super user's uid_t */
+#define SYS_UID			((uid_t) 0)		/* uid_t for processes MM and INIT */
+#define SYS_GID			((gid_t) 0)		/* gid_t for processes MM and INIT */
