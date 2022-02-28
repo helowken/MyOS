@@ -111,6 +111,10 @@ int devOpen(dev_t dev, int proc, int flags) {
 	return r;
 }
 
+void devClose(dev_t dev) {
+	(*dmapTable[majorDev(dev)].dmap_opcl)(DEV_CLOSE, dev, 0, 0);
+}
+
 int devIO(int op, dev_t dev, int proc, void *buf, 
 			off_t pos, int bytes, int flags) {
 /* Read or write from a device. The parameter 'dev' tells which one. */

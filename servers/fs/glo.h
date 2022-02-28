@@ -25,6 +25,6 @@ EXTERN Inode inodes[NR_INODES];
 
 EXTERN Buf bufs[NR_BUFS];
 EXTERN Buf *bufHashTable[NR_BUF_HASH];		/* The buffer hash table */
-EXTERN Buf *frontBuf;		/* Points to least recently used free block */
-EXTERN Buf *rearBuf;		/* Points to most recently used free block */
+EXTERN Buf *frontBP;		/* Points to least recently used free block */
+EXTERN Buf *rearBP;		/* Points to most recently used free block */
 EXTERN int bufsInUse;		/* # bufs currenly in use (not on free list) */

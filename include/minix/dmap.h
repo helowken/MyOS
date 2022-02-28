@@ -19,8 +19,8 @@
 enum DevStyle { STYLE_DEV, STYLE_NDEV, STYLE_TTY, STYLE_CLONE };
 
 typedef struct {
-	int (*dmap_opcl)(int, dev_t, int, int);		/* Open or close */
-	void (*dmap_io)(int, Message *);
+	int (*dmap_opcl)(int op, dev_t dev, int proc, int flag);	/* Open or close */
+	void (*dmap_io)(int driver, Message *msg);
 	int dmap_driver;
 	int dmap_flags;
 } DMap;

@@ -21,20 +21,20 @@ static void initBufPool() {
 	register Buf *bp;
 
 	bufsInUse = 0;
-	frontBuf = &bufs[0];
-	rearBuf = &bufs[NR_BUFS - 1];
+	frontBP = &bufs[0];
+	rearBP = &bufs[NR_BUFS - 1];
 
-	for (bp = frontBuf; bp <= rearBuf; ++bp) {
+	for (bp = frontBP; bp <= rearBP; ++bp) {
 		bp->b_block_num = NO_BLOCK;
 		bp->b_dev = NO_DEV;
 		bp->b_next = bp + 1;
 		bp->b_prev = bp - 1;
 		bp->b_hash_next = bp->b_next;
 	}
-	frontBuf->b_prev = NIL_BUF;
-	rearBuf->b_next = NIL_BUF;
-	rearBuf->b_hash_next = NIL_BUF;
-	bufHashTable[0] = frontBuf;
+	frontBP->b_prev = NIL_BUF;
+	rearBP->b_next = NIL_BUF;
+	rearBP->b_hash_next = NIL_BUF;
+	bufHashTable[0] = frontBP;
 }
 
 static int iGetEnv(char *key, bool optional) {
@@ -55,17 +55,18 @@ static void loadRam() {
  * disk with the same size as the image.
  * If the root device is not set, the RAM disk will be used as root instead.
  */
-	u32_t ramBlocks, ramSizeKB;
+	u32_t imgBlocks, ramSizeInKB;
 	dev_t imageDev;
-	SuperBlock *sp;
-	int imageBlockSize, ramBlockSize;
+	SuperBlock *imgSp;
+	int imgBlockSize, ramBlockSize, factor;
 	int s;
-	block_t b;
+	block_t imgBlockNum, ramBlockNum;
+	Buf *imgBP, *ramBP;
 	
 	/* Get some boot environment variables. */
 	rootDev = iGetEnv("rootdev", false);
 	imageDev = iGetEnv("ramimagedev", false);
-	ramSizeKB = iGetEnv("ramsize", false);
+	ramSizeInKB = iGetEnv("ramsize", false);
 
 	/* Open the root device. */
 	if (devOpen(rootDev, FS_PROC_NR, R_BIT | W_BIT) != OK)
@@ -83,28 +84,28 @@ static void loadRam() {
 		  panic(__FILE__, "Cannot open RAM image device", NO_NUM);
 
 		/* Get size of RAM disk image from the super block. */
-		sp = &superBlocks[0];
-		sp->s_dev = imageDev;
-		if (readSuper(sp) != OK)
+		imgSp = &superBlocks[0];
+		imgSp->s_dev = imageDev;
+		if (readSuper(imgSp) != OK)
 		  panic(__FILE__, "Bad RAM disk image FS", NO_NUM);
 
-		ramBlocks = sp->s_zones << sp->s_log_zone_size;	/* # blocks on root dev */
+		imgBlocks = imgSp->s_zones << imgSp->s_log_zone_size;	/* # blocks on image dev */
 
 		/* Stretch the RAM disk file system to the boot parameters size, but
 		 * no further than the last zone bit map block allows.
 		 */
-		if (ramSizeKB * KB < ramBlocks * sp->s_block_size) 
-		  ramSizeKB = ramBlocks * sp->s_block_size / KB;
+		if (ramSizeInKB * KB < imgBlocks * imgSp->s_block_size) 
+		  ramSizeInKB = imgBlocks * imgSp->s_block_size / KB;
 
 		/* Total data zones */
-		fsMax = (u32_t) sp->s_zmap_blocks * sp->s_block_size * CHAR_BIT;
+		fsMax = (u32_t) imgSp->s_zmap_blocks * imgSp->s_block_size * CHAR_BIT;
 
 		/* Total zones = total data zones + zone offset
 		 * Total blocks = total zones * blocks per zone 
 		 */
-		fsMax = (fsMax + (sp->s_first_data_zone - 1)) << sp->s_log_zone_size;
-		if (ramSizeKB * KB > fsMax * sp->s_block_size)
-		  ramSizeKB = fsMax * sp->s_block_size / KB;
+		fsMax = (fsMax + (imgSp->s_first_data_zone - 1)) << imgSp->s_log_zone_size;
+		if (ramSizeInKB * KB > fsMax * imgSp->s_block_size)
+		  ramSizeInKB = fsMax * imgSp->s_block_size / KB;
 	}
 
 	/* Tell RAM driver how big the RAM disk must be. */
@@ -112,10 +113,10 @@ static void loadRam() {
 	outMsg.PROC_NR = FS_PROC_NR;
 	outMsg.DEVICE = RAM_DEV;
 	outMsg.REQUEST = MEM_IOC_RAM_SIZE;
-	outMsg.POSITION = ramSizeKB * KB;
-	if ((s = sendRec(MEM_PROC_NR, &outMsg)) != OK)
-	  panic("FS", "sendRec from MEM failed", s);
-	else if (outMsg.RESP_STATUS != OK) {
+	outMsg.POSITION = ramSizeInKB * KB;
+	if ((s = sendRec(MEM_PROC_NR, &outMsg)) != OK) {
+	    panic("FS", "sendRec from MEM failed", s);
+	} else if (outMsg.RESP_STATUS != OK) {
 		/* Report and continue, unless RAM disk is required as ROOT FS. */
 		if (rootDev != DEV_RAM) 
 		  report("FS", "can't set RAM disk size", outMsg.RESP_STATUS);
@@ -136,22 +137,47 @@ static void loadRam() {
 	inodes[0].i_zones[0] = imageDev;
 
 	ramBlockSize = getBlockSize(DEV_RAM);
-	imageBlockSize = getBlockSize(imageDev);
+	imgBlockSize = getBlockSize(imageDev);
 
-	/* The root image block size has to be multiple of the ram block
+	/* The image block size has to be multiple of the ram block
 	 * size to make copying easier.
 	 */
-	if (imageBlockSize % ramBlockSize) { 
+	if (imgBlockSize % ramBlockSize) { 
 		printf("\nram block size: %d image block size: %d\n",
-			ramBlockSize, imageBlockSize);
-		panic(__FILE__, "ram disk block size must be a multiple of "
-			"the image disk block size", NO_NUM);
+			ramBlockSize, imgBlockSize);
+		panic(__FILE__, "the image block size must be a multiple of "
+			"the ram disk block size", NO_NUM);
 	}
 
 	/* Loading blocks from image device. */
-	for (b = 0; b < (block_t) ramBlocks; ++b) {
-			
+	for (imgBlockNum = 0; imgBlockNum < (block_t) imgBlocks; ++imgBlockNum) {
+		imgBP = readAhead(&inodes[0], imgBlockNum, 
+				(off_t) imgBlockSize * imgBlockNum, imgBlockSize);
+		factor = imgBlockSize / ramBlockSize;
+		for (ramBlockNum = 0; ramBlockNum < factor; ++ramBlockNum) {
+			ramBP = getBlock(rootDev, 
+						imgBlockNum * factor + ramBlockNum, 
+						NO_READ);
+			memcpy(ramBP->b_data, 
+					imgBP->b_data + ramBlockNum * ramBlockSize, 
+					(size_t) ramBlockSize);
+			ramBP->b_dirty = DIRTY;
+			putBlock(ramBP, FULL_DATA_BLOCK);
+		}
+		putBlock(imgBP, FULL_DATA_BLOCK);
+		if (imgBlockNum % 11 == 0)
+		  printf("\b\b\b\b\b\b\b\b\b%6ld KB", ((long) imgBlockNum * imgBlockSize) / KB);
 	}
+
+	/* Commit changes to RAM so devIO will see it. */
+	doSync();
+
+	printf("\rRAM disk of %u KB loaded onto /dev/ram.", (unsigned) ramSizeInKB);
+	printf(" Using RAM disk as root FS.\n");
+
+	/* Invalidate and close the image device. */
+	invalidate(imageDev);
+	devClose(imageDev);
 }
 
 static void fsInit() {

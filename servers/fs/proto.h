@@ -5,6 +5,7 @@
 
 /* device.c */
 int devOpen(dev_t dev, int proc, int flags);
+void devClose(dev_t dev);
 int devIO(int op, dev_t dev, int proc, void *buf, 
 			off_t pos, int bytes, int flags);
 int noDev(int op, dev_t dev, int proc, int flags);
@@ -39,3 +40,12 @@ void putBlock(Buf *bp, int blockType);
 void flushAll(dev_t dev);
 void rwBlock(Buf *bp, int rwFlag);
 void rwScattered(dev_t dev, Buf **bufQueue, int queueSize, int rwFlag);
+void invalidate(dev_t dev);
+
+/* misc.c */
+int doSync();
+int doFsync();
+
+/* inode.c */
+void rwInode(Inode *ip, int rwFlag);
+

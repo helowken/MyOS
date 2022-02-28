@@ -12,12 +12,12 @@ static void removeLRU(Buf *bp) {
 	if (prev != NIL_BUF)
 	  prev->b_next = next;
 	else
-	  frontBuf = next;
+	  frontBP = next;
 
 	if (next != NIL_BUF)
 	  next->b_prev = prev;
 	else
-	  rearBuf = prev;
+	  rearBP = prev;
 }
 
 Buf *getBlock(
@@ -65,7 +65,7 @@ Buf *getBlock(
 	}
 
 	/* Desired block is not on available chain. Take oldest block ('front'). */
-	if ((bp = frontBuf) == NIL_BUF)
+	if ((bp = frontBP) == NIL_BUF)
 	  panic(__FILE__, "all buffers in use", NR_BUFS);
 	removeLRU(bp);
 
@@ -190,23 +190,23 @@ void putBlock(
 		 * It will be the next block to be evicted from the cache.
 		 */
 		bp->b_prev = NIL_BUF;
-		bp->b_next = frontBuf;
-		if (frontBuf == NIL_BUF)
-		  rearBuf = bp;	/* LRU chain was empty */
+		bp->b_next = frontBP;
+		if (frontBP == NIL_BUF)
+		  rearBP = bp;	/* LRU chain was empty */
 		else
-		  frontBuf->b_prev = bp;
-		frontBuf = bp;
+		  frontBP->b_prev = bp;
+		frontBP = bp;
 	} else {
 		/* Block probably will be needed quickly. Put it on rear of chain.
 		 * It will not be evicted from the cache from a long time.
 		 */
-		bp->b_prev = rearBuf;
+		bp->b_prev = rearBP;
 		bp->b_next = NIL_BUF;
-		if (rearBuf == NIL_BUF)
-		  frontBuf = bp;
+		if (rearBP == NIL_BUF)
+		  frontBP = bp;
 		else
-		  rearBuf->b_next = bp;
-		rearBuf = bp;
+		  rearBP->b_next = bp;
+		rearBP = bp;
 	}
 
 	/* Some blocks are so important (e.g., inodes, indirect blocks) that they
@@ -306,6 +306,18 @@ void rwScattered(dev_t dev, Buf **bufQueue, int queueSize, int rwFlag) {
 			 */
 			break;
 		}
+	}
+}
+
+void invalidate(
+	dev_t dev	/* Device whose blocks are to be purged */
+) {
+/* Remove all the blocks belonging to some device from the cache. */
+	register Buf *bp;
+
+	for (bp = &bufs[0]; bp < &bufs[NR_BUFS]; ++bp) {
+		if (bp->b_dev == dev)
+		  bp->b_dev = NO_DEV;
 	}
 }
 
