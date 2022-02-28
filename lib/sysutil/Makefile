@@ -2,6 +2,7 @@ LIB_NAME = mysysutil
 
 OBJS_M32 = kprintf.o \
 		   kputc.o \
+		   report.o \
 		   kmalloc.o \
 		   panic.o \
 		   getuptime.o \

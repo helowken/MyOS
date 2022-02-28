@@ -340,7 +340,9 @@ static void initialize() {
 	bootDev.secondary = -1;
 
 	if (device < 0x80) {
-		printf("Device is not a hard disk.\n");
+		/* Floppy. */
+		strcpy(bootDev.name, "fd0");
+		bootDev.name[2] += bootDev.device;
 		return;
 	}
 

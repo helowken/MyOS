@@ -43,6 +43,8 @@
 
 /* Miscellaneous */
 #define BYTE			0377	/* Mark for 8 bits */
+#define	READING			0		/* Copy data to user */
+#define WRITING			1		/* Cooy data from user */
 #define	NO_NUM			0x8000	/* Used as numerical argument to panic() */
 
 #define CLICK_SIZE		1024	/* Unit in which memory is allocated */

@@ -19,13 +19,12 @@ typedef struct Buf {
 	/* Header portion of the buffer. */
 	struct Buf *b_next;		/* Used to link all free bufs in a chain */
 	struct Buf *b_prev;		/* Used to link all free bufs the other way */
-	struct Buf *b_hash;		/* Used to link bufs on hash chains */
+	struct Buf *b_hash_next;	/* Used to link bufs on hash chains */
 	Block_t b_block_num;	/* Block number of its (minor) device */
 	Dev_t b_dev;		/* Major | minor device where block resides */
 	char b_dirty;		/* CLEAN or DIRTY */
 	char b_count;		/* Number of users of this buffer */
 } Buf;
-EXTERN Buf bufs[NR_BUFS];
 
 #define NIL_BUF		((Buf *) 0)	/* Indicates absence of a buffer */
 
@@ -35,15 +34,15 @@ EXTERN Buf bufs[NR_BUFS];
 #define b_inodes	b.b__inodes
 #define b_bitmaps	b.b__bitmaps
 
-EXTERN Buf *bufHashTable[NR_BUF_HASH];		/* The buffer hash table */
-EXTERN Buf *frontBuf;		/* Points to least recently used free block */
-EXTERN Buf *rearBuf;		/* Points to most recently used free block */
-EXTERN int bufsInUse;		/* # bufs currenly in use (not on free list) */
+/* When a block is released, the type of usage is passed to putBlock(). */
+#define WRITE_IMMED		0100	/* Block should be written to disk now */
+#define ONE_SHOT		0200	/* Set if block not likely to be needed soon */
 
 #define INODE_BLOCK			0	/* Inode block */
-#define DIR_BLOCK			1	/* Directory block */
+#define DIRECTORY_BLOCK		1	/* Directory block */
 #define INDIRECT_BLOCK		2	/* Pointer block */
 #define	MAP_BLOCK			3	/* Bit map */
 #define FULL_DATA_BLOCK		5	/* Data, fully used */
 #define	PARTIAL_DATA_BLOCK	6	/* Data, partly used */
 
+#define	HASH_MASK	(NR_BUF_HASH - 1)	/* Mask for hashing block numbers */

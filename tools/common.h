@@ -32,6 +32,7 @@ typedef	int16_t			Uid_t;		/* User id */
 typedef int8_t			Gid_t;		/* Group id */
 typedef uint32_t		Ino_t;		/* i-node numer */
 typedef uint32_t		Block_t;	/* block number */
+typedef uint32_t		Bit_t;		/* Bit number in a bit map */
 typedef uint32_t		Off_t;		/* Offset within a file */
 typedef uint16_t		Mode_t;		/* File type and permissions bits */
 typedef uint32_t		Zone_t;		/* Zone number */

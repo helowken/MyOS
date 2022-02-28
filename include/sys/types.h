@@ -35,6 +35,7 @@ typedef	short			uid_t;		/* User id */
 typedef char			gid_t;		/* Group id */
 typedef unsigned long	zone_t;		/* Zone number */
 typedef unsigned long	block_t;	/* block number */
+typedef unsigned long	bit_t;		/* Bit number in a bit map */
 typedef unsigned long	ino_t;		/* i-node number of file system */
 typedef unsigned short	mode_t;		/* File type and permissions bits */
 typedef short			nlink_t;	/* Number of links to a file */
@@ -57,6 +58,7 @@ typedef mode_t			Mode_t;
 typedef time_t			Time_t;
 typedef zone_t			Zone_t;
 typedef block_t			Block_t;
+typedef bit_t			Bit_t;
 typedef ino_t			Ino_t;
 typedef nlink_t			Nlink_t;
 typedef bitchunk_t		Bitchunk_t;

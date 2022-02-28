@@ -19,6 +19,7 @@ extern int errno;
 #define E2BIG		(_SIGN 7)	/* Arg list too long */
 #define ENOEXEC		(_SIGN 8)	/* Exec format error */
 #define ECHILD		(_SIGN 10)	/* No child process */
+#define EAGAIN		(_SIGN 11)	/* Resource temporarily unavailable */
 #define ENOMEM		(_SIGN 12)	/* No enough space */
 #define EACCES		(_SIGN 13)	/* Permission denied */
 #define EFAULT		(_SIGN 14)	/* Bad address */

@@ -10,12 +10,11 @@
 #include "minix/com.h"
 #include "minix/keymap.h"
 #include "minix/const.h"
-#include "buf.h"
 #include "file.h"
 #include "fproc.h"
-#include "super.h"
-#include "inode.h"
 #include "param.h"
+
+#define KB	1024
 
 static void initBufPool() {
 /* Initialize the buffer pool. */
@@ -30,10 +29,11 @@ static void initBufPool() {
 		bp->b_dev = NO_DEV;
 		bp->b_next = bp + 1;
 		bp->b_prev = bp - 1;
-		bp->b_hash = bp->b_next;
+		bp->b_hash_next = bp->b_next;
 	}
 	frontBuf->b_prev = NIL_BUF;
-	rearBuf->b_hash = rearBuf->b_next = NIL_BUF;
+	rearBuf->b_next = NIL_BUF;
+	rearBuf->b_hash_next = NIL_BUF;
 	bufHashTable[0] = frontBuf;
 }
 
@@ -55,9 +55,12 @@ static void loadRam() {
  * disk with the same size as the image.
  * If the root device is not set, the RAM disk will be used as root instead.
  */
-	u32_t ramSizeKB;
+	u32_t ramBlocks, ramSizeKB;
 	dev_t imageDev;
 	SuperBlock *sp;
+	int imageBlockSize, ramBlockSize;
+	int s;
+	block_t b;
 	
 	/* Get some boot environment variables. */
 	rootDev = iGetEnv("rootdev", false);
@@ -70,6 +73,7 @@ static void loadRam() {
 
 	/* If we must initialize a ram disk, get details from the image device. */
 	if (rootDev == DEV_RAM) {
+		u32_t fsMax;
 		/* If we are running from CD, see if we can find it. */
 		// TODO
 		
@@ -83,6 +87,70 @@ static void loadRam() {
 		sp->s_dev = imageDev;
 		if (readSuper(sp) != OK)
 		  panic(__FILE__, "Bad RAM disk image FS", NO_NUM);
+
+		ramBlocks = sp->s_zones << sp->s_log_zone_size;	/* # blocks on root dev */
+
+		/* Stretch the RAM disk file system to the boot parameters size, but
+		 * no further than the last zone bit map block allows.
+		 */
+		if (ramSizeKB * KB < ramBlocks * sp->s_block_size) 
+		  ramSizeKB = ramBlocks * sp->s_block_size / KB;
+
+		/* Total data zones */
+		fsMax = (u32_t) sp->s_zmap_blocks * sp->s_block_size * CHAR_BIT;
+
+		/* Total zones = total data zones + zone offset
+		 * Total blocks = total zones * blocks per zone 
+		 */
+		fsMax = (fsMax + (sp->s_first_data_zone - 1)) << sp->s_log_zone_size;
+		if (ramSizeKB * KB > fsMax * sp->s_block_size)
+		  ramSizeKB = fsMax * sp->s_block_size / KB;
+	}
+
+	/* Tell RAM driver how big the RAM disk must be. */
+	outMsg.m_type = DEV_IOCTL;
+	outMsg.PROC_NR = FS_PROC_NR;
+	outMsg.DEVICE = RAM_DEV;
+	outMsg.REQUEST = MEM_IOC_RAM_SIZE;
+	outMsg.POSITION = ramSizeKB * KB;
+	if ((s = sendRec(MEM_PROC_NR, &outMsg)) != OK)
+	  panic("FS", "sendRec from MEM failed", s);
+	else if (outMsg.RESP_STATUS != OK) {
+		/* Report and continue, unless RAM disk is required as ROOT FS. */
+		if (rootDev != DEV_RAM) 
+		  report("FS", "can't set RAM disk size", outMsg.RESP_STATUS);
+		else
+		  panic(__FILE__, "can't set RAM disk size", outMsg.RESP_STATUS);
+	}
+
+	/* See if we must load the RAM disk image, otherwise return. */
+	if (rootDev != DEV_RAM)
+	  return;
+
+	/* Copy the blocks one at a time from the image to the RAM disk. */
+	printf("Loading RAM disk onto /dev/ram:\33[23CLoaded:    0 KB");
+
+	inodes[0].i_mode = I_BLOCK_SPECIAL;	
+	inodes[0].i_size = LONG_MAX;
+	inodes[0].i_dev = imageDev;
+	inodes[0].i_zones[0] = imageDev;
+
+	ramBlockSize = getBlockSize(DEV_RAM);
+	imageBlockSize = getBlockSize(imageDev);
+
+	/* The root image block size has to be multiple of the ram block
+	 * size to make copying easier.
+	 */
+	if (imageBlockSize % ramBlockSize) { 
+		printf("\nram block size: %d image block size: %d\n",
+			ramBlockSize, imageBlockSize);
+		panic(__FILE__, "ram disk block size must be a multiple of "
+			"the image disk block size", NO_NUM);
+	}
+
+	/* Loading blocks from image device. */
+	for (b = 0; b < (block_t) ramBlocks; ++b) {
+			
 	}
 }
 

@@ -3,8 +3,7 @@
 #include "minix/callnr.h"
 #include "minix/com.h"
 #include "file.h"
-#include "super.h"
-#include "inode.h"
+#include "fproc.h"
 #include "param.h"
 
 int noDev(int op, dev_t dev, int proc, int flags) {

@@ -9,6 +9,7 @@ int envGetParam(char *key, char *value, int maxSize);
 
 int printf(const char *fmt, ...);
 void kputc(int c);
+void report(char *who, char *msg, int num);
 void panic(char *who, char *msg, int num);
 clock_t getUptime(clock_t *ticks);
 int tickDelay(clock_t ticks);
