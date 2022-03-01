@@ -10,6 +10,11 @@ typedef struct FProc {
 	uid_t fp_euid;		/* Effective user id */
 	gid_t fp_rgid;		/* Real group id */
 	gid_t fp_egid;		/* Effective group id */
+	int fp_fd;			/* Place to save fd if rd/wr can't finish */
+	char *fp_buffer;	/* Place to save buffer if rd/wr can't finish */
+	int fp_nbytes;		/* Place to save bytes if rd/wr can't finish */
+	char fp_suspended;	/* Set to indicate process hanging */
+	char fp_revived;	/* Set to indicate process being revived */
 	pid_t fp_pid;		/* Process id */
 } FProc;
 

@@ -151,7 +151,7 @@ static void loadRam() {
 
 	/* Loading blocks from image device. */
 	for (imgBlockNum = 0; imgBlockNum < (block_t) imgBlocks; ++imgBlockNum) {
-		imgBp = readAhead(&inodes[0], imgBlockNum, 
+		imgBp = doReadAhead(&inodes[0], imgBlockNum, 
 				(off_t) imgBlockSize * imgBlockNum, imgBlockSize);
 		factor = imgBlockSize / ramBlockSize;
 		for (ramBlockNum = 0; ramBlockNum < factor; ++ramBlockNum) {
@@ -292,15 +292,39 @@ static void getWork() {
 
 	if (reviving != 0) {
 		/* Revive a suspended process. */
-		if (fp = &fprocTable[0]; fp < &fprocTable[NR_PROCS]; ++fp) {
+		for (fp = &fprocTable[0]; fp < &fprocTable[NR_PROCS]; ++fp) {
 			if (fp->fp_revived == REVIVING) {
 				who = (int) (fp - fprocTable);
 				callNum = fp->fp_fd & BYTE;
-				inMsg.fs = (fp->fp_fd >> 8) & BYTE;
-				inMsg.buffer
+				inMsg.fd = (fp->fp_fd >> 8) & BYTE;
+				inMsg.buffer = fp->fp_buffer;
+				inMsg.nbytes = fp->fp_nbytes;
+				fp->fp_suspended = NOT_SUSPENDED;	/* No longer hanging */
+				fp->fp_revived = NOT_REVIVING;
+				--reviving;
+				return;
 			}
 		}
+		panic(__FILE__, "getWork couldn't revive anyone", NO_NUM);
 	}
+
+	/* Normal case. No one to revive. */
+	if (receive(ANY, &inMsg) != OK)
+	  panic(__FILE__, "FS receive error", NO_NUM);
+	who = inMsg.m_source;
+	callNum = inMsg.m_type;
+}
+
+void reply(int whom, int result) {
+/* Send a reply to a user process. It may fail (if the process has just
+ * been killed by a signal), so don't check the return code. If the send
+ * fails, just ignore it.
+ */
+	int r;
+
+	outMsg.reply_type = result;
+	if ((r = send(whom, &outMsg)) != OK)
+	  printf("FS: couldn't send reply %d: %d\n", result, r);
 }
 
 int main() {
@@ -308,11 +332,51 @@ int main() {
  * three major activities: getting new work, processing the work, and sending
  * the reply. This loop never terminates as long as the file system runs.
  */
+	sigset_t sigset;
+	int error;
+
 	fsInit();
 
 	while (true) {
-		getWork();
-	}
+		getWork();	/* Sets who and callNum */
+		
+		currFp = &fprocTable[who];
+		superUser = currFp->fp_euid == SU_UID;	/* su? */
+		
+		/* Check for special control messages first. */
+		if (callNum == SYS_SIG) {
+			sigset = inMsg.NOTIFY_ARG;
+			if (sigismember(&sigset, SIGKSTOP)) {
+				doSync();
+				sysExit(0);		/* Never returns */
+			}
+		} else if (callNum == SYN_ALARM) {
+			/* Not a user request; system has expired one of our timers,
+			 * currently only in use for select(). Check it.
+			 */
+			fsExpireTimers(inMsg.NOTIFY_TIMESTAMP);
+		} else if (callNum & NOTIFY_MESSAGE) {
+			/* Device notifies us of an event. */
+			devStatus(&inMsg);
+		} else {
+			/* Call the internal function that does the work. */
+			if (callNum < 0 || callNum >= NCALLS) {
+				error = ENOSYS;
+				printf("FS, warning illegal %d system call by %d\n", callNum, who);
+			} else if (currFp->fp_pid == PID_FREE) {
+				error = ENOSYS;
+				printf("FS, bad process, who= %d, callNum = %d, slot1 = %d\n",
+							who, callNum, inMsg.slot1);
+			} else {
+				error = (*callVec[callNum])();
+			}
 
-	return OK;
+			/* Copy the results back to the user and send reply. */
+			if (error != SUSPEND)
+			  reply(who, error);
+			if (readAheadInode != NIL_INODE)
+			  readAhead();	/* Do block read ahead */
+		}
+	}
+	return OK;		/* Shouldn't come here */
 }

@@ -6,8 +6,10 @@
 /* File System global variables */
 EXTERN struct FProc *currFp;	/* Pointer to caller's FProc */
 EXTERN int superUser;		/* 1 if caller is superUser, else 0 */
-EXTERN dev_t rootDev;		/* Device number of the root device */
 EXTERN int reviving;		/* Number of pipe processes to be revived */
+EXTERN off_t readAheadPos;	/* Position to read ahead */
+EXTERN Inode *readAheadInode;	/* Pointer to inode to read ahead */
+EXTERN dev_t rootDev;		/* Device number of the root device */
 EXTERN time_t bootTime;		/* Time in seconds at system boot */
 
 /* The parameters of the call are kept here. */
@@ -30,3 +32,6 @@ EXTERN Buf *bufHashTable[NR_BUF_HASH];		/* The buffer hash table */
 EXTERN Buf *frontBp;		/* Points to least recently used free block */
 EXTERN Buf *rearBp;		/* Points to most recently used free block */
 EXTERN int bufsInUse;		/* # bufs currenly in use (not on free list) */
+
+/* Data initialized elsewhere */
+extern int (*callVec[])();	/* Sys call table */

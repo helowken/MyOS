@@ -4,7 +4,32 @@
 #include "file.h"
 #include "param.h"
 
-Buf *readAhead(
+void readAhead() {
+/* Read a block into the cache before it is needed. */
+	int blockSize;
+	register Inode *ip;
+	Buf *bp;
+	block_t blockNum;
+
+	ip = readAheadInode;	/* Pointer to inode to read ahead from */
+	blockSize = getBlockSize(ip->i_dev);
+	readAheadInode = NIL_INODE;	/* Turn off read ahead */
+	if ((blockNum = readMap(ip, readAheadPos)) == NO_BLOCK)
+	  return;	/* At EOF */
+	bp = doReadAhead(ip, blockNum, readAheadPos, blockSize);
+	putBlock(bp, PARTIAL_DATA_BLOCK);
+}
+
+block_t readMap(Inode *ip, off_t pos) {
+/* Given an inode and a position within the corresponding file, locate the
+ * block (not zone) number in which that position is to be found and return it.
+ */
+	register Buf *bp;
+	register zone_t zone;
+	//TODO
+}
+
+Buf *doReadAhead(
 	Inode *ip,		/* Pointer to inode for file to be read */
 	block_t baseBlock,	/* Block at current position */
 	off_t position,		/* Position within file */

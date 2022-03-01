@@ -153,3 +153,39 @@ int devIO(int op, dev_t dev, int proc, void *buf,
 	}
 	return msg.RESP_STATUS;
 }
+
+void devStatus(Message *msg) {
+	Message statusMsg;
+	int i, r;
+	bool getMore = true;
+
+	for (i = 0; i < NR_DEVICES; ++i) {
+		if (dmapTable[i].dmap_driver == msg->m_source)
+		  break;
+	}
+	if (i >= NR_DEVICES)
+	  return;
+
+	do {
+		statusMsg.m_type = DEV_STATUS;
+		if ((r = sendRec(msg->m_source, &statusMsg)) != OK)
+		  panic(__FILE__, "couldn't sendRec for DEV_STATUS", r);
+
+		switch (statusMsg.m_type) {
+			case DEV_REVIVE:
+				revive(statusMsg.RESP_PROC_NR, statusMsg.RESP_STATUS);
+				break;
+			case DEV_IO_READY:
+				selectNotified(i, statusMsg.DEV_MINOR, statusMsg.DEV_SEL_OPS);
+				break;
+			default:
+				printf("FS: unrecognized reply %d to DEV_STATUS\n", statusMsg.m_type);
+				/* Fall through */
+			case DEV_NO_STATUS:
+				getMore = false;
+				break;
+		}
+	} while (getMore);
+}
+
+

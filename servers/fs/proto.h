@@ -17,6 +17,7 @@ int cttyOpCl(int op, dev_t dev, int proc, int flags);
 int cloneOpCl(int op, dev_t dev, int proc, int flags);
 void genIO(int taskNum, Message *msg);
 void cttyIO(int taskNum, Message *msg);
+void devStatus(Message *msg);
 
 /* utility.c */
 void panic(char *who, char *msg, int num);
@@ -35,8 +36,10 @@ void suspend(int task);
 void revive(int proc, int bytes);
 
 /* read.c */
-Buf *readAhead(Inode *ip, block_t baseBlock, 
+void readAhead();
+Buf *doReadAhead(Inode *ip, block_t baseBlock, 
 			off_t position, unsigned bytesAhead);
+block_t readMap(Inode *ip, off_t pos);
 
 /* cache.c */
 Buf *getBlock(dev_t dev, block_t blockNum, int onlySearch);
@@ -61,5 +64,9 @@ void initSelect();
 
 /* timers.c */
 void fsInitTimer(Timer *tp);
+void fsExpireTimers(clock_t now);
+
+/* main.c */
+void reply(int whom, int result);
 
 
