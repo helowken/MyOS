@@ -18,4 +18,5 @@
 #include "const.h"
 #include "type.h"
 #include "proto.h"
+#include "fproc.h"
 #include "glo.h"

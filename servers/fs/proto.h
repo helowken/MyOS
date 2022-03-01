@@ -1,3 +1,5 @@
+struct Inode;
+
 #include "timers.h"
 #include "buf.h"
 #include "super.h"
@@ -18,12 +20,14 @@ void cttyIO(int taskNum, Message *msg);
 
 /* utility.c */
 void panic(char *who, char *msg, int num);
+time_t clockTime();
 
 /* dmap.c */
 void buildDMap();
 
 /* super.c */
 int readSuper(SuperBlock *sp);
+SuperBlock *getSuper(dev_t dev);
 int getBlockSize(dev_t dev);
 
 /* pipe.c */
@@ -48,4 +52,14 @@ int doFsync();
 
 /* inode.c */
 void rwInode(Inode *ip, int rwFlag);
+void updateTimes(Inode *ip);
+Inode *getInode(dev_t dev, int num);
+void dupInode(Inode *ip);
+
+/* select.c */
+void initSelect();
+
+/* timers.c */
+void fsInitTimer(Timer *tp);
+
 

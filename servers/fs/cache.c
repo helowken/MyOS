@@ -1,7 +1,6 @@
 #include "fs.h"
 #include "minix/com.h"
 #include "file.h"
-#include "fproc.h"
 
 static void removeLRU(Buf *bp) {
 	Buf *next, *prev;
@@ -12,12 +11,12 @@ static void removeLRU(Buf *bp) {
 	if (prev != NIL_BUF)
 	  prev->b_next = next;
 	else
-	  frontBP = next;
+	  frontBp = next;
 
 	if (next != NIL_BUF)
 	  next->b_prev = prev;
 	else
-	  rearBP = prev;
+	  rearBp = prev;
 }
 
 Buf *getBlock(
@@ -65,7 +64,7 @@ Buf *getBlock(
 	}
 
 	/* Desired block is not on available chain. Take oldest block ('front'). */
-	if ((bp = frontBP) == NIL_BUF)
+	if ((bp = frontBp) == NIL_BUF)
 	  panic(__FILE__, "all buffers in use", NR_BUFS);
 	removeLRU(bp);
 
@@ -98,7 +97,7 @@ Buf *getBlock(
 	bp->b_dev = dev;	/* Fill in device number */
 	bp->b_block_num = blockNum;		/* Fill in block number */
 	++bp->b_count;		/* Record that block is being used */
-	hashCode = (int) bp->b_block_num & HASH_MASK;
+	hashCode = (int) blockNum & HASH_MASK;
 	bp->b_hash_next = bufHashTable[hashCode];
 	bufHashTable[hashCode] = bp;	/* Add to hash list */
 
@@ -190,23 +189,23 @@ void putBlock(
 		 * It will be the next block to be evicted from the cache.
 		 */
 		bp->b_prev = NIL_BUF;
-		bp->b_next = frontBP;
-		if (frontBP == NIL_BUF)
-		  rearBP = bp;	/* LRU chain was empty */
+		bp->b_next = frontBp;
+		if (frontBp == NIL_BUF)
+		  rearBp = bp;	/* LRU chain was empty */
 		else
-		  frontBP->b_prev = bp;
-		frontBP = bp;
+		  frontBp->b_prev = bp;
+		frontBp = bp;
 	} else {
 		/* Block probably will be needed quickly. Put it on rear of chain.
 		 * It will not be evicted from the cache from a long time.
 		 */
-		bp->b_prev = rearBP;
+		bp->b_prev = rearBp;
 		bp->b_next = NIL_BUF;
-		if (rearBP == NIL_BUF)
-		  frontBP = bp;
+		if (rearBp == NIL_BUF)
+		  frontBp = bp;
 		else
-		  rearBP->b_next = bp;
-		rearBP = bp;
+		  rearBp->b_next = bp;
+		rearBp = bp;
 	}
 
 	/* Some blocks are so important (e.g., inodes, indirect blocks) that they

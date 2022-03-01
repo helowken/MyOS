@@ -27,6 +27,7 @@ extern int errno;
 #define ENODEV		(_SIGN 19)	/* No such device */
 #define ENOTDIR		(_SIGN 20)	/* Not a directory */
 #define EINVAL		(_SIGN 22)	/* Invalid argument */
+#define ENFILE		(_SIGN 23)  /* Too many open files in system */
 #define ENOTTY		(_SIGN 25)	/* Inappropriate I/O control operation */
 #define ENOSPC		(_SIGN 28)	/* No space left on device */
 #define EDOM		(_SIGN 33)	/* Domain error (from ANSI C std) */

@@ -37,6 +37,7 @@ int readSuper(SuperBlock *sp) {
 	if (bs < MIN_BLOCK_SIZE || bs % SECTOR_SIZE != 0 ||
 			SUPER_SIZE > bs || bs % INODE_SIZE != 0)
 	  return EINVAL;
+
 	sp->s_inodes_per_block = INODES_PER_BLOCK(bs);
 	sp->s_dzones = NR_DIRECT_ZONES;
 	sp->s_ind_zones = INDIRECT_ZONES(bs);
@@ -71,3 +72,22 @@ int getBlockSize(dev_t dev) {
 	/* No mounted filesystem? use this block size then. */
 	return MIN_BLOCK_SIZE;
 }
+
+SuperBlock *getSuper(dev_t dev) {
+/* Search the superblock table for this device. It is supposed to be there. */
+	register SuperBlock *sp;
+
+	if (dev == NO_DEV) 
+	  panic(__FILE__, "request for superblock of NO_DEV", NO_NUM);
+
+	for (sp = &superBlocks[0]; sp < &superBlocks[NR_SUPERS]; ++sp) {
+		if (sp->s_dev == dev)
+		  return sp;
+	}
+
+	/* Search failed. Something wrong. */
+	panic(__FILE__, "can't find superblock for device (in decimal)", dev);
+	return NIL_SUPER;
+}
+
+

@@ -133,17 +133,17 @@ void rawStat(Ino_t iNum, struct stat *st) {
 	if (super.s_magic == SUPER_V3) {
 		dip = &fsBuf(scratch).b_inodes[inoOffset];		
 		
-		currInode.i_mode = dip->mode;
-		currInode.i_nlinks = dip->nlinks;
-		currInode.i_uid = dip->uid;
-		currInode.i_gid = dip->gid;
-		currInode.i_size = dip->size;
-		currInode.i_atime = dip->atime;
-		currInode.i_mtime = dip->mtime;
-		currInode.i_ctime = dip->ctime;
+		currInode.i_mode = dip->d_mode;
+		currInode.i_nlinks = dip->d_nlinks;
+		currInode.i_uid = dip->d_uid;
+		currInode.i_gid = dip->d_gid;
+		currInode.i_size = dip->d_size;
+		currInode.i_atime = dip->d_atime;
+		currInode.i_mtime = dip->d_mtime;
+		currInode.i_ctime = dip->d_ctime;
 	
 		for (i = 0; i < NR_TOTAL_ZONES; ++i) {
-			currInode.i_zones[i] = dip->zones[i];
+			currInode.i_zone[i] = dip->d_zone[i];
 		}
 	}
 	currInode.i_dev = -1;
@@ -155,7 +155,7 @@ void rawStat(Ino_t iNum, struct stat *st) {
 	st->st_nlink = currInode.i_nlinks;
 	st->st_uid = currInode.i_uid;
 	st->st_gid = currInode.i_gid;
-	st->st_rdev = (Dev_t) currInode.i_zones[0];
+	st->st_rdev = (Dev_t) currInode.i_zone[0];
 	st->st_size = currInode.i_size;
 	st->st_atime = currInode.i_atime;
 	st->st_mtime = currInode.i_mtime;
@@ -221,7 +221,7 @@ Off_t rawVir2Abs(Off_t virBlockNum) {
 
 	/* Go get the zone */
 	if (zone < numDZones) {	/* Direct block */
-		zone = currInode.i_zones[zone];
+		zone = currInode.i_zone[zone];
 		b = ((Block_t) (zone << zoneShift)) + blkIdxInZone;
 		return b;
 	}
@@ -231,10 +231,10 @@ Off_t rawVir2Abs(Off_t virBlockNum) {
 
 	/* Is it single indirect? */
 	if (zone < (Zone_t) numIndZones) {	/* Single indirect block */
-		indZone = currInode.i_zones[INDIR_ZONE_IDX];
+		indZone = currInode.i_zone[INDIR_ZONE_IDX];
 	} else {	/* Double indirect block */
 		/* Fetch the double indirect block */
-		if ((indZone = currInode.i_zones[DBL_IND_ZONE_IDX]) == 0)
+		if ((indZone = currInode.i_zone[DBL_IND_ZONE_IDX]) == 0)
 		  return 0;
 		
 		b = (Block_t) indZone << zoneShift;

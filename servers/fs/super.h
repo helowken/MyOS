@@ -12,8 +12,11 @@ typedef struct {
 	char s_disk_version;	/* file system format sub-version */
 
 	/* The following items are only used when the SuperBlock is in memory. */
+	struct Inode *s_inode_super;	/* Inode for root dir of mounted file system */
+	struct Inode *s_inode_mount;	/* Inode mounted on */
 	uint32_t s_inodes_per_block;
 	Dev_t s_dev;			/* Whose super block is this? */
+	int s_readonly;			/* Set to 1 iff file sys mounted read only */
 	int s_version;			/* File system version, zero means bad magic */
 	int s_dzones;			/* # direct zones in an inode */
 	int s_ind_zones;		/* # indirect zones per indirect block */
@@ -21,3 +24,5 @@ typedef struct {
 	Bit_t s_zone_search;	/* All zones below this bit number are in use */
 } SuperBlock;
 
+#define NIL_SUPER	((SuperBlock *) 0)
+#define IMAP_OFFSET		2	/* Inode-map offset blocks */

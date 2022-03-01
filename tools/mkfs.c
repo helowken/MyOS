@@ -10,12 +10,11 @@
 
 #define NULL			((void *)0)
 #define BIN				2
-#define BINGRP			2
+#define BIN_GRP			2
 #define CACHE_SIZE		20
 #define UMAP_SIZE		(ULONG_MAX / MAX_BLOCK_SIZE)		
 #define BLOCK_OFF(n)	(OFFSET(lowSector) + (n) * blockSize)
 #define SUPER_OFFSET	BLOCK_OFF(0) + SUPER_OFFSET_BYTES
-#define INODE_MAP		2		/* Inode-map offset blocks */
 #define MAX_MAX_SIZE	((unsigned long) 0xffffffff)
 #define ZONE_SHIFT		0
 
@@ -186,7 +185,7 @@ static void initSuperBlock(Zone_t zones, Ino_t inodes) {
 	sup->s_zones = zones;
 	sup->s_imap_blocks = bitmapSize(inodes + 1, blockSize);
 	sup->s_zmap_blocks = bitmapSize(zones, blockSize);
-	inodeOffset = INODE_MAP + sup->s_imap_blocks + sup->s_zmap_blocks;
+	inodeOffset = IMAP_OFFSET + sup->s_imap_blocks + sup->s_zmap_blocks;
 	inodeBlocks = (inodes + inodesPerBlock - 1) / inodesPerBlock;
 	initBlocks = inodeOffset + inodeBlocks;
 
@@ -211,16 +210,16 @@ static void initSuperBlock(Zone_t zones, Ino_t inodes) {
 	Write(device, deviceFd, (char *) sup, SUPER_BLOCK_BYTES);
 	
 	/* Clear maps and inodes. */
-	for (i = INODE_MAP; i < initBlocks; ++i) {
+	for (i = IMAP_OFFSET; i < initBlocks; ++i) {
 		putBlock(i, zero);
 	}
 
 	nextZone = sup->s_first_data_zone;
 	nextInode = 1;
-	zoneMap = INODE_MAP + sup->s_imap_blocks;
+	zoneMap = IMAP_OFFSET + sup->s_imap_blocks;
 
 	insertBit(zoneMap, 0);		/* bit zero must always be allocated */
-	insertBit(INODE_MAP, 0);	/* inode zero not used but must be allocated */
+	insertBit(IMAP_OFFSET, 0);	/* inode zero not used but must be allocated */
 
 	free(sup);
 }
@@ -229,7 +228,7 @@ static Ino_t allocInode(int mode, int uid, int gid) {
 	Ino_t num;
 	Block_t b;
 	int off;
-	DiskInode *inp;
+	DiskInode *dip;
 	DiskInode *inodes;	/* an array of DiskInode */
 
 	num = nextInode++;
@@ -244,16 +243,16 @@ static Ino_t allocInode(int mode, int uid, int gid) {
 	  errExit("couldn't allocate a block of inodes");
 
 	getBlock(b, (char *) inodes);
-	inp = &inodes[off];
-	inp->mode = mode;
-	inp->uid = uid;
-	inp->gid = gid;
+	dip = &inodes[off];
+	dip->d_mode = mode;
+	dip->d_uid = uid;
+	dip->d_gid = gid;
 	putBlock(b, (char *) inodes);
 
 	free(inodes);
 
 	/* This assumes the bit is in the first inode map block. */
-	insertBit(INODE_MAP, num);
+	insertBit(IMAP_OFFSET, num);
 	return num;
 }
 
@@ -279,7 +278,7 @@ static void addZone(Ino_t n, Zone_t z, size_t bytes, long currTime) {
 	int off, i;
 	Zone_t indirZone;
 	Zone_t *zones;	/* an array of Zone_t */
-	DiskInode *inp;		
+	DiskInode *dip;		
 	DiskInode *inodes;	/* an array of DiskInode */
 
 	if (! (zones = malloc(blockSize)))
@@ -291,12 +290,12 @@ static void addZone(Ino_t n, Zone_t z, size_t bytes, long currTime) {
 	b = ((n - 1) / inodesPerBlock) + inodeOffset;
 	off = (n - 1) % inodesPerBlock;
 	getBlock(b, (char *) inodes);
-	inp = &inodes[off];
-	inp->size += bytes;
-	inp->mtime = currTime;
+	dip = &inodes[off];
+	dip->d_size += bytes;
+	dip->d_mtime = currTime;
 	for (i = 0; i < NR_DIRECT_ZONES; ++i) {
-		if (inp->zones[i] == 0) {
-			inp->zones[i] = z;
+		if (dip->d_zone[i] == 0) {
+			dip->d_zone[i] = z;
 			putBlock(b, (char *) inodes);
 			free(zones);
 			free(inodes);
@@ -305,11 +304,11 @@ static void addZone(Ino_t n, Zone_t z, size_t bytes, long currTime) {
 	}
 
 	/* File has grown beyond a small file. */
-	if (inp->zones[NR_DIRECT_ZONES] == 0) {
-		inp->zones[NR_DIRECT_ZONES] = allocZone();
+	if (dip->d_zone[NR_DIRECT_ZONES] == 0) {
+		dip->d_zone[NR_DIRECT_ZONES] = allocZone();
 		putBlock(b, (char *) inodes);
 	}
-	indirZone = inp->zones[NR_DIRECT_ZONES];
+	indirZone = dip->d_zone[NR_DIRECT_ZONES];
 	b = indirZone << ZONE_SHIFT;
 	getBlock(b, (char *) zones);
 	for (i = 0; i < INDIRECT_ZONES(blockSize); ++i) {
@@ -343,10 +342,10 @@ static void createDir(Ino_t parent, char *name, Ino_t child) {
 
 	getBlock(b, (char *) inodes);
 	for (k = 0; k < NR_DIRECT_ZONES; ++k) {
-		z = inodes[off].zones[k];
+		z = inodes[off].d_zone[k];
 		if (z == 0) {
 			z = allocZone();
-			inodes[off].zones[k] = z;
+			inodes[off].d_zone[k] = z;
 			putBlock(b, (char *) inodes);
 		}
 		zoneBlocks = z << ZONE_SHIFT;
@@ -383,7 +382,7 @@ static void increseLink(Ino_t n, int linkCount) {
 	  errExit("couldn't allocate a block of inodes");
 
 	getBlock(b, (char *) inodes);
-	inodes[off].nlinks += linkCount;
+	inodes[off].d_nlinks += linkCount;
 	putBlock(b, (char *) inodes);
 
 	free(inodes);
@@ -435,7 +434,7 @@ static void printSuperBlock(SuperBlock *sup) {
 	printf("  blocks per zone: %u\n", 1 << sup->s_log_zone_size);
 
 	printf("\n");
-	printf("  start offset blocks: %d\n", INODE_MAP);
+	printf("  start offset blocks: %d\n", IMAP_OFFSET);
 	printf("  inode-map blocks: %u\n", sup->s_imap_blocks);
 	printf("  zone-map blocks: %u\n", sup->s_zmap_blocks);
 	printf("  inode blocks: %u\n", (sup->s_inodes + inodesPerBlock - 1) / inodesPerBlock);
@@ -505,12 +504,12 @@ static void printInode(DiskInode *inodes, DirEntry *dirs, int inoOff, Ino_t inoN
 	getBlock(b, (char *) inodes);
 
 	printf("  %u: ", inoNum);
-	printf("mode=%06o, ", inodes[off].mode);
-	printf("uid=%d, gid=%d, size=%u, ", inodes[off].uid, inodes[off].gid, inodes[off].size);
-	printf("zone[0]=%u\n", inodes[off].zones[0]);
+	printf("mode=%06o, ", inodes[off].d_mode);
+	printf("uid=%d, gid=%d, size=%u, ", inodes[off].d_uid, inodes[off].d_gid, inodes[off].d_size);
+	printf("zone[0]=%u\n", inodes[off].d_zone[0]);
 
-	if ((inodes[off].mode & I_TYPE) == I_DIRECTORY) {
-		getBlock(inodes[off].zones[0], (char *) dirs);
+	if ((inodes[off].d_mode & I_TYPE) == I_DIRECTORY) {
+		getBlock(inodes[off].d_zone[0], (char *) dirs);
 		for (i = 0; i < NR_DIR_ENTRIES(blockSize); ++i) {
 			if (dirs[i].d_ino) {
 				printf("     %s\n", dirs[i].d_name);
@@ -537,9 +536,9 @@ static void printInodes(SuperBlock *sup) {
 	  errExit("couldn't allocate a block of directories");
 	
 	mapsCnt = blockSize / FS_BITCHUNK_BITS;
-	inoOff = INODE_MAP + sup->s_imap_blocks + sup->s_zmap_blocks;
+	inoOff = IMAP_OFFSET + sup->s_imap_blocks + sup->s_zmap_blocks;
 	for (k = 0; k < sup->s_imap_blocks; ++k) {
-		getBlock(INODE_MAP + k, (char *) maps);
+		getBlock(IMAP_OFFSET + k, (char *) maps);
 		for (j = 0; j < mapsCnt; ++j) {
 			map = maps[j];
 			for (i = 0; i < FS_BITCHUNK_BITS && map; ++i, map = map >> 1) {
@@ -566,7 +565,7 @@ static void printFS() {
 	printSuperBlock(sup);
 
 	printf("\n\nInode-Map:\n");
-	printMap(sup->s_imap_blocks, INODE_MAP);
+	printMap(sup->s_imap_blocks, IMAP_OFFSET);
 
 	printf("\nZone-Map:\n");
 	printMap(sup->s_zmap_blocks, zoneMap);
@@ -633,7 +632,7 @@ int main(int argc, char *argv[]) {
 	numInodes = inodes;
 	mode = I_DIRECTORY | RWX_MODES;
 	uid = BIN;
-	gid	= BINGRP;
+	gid	= BIN_GRP;
 
 	zero = allocBlock();
 	putBlock(BOOT_BLOCK, zero);		/* Write a null boot block. */

@@ -44,5 +44,8 @@
 
 #define CLEAN					0		/* Disk and memory copies identical */
 #define DIRTY					1		/* Disk and memory copies differ */
+#define ATIME					002		/* Set if atime field needs updating */
+#define CTIME					004		/* Set if ctime field needs updating */
+#define	MTIME					010		/* Set if mtime field needs updating */
 
 #define END_OF_FILE			(-104)		/* EOF detected */

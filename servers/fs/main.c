@@ -11,7 +11,6 @@
 #include "minix/keymap.h"
 #include "minix/const.h"
 #include "file.h"
-#include "fproc.h"
 #include "param.h"
 
 #define KB	1024
@@ -21,20 +20,20 @@ static void initBufPool() {
 	register Buf *bp;
 
 	bufsInUse = 0;
-	frontBP = &bufs[0];
-	rearBP = &bufs[NR_BUFS - 1];
+	frontBp = &bufs[0];
+	rearBp = &bufs[NR_BUFS - 1];
 
-	for (bp = frontBP; bp <= rearBP; ++bp) {
+	for (bp = frontBp; bp <= rearBp; ++bp) {
 		bp->b_block_num = NO_BLOCK;
 		bp->b_dev = NO_DEV;
 		bp->b_next = bp + 1;
 		bp->b_prev = bp - 1;
 		bp->b_hash_next = bp->b_next;
 	}
-	frontBP->b_prev = NIL_BUF;
-	rearBP->b_next = NIL_BUF;
-	rearBP->b_hash_next = NIL_BUF;
-	bufHashTable[0] = frontBP;
+	frontBp->b_prev = NIL_BUF;
+	rearBp->b_next = NIL_BUF;
+	rearBp->b_hash_next = NIL_BUF;
+	bufHashTable[0] = frontBp;
 }
 
 static int iGetEnv(char *key, bool optional) {
@@ -57,11 +56,12 @@ static void loadRam() {
  */
 	u32_t imgBlocks, ramSizeInKB;
 	dev_t imageDev;
-	SuperBlock *imgSp;
+	static char sbBuf[SUPER_BLOCK_BYTES];
+	SuperBlock *imgSp, *ramSp;
 	int imgBlockSize, ramBlockSize, factor;
 	int s;
 	block_t imgBlockNum, ramBlockNum;
-	Buf *imgBP, *ramBP;
+	Buf *imgBp, *ramBp;
 	
 	/* Get some boot environment variables. */
 	rootDev = iGetEnv("rootdev", false);
@@ -134,7 +134,7 @@ static void loadRam() {
 	inodes[0].i_mode = I_BLOCK_SPECIAL;	
 	inodes[0].i_size = LONG_MAX;
 	inodes[0].i_dev = imageDev;
-	inodes[0].i_zones[0] = imageDev;
+	inodes[0].i_zone[0] = imageDev;
 
 	ramBlockSize = getBlockSize(DEV_RAM);
 	imgBlockSize = getBlockSize(imageDev);
@@ -151,20 +151,20 @@ static void loadRam() {
 
 	/* Loading blocks from image device. */
 	for (imgBlockNum = 0; imgBlockNum < (block_t) imgBlocks; ++imgBlockNum) {
-		imgBP = readAhead(&inodes[0], imgBlockNum, 
+		imgBp = readAhead(&inodes[0], imgBlockNum, 
 				(off_t) imgBlockSize * imgBlockNum, imgBlockSize);
 		factor = imgBlockSize / ramBlockSize;
 		for (ramBlockNum = 0; ramBlockNum < factor; ++ramBlockNum) {
-			ramBP = getBlock(rootDev, 
+			ramBp = getBlock(rootDev, 
 						imgBlockNum * factor + ramBlockNum, 
 						NO_READ);
-			memcpy(ramBP->b_data, 
-					imgBP->b_data + ramBlockNum * ramBlockSize, 
+			memcpy(ramBp->b_data, 
+					imgBp->b_data + ramBlockNum * ramBlockSize, 
 					(size_t) ramBlockSize);
-			ramBP->b_dirty = DIRTY;
-			putBlock(ramBP, FULL_DATA_BLOCK);
+			ramBp->b_dirty = DIRTY;
+			putBlock(ramBp, FULL_DATA_BLOCK);
 		}
-		putBlock(imgBP, FULL_DATA_BLOCK);
+		putBlock(imgBp, FULL_DATA_BLOCK);
 		if (imgBlockNum % 11 == 0)
 		  printf("\b\b\b\b\b\b\b\b\b%6ld KB", ((long) imgBlockNum * imgBlockSize) / KB);
 	}
@@ -178,11 +178,55 @@ static void loadRam() {
 	/* Invalidate and close the image device. */
 	invalidate(imageDev);
 	devClose(imageDev);
+
+	/* Resize the RAM disk root file system. */
+	if (devIO(DEV_READ, rootDev, FS_PROC_NR, sbBuf, SUPER_OFFSET_BYTES, 
+				SUPER_BLOCK_BYTES, 0) != SUPER_BLOCK_BYTES) {
+		printf("WARNING: ram disk read for resizing failed\n");
+	}
+	ramSp = (SuperBlock *) sbBuf;
+	ramSp->s_zones = (ramSizeInKB * KB / ramSp->s_block_size) >> 
+						ramSp->s_log_zone_size;
+	if (devIO(DEV_WRITE, rootDev, FS_PROC_NR, sbBuf, SUPER_OFFSET_BYTES,
+				SUPER_BLOCK_BYTES, 0) != SUPER_BLOCK_BYTES) {
+		printf("WARNING: ram disk write for resizing failed\n");
+	}
+}
+
+static void loadSuper(dev_t dev) {
+	int bad;
+	register SuperBlock *sp;
+	register Inode *ip;
+
+	/* Initialize the superblock table. */
+	for (sp = &superBlocks[0]; sp < &superBlocks[NR_SUPERS]; ++sp) {
+		sp->s_dev = NO_DEV;
+	}
+
+	/* Read in superblock for the root file system. */
+	sp = &superBlocks[0];
+	sp->s_dev = dev;
+
+	/* Check superblock for consistency. */
+	bad = readSuper(sp) != OK;
+	if (!bad) {
+		ip = getInode(dev, ROOT_INODE);		/* Inode for root dir */
+		if ((ip->i_mode & I_TYPE) != I_DIRECTORY || ip->i_nlinks < 3)
+		  ++bad;
+	}
+	if (bad) 
+	  panic(__FILE__, "Invalid root file system", NO_NUM);
+
+	sp->s_inode_mount = ip;
+	dupInode(ip);
+	sp->s_inode_super = ip;
+	sp->s_readonly = 0;
 }
 
 static void fsInit() {
 /* Initialize global variables, tables, etc. */
-	FProc *fp;
+	register FProc *fp;
+	register Inode *ip;
 	Message msg;
 	int s;
 
@@ -208,13 +252,55 @@ static void fsInit() {
 	msg.m_type = OK;	/* Tell PM that we succeeded. */
 	s = send(PM_PROC_NR, &msg);		/* Send synchronization message */
 
+	/* All process table entries have been set. Continue with FS initialization.
+	 * Certain relations must hold for the file system to work at all. 
+	 */
+	if (OPEN_MAX > 127)
+	  panic(__FILE__, "OPEN_MAX > 127", NO_NUM);
+	if (NR_BUFS < 6)
+	  panic(__FILE__, "NR_BUFS < 6", NO_NUM);
+	if (INODE_SIZE != 64)
+	  panic(__FILE__, "Inode size != 64", NO_NUM);
+	if (OPEN_MAX > 8 * sizeof(long))
+	  panic(__FILE__, "Too few bits in fpCloExec", NO_NUM);
+
 	/* The following initializations are needed to let devOpcl succeed. */
-	fp = (FProc *) NULL;
+	currFp = (FProc *) NULL;
 	who = FS_PROC_NR;
 
 	initBufPool();		/* Initialize buffer pool */
 	buildDMap();		/* Build device table and map boot driver */
 	loadRam();			/* Init RAM disk, load if it is root */
+	loadSuper(rootDev);		/* Load super block for root device */
+
+	/* The root device can now be accessed; set process directories. */
+	for (fp = &fprocTable[0]; fp < &fprocTable[NR_PROCS]; ++fp) {
+		if (fp->fp_pid != PID_FREE) {
+			ip = getInode(rootDev, ROOT_INODE);
+			dupInode(ip);
+			fp->fp_root_dir = ip;
+			fp->fp_work_dir = ip;
+		}
+	}
+}
+
+static void getWork() {
+/* Normally wait for new input. However, if 'reviving' is nonzero, a
+ * suspended process must be awakened.
+ */
+	register FProc *fp;
+
+	if (reviving != 0) {
+		/* Revive a suspended process. */
+		if (fp = &fprocTable[0]; fp < &fprocTable[NR_PROCS]; ++fp) {
+			if (fp->fp_revived == REVIVING) {
+				who = (int) (fp - fprocTable);
+				callNum = fp->fp_fd & BYTE;
+				inMsg.fs = (fp->fp_fd >> 8) & BYTE;
+				inMsg.buffer
+			}
+		}
+	}
 }
 
 int main() {
@@ -223,6 +309,10 @@ int main() {
  * the reply. This loop never terminates as long as the file system runs.
  */
 	fsInit();
+
+	while (true) {
+		getWork();
+	}
 
 	return OK;
 }

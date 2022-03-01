@@ -2,7 +2,6 @@
 #include "fcntl.h"
 #include "minix/com.h"
 #include "file.h"
-#include "fproc.h"
 #include "param.h"
 
 Buf *readAhead(
@@ -30,7 +29,7 @@ Buf *readAhead(
 	static Buf *readQueue[NR_BUFS];
 	
 	blockSpecial = (ip->i_mode & I_TYPE) == I_BLOCK_SPECIAL;
-	dev = blockSpecial ? (dev_t) ip->i_zones[0] : ip->i_dev;
+	dev = blockSpecial ? (dev_t) ip->i_zone[0] : ip->i_dev;
 	blockSize = getBlockSize(dev);
 	
 	blockNum = baseBlock;
@@ -70,7 +69,7 @@ Buf *readAhead(
 
 		/* Go for the first indirect block if we are in its neighborhood. */
 		if (!blockSpecial) {
-			scale = ip->i_sup->s_log_zone_size;
+			scale = ip->i_sp->s_log_zone_size;
 			indPos = (off_t) (ip->i_dir_zones << scale) * blockSize;
 			if (position <= indPos && ip->i_size > indPos) {
 				++blocksAhead;

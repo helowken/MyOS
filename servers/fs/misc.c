@@ -5,7 +5,6 @@
 #include "minix/com.h"
 #include "sys/svrctl.h"
 #include "file.h"
-#include "fproc.h"
 #include "param.h"
 
 int doSync() {
