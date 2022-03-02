@@ -40,6 +40,7 @@ void readAhead();
 Buf *doReadAhead(Inode *ip, block_t baseBlock, 
 			off_t position, unsigned bytesAhead);
 block_t readMap(Inode *ip, off_t pos);
+zone_t readIndir(Buf *bp, int index);
 
 /* cache.c */
 Buf *getBlock(dev_t dev, block_t blockNum, int onlySearch);
@@ -61,6 +62,7 @@ void dupInode(Inode *ip);
 
 /* select.c */
 void initSelect();
+int selectNotified(int major, int minor, int ops);
 
 /* timers.c */
 void fsInitTimer(Timer *tp);

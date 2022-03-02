@@ -25,8 +25,59 @@ block_t readMap(Inode *ip, off_t pos) {
  * block (not zone) number in which that position is to be found and return it.
  */
 	register Buf *bp;
-	register zone_t zone;
-	//TODO
+	register zone_t zoneNum;
+	int scale, blockOffInZone, dirZones, indZones, idxInInd, idxInDblInd;
+	block_t blockNum;
+	long blockForPos, zoneForPos, excess;
+
+	scale = ip->i_sp->s_log_zone_size;	
+	blockForPos = pos / ip->i_sp->s_block_size;	/* Relative block # in file */
+	zoneForPos = blockForPos >> scale;	/* zone for 'pos' */
+	blockOffInZone = (int) (blockForPos - (zoneForPos << scale));	/* Relative block # within zone */
+	dirZones = ip->i_dir_zones;
+	indZones = ip->i_ind_zones;
+
+	/* Is 'pos' to be found in the inode itself? */
+	if (zoneForPos < dirZones) {
+		zoneNum = ip->i_zone[(int) zoneForPos];
+		if (zoneNum == NO_ZONE)
+		  return NO_BLOCK;
+		blockNum = ((block_t) zoneNum << scale) + blockOffInZone;
+		return blockNum;
+	}
+
+	/* It is not in the inode, so it must be single or double indirect. */
+	excess = zoneForPos - dirZones;		/* Direct zones doesn't count */
+	
+	if (excess < indZones) {
+		/* 'pos' can be located via the single indirect block. */
+		zoneNum = ip->i_zone[INDIR_ZONE_IDX];
+	} else {
+		/* 'pos' can be located via the double indirect block. */
+		if ((zoneNum = ip->i_zone[DBL_IND_ZONE_IDX]) == NO_ZONE)
+		  return NO_BLOCK;
+		excess -= indZones;		/* Single indirect doesn't count */
+		blockNum = (block_t) zoneNum << scale;
+		bp = getBlock(ip->i_dev, blockNum, NORMAL);	/* Get double indirect block */
+		idxInDblInd = (int) (excess / indZones);
+		zoneNum = readIndir(bp, idxInDblInd);	/* Zone for single indirect */
+		putBlock(bp, INDIRECT_BLOCK);	/* Release double indirect block */
+		idxInInd = excess % indZones;	/* Index into single indirect block */
+	}
+
+	/* 'zoneNum' is zone num for single indirect block;
+	 * 'idxInInd' is index into it.
+	 */
+	if (zoneNum == NO_ZONE)
+	  return NO_BLOCK;
+	blockNum = (block_t) zoneNum << scale;	/* Block # for single indirect block */
+	bp = getBlock(ip->i_dev, blockNum, NORMAL);	/* Get single indirect block */
+	zoneNum = readIndir(bp, idxInInd);	/* Get final zone pointed to */
+	putBlock(bp, INDIRECT_BLOCK);		/* Release single indirect block */
+	if (zoneNum == NO_ZONE)
+	  return NO_BLOCK;
+	blockNum = ((block_t) zoneNum << scale) + blockOffInZone;
+	return blockNum;
 }
 
 Buf *doReadAhead(
@@ -139,3 +190,22 @@ Buf *doReadAhead(
 	rwScattered(dev, readQueue, queueSize, READING);
 	return getBlock(dev, baseBlock, NORMAL);
 }
+
+zone_t readIndir(Buf *bp, int index) {
+/* Given a pointer to an indirect block, read one entry. */
+	SuperBlock *sp;
+	zone_t zone;
+
+	sp = getSuper(bp->b_dev);
+	zone = bp->b_inds[index];
+
+	if (zone != NO_ZONE &&
+		(zone < sp->s_first_data_zone || zone >= sp->s_zones)) {
+		printf("Illegal zone number %ld in indirect block, index %d\n",
+					(long) zone, index);
+		panic(__FILE__, "check file system", NO_NUM);
+	}
+	return zone;
+}
+
+
