@@ -36,7 +36,7 @@
 #define INIT_PROC_NR	7	/* Init -- goes multiuser */
 
 /* Number of processes contained in the system image. */
-#define NR_BOOT_PROCS	7	// TODO (NR_TASKS + INIT_PROC_NR + 1)
+#define NR_BOOT_PROCS	8	// TODO (NR_TASKS + INIT_PROC_NR + 1)
 
 /*=====================================================================*
  *			Kernel notification types			*
@@ -263,5 +263,12 @@
 #  define IRQ_LONG		0x400	/* Long values */
 #define IRQ_PROC_NR		m5_i2	/* Process number, SELF, NONE */
 #define	IRQ_HOOK_ID		m5_l3	/* Id of irq hook at kernel */
+
+/* Field names for SYS_SEGCTL. */
+#define SEG_SELECT		m4_l1	/* Segment selector returned */
+#define SEG_OFFSET		m4_l2	/* Offset in segment returned */
+#define SEG_PHYS_ADDR	m4_l3	/* Physical address of segment */
+#define SEG_SIZE		m4_l4	/* Segment size */
+#define SEG_INDEX		m4_l5	/* Segment index in remote map */
 
 #endif

@@ -27,6 +27,9 @@ int sysTimes(int pNum, clock_t *ptr);
 int sysSetAlarm(clock_t expTime, int absTime);
 int sysExit(int pNum);
 
+int sysSegCtl(int *index, u16_t *segSel, vir_bytes *off, 
+			phys_bytes physAddr, vir_bytes size);
+
 /* Shorthands for sysStrDevIO() system call. */
 #define sysInsb(port, pNum, buffer, count) \
 	sysStrDevIO(DIO_INPUT, port, DIO_BYTE, pNum, buffer, count)
@@ -41,6 +44,7 @@ int sysStrDevIO(int req, long port, int type, int pNum, void *buffer, int count)
 /* Shorthands for sysGetInfo() system call. */
 #define sysGetMonParams(v, vl)	sysGetInfo(GET_MONPARAMS, v, vl, 0, 0)
 #define sysGetKernelInfo(dst)	sysGetInfo(GET_KINFO, dst, 0, 0, 0)
+#define sysGetMachine(dst)		sysGetInfo(GET_MACHINE, dst, 0, 0, 0)
 #define sysGetProc(dst, num)	sysGetInfo(GET_PROC, dst, 0, 0, num)
 #define sysGetImage(dst)		sysGetInfo(GET_IMAGE, dst, 0, 0, 0)
 int sysGetInfo(int request, void *valPtr, int valLen, void *valPtr2, int valLen2);
@@ -58,6 +62,9 @@ int sysEndKernelSig(int pNum);
 #define sysTextCopy(srcProc, srcVir, dstProc, dstVir, bytes) \
 	sysVirCopy(srcProc, T, srcVir, dstProc, T, dstVir, bytes)
 int sysVirCopy(int srcProc, int srcSeg, vir_bytes srcVir, 
+		int dstProc, int dstSeg, vir_bytes dstVir, phys_bytes bytes);
+
+int sysPhysCopy(int srcProc, int srcSeg, vir_bytes srcVir,
 		int dstProc, int dstSeg, vir_bytes dstVir, phys_bytes bytes);
 
 int sysVecOutb(PvBytePair *pair, int num);

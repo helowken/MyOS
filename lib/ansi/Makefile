@@ -23,8 +23,9 @@ OBJS_M32 = memcpy.o \
 		   $(OTHER)/errno.o \
 		   $(OTHER)/syscall.o \
 		   $(OTHER)/settimeofday.o \
-		   $(OTHER)/_getprocnr.o \
-		   $(OTHER)/_findproc.o \
+		   $(OTHER)/getprocnr.o \
+		   $(OTHER)/findproc.o \
+		   $(OTHER)/allocmem.o \
 		   $(MISC)/io_inb.o \
 		   $(MISC)/io_inw.o \
 		   $(MISC)/io_inl.o \
@@ -59,7 +60,8 @@ OBJS_M32 = memcpy.o \
 		   $(INT64)/cmp64.o \
 		   $(INT64)/div64u.o \
 		   $(INT64)/cv64u.o \
-		   $(INT64)/add64u.o 
+		   $(INT64)/add64u.o \
+		   $(INT64)/cvu64.o
 
 		
 OBJS_M16 = memcpy.o \

@@ -5,6 +5,7 @@
 #include "minix/config.h"
 #include "minix/type.h"
 #include "minix/com.h"
+#include "minix/dmap.h"
 #include "minix/callnr.h"
 #include "sys/types.h"
 #include "minix/const.h"

@@ -29,12 +29,17 @@ int setgid(gid_t gid);
 int pause();
 
 
-
+#ifdef _MINIX
+#ifndef _TYPE_H
+#include "minix/type.h"
+#endif
 int brk(char *addr);
 char *sbrk(int incr);
 int getProcNum();
 int findProc(char *procName, int *pNum);
 ssize_t write(int fd, const void *buf, size_t count);
 int close(int fd);
+int allocMem(phys_bytes size, phys_bytes *base);
+#endif
 
 #endif

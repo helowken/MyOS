@@ -7,6 +7,8 @@
 #include "limits.h"
 #include "assert.h"
 
+extern char *sbrk(int incr);
+
 typedef struct Cell {
 	size_t		size;
 #if DEBUG

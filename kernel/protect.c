@@ -95,7 +95,7 @@ static void initCodeSeg(register SegDesc *sdPtr, phys_bytes base, vir_bytes size
 	sdPtr->access = (privilege << DPL_SHIFT) | PRESENT | SEGMENT | EXECUTABLE | READABLE;
 }
 
-static void initDataSeg(register SegDesc *sdPtr, phys_bytes base, vir_bytes size, int privilege) {
+void initDataSeg(register SegDesc *sdPtr, phys_bytes base, vir_bytes size, int privilege) {
 	setupSegDesc(sdPtr, base, size);
 	/* EXECUTABLE = 0, EXPAND_DOWN = 0, ACCESSED = 0 */
 	sdPtr->access = (privilege << DPL_SHIFT) | PRESENT | SEGMENT | WRITABLE;

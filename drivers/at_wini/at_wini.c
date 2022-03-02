@@ -171,7 +171,7 @@ static int wHwInt(Driver *dp, Message *msg);
 static int wOther(Driver *dp, Message *msg);
 
 /* Entry points to this driver. */
-static Driver currDriver = {
+static Driver wDriverTable = {
 	wName,		/* Current device's name */
 	wDoOpen,	/* Open or mount request, initialize device */
 	wDoClose,	/* Release device */
@@ -869,7 +869,7 @@ static int wDoOpen(Driver *dp, Message *msg) {
 			  return r;
 		}
 		/* Partition the disk. */
-		partition(&currDriver, currDrive * DEV_PER_DRIVE, P_PRIMARY);
+		partition(&wDriverTable, currDrive * DEV_PER_DRIVE, P_PRIMARY);
 	}
 	++wn->openCount;
 	return OK;
@@ -1418,7 +1418,7 @@ static int wOther(Driver *dp, Message *msg) {
 
 int main() {
 	initParams();
-	driverTask(&currDriver);
+	driverTask(&wDriverTable);
 	return OK;
 }
 

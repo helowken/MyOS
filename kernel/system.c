@@ -56,10 +56,8 @@ static void initialize() {
 	//map(SYS_INT86, doInt86);
 
 	/* Memory management. */
-	/*
-	map(SYS_NEWMAP, doNewMap);
+	//map(SYS_NEWMAP, doNewMap);
 	map(SYS_SEGCTL, doSegCtl);
-	*/
 	map(SYS_MEMSET, doMemset);
 	
 	/* Copying. */

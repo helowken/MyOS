@@ -6,7 +6,7 @@ LIBS = -L$(MY_HOME)/lib \
 PCI_DIR = ../libpci
 DRIVER_DIR = ../libdriver
 
-OBJS = entry.o at_wini.o 
+OBJS = $(ENTRY) at_wini.o 
 LIB_PCI = $(PCI_DIR)/pci.o $(PCI_DIR)/pci_table.o 
 LIB_DRIVER = $(DRIVER_DIR)/driver.o $(DRIVER_DIR)/drvlib.o
 DRIVER = at_wini.bin

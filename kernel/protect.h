@@ -78,7 +78,7 @@
 									   Error (Math Fault)                   */
 
 /* Selector bits. */
-#define T1				0x04		/* Table indicator */
+#define T1				0x04		/* Table indicator (LDT) */
 #define RPL				0x03		/* Requested privilege level */
 
 /* Descriptor structure offsets. */

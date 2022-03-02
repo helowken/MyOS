@@ -43,8 +43,10 @@ typedef struct {
 	phys_bytes dataBase;			/* Base of kernel data */
 	phys_bytes dataSize;			/* Size of kernel data */
 	vir_bytes procTableAddr;		/* Virtual address of process table */
-	phys_bytes kernelMemBase;		/* Kernel memory layout */
+	phys_bytes kernelMemBase;		/* Kernel memory layout (/dev/kmem) */
 	phys_bytes kernelMemSize;
+	phys_bytes bootDevBase;			/* Boot Device from boot image (/dev/boot) */
+	phys_bytes bootDevSize;
 	phys_bytes paramsBase;			/* Parameters passed by boot monitor */
 	phys_bytes paramsSize;
 	int numProcs;					/* Number of user processes */

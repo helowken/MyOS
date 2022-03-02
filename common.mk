@@ -22,6 +22,8 @@ endif
 C_SOURCE = $(wildcard *.c)
 HEADERS = $(wildcard $(INC_HEADERS))
 DEBUG = debug.bin
+ENTRY = $(MY_HOME)/entry/entry.o
+
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) $< -o $@

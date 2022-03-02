@@ -13,6 +13,7 @@ BOOT = boot.bin
 
 PROGRAMS = ../kernel/kernel.bin \
 		   ../servers/pm/pm.bin \
+		   ../drivers/memory/memory.bin \
 		   AT:../drivers/at_wini/at_wini.bin
 
 all: compile

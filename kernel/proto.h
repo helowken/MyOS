@@ -7,6 +7,8 @@ typedef struct Proc Proc;
 phys_bytes seg2Phys(u16_t seg);
 void protectInit();
 void allocSegments(Proc *rp);
+void initDataSeg(register SegDesc *sdPtr, phys_bytes base, 
+			vir_bytes size, int privilege);
 
 /* clock.c */
 void clockTask();
