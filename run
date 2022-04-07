@@ -2,7 +2,7 @@
 
 xhost +local:docker
 
-IMAGE=myos-dev
+IMAGE=helowken/myos-dev
 CWD=/usr/src
 BOCHS_HOME=$CWD/bochs
 MYOS_HOME=$CWD/myOS

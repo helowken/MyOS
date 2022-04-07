@@ -1,1 +1,1 @@
-docker build . -t myos-dev
+docker build . -t helowken/myos-dev

@@ -1,4 +1,4 @@
-FROM myos-base-dev:latest
+FROM helowken/myos-base-dev:latest
 ENV HOME=/usr/src
 ENV BOCHS_NORMAL=$HOME/bochs/build/normal
 ENV BOCHS_GDB=$HOME/bochs/build/gdb
