@@ -1,3 +1,0 @@
-# cd test
-# filename without ".asm"
-make -f ../Makefile FILE=filename

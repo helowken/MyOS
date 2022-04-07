@@ -1,0 +1,9 @@
+label: dos
+label-id: 0x79edd2d3
+device: testOS.img
+unit: sectors
+
+testOS.img1 : start=        2048, size=       51200, type=83, bootable
+testOS.img2 : start=       53248, size=       51200, type=83
+testOS.img3 : start=      104448, size=       51200, type=83
+testOS.img4 : start=      155648, size=       49152, type=5

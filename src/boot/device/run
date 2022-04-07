@@ -1,0 +1,16 @@
+#!/bin/bash
+
+img=testOS.img
+size=100
+
+rm -f $img
+$BOCHS_NORMAL/bin/bximage -func=create -hd=100M -imgmode=flat $img -q
+
+fdisk $img<<EOF
+I
+partition.script
+p
+w
+EOF
+
+

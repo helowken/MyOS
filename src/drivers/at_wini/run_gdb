@@ -1,0 +1,6 @@
+#!/bin/bash
+
+export MY_HOME=../..
+export MY_DIR=$MY_HOME/drivers/at_wini
+
+$MY_HOME/run_gdb

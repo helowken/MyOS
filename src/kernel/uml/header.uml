@@ -1,0 +1,68 @@
+@startuml
+object config.h
+object const.h
+object debug.h
+object glo.h
+object ipc.h
+object kernel.h
+object priv.h
+object proc.h
+object protect.h
+object proto.h
+object sconst.inc
+object system.h
+object type.h
+object timers.h
+object errno.h
+object ansi.h
+object "ibm/protio.h" as ibm_protio.h
+object "ibm/interrupt.h" as ibm_interrupt.h
+object "ibm/ports.h" as ibm_ports.h
+object "ibm/bios.h" as ibm_bios.h
+object "ibm/cpu.h" as ibm_cpu.h
+object "ibm/portio.h" as ibm_portio.h
+object "minix/com.h" as minix_com.h
+object "minix/config.h" as minix_config.h
+object "minix/type.h" as minix_type.h
+object "minix/ipc.h" as minix_ipc.h
+object "minix/const.h" as minix_const.h
+object "sys/types.h" as sys_types.h
+
+const.h *-- ibm_interrupt.h
+const.h *-- ibm_ports.h
+const.h *-- ibm_bios.h
+const.h *-- ibm_cpu.h
+const.h *-- minix_config.h
+const.h *-- config.h
+debug.h *-- config.h
+glo.h *-- minix_config.h
+glo.h *-- config.h
+ipc.h *-- minix_com.h
+kernel.h *-- minix_config.h
+kernel.h *-- ansi.h
+kernel.h *-- sys_types.h
+kernel.h *-- minix_const.h
+kernel.h *-- minix_type.h
+kernel.h *-- minix_ipc.h
+kernel.h *-- timers.h
+kernel.h *-- errno.h
+kernel.h *-- ibm_portio.h
+kernel.h *-- config.h
+kernel.h *-- const.h
+kernel.h *-- type.h
+kernel.h *-- proto.h
+kernel.h *-- glo.h
+kernel.h *-- ipc.h
+kernel.h *-- debug.h
+priv.h *-- minix_com.h
+priv.h *-- protect.h
+priv.h *-- const.h
+priv.h *-- type.h
+proc.h *-- minix_com.h
+proc.h *-- protect.h
+proc.h *-- const.h
+proc.h *-- priv.h
+system.h *-- kernel.h
+system.h *-- proto.h
+system.h *-- proc.h
+@enduml

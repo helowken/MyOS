@@ -1,0 +1,20 @@
+#!/bin/bash
+
+xhost +local:docker
+
+IMAGE=myos-dev
+CWD=/usr/src
+BOCHS_HOME=$CWD/bochs
+MYOS_HOME=$CWD/myOS
+
+sudo docker run  -it  --rm  \
+				-e DISPLAY  \
+				-v /tmp/.X11-unix:/tmp/.X11-unix  \
+				-v "$(pwd)/src":$MYOS_HOME  \
+				-v "$(pwd)/bochs":$BOCHS_HOME  \
+				-p 1234:1234  \
+				$IMAGE
+
+# --net=host  --ipc=host  --privileged  \
+# Other might face issue regarding the image not getting rendered on screen or getting a blank screen with no image, 
+# for them add --env="_X11_NO_MITSHM=1" to the above script while running the docker image. It will solve the problem.

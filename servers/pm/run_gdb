@@ -1,6 +1,0 @@
-#!/bin/bash
-
-export MY_HOME=../..
-export MY_DIR=$MY_HOME/servers/pm
-
-$MY_HOME/run_gdb
