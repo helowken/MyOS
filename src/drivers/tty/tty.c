@@ -19,7 +19,6 @@
 /* A device exists if at least its 'devRead' function is defined. */
 #define ttyActive(tp)	((tp)->tty_dev_read != NULL)
 
-
 /* Default attributes. */
 static struct termios termiosDefaults = {
 	TINPUT_DEF, TOUTPUT_DEF, TCTRL_DEF, TLOCAL_DEF,
@@ -31,6 +30,13 @@ static struct termios termiosDefaults = {
 		TLNEXT_DEF, TDISCARD_DEF
 	}
 };
+
+/* Global variables for the TTY task (declared extern in tty.h). */
+TTY ttyTable[NR_CONS + NR_RS_LINES + NR_PTYS];
+int currConsole;		/* Currently active console */
+Timer *ttyTimers;		/* Queue of TTY timers */
+Machine machine;		/* Kernel environment variables */
+
 
 int ttyDevNop(TTY *tp, int try) {
 /* Some functions need not be implemented at the device level. */
@@ -64,32 +70,6 @@ static void ttyInit() {
 			ptyInit(tp);
 			tp->tty_minor = s - (NR_CONS + NR_RS_LINES) + TTYPX_MINOR;
 		}
-	}
-}
-
-static void kbWait() {
-
-}
-
-static void setLeds() {
-/* set the LEDs on the caps, num, and scroll lock keys */
-	int s;
-	if (!machine.pc_at) 
-	  return;	/* PC/XT doesn't have LEDs */
-
-	kbWait();	/* Wait for buffer empty */
-
-}
-
-static void kbInitOnce() {
-	int i;
-	
-	setLeds();			/* Turn off numlock led */
-	scanKeyboard();		/* Discard leftover keystroke */
-
-	/* Clear the function key observers array. Also see funcKey(). */
-	for (i = 0; i < 12; ++i) {
-		
 	}
 }
 

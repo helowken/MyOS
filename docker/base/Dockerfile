@@ -10,4 +10,7 @@ RUN apt-get update && \
 			libx11-dev \
 			libxrandr-dev
 
-RUN apt-get install -y ctags
+RUN apt-get install -y \
+			ctags \
+			cscope 
+

@@ -1,25 +1,11 @@
 set nocompatible              " be iMproved, required
 filetype off                  " required
 
-" set the runtime path to include Vundle and initialize
-set rtp+=~/.vim/bundle/Vundle.vim
-
+set runtimepath^=~/.vim/plugin/cscope_maps.vim
 
 filetype plugin indent on    " required
-" To ignore plugin indent changes, instead use:
-"filetype plugin on
-"
-" Brief help
-" :PluginList       - lists configured plugins
-" :PluginInstall    - installs plugins; append `!` to update or just :PluginUpdate
-" :PluginSearch foo - searches for foo; append `!` to refresh local cache
-" :PluginClean      - confirms removal of unused plugins; append `!` to auto-approve removal
-"
-" see :h vundle for more details or wiki for FAQ
-" Put your non-Plugin stuff after this line
 
-
-
+set t_Co=256
 set number
 set tabstop=4
 set softtabstop=4
@@ -102,12 +88,11 @@ set background=dark
 
 "--ctags setting--
     "按下F5重新生成tag文件，并更新taglist
-    map <F5>:!ctags -R --c++-kinds=+p --fields=+iaS --extra=+q .<CR><CR>:TlistUpdate<CR>
-    imap <F5><ESC>:!ctags -R --c++-kinds=+p --fields=+iaS --extra=+q .<CR><CR>:TlistUpdate<CR>
+    "map <F5>:!ctags -R --c++-kinds=+p --fields=+iaS --extra=+q .<CR><CR>:TlistUpdate<CR>
+    "imap <F5><ESC>:!ctags -R --c++-kinds=+p --fields=+iaS --extra=+q .<CR><CR>:TlistUpdate<CR>
 set tags=tags
 	
 	"--Minix--
-    set tags+=~/.vim/minixBookTags "minix3Book
     set tags+=~/.vim/myOSTags "myOS
 
 

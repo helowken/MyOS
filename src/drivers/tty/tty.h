@@ -49,4 +49,7 @@ extern TTY ttyTable[NR_CONS + NR_RS_LINES + NR_PTYS];
 extern int currConsole;		/* Currently visible console */
 extern int irqHookId;		/* Hook id for keyboard irq */
 
+extern unsigned long kbdIrqSet;
 
+/* keyboard.c */
+void kb_init_once();
