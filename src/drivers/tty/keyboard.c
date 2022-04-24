@@ -28,6 +28,12 @@ int irqHookId = -1;
 #define CMD_LED_CODE		0xED	/* Command to keyboard to set LEDs */
 #define MAX_KB_BUSY_RETRIES	0x1000	/* Max #times to loop while keyboard busy */
 
+#define KB_IN_BYTES			32		/* Size of keyboard input buffer */
+static char inBuf[KB_IN_BYTES];		/* Input buffer */
+static char *inHead = inBuf;		/* Next free sopt in input buffer */
+static char *inTail = inBuf;		/* Scan code to return to TTY */
+static int inCount;					/* # codes in buffer */
+
 static int locks[NR_CONS];	/* Per console lock keys state */
 
 /* Variables and definition for observed function keys. */
@@ -39,16 +45,16 @@ static Observer fKeyObs[12];	/* Observers for F1-F12 */
 static Observer sfKeyObs[12];	/* Observers for SHIFT F1-F12 */
 
 
-static void kbWait() {
+static int kbWait() {
 /* Wait until the controller is ready; return zero if this times out. */
 	int retries, status, temp;
-	int s;
 
+	status = 0;
 	retries = MAX_KB_BUSY_RETRIES + 1;
 	do {
-		s = sysInb(REG_KB_STATUS, &status);
+		sysInb(REG_KB_STATUS, &status);
 		if (status & KB_OUT_FULL)
-		  s = sysInb(REG_KB_DATA, &temp);		/* Discard value */
+		  sysInb(REG_KB_DATA, &temp);		/* Discard value */
 		if (!(status & (KB_IN_FULL | KB_OUT_FULL)))
 		  break;
 	} while (--retries != 0);	/* Continue unless timeout */
@@ -56,14 +62,14 @@ static void kbWait() {
 	return retries;		/* Zero on timeout, positive if ready */
 }
 
-static void kbAck() {
+static int kbAck() {
 /* Wait until keyboard acknowledges last command; return zero if this times out. */
-	int retries, s;
+	int retries;
 	u8_t val;
 
 	retries = MAX_KB_BUSY_RETRIES + 1; /* Wait until not busy */
 	do {
-		s = sysInb(REG_KB_DATA, &val);
+		sysInb(REG_KB_DATA, &val);
 		if (val == KB_ACK)
 		  break;		/* Wait for ack */
 	} while (--retries != 0);	/* Continue unless timeout */
@@ -86,10 +92,33 @@ static void setLeds() {
 
 	kbWait();	/* wait for buffer empty */
 	/* Give keyboard LED values */
-	if ((s = sysOutb(REG_KB_DATA, locks[currConsule])) != OK)
+	if ((s = sysOutb(REG_KB_DATA, locks[currConsole])) != OK)
 	  printf("Warning, sysOutb couldn't give LED values: %d\n", s);
 	
 	kbAck();	/* Wait for ack response */
+}
+
+static kbRead(TTY *tp, int try) {
+/* Process characters from the circular keyboard buffer. */
+	char buf[3];
+	int scanCode;
+	unsigned ch;
+
+	tp = &ttyTable[currConsole];
+
+	if (try) {
+		if (inCount > 0)
+		  return 1;
+		return 0;
+	}
+
+	while (inCount > 0) {
+	}
+}
+
+void kbInit(TTY *tp) {
+/* Initialize the keyboard driver. */
+	tp->tty_dev_read = kbRead;	/* Input function */
 }
 
 void kbInitOnce() {
@@ -116,5 +145,23 @@ void kbInitOnce() {
 	kbdIrqSet |= (1 << KEYBOARD_IRQ);
 }
 
+void kbdInterrupt() {
+/* A keyboard interrupt has occurred. Process it. */
+	int scanCode;
 
+	/* Fetch the character from the keyboard hardware and acknowledge it. */
+	scanCode = scanKeyboard();
+
+	/* Store the scancode in memory so the task can get at it later. */
+	if (inCount < KB_IN_BYTES) {
+		*inHead++ = scanCode;
+		if (inHead == inBuf + KB_IN_BYTES)
+		  inHead = inBuf;
+		++inCount;
+		ttyTable[currConsole].tty_events = 1;
+		if (ttyTable[currConsole].tty_select_ops && SEL_RD) {
+			selectRetry(&ttyTable[currConsole]);
+		}
+	}
+}
 

@@ -113,4 +113,31 @@ struct termios {
 #define TLOCAL_DEF	(ISIG | IEXTEN | ICANON | ECHO | ECHOE)
 #define TSPEED_DEF	B9600
 
+#define TEOF_DEF	'\4'	/* ^D = C('D') = 0x1F & 0x44 = 0x4 = '\4' */
+#define TEOL_DEF	_POSIX_VDISABLE
+#define TERASE_DEF	'\10'	/* ^H = C('H') = 0x1F & 0x48 = 0x8 = '\10' */
+#define TINTR_DEF	'\3'	/* ^C */
+#define TKILL_DEF	'\25'	/* ^U = C('U') = 0x1F & 0x55 = 0x15 = '\25' */
+#define TMIN_DEF	1
+#define TQUIT_DEF	'\34'	/* ^\ = C('\\') = 0x1F & 0x5C = 0x1C = '\34' */
+#define TSTART_DEF	'\21'	/* ^Q */
+#define TSTOP_DEF	'\23'	/* ^S */
+#define TSUSP_DEF	'\32'	/* ^Z */
+#define TTIME_DEF	0
+#define TREPRINT_DEF	'\22'	/* ^R */
+#define TLNEXT_DEF	'\26'	/* ^V */
+#define TDISCARD_DEF	'\17'	/* ^O */
+
+/* Window size. This information is stored in the TTY driver but not used.
+ * This can be used for screen based applications in a window environment.
+ * The ioctls TIOCGWINSZ and TIOCSWINSZ can be used to get and set this
+ * information.
+ */
+typedef struct {
+	unsigned short ws_row;		/* Rows, in characters */
+	unsigned short ws_col;		/* Columns, in characters */
+	unsigned short ws_xpixel;	/* Horizontal size, pixels */
+	unsigned short ws_ypixel;	/* Vertical size, pixels */
+} WinSize;
+
 #endif

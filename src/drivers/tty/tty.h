@@ -10,8 +10,8 @@
 #define	TTY_IN_BYTES	256		/* TTY input queue size */
 
 struct TTY;
-typedef int (*DevFunc)(struct tty *tp, int tryOnly);
-typedef void (*DevFuncArg)(struct tty *tp, int c);
+typedef int (*DevFunc)(struct TTY *tp, int tryOnly);
+typedef void (*DevFuncArg)(struct TTY *tp, int c);
 
 typedef struct TTY {
 	int tty_events;		/* Set when TTY should inspect this line */
@@ -34,12 +34,19 @@ typedef struct TTY {
 	DevFunc tty_out_cancel;		/* Cancel any ongoing device output */
 	DevFunc tty_break;			/* Let the device send a break */
 
+	/* Information about incomplete I/O requests is stored here. */
+	char tty_io_req;		/* ioctl request code */
+
+	/* select() data */
+	int tty_select_ops;		/* Which operations are interesting */
+	int tty_select_proc;	/* Which process wants notification */
+
 	/* Miscellaneous. */
 	DevFunc tty_ioctl;		/* Set line speed, etc. at the device level */
 	DevFunc tty_close;		/* Tell the device that the tty is closed */
 	void *ttpPriv;			/* Pointer to per device private data */
 	struct termios tty_termios;		/* Terminal attributes */
-	struct WinSize tty_win_size;	/* Window size (#lines and #columns) */
+	WinSize tty_win_size;	/* Window size (#lines and #columns) */
 
 	u16_t tty_in_buf[TTY_IN_BYTES];	/* TTY input buffer */
 } TTY;
@@ -50,6 +57,22 @@ extern int currConsole;		/* Currently visible console */
 extern int irqHookId;		/* Hook id for keyboard irq */
 
 extern unsigned long kbdIrqSet;
+extern Machine machine;		/* Machine information (a.o.: pc_at, ega) */
+
+/* tty.c */
+int selectRetry(TTY *tp);
+
+/* rs232.c */
+void rsInit(TTY *tp);
+
+/* console.c */
+void screenInit(TTY *tp);
 
 /* keyboard.c */
-void kb_init_once();
+void kbInit();
+void kbInitOnce();
+void kbdInterrupt();
+
+/* pty.c */
+void ptyInit(TTY *tp);
+
