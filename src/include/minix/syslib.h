@@ -19,6 +19,7 @@
  *					Minix system library                *
  *=====================================================================*/
 int taskCall(int who, int sysCallNum, Message *msg);
+int sysAbort(int how, ...);
 int sysTrace(int req, int proc, long addr, long *data);
 int sysNice(int pNum, int priority);
 

@@ -33,6 +33,14 @@ int pause();
 #ifndef _TYPE_H
 #include "minix/type.h"
 #endif
+
+/* How to exit the system or stop a server process. */
+#define RBT_HALT		0	
+#define RBT_REBOOT		1
+#define RBT_PANIC		2	/* A server panics */
+#define RBT_MONITOR		3	/* Let the monitor do this */ 
+#define RBT_RESET		4	/* Hard reset the system */
+
 int brk(char *addr);
 char *sbrk(int incr);
 int getProcNum();

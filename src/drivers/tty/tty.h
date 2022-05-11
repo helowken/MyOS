@@ -60,6 +60,8 @@ extern unsigned long kbdIrqSet;
 extern Machine machine;		/* Machine information (a.o.: pc_at, ega) */
 
 /* tty.c */
+void signalChar(TTY *tp, int sig);
+int inProcess(TTY *tp, char *buf, int count);
 int selectRetry(TTY *tp);
 
 /* rs232.c */

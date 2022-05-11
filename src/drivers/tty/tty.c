@@ -122,6 +122,19 @@ void handleEvents(TTY *tp) {
 	// TODO
 }
 
+int inProcess(register TTY *tp, char *buf, int count) {
+/* Characters have just been typed in. Process, save, and echo them. 
+ * Return the number of characters processed.
+ */
+	int ch, ct;
+
+	for (ct = 0; ct < count; ++ct) {
+		/* Take one character. */
+		ch = *buf++ & BYTE;
+
+	}
+}
+
 void main() {
 /* Main routine of the terminal task. */
 

@@ -1,7 +1,7 @@
 #ifndef _SYS__KEYMAP_H
 #define _SYS__KEYMAP_H
 
-#define C(c)	((c) & 0x1F)	/* Map to control code */
+#define C(c)	((c) & 0x1F)	/* Map to control code, in ascii, 0-31 are invisible chars. */
 #define A(c)	((c) | 0x80)	/* Set eight bit (ALT) */
 #define CA(c)	A(C(c))			/* Control + Alt */
 #define L(c)	((c) | HAS_CAPS)	/* Add "Caps Lock has effect" attribute */
