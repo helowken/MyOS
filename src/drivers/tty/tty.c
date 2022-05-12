@@ -122,17 +122,246 @@ void handleEvents(TTY *tp) {
 	// TODO
 }
 
+static void ttyTimedout(Timer *tr) {
+/* This timer has expired. Set the events flag, to force processing. */
+	TTY *tp;
+
+	tp = &ttyTable[timerArg(tr)->ta_int];
+	tp->tty_min = 0;	/* Force read to succeed */
+	tp->tty_events = 1;
+}
+
+static void setTimer(TTY *tp, bool enable) {
+	clock_t now, expTime;
+	int s;
+
+	/* Get the current time to calculate the timeout time. */
+	if ((s = getUptime(&now)) != OK) 
+	  panic("TTY", "Couldn't get uptime from clock.", s);
+	
+	if (enable) {
+		expTime = now + tp->tty_termios.c_cc[VTIME] * (HZ / 10);
+		/* Set a new timer for enabling the TTY events flags. */
+		timersSetTimer(&ttyTimers, &tp->tty_timer, 
+				expTime, ttyTimedout, NULL);
+	} else {
+		/* Remove the timer from the active and expired lists. */
+		timersClearTimer(&ttyTimers, &tp->tty_timer, NULL);
+	}
+
+	/* Now check if a new alarm must be scheduled. This happens when the front
+	 * of the timers queue was disabled or reinserted at another position, or
+	 * when a new timer was added to the front.
+	 */
+	if (ttyTimers == NULL)
+	  ttyNextTimeout = TIMER_NEVER;
+	else if (ttyTimers->tmr_exp_time != ttyNextTimeout) {
+		ttyNextTimeout = ttyTimers->tmr_exp_time;
+		if ((s = sysSetAlarm(ttyNextTimeout, 1)) != OK)
+		  panic("TTY", "Couldn't set synchronous alarm.", s);
+	}
+}
+
+static void inTransfer(register TTY *tp) {
+/* Transfer bytes from the input queue to a process reading from a terminal. */
+	int ch;
+	int count;
+	char buf[64], *bp;
+
+	/* Force read to succeed if the line is hung up, looks like EOF to reader. */
+	if (tp->tty_termios.c_ospeed == B0)
+	  tp->tty_min = 0;
+
+	/* Anything to do? */
+	if (tp->tty_in_left == 0 || tp->tty_eot_count < tp->tty_min)
+	  return;
+
+	bp = buf;
+	while (tp->tty_in_left > 0 && tp->tty_eot_count > 0) {
+		ch = *tp->tty_in_tail;
+
+		if (!(ch & IN_EOF)) {
+			/* One character to be delivered to the user. */
+			*bp = ch & IN_CHAR;
+			--tp->tty_in_left;
+			if (++bp == bufEnd(buf)) {
+				/* Temp buffer full, copy to user space. */
+				sysVirCopy(SELF, D, (vir_bytes) buf,
+					tp->tty_in_proc, D, tp->tty_in_vir, 
+					(vir_bytes) bufLen(buf));
+				tp->tty_in_vir += bufLen(buf);
+				tp->tty_in_cum += bufLen(buf);
+				bp = buf;
+			}
+		}
+
+		/* Remove the character from the input queue. */
+		if (++tp->tty_in_tail == bufEnd(tp->tty_in_buf))
+		  tp->tty_in_tail = tp->tty_in_buf;
+		--tp->tty_in_count;
+		//TODO
+	}
+}
+
 int inProcess(register TTY *tp, char *buf, int count) {
 /* Characters have just been typed in. Process, save, and echo them. 
  * Return the number of characters processed.
  */
-	int ch, ct;
+	int ch, sig, ct;
+	bool timeSet = false;
 
 	for (ct = 0; ct < count; ++ct) {
 		/* Take one character. */
 		ch = *buf++ & BYTE;
+	
+		/* Strip to seven bits? */
+		if (tp->tty_termios.c_iflag & ISTRIP)
+		  ch &= 0x7F;
 
+		/* Input extensions? */
+		if (tp->tty_termios.c_lflag & IEXTEN) {
+			/* Previous character was a character escape? */
+			if (tp->tty_escaped) {
+				tp->tty_escaped = NOT_ESCAPED;
+				ch |= IN_ESC;	/* Protect character */
+			}
+
+			/* LNEXT (^V) to escape the next character? */
+			if (ch == tp->tty_termios.c_cc[VLNEXT]) {
+				tp->tty_escaped = ESCAPED;
+				rawEcho(tp, '^');
+				rawEcho(tp, '\b');	/* move the cursor under '^' */
+				continue;	/* Do not store the escape */
+			}
+
+			/* REPRINT (^R) to reprint echoed characters? */
+			if (ch == tp->tty_termios.c_cc[VREPRINT]) {
+				reprint(tp);
+				continue;
+			}
+		}
+
+		/* _POSIX_VDISABLE is a normal character value, so better escape it. */
+		if (ch == _POSIX_VDISABLE) 
+		  ch |= IN_ESC;
+
+		/* Map CR to LF, ignore CR, or map LF to CR. */
+		if (ch == '\r') {
+			if (tp->tty_termios.c_iflag & IGNCR)
+			  continue;
+			if (tp->tty_termios.c_iflag & ICRNL)
+			  ch = '\n';
+		} else if (ch == '\n') {
+			if (tp->tty_termios.c_iflag & INLCR)
+			  ch = '\r';
+		}
+
+		/* Canonical mode? */
+		if (tp->tty_termios.c_lflag & ICANON) {
+			/* Erase processing (rub out of last character). */
+			if (ch == tp->tty_termios.c_cc[VERASE]) {
+				backOver(tp);
+				if (!(tp->tty_termios.c_lflag & ECHOE))
+				  ttyEcho(tp, ch);
+				continue;
+			}
+
+			/* Kill processing (remove current line). */
+			if (ch == tp->tty_termios.c_cc[VKILL]) {
+				while (backOver(tp)) {
+				}
+				if (!(tp->tty_termios.c_lflag & ECHOE)) {
+					ttyEcho(tp, ch);
+					if (tp->tty_termios.c_lflag & ECHOK)
+					  rawEcho(tp, '\n');
+				}
+				continue;
+			}
+
+			/* EOF (^D) means end-of-file, an invisible "line break". */
+			if (ch == tp->tty_termios.c_cc[VEOF])
+			  ch |= IN_EOT | IN_EOF;
+
+			/* The line may be returned to the user after an LF. */
+			if (ch == '\n')
+			  ch |= IN_EOT;
+
+			/* Same thing with EOL, whatever it may be. */
+			if (ch == tp->tty_termios.c_cc[VEOL])
+			  ch |= IN_EOT;
+		}
+
+		/* Start/stop input control? */
+		if (tp->tty_termios.c_iflag & IXON) {
+			/* Output stops on STOP (^S). */
+			if (ch == tp->tty_termios.c_cc[VSTOP]) {
+				tp->tty_inhibited = STOPPED;
+				tp->tty_events = 1;
+				continue;
+			}
+
+			/* Output restarts on START (^Q) or any character if IXANY. */
+			if (tp->tty_inhibited) {
+				if (ch == tp->tty_termios.c_cc[VSTART] ||
+						(tp->tty_termios.c_iflag & IXANY)) {
+					tp->tty_inhibited = RUNNING;
+					tp->tty_events = 1;
+					if (ch == tp->tty_termios.c_cc[VSTART])
+					  continue;
+				}
+			}
+		}
+
+		if (tp->tty_termios.c_lflag & ISIG) {
+			/* Check for INTR (^?) and QUIT (^\) characters. */
+			if (ch == tp->tty_termios.c_cc[VINTR] ||
+					ch == tp->tty_termios.c_cc[VQUIT]) {
+				sig = SIGINT;
+				if (ch == tp->tty_termios.c_cc[VQUIT])
+				  sig = SIGQUIT;
+				signalChar(tp, sig);
+				ttyEcho(tp, ch);
+				continue;
+			}
+		}
+
+		/* Is there space in the input buffer? */
+		if (tp->tty_in_count == bufLen(tp->tty_in_buf)) {
+			/* No space; discard in canonical mode, keep in raw mode. */
+			if (tp->tty_termios.c_lflag & ICANON)
+			  continue;
+			break;
+		}
+
+		if (!(tp->tty_termios.c_lflag & ICANON)) {
+			/* In raw mode all characters are "line breaks". */
+			ch |= IN_EOT;
+
+			/* Start an inter-byte timer? */
+			if (!timeSet && tp->tty_termios.c_cc[VMIN] > 0 &&
+					tp->tty_termios.c_cc[VTIME] > 0) {
+				setTimer(tp, true);
+				timeSet = true;
+			}
+		}
+
+		/* Perform the intricate function of echoing. */
+		if (tp->tty_termios.c_lflag & (ECHO | ECHONL))
+		  ch = ttyEcho(tp, ch);
+
+		/* Save the character in the input queue. */
+		*tp->tty_in_head++ = ch;
+		if (tp->tty_in_head == bufEnd(tp->tty_in_buf))
+		  tp->tty_in_head = tp->tty_in_buf;
+		++tp->tty_in_count;
+		if (ch & IN_EOT)
+		  ++tp->tty_eot_count;
+
+		/* Try to finish input if the queue threatens to overflow. */
+		if (tp->tty_in_count == bufLen(tp->tty_in_buf))
+		  inTransfer(tp);
 	}
+	return ct;
 }
 
 void main() {

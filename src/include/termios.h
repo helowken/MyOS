@@ -106,6 +106,11 @@ struct termios {
 #define XTABS		0x0004	/* Expand tabs to spaces */
 #define ONOEOT		0x0008	/* Discard EOT's (^D) on output */
 
+/* Extensions to the c_cc array. */
+#define VREPRINT		11	/* cc_c[VREPRINT] (^R) */
+#define VLNEXT			12	/* cc_c[VLNEXT]	(^V) */
+#define VDISCARD		13	/* cc_c[VDISCARD] (^O) */
+
 /* There are the default settings used by the kernel and by 'stty sane' */
 #define TCTRL_DEF	(CREAD | CS8 | HUPCL)
 #define TINPUT_DEF	(BRKINT | ICRNL | IXON | IXANY)
@@ -113,6 +118,7 @@ struct termios {
 #define TLOCAL_DEF	(ISIG | IEXTEN | ICANON | ECHO | ECHOE)
 #define TSPEED_DEF	B9600
 
+/* See "man ascii" for more. */
 #define TEOF_DEF	'\4'	/* ^D = C('D') = 0x1F & 0x44 = 0x4 = '\4' */
 #define TEOL_DEF	_POSIX_VDISABLE
 #define TERASE_DEF	'\10'	/* ^H = C('H') = 0x1F & 0x48 = 0x8 = '\10' */
