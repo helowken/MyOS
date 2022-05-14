@@ -271,4 +271,22 @@
 #define SEG_SIZE		m4_l4	/* Segment size */
 #define SEG_INDEX		m4_l5	/* Segment index in remote map */
 
+/*=====================================================================*
+ *			Miscellaneous messages used by TTY			*
+ *=====================================================================*/
+
+/* Miscellaneous request types and field names, e.g. used by IS server. */
+#define PANIC_DUMPS			97	/* Debug dumps at the TTY on RBT_PANIC */
+#define FKEY_CONTROL		98	/* Control a function key at the TTY */
+#define	  FKEY_REQUEST	m2_i1	/* Request to perform at TTY */
+#define	     FKEY_MAP		10	/* Observe function key */
+#define	     FKEY_UNMAP		11	/* Stop observing function key */
+#define      FKEY_EVENTS	12	/* Request open key presses */
+#define   FKEY_FKEYS	m2_l1	/* F1-F12 keys pressed */
+#define   FKEY_SFKEYS	m2_l2	/* Shift-F1-F12 keys pressed */
+#define DIAGNOSTICS			100	/* Output a string without FS in between */
+#define   DIAG_PRINT_BUF	m1_p1
+#define	  DIAG_BUF_COUNT	m1_i1
+#define   DIAG_PROC_NR		m1_i2
+
 #endif

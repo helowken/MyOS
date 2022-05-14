@@ -174,8 +174,6 @@ void handleEvents(TTY *tp) {
  *  messages (in proc.c). This is handled by explicityly checking each line
  *  for fresh input and completed output on each interrupt.
  */
-	//unsigned count;
-
 	do {
 		tp->tty_events = 0;
 
@@ -194,7 +192,23 @@ void handleEvents(TTY *tp) {
 	inTransfer(tp);
 
 	/* Reply if enough bytes are available. */
-	// TODO
+	if (tp->tty_in_cum >= tp->tty_min && tp->tty_in_left > 0) {
+		if (tp->tty_in_rep_code == REVIVE) {
+			notify(tp->tty_in_caller);
+			tp->tty_in_revivied = 1;
+		} else {
+			ttyReply(tp->tty_in_rep_code, tp->tty_in_caller,
+					tp->tty_in_proc, tp->tty_in_cum);
+			tp->tty_in_left = tp->tty_in_cum = 0;
+		}
+	}
+
+	if (tp->tty_select_ops) 
+	  selectRetry(tp);
+#if NR_PTYS > 0
+	if (isPty(tp))
+	  selectRetryPty(tp);
+#endif
 }
 
 static void ttyTimedout(Timer *tr) {
@@ -204,6 +218,30 @@ static void ttyTimedout(Timer *tr) {
 	tp = &ttyTable[timerArg(tr)->ta_int];
 	tp->tty_min = 0;	/* Force read to succeed */
 	tp->tty_events = 1;
+}
+
+static void expireTimers() {
+/* A synchronous alarm message was received. Check if there are any expired
+ * timers. Possibly set the event flag and reschedule another alarm.
+ */
+	clock_t now;	/* Current time */
+	int s;
+
+	/* Get the current time to compare the timers against. */
+	if ((s = getUptime(&now)) != OK)
+	  panic("TTY", "Couldn't get uptime from clock.", s);
+
+	/* Scan the queue of timers for expired timers. This dispatch the watchdog
+	 * functions of expired timers. Possibly a new alarm call must be scheduled.
+	 */
+	timersExpTimers(&ttyTimers, now, NULL);
+	if (ttyTimers == NULL)
+	  ttyNextTimeout = TIMER_NEVER;
+	else {	/* Set new sync alarm */
+		ttyNextTimeout = ttyTimers->tmr_exp_time;
+		if ((s = sysSetAlarm(ttyNextTimeout, 1)) != OK)
+		  panic("TTY", "Couldn't set synchronous alarm.", s);
+	}
 }
 
 static void setTimer(TTY *tp, bool enable) {
@@ -535,7 +573,7 @@ int inProcess(register TTY *tp, char *buf, int count) {
 void main() {
 /* Main routine of the terminal task. */
 
-	//Message ttyMsg;		/* Buffer for all incoming messages */
+	Message msg;		/* Buffer for all incoming messages */
 	//unsigned line;
 	int s;
 	register TTY *tp;
@@ -557,6 +595,122 @@ void main() {
 		for (tp = FIRST_TTY; tp < END_TTY; ++tp) {
 			if (tp->tty_events)
 			  handleEvents(tp);
+		}
+
+		/* Get a request message. */
+		receive(ANY, &msg);
+
+		/* First handle all kernel notification types that the TTY supports.
+		 *  - An alarm went off, expire all timers and handle the events.
+		 *  - A hardware interrupt also is an invitation to check for events.
+		 *  - A new kernel message is available for printing.
+		 *  - Reset the console on system shutdown.
+		 * Then see if this message is different from a normal device driver
+		 * request and should be handled separately. These extra functions
+		 * do not operate on a device, in constrast to the driver requests.
+		 */
+		switch (msg.m_type) {
+			case SYN_ALARM:		
+				expireTimers();	/* Run watchdogs of expired timers */
+				continue;		/* Continue to check for events */
+			case HARD_INT:		/* Hardware interrupt notification */
+				if (msg.NOTIFY_ARG & kbdIrqSet)
+				  kbdInterrupt(&msg);	/* Fetch chars from keyboard */
+#if NR_RS_LINES > 0
+				if (msg.NOTIFY_ARG & rsIrqSet)
+				  rsInterrupt(&msg);	/* Serial I/O */
+#endif
+				expireTimers();	/* Run watchdogs of expired timers */
+				continue;		/* Continue to check for events */
+			case SYS_SIG:		/* System signal */
+				sigset_t sigset = (sigset_t) msg.NOTIFY_ARG;
+				if (sigismember(&sigset, SIGKSTOP)) {
+					consoleStop();	/* Switch to primary console */
+					if (irqHookId != -1) {
+						sysIrqDisable(&irqHookId);
+						sysIrqRmPolicy(KEYBOARD_IRQ, &irqHookId);
+					}
+				}
+				if (sigismember(&sigset, SIGTERM))
+				  consoleStop();
+				if (sigismember(&sigset, SIGKMESS))
+				  doNewKMsg(&msg);
+				continue;
+			case PANIC_DUMPS:	/* Allow panic dumps */
+				consoleStop();	/* Switch to primary console */
+				doPanicDumps(&msg);
+				continue;
+			case DIAGNOSTICS:	/* A server wants to print some */
+				doDiagnostics(&msg);
+				continue;
+			case FKEY_CONTROL:	/* (un)register a fkey observer */
+				doFKeyCtl(&msg);
+				continue;
+			default:			/* Should be a driver request */
+		}
+	
+		/* Only device requests should get to this point. All requests,
+		 * except DEV_STATUS, have a minor device number. Check this
+		 * exception and get the minor device number otherwise.
+		 */
+		if (msg.m_type == DEV_STATUS) {
+			doStatus(&msg);
+			continue;
+		}
+		line = msg.TTY_LINE;
+		if ((line - CONS_MINOR) < NR_CONS) {
+			tp = ttyAddr(line - CONS_MINOR);
+		} else if (line == LOG_MINOR) {
+			tp = ttyAddr(0);
+		} else if ((line - RS232_MINOR) < NR_RS_LINES) {
+			tp = ttyAddr(line - RS232_MINOR + NR_CONS);
+		} else if ((line - TTYPX_MINOR) < NR_PTYS) {
+			tp = ttyAddr(line - TTYPX_MINOR + NR_CONS + RS232_MINOR);
+		} else if ((line - PTYPX_MINOR) < NR_PTYS) {
+			tp = ttyAddr(line - PTYPX_MINOR + NR_CONS + RS232_MINOR);
+			if (msg.m_type != DEV_IOCTL) {
+				doPty(tp, &msg);
+				continue;
+			}
+		} else {
+			tp = NULL;
+		}
+
+		/* If the device doesn't exist or is not configured return ENXIO. */
+		if (tp == NULL || ! ttyActive(tp)) {
+			printf("Warning, TTY got illegal request %d from %d\n",
+					msg.m_type, msg.m_source);
+			ttyReply(TASK_REPLY, msg.m_source, msg.PROC_NR, ENXIO);
+			continue;
+		}
+
+		/* Execute the requested device driver function. */
+		switch (msg.m_type) {
+			case DEV_READ:
+				doRead(tp, &msg);
+				break;
+			case DEV_WRITE:
+				doWrite(tp, &msg);
+				break;
+			case DEV_IOCTL:
+				doIoctl(tp, &msg);
+				break;
+			case DEV_OPEN:
+				doOpen(tp, &msg);
+				break;
+			case DEV_CLOSE:
+				doClose(tp, &msg);
+				break;
+			case DEV_SELECT:
+				doSelect(tp, &msg);
+				break;
+			case CANCEL:
+				doCancel(tp, &msg);
+				break;
+			default:
+				printf("Warning, TTY got unexpected request %d from %d\n",
+						msg.m_type, msg.m_source);
+				ttyReply(TASK_REPLY, msg.m_source, msg.PROC_NR, EINVAL);
 		}
 	}
 }

@@ -28,7 +28,7 @@
 /* MINIX specific signals. These signals are not used by user processes,
  * but meant to inform system processes, like the PM, about system events.
  */
-#define SIGMESS		18	/* New kernel message */
+#define SIGKMESS	18	/* New kernel message */
 #define	SIGKSIG		19	/* Kernel signal pending */
 #define SIGKSTOP	20	/* Kernel shutting down */
 

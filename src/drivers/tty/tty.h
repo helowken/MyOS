@@ -61,7 +61,7 @@ typedef struct TTY {
 	/* Miscellaneous. */
 	DevFunc tty_ioctl;		/* Set line speed, etc. at the device level */
 	DevFunc tty_close;		/* Tell the device that the tty is closed */
-	void *ttpPriv;			/* Pointer to per device private data */
+	void *tty_priv;			/* Pointer to per device private data */
 	struct termios tty_termios;		/* Terminal attributes */
 	WinSize tty_win_size;	/* Window size (#lines and #columns) */
 
