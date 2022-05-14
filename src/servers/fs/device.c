@@ -24,7 +24,7 @@ int genOpCl(int op, dev_t dev, int proc, int flags) {
 	/* Call the task. */
 	(*dp->dmap_io)(dp->dmap_driver, &msg);
 
-	return msg.RESP_STATUS;
+	return msg.REP_STATUS;
 }
 
 void genIO(int taskNum, Message *msg) {
@@ -53,17 +53,17 @@ void genIO(int taskNum, Message *msg) {
 		 * sent a completion reply, ignore the reply and abort the cancel
 		 * request. The caller will do the revive for the process.
 		 */
-		if (msg->m_type == CANCEL && recMsg.RESP_PROC_NR == pNum) 
+		if (msg->m_type == CANCEL && recMsg.REP_PROC_NR == pNum) 
 		  return;
 
 		/* Otherwise it should be a REVIVE. */
 		if (recMsg.m_type != REVIVE) {
 			printf("FS: strange device reply from %d, type = %d, proc = %d (1)\n",
-					recMsg.m_source, recMsg.m_type, recMsg.RESP_PROC_NR);
+					recMsg.m_source, recMsg.m_type, recMsg.REP_PROC_NR);
 			continue;
 		}
 
-		revive(recMsg.RESP_PROC_NR, recMsg.RESP_STATUS);
+		revive(recMsg.REP_PROC_NR, recMsg.REP_STATUS);
 	}
 
 	/* The message received may be a reply to this call, or a REVIVE for some
@@ -78,14 +78,14 @@ void genIO(int taskNum, Message *msg) {
 		}
 
 		/* Did the process we did the sendRec() for get a result? */
-		if (msg->RESP_PROC_NR == pNum) {
+		if (msg->REP_PROC_NR == pNum) {
 			break;
 		} else if (msg->m_type == REVIVE) {
 			/* Otherwise it should be a REVIVE. */
-			revive(msg->RESP_PROC_NR, msg->RESP_STATUS);
+			revive(msg->REP_PROC_NR, msg->REP_STATUS);
 		} else {
 			printf("FS: strange device reply from %d, type = %d, proc = %d (1)\n",
-					msg->m_source, msg->m_type, msg->RESP_PROC_NR);
+					msg->m_source, msg->m_type, msg->REP_PROC_NR);
 			return;
 		}
 
@@ -136,22 +136,22 @@ int devIO(int op, dev_t dev, int proc, void *buf,
 	(*dp->dmap_io)(dp->dmap_driver, &msg);
 
 	/* Task has completed. See if call completed. */
-	if (msg.RESP_STATUS == SUSPEND) {
+	if (msg.REP_STATUS == SUSPEND) {
 		if (flags & O_NONBLOCK) {
 			/* Not supposed to block. */
 			msg.m_type = CANCEL;
 			msg.PROC_NR = proc;
 			msg.DEVICE = minorDev(dev);
 			(*dp->dmap_io)(dp->dmap_driver, &msg);
-			if (msg.RESP_STATUS == EINTR)
-			  msg.RESP_STATUS = EAGAIN;
+			if (msg.REP_STATUS == EINTR)
+			  msg.REP_STATUS = EAGAIN;
 		} else {
 			/* Suspend user. */
 			suspend(dp->dmap_driver);
 			return SUSPEND;
 		}
 	}
-	return msg.RESP_STATUS;
+	return msg.REP_STATUS;
 }
 
 void devStatus(Message *msg) {
@@ -173,7 +173,7 @@ void devStatus(Message *msg) {
 
 		switch (statusMsg.m_type) {
 			case DEV_REVIVE:
-				revive(statusMsg.RESP_PROC_NR, statusMsg.RESP_STATUS);
+				revive(statusMsg.REP_PROC_NR, statusMsg.REP_STATUS);
 				break;
 			case DEV_IO_READY:
 				selectNotified(i, statusMsg.DEV_MINOR, statusMsg.DEV_SEL_OPS);

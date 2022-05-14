@@ -197,9 +197,9 @@ void driverTask(Driver *dp) {
 		/* Finally , prepare and send the reply message. */
 		if (r != EDONTREPLY) {
 			msg.m_type = TASK_REPLY;
-			msg.RESP_PROC_NR = pNum;
+			msg.REP_PROC_NR = pNum;
 			/* Status is # of bytes transferred or error code. */
-			msg.RESP_STATUS = r;
+			msg.REP_STATUS = r;
 			send(deviceCaller, &msg);
 		}
 	}

@@ -116,12 +116,12 @@ static void loadRam() {
 	outMsg.POSITION = ramSizeInKB * KB;
 	if ((s = sendRec(MEM_PROC_NR, &outMsg)) != OK) {
 	    panic("FS", "sendRec from MEM failed", s);
-	} else if (outMsg.RESP_STATUS != OK) {
+	} else if (outMsg.REP_STATUS != OK) {
 		/* Report and continue, unless RAM disk is required as ROOT FS. */
 		if (rootDev != DEV_RAM) 
-		  report("FS", "can't set RAM disk size", outMsg.RESP_STATUS);
+		  report("FS", "can't set RAM disk size", outMsg.REP_STATUS);
 		else
-		  panic(__FILE__, "can't set RAM disk size", outMsg.RESP_STATUS);
+		  panic(__FILE__, "can't set RAM disk size", outMsg.REP_STATUS);
 	}
 
 	/* See if we must load the RAM disk image, otherwise return. */

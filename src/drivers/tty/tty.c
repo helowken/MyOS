@@ -81,8 +81,83 @@ static void devIoctl(TTY *tp) {
 	// TODO
 }
 
+void ttyReply(int code, int replyee, int pNum, int status) {
+/* Send a reply to a process that wanted to read or write data. */
+	Message msg;
+	
+	msg.m_type = code;
+	msg.REP_PROC_NR = pNum;
+	msg.REP_STATUS = status;
+
+	if ((status = send(replyee, &msg)) != OK) 
+	  panic("TTY", "ttyReply failed, status\n", status);
+}
+
 static void inTransfer(register TTY *tp) {
-	// TODO
+/* Transfer bytes from the input queue to a process reading from a terminal. */
+	int ch;
+	int count;
+	char buf[64], *bp;
+
+	/* Force read to succeed if the line is hung up, looks like EOF to reader. */
+	if (tp->tty_termios.c_ospeed == B0)
+	  tp->tty_min = 0;
+
+	/* Anything to do? */
+	if (tp->tty_in_left == 0 || tp->tty_eot_count < tp->tty_min)
+	  return;
+
+	bp = buf;
+	while (tp->tty_in_left > 0 && tp->tty_eot_count > 0) {
+		ch = *tp->tty_in_tail;
+
+		if (!(ch & IN_EOF)) {
+			/* One character to be delivered to the user. */
+			*bp = ch & IN_CHAR;
+			--tp->tty_in_left;
+			if (++bp == bufEnd(buf)) {
+				/* Temp buffer full, copy to user space. */
+				sysVirCopy(SELF, D, (vir_bytes) buf,
+					tp->tty_in_proc, D, tp->tty_in_vir, 
+					(vir_bytes) bufLen(buf));
+				tp->tty_in_vir += bufLen(buf);
+				tp->tty_in_cum += bufLen(buf);
+				bp = buf;
+			}
+		}
+
+		/* Remove the character from the input queue. */
+		if (++tp->tty_in_tail == bufEnd(tp->tty_in_buf))
+		  tp->tty_in_tail = tp->tty_in_buf;
+		--tp->tty_in_count;
+		if (ch & IN_EOT) {
+			--tp->tty_eot_count;
+			/* Don't read past a line break in canonical mode. */
+			if (tp->tty_termios.c_lflag & ICANON)
+			  tp->tty_in_left = 0;
+		}
+	}
+
+	if (bp > buf) {
+		/* Leftover characters in the buffer. */
+		count = bp - buf;
+		sysVirCopy(SELF, D, (vir_bytes) buf, 
+			tp->tty_in_proc, D, tp->tty_in_vir, (vir_bytes) count);
+		tp->tty_in_vir += count;
+		tp->tty_in_cum += count;
+	}
+
+	/* Usually reply to the reader, possibly even if in_cum == 0 (EOF). */
+	if (tp->tty_in_left == 0) {
+		if (tp->tty_in_rep_code == REVIVE) {
+			notify(tp->tty_in_caller);
+			tp->tty_in_revived = 1;
+		} else {
+			ttyReply(tp->tty_in_rep_code, tp->tty_in_caller,
+						tp->tty_in_proc, tp->tty_in_cum);
+			tp->tty_in_left = tp->tty_in_cum = 0;
+		}
+	}
 }
 
 void handleEvents(TTY *tp) {
@@ -162,45 +237,138 @@ static void setTimer(TTY *tp, bool enable) {
 	}
 }
 
-static void inTransfer(register TTY *tp) {
-/* Transfer bytes from the input queue to a process reading from a terminal. */
-	int ch;
-	int count;
-	char buf[64], *bp;
+static void rawEcho(register TTY *tp, int ch) {
+/* Echo without interpretation if ECHO is set. */
+	int rp = tp->tty_reprint;
+	if (tp->tty_termios.c_lflag & ECHO)
+	  (*tp->tty_echo)(tp, ch);
+	tp->tty_reprint = rp;
+}
 
-	/* Force read to succeed if the line is hung up, looks like EOF to reader. */
-	if (tp->tty_termios.c_ospeed == B0)
-	  tp->tty_min = 0;
+static int ttyEcho(register TTY *tp, register int ch) {
+/* Echo the character if echoing is on. Some control characters are echoed
+ * with their normal effect, other control characters are echoed as "^X",
+ * normal characters are echoed normally. EOF (^D) is echoed, but immediately
+ * backspaced over. Return the character with the echoed length added to its
+ * attributes.
+ */
+	int len, rp;
 
-	/* Anything to do? */
-	if (tp->tty_in_left == 0 || tp->tty_eot_count < tp->tty_min)
-	  return;
-
-	bp = buf;
-	while (tp->tty_in_left > 0 && tp->tty_eot_count > 0) {
-		ch = *tp->tty_in_tail;
-
-		if (!(ch & IN_EOF)) {
-			/* One character to be delivered to the user. */
-			*bp = ch & IN_CHAR;
-			--tp->tty_in_left;
-			if (++bp == bufEnd(buf)) {
-				/* Temp buffer full, copy to user space. */
-				sysVirCopy(SELF, D, (vir_bytes) buf,
-					tp->tty_in_proc, D, tp->tty_in_vir, 
-					(vir_bytes) bufLen(buf));
-				tp->tty_in_vir += bufLen(buf);
-				tp->tty_in_cum += bufLen(buf);
-				bp = buf;
-			}
-		}
-
-		/* Remove the character from the input queue. */
-		if (++tp->tty_in_tail == bufEnd(tp->tty_in_buf))
-		  tp->tty_in_tail = tp->tty_in_buf;
-		--tp->tty_in_count;
-		//TODO
+	ch &= ~IN_LEN;
+	if (!(tp->tty_termios.c_lflag & ECHO)) {
+		if (ch == ('\n' | IN_EOT) && 
+			(tp->tty_termios.c_lflag & (ICANON | ECHONL)) == (ICANON | ECHONL)) 
+		  (*tp->tty_echo)(tp, '\n');
+		return ch;
 	}
+
+	/* "Reprint" tells if the echo output has been meesed up by other output. */
+	rp = tp->tty_in_count == 0 ? false : tp->tty_reprint;
+
+	if ((ch & IN_CHAR) < ' ') {
+		switch (ch & (IN_ESC | IN_EOF | IN_EOT | IN_CHAR)) {
+			case '\t':
+				len = 0;
+				do {
+					(*tp->tty_echo)(tp, ' ');
+					++len;
+				} while (len < TAB_SIZE && (tp->tty_position & TAB_MASK) != 0);
+				break;
+			case '\r' | IN_EOT:
+			case '\n' | IN_EOT:
+				(*tp->tty_echo)(tp, ch & IN_CHAR);
+				len = 0;
+				break;
+			default:
+				(*tp->tty_echo)(tp, '^');
+				(*tp->tty_echo)(tp, '@' + (ch & IN_CHAR));
+				len = 2;
+		}
+	} else if ((ch & IN_CHAR) == '\177') {
+		/* A DEL prints as "^?". */
+		(*tp->tty_echo)(tp, '^');
+		(*tp->tty_echo)(tp, '?');
+		len = 2;
+	} else {
+		(*tp->tty_echo)(tp, ch & IN_CHAR);
+		len = 1;
+	}
+	if (ch & IN_EOF) {
+		while (len > 0) {
+			(*tp->tty_echo)(tp, '\b');
+			--len;
+		}
+	}
+
+	tp->tty_reprint = rp;
+
+	return (ch | (len << IN_LSHIFT));
+}
+
+static void reprint(register TTY *tp) {
+/* Restore what has been echoed to screen before if the user input has been
+ * messed up by output, or if REPRINT (^R) is typed.
+ */
+	int count;
+	u16_t *head;
+
+	tp->tty_reprint = false;
+	
+	/* Find the last time break in the input. */
+	head = tp->tty_in_head;
+	count = tp->tty_in_count;
+	while (count > 0) {
+		if (head == tp->tty_in_buf)
+		  head = bufEnd(tp->tty_in_buf);
+		if (head[-1] & IN_EOT)
+		  break;
+		--head;
+		--count;
+	}
+	if (count == tp->tty_in_count)
+	  return;	/* No reason to reprint */
+
+	/* Show REPRINT (^R) and move to a new line. */
+	ttyEcho(tp, tp->tty_termios.c_cc[VREPRINT] | IN_ESC);
+	rawEcho(tp, '\r');
+	rawEcho(tp, '\n');
+
+	/* Reprint from the last break onwards. */
+	do {
+		if (head == bufEnd(tp->tty_in_buf))
+		  head = tp->tty_in_buf;
+		*head = ttyEcho(tp, *head);
+		++head;
+		++count;
+	} while (count < tp->tty_in_count);
+}
+
+static int backOver(register TTY *tp) {
+/* Backspace to previous character on screen and earse it. */
+	u16_t *head;
+	int len;
+
+	if (tp->tty_in_count == 0)
+	  return 0;		/* Queue empty */
+	head = tp->tty_in_head;
+	if (head == tp->tty_in_buf)
+	  head = bufEnd(tp->tty_in_buf);
+	if (*--head & IN_EOT)
+	  return 0;		/* Can't earse "line breaks" */
+	if (tp->tty_reprint)
+	  reprint(tp);	/* Reprint if messed up */
+	tp->tty_in_head = head;
+	--tp->tty_in_count;
+	if (tp->tty_termios.c_lflag & ECHOE) {
+		len = (*head & IN_LEN) >> IN_LSHIFT;
+		while (len > 0) {
+			rawEcho(tp, '\b');
+			rawEcho(tp, ' ');
+			rawEcho(tp, '\b');
+			--len;
+		}
+	}
+	return 1;	/* One character erased */
 }
 
 int inProcess(register TTY *tp, char *buf, int count) {

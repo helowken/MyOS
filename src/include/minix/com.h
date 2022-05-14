@@ -103,8 +103,8 @@
 #define DEV_SEL_WATCH	m2_i3	/* Request notify if no operations are ready */
 
 /* Field names used in reply messages from tasks. */
-#define RESP_PROC_NR	m2_i1	/* # of proc on whose behalf I/O was done */
-#define RESP_STATUS		m2_i2	/* Bytes transferred or error number */
+#define REP_PROC_NR		m2_i1	/* # of proc on whose behalf I/O was done */
+#define REP_STATUS		m2_i2	/* Bytes transferred or error number */
 #	define SUSPEND		-998	/* Status to suspend caller, reply later */
 
 /* Field names for messages to TTY driver. */

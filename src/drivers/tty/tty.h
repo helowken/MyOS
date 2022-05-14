@@ -8,6 +8,10 @@
 #define PTYPX_MINOR		192
 
 #define	TTY_IN_BYTES	256		/* TTY input queue size */
+#define TAB_SIZE		8		/* Distance between tab stops */
+#define TAB_MASK		7		/* Mask to compute a tab stop position */
+
+#define ESC				'\33'	/* Escape */
 
 struct TTY;
 typedef int (*DevFunc)(struct TTY *tp, int tryOnly);
@@ -35,10 +39,15 @@ typedef struct TTY {
 	DevFunc tty_break;		/* Let the device send a break */
 
 	/* Terminal parameters and status. */
+	int tty_position;		/* Current position on the screen for echoing */
+	char tty_reprint;		/* 1 when echoed input messed up, else 0 */
 	char tty_escaped;		/* 1 when LNEXT (^V) just seen, else 0 */
 	char tty_inhibited;		/* 1 when STOP (^S) just seen (stops output) */
 
 	/* Information about incomplete I/O requests is stored here. */
+	char tty_in_rep_code;	/* Reply code, TASK_REPLY or REVIVE */
+	char tty_in_revived;	/* Set to 1 if revive callback is pending */
+	char tty_in_caller;		/* Process that made the call (usually FS) */
 	char tty_in_proc;		/* Process that wants to read from tty */
 	vir_bytes tty_in_vir;	/* Virtual address where data is to go */
 	char tty_io_req;		/* ioctl request code */
@@ -67,6 +76,8 @@ typedef struct TTY {
 
 /* Fields and flags on characters in the input queue. */
 #define IN_CHAR		0x00FF	/* Low 8 bits are the character itself */
+#define IN_LEN		0x0F00	/* Length of char if it has been echoed */
+#define IN_LSHIFT		8	/* Length = (c & IN_LEN) >> IN_LSHIFT */
 #define IN_EOT		0x1000	/* Char is a line break (^D, LF) */
 #define IN_EOF		0x2000	/* Char is EOF (^D), do not return to user */
 #define IN_ESC		0x4000	/* Escaped by LNEXT (^V), no interpretation */
@@ -91,6 +102,7 @@ extern Machine machine;		/* Machine information (a.o.: pc_at, ega) */
 void signalChar(TTY *tp, int sig);
 int inProcess(TTY *tp, char *buf, int count);
 int selectRetry(TTY *tp);
+void ttyReply(int code, int replyee, int pnum, int status);
 
 /* rs232.c */
 void rsInit(TTY *tp);
