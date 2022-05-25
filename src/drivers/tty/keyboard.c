@@ -124,7 +124,7 @@ static void setLeds() {
 
 	kbWait();	/* wait for buffer empty */
 	/* Give keyboard LED values */
-	if ((s = sysOutb(REG_KB_DATA, locks[currConsole])) != OK)
+	if ((s = sysOutb(REG_KB_DATA, locks[currConsIdx])) != OK)
 	  printf("Warning, sysOutb couldn't give LED values: %d\n", s);
 	
 	kbAck();	/* Wait for ack response */
@@ -142,7 +142,7 @@ static unsigned mapKey(int scanCode) {
 	keyRow = &keyMap[scanCode * MAP_COLS];
 	
 	caps = shift;
-	lock = locks[currConsole];
+	lock = locks[currConsIdx];
 	if ((lock & NUM_LOCK) && HOME_SCAN_CODE <= scanCode && scanCode <= DEL_SCAN_CODE)
 	  caps = !caps;
 	if ((lock & CAPS_LOCK) && (keyRow[0] & HAS_CAPS))
@@ -260,21 +260,21 @@ static unsigned makeBreak(int scanCode) {
 			 *     capsDown > make => caps retains false, capsDown = 0
 			 */
 			if (capsDown < make) {	/* key down */
-				locks[currConsole] ^= CAPS_LOCK;
+				locks[currConsIdx] ^= CAPS_LOCK;
 				setLeds();
 			}
 			capsDown = make;	/* key down/up */
 			break;
 		case NLOCK:		/* Num lock */
 			if (numDown	< make) {	
-				locks[currConsole] ^= NUM_LOCK;
+				locks[currConsIdx] ^= NUM_LOCK;
 				setLeds();
 			}
 			numDown = make;
 			break;
 		case SLOCK:		/* Scroll lock */
 			if (scrollDown < make) {
-				locks[currConsole] ^= SCROLL_LOCK;
+				locks[currConsIdx] ^= SCROLL_LOCK;
 				setLeds();
 			}
 			scrollDown = make;
@@ -304,7 +304,7 @@ static int kbRead(TTY *tp, int try) {
 	int scanCode;
 	unsigned ch;
 
-	tp = &ttyTable[currConsole];
+	tp = &ttyTable[currConsIdx];
 
 	if (try)
 	  return inCount > 0 ? 1 : 0;
@@ -334,11 +334,11 @@ static int kbRead(TTY *tp, int try) {
 			inProcess(tp, buf, 3);
 		} else if (ch == ALEFT) {
 			/* Choose lower numbered console as current console. */
-			selectConsole(currConsole - 1);
+			selectConsole(currConsIdx - 1);
 			setLeds();
 		} else if (ch == ARIGHT) {
 			/* Choose higher numbered console as current console. */
-			selectConsole(currConsole + 1);
+			selectConsole(currConsIdx + 1);
 			setLeds();
 		} else if (AF1 <= ch && ch <= AF12) {
 			selectConsole(ch - AF1);
@@ -423,9 +423,9 @@ void kbdInterrupt() {
 		if (inHead == inBuf + KB_IN_BYTES)
 		  inHead = inBuf;
 		++inCount;
-		ttyTable[currConsole].tty_events = 1;
-		if (ttyTable[currConsole].tty_select_ops && SEL_RD) {
-			selectRetry(&ttyTable[currConsole]);
+		ttyTable[currConsIdx].tty_events = 1;
+		if (ttyTable[currConsIdx].tty_select_ops && SEL_RD) {
+			selectRetry(&ttyTable[currConsIdx]);
 		}
 	}
 }

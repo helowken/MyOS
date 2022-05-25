@@ -17,6 +17,10 @@ void setTimer(struct Timer *tp, clock_t expTime, TimerFunc watchDog);
 void resetTimer(struct Timer *tp);
 unsigned long readClock();
 
+/* main.c */
+void main();
+void prepareShutdown(int how);
+
 /* utility.c */
 void kprintf(const char *fmt, ...);
 void panic(const char *s, int n);

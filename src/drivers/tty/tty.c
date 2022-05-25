@@ -37,7 +37,7 @@ static struct termios termiosDefaults = {
 
 /* Global variables for the TTY task (declared extern in tty.h). */
 TTY ttyTable[NR_CONS + NR_RS_LINES + NR_PTYS];
-int currConsole;		/* Currently active console */
+int currConsIdx;		/* Currently active console index */
 Timer *ttyTimers;		/* Queue of TTY timers */
 Machine machine;		/* Kernel environment variables */
 

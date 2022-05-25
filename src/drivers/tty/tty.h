@@ -7,6 +7,8 @@
 #define TTYPX_MINOR		128
 #define PTYPX_MINOR		192
 
+#define LINE_WRAP		1		/* Wrap lines at column 80 */
+
 #define	TTY_IN_BYTES	256		/* TTY input queue size */
 #define TAB_SIZE		8		/* Distance between tab stops */
 #define TAB_MASK		7		/* Mask to compute a tab stop position */
@@ -85,7 +87,7 @@ typedef struct TTY {
 
 /* Memory allocated in tty.c, so extern here. */
 extern TTY ttyTable[NR_CONS + NR_RS_LINES + NR_PTYS];
-extern int currConsole;		/* Currently visible console */
+extern int currConsIdx;		/* Currently visible console index */
 extern int irqHookId;		/* Hook id for keyboard irq */
 
 extern Timer *ttyTimers;	/* Queue of TTY timers */
@@ -109,6 +111,7 @@ void rsInit(TTY *tp);
 
 /* console.c */
 void screenInit(TTY *tp);
+void selectConsole(int consoleLine);
 
 /* keyboard.c */
 void kbInit();
@@ -117,4 +120,9 @@ void kbdInterrupt();
 
 /* pty.c */
 void ptyInit(TTY *tp);
+
+/* vidcopy.s */
+void mem2VidCopy(u16_t *src, unsigned dst, unsigned count);
+void vid2VidCopy(unsigned src, unsigned dst, unsigned count);
+
 

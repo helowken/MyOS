@@ -70,8 +70,8 @@ int doGetInfo(Message *msg) {
 			src = vir2Phys(&copy);
 			break;
 		case GET_KMESSAGES: 
-			length = sizeof(KernelMessages);
-			src = vir2Phys(&kernelMessages);
+			length = sizeof(KernelMsg);
+			src = vir2Phys(&kernelMsg);
 			break;
 		case GET_BIOSBUFFER:
 			// TODO

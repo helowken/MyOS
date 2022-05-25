@@ -134,3 +134,7 @@ void main() {
 	announce();					/* Print MINIX startup banner */
 	restart();
 }
+
+void prepareShutdown(int how) {
+//TODO
+}

@@ -19,6 +19,12 @@
 /* Number of controller tasks (/dev/cN device classes). */
 #define NR_CTRLRS		2
 
+/* Which process should receive diagnostics from the kernel and system?
+ * Directly sending it to TTY only displays the output. Sending it to the
+ * log driver will cause the diagnostics to be buffered and displayed.
+ */
+#define OUTPUT_PROC_NR	LOG_PROC_NR	/* TTY_PROC_NR or LOG_PROC_NR */
+
 /* NR_CONS, NR_RS_LINES, and NR_PTYS determine the number of terminals the
  * system can handle.
  */
