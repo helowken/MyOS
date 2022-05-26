@@ -3,7 +3,7 @@ include $(MY_HOME)/common.mk
 LIBS = -L$(MY_HOME)/lib \
 	   -lmysys -lmysysutil -lmytimers -lmyc 
 
-OBJS = $(ENTRY) tty.o console.o keyboard.o
+OBJS = $(ENTRY) tty.o console.o vidcopy.o keyboard.o
 DRIVER = tty.bin
 
 all: $(DRIVER)

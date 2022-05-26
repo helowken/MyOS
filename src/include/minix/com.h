@@ -108,7 +108,11 @@
 #	define SUSPEND		-998	/* Status to suspend caller, reply later */
 
 /* Field names for messages to TTY driver. */
+#define TTY_LINE		DEVICE	/* Message parameter: terminal line */
+#define TTY_REQUEST		COUNT	/* Message parameter: ioctl request code */
+#define TTY_SPEK		POSITION/* Message parameter: ioctl speed, erasing */
 #define TTY_FLAGS		m2_l2	/* Message parameter: ioctl tty mode */
+#define TTY_PGRP		m2_i3	/* Message parameter: process group */
 
 /*=====================================================================*
  *			SYSTASK	request types and field names			*

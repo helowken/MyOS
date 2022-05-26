@@ -298,6 +298,10 @@ static unsigned makeBreak(int scanCode) {
 	return -1;
 }
 
+static void showKeyMappings() {
+//TODO
+}
+
 static int kbRead(TTY *tp, int try) {
 /* Process characters from the circular keyboard buffer. */
 	char buf[3];

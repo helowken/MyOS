@@ -41,6 +41,7 @@ unsigned blankColor = BLANK_COLOR;	/* Display code for blank */
 /* Private variables used by the console driver. */
 static int vidPort;				/* I/O port for accessing 6845 */
 static bool wrap;				/* Hardware can wrap? */
+static bool softScroll;			/* true = software scrolling, false = hardware */
 static unsigned fontLines;		/* Font lines per character */
 static unsigned screenWidth;	/* # characters on a line */
 static unsigned screenLines;	/* # lines on the screen */
@@ -67,6 +68,19 @@ static Console *currConsole;	/* Currently visible */
 
 /* Color if using a color controller. */
 #define isColor	(vidPort == PORT_C_6845)
+
+static void set6845(int reg, unsigned val) {
+/* Set a register pair inside the 6845.
+ * Registers 12-13 tell the 6845 where in video ram to start
+ * Registers 14-15 tell the 6845 where to put the cursor
+ */
+	PvBytePair out[4];
+	pvSet(out[0], vidPort + REG_INDEX, reg);	/* Set index register */
+	pvSet(out[1], vidPort + REG_DATA, (val >> 8) & BYTE);	/* High byte */
+	pvSet(out[2], vidPort + REG_INDEX, reg + 1);	/* Again */
+	pvSet(out[3], vidPort + REG_DATA, val & BYTE);	/* Low byte */
+	sysVecOutb(out, 4);
+}
 
 static void flush(register Console *console) {
 /* Send characters buffered in 'ramqueue' to screen memory, check the new
@@ -104,6 +118,73 @@ static void flush(register Console *console) {
 	}
 }
 
+static void beep() {
+//TODO
+}
+
+static void parseEscape(register Console *console, char c) {
+//TODO
+}
+
+static void scrollScreen(
+	register Console *console,
+	int dir		/* SCROLL_UP or SCROLL_DOWN */
+) {
+	unsigned newLine, newOrigin, chars;
+
+	flush(console);
+	chars = screenSize - screenWidth;	/* One screen minus one line */
+
+	/* Scrolling the screen is a real nuisance due to the various incompatible
+	 * video cards. This driver supports software scrolling,
+	 * hardware scrolling (mono and CGA cards) and hardware scrolling without
+	 * wrapping (EGA cards). In the latter case we must make sure that
+	 *		c_start <= c_origin && c_origin + screenSize <= c_limit
+	 * holds, because EGA doesn't wrap around the end of video memory.
+	 */
+	if (dir == SCROLL_UP) {
+		/* Scroll one line up in 3 ways: soft, avoid wrap, use origin. */
+		if (softScroll) {
+			vid2VidCopy(console->c_start + screenWidth, console->c_start, chars);
+		} else if (!wrap && 
+				console->c_origin + screenSize + screenWidth >= console->c_limit) {
+			/* Hardware scrolling, no wrap, but c_limit will be exceeeded.
+			 * So need copying 'chars' to c_start, then set c_origin to c_start.
+			 */
+			vid2VidCopy(console->c_origin + screenWidth, console->c_start, chars);
+			console->c_origin = console->c_start;
+		} else {
+			/* Hardware scrolling,
+			 * 1. wrap or
+			 * 2. not wrap and c_limit will not be excceeded.
+			 */
+			console->c_origin = (console->c_origin + screenWidth) & vidMask;
+		}
+		newLine = (console->c_origin + chars) & vidMask;
+	} else {
+		/* Scroll one line down in 3 ways: soft, avoid wrap, use origin. */
+		if (softScroll) {
+			vid2VidCopy(console->c_start, console->c_start + screenWidth, chars);
+		} else if (!wrap && console->c_origin < console->c_start + screenWidth) {
+			newOrigin = console->c_limit - screenSize;
+			vid2VidCopy(console->c_origin, newOrigin + screenWidth, chars);
+			console->c_origin = newOrigin;
+		} else {
+			console->c_origin = (console->c_origin - screenWidth) & vidMask;
+		}
+		newLine = console->c_origin;
+	}
+	/* Blank the new line at top or bottom. */
+	blankColor = console->c_blank;
+	mem2VidCopy(BLANK_MEM, newLine, screenWidth);
+
+	/* Set the new video origin. */
+	if (console == currConsole)
+	  set6845(REG_VID_ORG, console->c_origin);
+
+	flush(console);
+}
+
 static void outChar(register Console *console, int c) {
 /* Output a character on the console. Check for escape sequences first. */
 	if (console->c_esc_state > 0) {
@@ -121,7 +202,7 @@ static void outChar(register Console *console, int c) {
 		case '\b':		/* Backspace */
 			if (--console->c_column < 0) {
 				if (--console->c_row >= 0)
-				  console->column += screenWidth;
+				  console->c_column += screenWidth;
 			}
 			flush(console);
 			return;
@@ -142,8 +223,8 @@ static void outChar(register Console *console, int c) {
 			flush(console);
 			return;
 		case '\t':		/* Tab */
-			console->c_column = (c->c_column + TAB_SIZE) & ~TAB_MASK;
-			if (console_>c_column > screenWidth) {
+			console->c_column = (console->c_column + TAB_SIZE) & ~TAB_MASK;
+			if (console->c_column > screenWidth) {
 				console->c_column -= screenWidth;
 				if (console->c_row == screenLines - 1) 
 				  scrollScreen(console, SCROLL_UP);
@@ -181,6 +262,16 @@ static void consoleEcho(register TTY *tp, int c) {
 	
 	outChar(console, c);
 	flush(console);
+}
+
+static int consoleWrite(register TTY *tp, int try) {
+// TODO
+return 0;
+}
+
+static int consoleIoctl(register TTY *tp, int try) {
+//TODO
+return 0;
 }
 
 void screenInit(TTY *tp) {
@@ -277,19 +368,6 @@ void screenInit(TTY *tp) {
 	consoleIoctl(tp, 0);
 }
 
-static void set6845(int reg, unsigned val) {
-/* Set a register pair inside the 6845.
- * Registers 12-13 tell the 6845 where in video ram to start
- * Registers 14-15 tell the 6845 where to put the cursor
- */
-	PvBytePair out[4];
-	pvSet(out[0], vidPort + REG_INDEX, reg);	/* Set index register */
-	pvSet(out[1], vidPort + REG_DATA, (val >> 8) & BYTE);	/* High byte */
-	pvSet(out[2], vidPort + REG_INDEX, reg + 1);	/* Again */
-	pvSet(out[3], vidPort + REG_DATA, val & BYTE);	/* Low byte */
-	sysVecOutb(out, 4);
-}
-
 void selectConsole(int consoleLine) {
 /* Set the current console to console number 'consoleLine'. */
 	if (consoleLine < 0 || consoleLine >= numConsoles)
@@ -300,3 +378,67 @@ void selectConsole(int consoleLine) {
 	set6845(REG_VID_ORG, currConsole->c_origin);
 	set6845(REG_CURSOR, currConsole->c_cursor);
 }
+
+static void putk(int c) {
+/* This procedure is used by the version of printf() that is linked with
+ * the TTY driver. The one in the library sends a message to FS, which is
+ * not what is needed for printing within the TTY. This version just queues
+ * the character and starts the output.
+ */
+	if (c != 0) {
+		if (c == '\n')
+		  putk('\r');
+		outChar(&consoleTable[0], c);
+	} else {
+		flush(&consoleTable[0]);
+	}
+}
+
+void kputc(int c) {
+	putk(c);
+}
+
+void doNewKernelMsg(Message *msg) {
+/* Notification for a new kernel message. */
+	KernelMsgs kMsgs;
+	static int prevNext = 0;	/* Previous next seen */
+	int bytes, r;
+
+	/* Try to get a fresh copy of the buffer with kernel messages. */
+	sysGetKernelMsgs(&kMsgs);
+
+	/* Print only the new part. Determine how many new bytes there are with 
+	 * help of the current and previous 'next' index. Note that the kernel
+	 * buffer is circular. This works fine if less then KMESS_BUF_SIZE bytes
+	 * is new data; else we miss % KMESS_BUF_SIZE here.
+	 * Check for size being positive, the buffer might as well be emptied!
+	 */
+	if (kMsgs.km_size > 0) {
+		bytes = (kMsgs.km_next + KMESS_BUF_SIZE - prevNext) % KMESS_BUF_SIZE;
+		r = prevNext;	/* Start at previous old */
+		while (bytes > 0) {
+			putk(kMsgs.km_buf[r % KMESS_BUF_SIZE]);
+			--bytes;
+			++r;
+		}
+		putk(0);	/* Terminate to flush output */
+	}
+
+	/* Almost done, store 'next' so that we can determine what part of the
+	 * kernel messages buffer to print next time a notification arrives.
+	 */
+	prevNext = kMsgs.km_next;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

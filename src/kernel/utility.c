@@ -32,10 +32,10 @@ static void kputc(int c) {
  * to the output driver if an END_OF_KMESS is encountered.
  */
 	if (c != END_OF_KMESS) {
-		kernelMsg.km_buf[kernelMsg.km_next] = c;	/* Put normal char in buffer */
-		if (kernelMsg.km_size < KMESS_BUF_SIZE)
-		  ++kernelMsg.km_size;
-		kernelMsg.km_next = (kernelMsg.km_next + 1) % KMESS_BUF_SIZE;
+		kernelMsgs.km_buf[kernelMsgs.km_next] = c;	/* Put normal char in buffer */
+		if (kernelMsgs.km_size < KMESS_BUF_SIZE)
+		  ++kernelMsgs.km_size;
+		kernelMsgs.km_next = (kernelMsgs.km_next + 1) % KMESS_BUF_SIZE;
 	} else {
 		sendSig(OUTPUT_PROC_NR, SIGKMESS);
 	}

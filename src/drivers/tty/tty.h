@@ -94,6 +94,7 @@ extern Timer *ttyTimers;	/* Queue of TTY timers */
 extern clock_t ttyNextTimeout;	/* Next TTY timeout */
 
 extern unsigned long kbdIrqSet;
+extern unsigned long rsIrqSet;
 extern Machine machine;		/* Machine information (a.o.: pc_at, ega) */
 
 /* Number of elements and limit of a buffer. */
@@ -108,15 +109,23 @@ void ttyReply(int code, int replyee, int pnum, int status);
 
 /* rs232.c */
 void rsInit(TTY *tp);
+void rsInterrupt(Message *msg);
 
 /* console.c */
+void kputc(int c);
 void screenInit(TTY *tp);
+void consoleStop();
+void doNewKernelMsg(Message *msg);
+void doDiagnostics(Message *msg);
+void toggleScroll();
 void selectConsole(int consoleLine);
 
 /* keyboard.c */
 void kbInit();
 void kbInitOnce();
 void kbdInterrupt();
+void doPanicDumps(Message *msg);
+void doFKeyCtl(Message *msg);
 
 /* pty.c */
 void ptyInit(TTY *tp);
@@ -124,5 +133,9 @@ void ptyInit(TTY *tp);
 /* vidcopy.s */
 void mem2VidCopy(u16_t *src, unsigned dst, unsigned count);
 void vid2VidCopy(unsigned src, unsigned dst, unsigned count);
+
+/* pty.c */
+void doPty(TTY *tp, Message *msg);
+void selectRetryPty(TTY *tp);
 
 

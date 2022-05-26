@@ -29,7 +29,7 @@ typedef struct {
 	int km_next;				/* Next index to write */
 	int km_size;				/* Current size in buffer */
 	char km_buf[KMESS_BUF_SIZE];	/* Buffer for messages */
-} KernelMsg;
+} KernelMsgs;
 
 typedef struct Memory {
 	phys_clicks base;			/* Start address of chunk */

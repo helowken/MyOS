@@ -44,6 +44,7 @@ int sysStrDevIO(int req, long port, int type, int pNum, void *buffer, int count)
 
 /* Shorthands for sysGetInfo() system call. */
 #define sysGetMonParams(v, vl)	sysGetInfo(GET_MONPARAMS, v, vl, 0, 0)
+#define sysGetKernelMsgs(dst)	sysGetInfo(GET_KMESSAGES, dst, 0, 0, 0)
 #define sysGetKernelInfo(dst)	sysGetInfo(GET_KINFO, dst, 0, 0, 0)
 #define sysGetMachine(dst)		sysGetInfo(GET_MACHINE, dst, 0, 0, 0)
 #define sysGetProc(dst, num)	sysGetInfo(GET_PROC, dst, 0, 0, num)

@@ -575,43 +575,11 @@ int inProcess(register TTY *tp, char *buf, int count) {
 	return ct;
 }
 
-static void doStatus(Message *msg) {
-//TODO
-}
-
-static void doRead(TTY *tp, Message *msg) {
-//TODO
-}
-
-static void doWrite(TTY *tp, Message *msg) {
-//TODO
-}
-
-static void doIoctl(TTY *tp, Message *msg) {
-//TODO
-}
-
-static void doOpen(TTY *tp, Message *msg) {
-//TODO
-}
-
-static void doClose(TTY *tp, Message *msg) {
-//TODO
-}
-
-static void doSelect(TTY *tp, Message *msg) {
-//TODO
-}
-
-static void doCancel(TTY *tp, Message *msg) {
-//TODO
-}
-
 void main() {
 /* Main routine of the terminal task. */
 
 	Message msg;		/* Buffer for all incoming messages */
-	unsigned line;
+	//unsigned line;
 	int s;
 	register TTY *tp;
 
