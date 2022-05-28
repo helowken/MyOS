@@ -45,6 +45,8 @@ typedef struct TTY {
 	char tty_reprint;		/* 1 when echoed input messed up, else 0 */
 	char tty_escaped;		/* 1 when LNEXT (^V) just seen, else 0 */
 	char tty_inhibited;		/* 1 when STOP (^S) just seen (stops output) */
+	char tty_pgrp;			/* Slot number of controlling process */
+	char tty_open_count;	/* Count of number of opens of this tty */
 
 	/* Information about incomplete I/O requests is stored here. */
 	char tty_in_rep_code;	/* Reply code, TASK_REPLY or REVIVE */
@@ -52,9 +54,21 @@ typedef struct TTY {
 	char tty_in_caller;		/* Process that made the call (usually FS) */
 	char tty_in_proc;		/* Process that wants to read from tty */
 	vir_bytes tty_in_vir;	/* Virtual address where data is to go */
-	char tty_io_req;		/* ioctl request code */
 	int tty_in_left;		/* How many chars are still needed */
 	int tty_in_cum;			/* # chars input so far */
+
+	char tty_out_rep_code;	/* Reply code, TASK_REPLY or REVIVE. */
+	char tty_out_revived;	/* Set to 1 if revive callback is pending */
+	char tty_out_caller;	/* Process that made the call (usually FS) */
+	char tty_out_proc;		/* Process that wants to write to tty */
+	vir_bytes tty_out_vir;	/* Virtual address where data comes from */
+	int tty_out_left;		/* # chars yet to be output */
+	int tty_out_cum;		/* # chars output so far */
+
+	char tty_io_caller;		/* Process that made the call (usually FS) */
+	char tty_io_proc;		/* Process that wants to do an ioctl */
+	int tty_io_req;			/* ioctl request code */
+	vir_bytes tty_io_vir;	/* Virtual address of ioctl buffer */
 
 	/* select() data */
 	int tty_select_ops;		/* Which operations are interesting */

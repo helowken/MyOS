@@ -265,8 +265,67 @@ static void consoleEcho(register TTY *tp, int c) {
 }
 
 static int consoleWrite(register TTY *tp, int try) {
-// TODO
-return 0;
+/* Copy as much data as possible to the output queue, then start I/O. On
+ * memory-mapped terminals, such as the IBM console, the I/O will also be
+ * finished, and the cuonts updated. Keep repeating until all I/O done.
+ */
+	int count;
+	int result;
+	register char *tb;
+	char buf[64];
+	Console *console = tp->tty_priv;
+
+	if (try)
+	  return 1;		/* We can always write to console. */
+
+	/* Check quickly for nothing to do, so this can be called oftern without
+	 * unmodular tests elsewhere.
+	 */
+	if ((count = tp->tty_out_left) == 0 || tp->tty_inhibited)
+	  return;
+
+	/* Copy the user bytes to buf[] for decent addressing. Loop over the
+	 * copies, since the user buffer may be much larger than buf[].
+	 */
+	do {
+		if (count > sizeof(buf))
+		  count = sizeof(buf);
+		if ((result = sysVirCopy(tp->tty_out_proc, D, tp->tty_out_vir,
+				SELF, D, (vir_bytes) buf, (vir_bytes) count)) != OK) 
+		  break;
+		tb = buf;
+
+		/* Update terminal data structure. */
+		tp->tty_out_vir += count;
+		tp->tty_out_cum += count;
+		tp->tty_out_left -= count;
+
+		/* Output each byte of the copy to the screen. Avoid calling
+		 * outChar() for the "easy" characters, put them into the buffer
+		 * directly.
+		 */
+		do {
+			if ((unsigned) *tb < ' ' || console->c_esc_state > 0 ||
+					console->c_column >= screenWidth ||
+					console->c_rwords >= bufLen(console->c_ram_queue)) {
+				outChar(console, *tb++);
+			} else {
+				console->c_ram_queue[console->c_rwords++] = 
+						console->c_attr | (*tb++ & BYTE);
+				++console->c_column;
+			}
+		} while (--count != 0);
+	} while ((count = tp->tty_out_left) != 0 && !tp->tty_inhibited);
+
+	flush(console);		/* Transfer anything buffered to the screen. */
+
+	/* Reply to the writer if all output is finished or if an error occured. */
+	if (tp->tty_out_left == 0 || result != OK) {
+		/* REVIVE is not possible. I/O on memory mapped consoles finishes. */
+		ttyReply(tp->tty_out_rep_code, tp->tty_out_caller, 
+					tp->tty_out_proc, tp->tty_out_cum);
+		tp->tty_out_cum = 0;
+	}
 }
 
 static int consoleIoctl(register TTY *tp, int try) {

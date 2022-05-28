@@ -39,6 +39,7 @@ static struct termios termiosDefaults = {
 		TLNEXT_DEF, TDISCARD_DEF
 	}
 };
+static struct WinSize winSizeDefaults;
 
 /* Global variables for the TTY task (declared extern in tty.h). */
 TTY ttyTable[NR_CONS + NR_RS_LINES + NR_PTYS];
@@ -579,32 +580,193 @@ static void doStatus(Message *msg) {
 //TODO
 }
 
-static void doRead(TTY *tp, Message *msg) {
-//TODO
+static void doRead(register TTY *tp, register Message *msg) {
+/* A process wants to read from a terminal. */
+	int r, status;
+	phys_bytes physAddr;
+
+	/* Check if there is already a process hanging in a read, check if the
+	 * parameters are correct, do I/O.
+	 */
+	if (tp->tty_in_left > 0) {
+		r = EIO;
+	} else if (msg->COUNT <= 0) {
+		r = EINVAL;
+	} else if (sysUMap(msg->PROC_NR, D, (vir_bytes) msg->ADDRESS, 
+					msg->COUNT, &physAddr) != OK) {
+		r = EFAULT;
+	} else {
+		/* Copy information from the message to the tty struct. */
+		tp->tty_in_rep_code = TASK_REPLY;
+		tp->tty_in_caller = msg->m_source;
+		tp->tty_in_proc = msg->PROC_NR;
+		tp->tty_in_vir = (vir_bytes) msg->ADDRESS;
+		tp->tty_in_left = msg->COUNT;
+
+		if (!(tp->tty_termios.c_lflag & ICANON) &&
+				tp->tty_termios.c_cc[VTIME] > 0) {
+			if (tp->tty_termios.c_cc[VMIN] == 0) {
+				/* MIN & TIME specify a read timer that finishes the
+				 * read in TIME/10 seconds if no bytes are available.
+				 */
+				setTimer(tp, true);
+				tp->tty_min = 1;
+			} else {
+				/* MIN & TIME specify an inter-byte timer that may
+				 * have to be cancelled if there are no bytes yet.
+				 */
+				if (tp->tty_eot_count == 0) {
+					setTimer(tp, false);
+					tp->tty_min = tp->tty_termios.c_cc[VMIN];
+				}
+			}
+		}
+
+		/* Anything waiting in the input buffer? Clear it out... */
+		inTransfer(tp);
+		/* ...then go back for more. */
+		handleEvents(tp);
+		if (tp->tty_in_left == 0) {
+			if (tp->tty_select_ops)
+			  selectRetry(tp);
+			return;		/* Already done. */
+		}
+
+		/* There were no bytes in the input queue available, so either suspend
+		 * the caller or break off the read if nonblocking.
+		 */
+		if (msg->TTY_FLAGS & O_NONBLOCK) {
+			r = EAGAIN;		/* Cancel the read */
+			tp->tty_in_left = tp->tty_in_cum = 0;
+		} else {
+			r = SUSPEND;	/* Suspend the caller */
+			tp->tty_in_rep_code = REVIVE;
+		}
+	}
+
+	ttyReply(TASK_REPLY, msg->m_source, msg->PROC_NR, r);
+	if (tp->tty_select_ops)
+	  selectRetry(tp);
 }
 
-static void doWrite(TTY *tp, Message *msg) {
-//TODO
+static void doWrite(register TTY *tp, register Message *msg) {
+/* A process wants to write on a terminal. */
+	int r;
+	phys_bytes physAddr;
+
+	/* Check if there is already a process hanging in a write, check if the
+	 * parameters are correct, do I/O.
+	 */
+	if (tp->tty_out_left > 0) {
+		r = EIO;
+	} else if (msg->COUNT <= 0) {
+		r = EINVAL;
+	} else if (sysUMap(msg->PROC_NR, D, (vir_bytes) 
+					msg->ADDRESS, msg->COUNT, &physAddr) != OK) {
+		/* Copy message parameters to the tty structure. */
+		tp->tty_out_rep_code = TASK_REPLY;
+		tp->tty_out_caller = msg->m_source;
+		tp->tty_out_proc = msg->PROC_NR;
+		tp->tty_out_vir = (vir_bytes) msg->ADDRESS;
+		tp->tty_out_left = msg->COUNT;
+
+		/* Try to write. */
+		handleEvents(tp);
+		if (tp->tty_out_left == 0) 
+		  return;		/* Already done. */
+
+		/* None or not all the bytes could be written, so either suspend the
+		 * caller or break off the write if nonblocking.
+		 */
+		if (msg->TTY_FLAGS & O_NONBLOCK) {	/* Cancel the write */
+			r = tp->tty_out_cum > 0 ? tp->tty_out_cum : EAGAIN;
+			tp->tty_out_left = tp->tty_out_cum = 0;
+		} else {
+			r = SUSPEND;	/* Suspend the caller */
+			tp->tty_out_rep_code = REVIVE;
+		}
+	}
+	ttyReply(TASK_REPLY, msg->m_source, msg->PROC_NR, r);
 }
 
 static void doIoctl(TTY *tp, Message *msg) {
 //TODO
 }
 
-static void doOpen(TTY *tp, Message *msg) {
-//TODO
+static void doOpen(register TTY *tp, Message *msg) {
+/* A tty line has been opend. Make it the callers controlling tty if
+ * O_NOCTTY is *not* set and it is not the log device. 1 is returned if
+ * the tty is made the controlling tty, otherwise OK or an error code.
+ */
+	int r = OK;
+
+	if (msg->TTY_LINE == LOG_MINOR) {
+		/* The log device is a write-only diagnostics device. */
+		if (msg->COUNT & R_BIT)
+		  r = EACCES;
+	} else {
+		if (! (msg->COUNT & O_NOCTTY)) {
+			tp->tty_pgrp = msg->PROC_NR;
+			r = 1;
+		}
+		++tp->tty_open_count;
+	}
+	ttyReply(TASK_REPLY, msg->m_source, msg->PROC_NR, r);
 }
 
-static void doClose(TTY *tp, Message *msg) {
-//TODO
+static void ttyInputCancel(register TTY *tp) {
+/* Discard all pending input, tty buffer or device. */
+
+	tp->tty_in_count = tp_tty_eot_count = 0;
+	tp->tty_in_tail = tp->tty_in_head;
+	(*tp->tty_in_cancel)(tp, 0);
+}
+
+static void doClose(register TTY *tp, Message *msg) {
+/* A tty line has been closed. Clean up the line if it is the last close. */
+
+	if (msg->TTY_LINE != LOG_MINOR && --tp->tty_open_count == 0) {
+		tp->tty_pgrp = 0;
+		ttyInputCancel(tp);
+		(*tp->tty_out_cancel)(tp, 0);
+		(*tp->tty_close)(tp, 0);
+		tp->tty_termios = termiosDefaults;
+		tp->tty_win_Size = winSizeDefaults;
+		setAttr(tp);
+	}
+	ttyReply(TASK_REPLY, msg->m_source, msg->PROC_NR, OK);
 }
 
 static void doSelect(TTY *tp, Message *msg) {
 //TODO
 }
 
-static void doCancel(TTY *tp, Message *msg) {
-//TODO
+static void doCancel(register TTY *tp, Message *msg) {
+/* A signal has been sent to a process that is hanging trying to read or write.
+ * The pending read or write must be finished off immediately.
+ */
+	int pNum;
+	int mode;
+
+	/* Check the parameters carefully, to avoid cancelling twice. */
+	pNum = msg->PROC_NR;
+	mode = msg->COUNT;
+	if ((mode & R_BIT) && tp->tty_in_left != 0 && pNum == tp->tty_in_proc) {
+		/* Process was reading when killed. Clean up input. */
+		ttyInputCancel(tp);
+		tty->tty_in_left = tp->tty_in_cum = 0;
+	}
+	if ((mode & W_BIT) && tp->tty_out_left != 0 && pNum == tp->tty_out_proc) {
+		/* Process was writing when killed. Clean up output. */
+		(*tp->tty_out_cancel)(tp, 0);
+		tp->tty_out_left = tp->tty_out_cum = 0;
+	}
+	if (tp->tty_io_req != 0 && pNum == tp->tty_io_proc) {
+		/* Process was waiting for output to drain. */
+		tp->tty_io_req = 0;
+	}
+	tp->tty_events = 1;
+	ttyReply(TASK_REPLY, msg->m_source, pNum, EINTR);
 }
 
 void main() {
