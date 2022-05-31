@@ -15,6 +15,9 @@
 
 #define ESC				'\33'	/* Escape */
 
+#define O_NOCTTY		00400	/* from "fcntl.h" */
+#define O_NONBLOCK		04000
+
 struct TTY;
 typedef int (*DevFunc)(struct TTY *tp, int tryOnly);
 typedef void (*DevFuncArg)(struct TTY *tp, int c);
@@ -149,6 +152,7 @@ void mem2VidCopy(u16_t *src, unsigned dst, unsigned count);
 void vid2VidCopy(unsigned src, unsigned dst, unsigned count);
 
 /* pty.c */
+void ptyInit(TTY* tp);
 void doPty(TTY *tp, Message *msg);
 void selectRetryPty(TTY *tp);
 

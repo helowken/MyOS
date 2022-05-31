@@ -282,7 +282,7 @@ static int consoleWrite(register TTY *tp, int try) {
 	 * unmodular tests elsewhere.
 	 */
 	if ((count = tp->tty_out_left) == 0 || tp->tty_inhibited)
-	  return;
+	  return 0;
 
 	/* Copy the user bytes to buf[] for decent addressing. Loop over the
 	 * copies, since the user buffer may be much larger than buf[].
@@ -326,6 +326,7 @@ static int consoleWrite(register TTY *tp, int try) {
 					tp->tty_out_proc, tp->tty_out_cum);
 		tp->tty_out_cum = 0;
 	}
+	return 0;
 }
 
 static int consoleIoctl(register TTY *tp, int try) {
@@ -489,7 +490,32 @@ void doNewKernelMsg(Message *msg) {
 	prevNext = kMsgs.km_next;
 }
 
+static void consoleOriginAt0() {
+/* Scroll video memory back to put the origin at 0. */
+	int consoleLine;
+	Console *console;
+	unsigned n;
 
+	for (consoleLine = 0; consoleLine < numConsoles; ++consoleLine) {
+		console = &consoleTable[consoleLine];
+		while (console->c_origin > console->c_start) {
+			n = MIN(vidSize - screenSize,	/* Amount of unused memory */
+					console->c_origin - console->c_start);
+			vid2VidCopy(console->c_origin, console->c_origin - n, screenSize);
+			console->c_origin -= n;
+		}
+		flush(console);
+	}
+	selectConsole(currConsole);
+}
+
+void consoleStop() {
+/* Prepare for halt or reboot. */
+	consoleOriginAt0();
+	softScroll = true;
+	selectConsole(0);
+	consoleTable[0].c_attr = consoleTable[0].c_blank = BLANK_COLOR;
+}
 
 
 

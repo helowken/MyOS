@@ -39,12 +39,13 @@ static struct termios termiosDefaults = {
 		TLNEXT_DEF, TDISCARD_DEF
 	}
 };
-static struct WinSize winSizeDefaults;
+static WinSize winSizeDefaults;
 
 /* Global variables for the TTY task (declared extern in tty.h). */
 TTY ttyTable[NR_CONS + NR_RS_LINES + NR_PTYS];
 int currConsIdx;		/* Currently active console index */
 Timer *ttyTimers;		/* Queue of TTY timers */
+clock_t ttyNextTimeout;	/* Time that the next alarm is due */
 Machine machine;		/* Kernel environment variables */
 
 
@@ -582,7 +583,7 @@ static void doStatus(Message *msg) {
 
 static void doRead(register TTY *tp, register Message *msg) {
 /* A process wants to read from a terminal. */
-	int r, status;
+	int r;
 	phys_bytes physAddr;
 
 	/* Check if there is already a process hanging in a read, check if the
@@ -717,9 +718,13 @@ static void doOpen(register TTY *tp, Message *msg) {
 static void ttyInputCancel(register TTY *tp) {
 /* Discard all pending input, tty buffer or device. */
 
-	tp->tty_in_count = tp_tty_eot_count = 0;
+	tp->tty_in_count = tp->tty_eot_count = 0;
 	tp->tty_in_tail = tp->tty_in_head;
 	(*tp->tty_in_cancel)(tp, 0);
+}
+
+static void setAttr(TTY *tp) {
+//TODO
 }
 
 static void doClose(register TTY *tp, Message *msg) {
@@ -731,7 +736,7 @@ static void doClose(register TTY *tp, Message *msg) {
 		(*tp->tty_out_cancel)(tp, 0);
 		(*tp->tty_close)(tp, 0);
 		tp->tty_termios = termiosDefaults;
-		tp->tty_win_Size = winSizeDefaults;
+		tp->tty_win_size = winSizeDefaults;
 		setAttr(tp);
 	}
 	ttyReply(TASK_REPLY, msg->m_source, msg->PROC_NR, OK);
@@ -754,7 +759,7 @@ static void doCancel(register TTY *tp, Message *msg) {
 	if ((mode & R_BIT) && tp->tty_in_left != 0 && pNum == tp->tty_in_proc) {
 		/* Process was reading when killed. Clean up input. */
 		ttyInputCancel(tp);
-		tty->tty_in_left = tp->tty_in_cum = 0;
+		tp->tty_in_left = tp->tty_in_cum = 0;
 	}
 	if ((mode & W_BIT) && tp->tty_out_left != 0 && pNum == tp->tty_out_proc) {
 		/* Process was writing when killed. Clean up output. */
@@ -767,6 +772,34 @@ static void doCancel(register TTY *tp, Message *msg) {
 	}
 	tp->tty_events = 1;
 	ttyReply(TASK_REPLY, msg->m_source, pNum, EINTR);
+}
+
+int selectRetry(TTY *tp) {
+//TODO
+	return OK;
+}
+
+void signalChar(
+	TTY *tp, 
+	int sig		/* SIGINT, SIGQUIT, SIGKILL or SIGHUP */
+) {	
+/* Process a SIGINT, SIGQUIT or SIGKILL char from the keyboard or SIGHUP from
+ * a tty close, "stty 0", or a real RS-232 hangup. MM will send the signal to
+ * the process group (INT, QUIT), all processes (KILL), or the session leader
+ * (HUP).
+ */
+	int r;
+	if (tp->tty_pgrp != 0) {
+		if ((r = sysKill(tp->tty_pgrp, sig)) != OK)
+		  panic("TTY", "Error, call to sysKill failed", r);
+	}
+	if (! (tp->tty_termios.c_lflag & NOFLSH)) {
+		tp->tty_in_count = tp->tty_eot_count = 0;	/* Kill earlier input */
+		tp->tty_in_tail = tp->tty_in_head;
+		(*tp->tty_out_cancel)(tp, 0);		/* Kill all output */
+		tp->tty_inhibited = RUNNING;
+		tp->tty_events = 1;
+	}
 }
 
 void main() {
