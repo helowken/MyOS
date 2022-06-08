@@ -21,4 +21,7 @@ typedef struct {
 
 #define EXEC_SIZE		(sizeof(Exec))
 
+#define IMG_STACK_SIZE	1024		/* TODO: Add stack to image's bss */
+#define MEM_SIZE(hdr)	((hdr)->p_vaddr + (hdr)->p_memsz + IMG_STACK_SIZE)	/*TODO*/
+
 #endif

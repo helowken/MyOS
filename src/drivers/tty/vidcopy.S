@@ -138,7 +138,12 @@ vvcCopy:
 	shll	$1, %edi			/* edi *= 2, convert to byte address */
 	addl	vidOff, %esi		/* esi += vidOff, to video memory */
 	addl	vidOff, %edi		/* edi += vidOff, to video memory */
+
+	pushl	%ds					/* Save ds */
+	movw	vidSeg, %ds			/* ds = es = vidSeg */
 	rep	movsw					/* Copy video words */
+	popl	%ds					/* Restore ds */
+
 	subl	vidOff, %esi		/* esi -= vidOff, to byte address */
 	subl	vidOff, %edi		/* edi -= vidOff, to byte address */
 	shrl	$1, %esi			/* esi /= 2, back to word address */

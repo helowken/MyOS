@@ -36,7 +36,7 @@
 #define INIT_PROC_NR	7	/* Init -- goes multiuser */
 
 /* Number of processes contained in the system image. */
-#define NR_BOOT_PROCS	8	// TODO (NR_TASKS + INIT_PROC_NR + 1)
+#define NR_BOOT_PROCS	5	// TODO (NR_TASKS + INIT_PROC_NR + 1)
 
 /*=====================================================================*
  *			Kernel notification types			*
@@ -182,6 +182,12 @@
 #define ALARM_ABS_TIME	m2_i2	/* Set to 1 to use absolute alarm time */
 #define ALARM_TIME_LEFT	m2_l1	/* How many ticks were remaining */
 #define ALARM_FLAG_PTR	m2_p1	/* Virtual address of timeout flag */
+
+/* Field names for SYS_ABORT. */
+#define ABORT_HOW		m1_i1	/* RBT_REBOOT, RBT_HALT, etc. */
+#define ABORT_MON_PROC	m1_i2	/* Process where monitor params are */
+#define ABORT_MON_LEN	m1_i3	/* Length of monitor params */
+#define ABORT_MON_ADDR	m1_p1	/* Virtual address of monitor params */
 
 /* Field names for UMAP, VIRCOPY, PHYSCOPY. */
 #define CP_SRC_SPACE	m5_c1	/* T or D space (stack is also D) */

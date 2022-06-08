@@ -93,7 +93,7 @@ set background=dark
 set tags=tags
 	
 	"--Minix--
-    set tags+=~/.vim/myOSTags "myOS
+    set tags+=~/tmp/myOSTags "myOS
 
 
 

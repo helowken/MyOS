@@ -2,16 +2,17 @@
 
 xhost +local:docker
 
-IMAGE=helowken/myos-dev
-CWD=/usr/src
+source ./_env
 BOCHS_HOME=$CWD/bochs
-MYOS_HOME=$CWD/myOS
 
 sudo docker run  -it  --rm  \
+				--name minixDebug \
 				-e DISPLAY  \
 				-v /tmp/.X11-unix:/tmp/.X11-unix  \
 				-v "$(pwd)/src":$MYOS_HOME  \
 				-v "$(pwd)/bochs":$BOCHS_HOME  \
+				-v "$(pwd)/tmp":$TMP_DIR  \
+				-w $MYOS_HOME \
 				-p 1234:1234  \
 				$IMAGE
 

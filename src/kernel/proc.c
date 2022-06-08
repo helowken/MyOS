@@ -229,11 +229,11 @@ static int miniReceive(register Proc *caller, int src, Message *msg, unsigned fl
 				/* Find a pending notification from the requested source. */
 				if (! *chunk)
 				  continue;		/* No bits in chunk. */
-				for (i = 0; ! (*chunk & (i << 1)); ++i) {
+				for (i = 0; ! (*chunk & (1 << i)); ++i) {
 					/* Look up the bit. */
 				}
 				srcId = (chunk - &map->chunk[0]) * BITCHUNK_BITS + i;
-				if (src >= NR_SYS_PROCS)
+				if (srcId >= NR_SYS_PROCS)
 				  break;		/* Out of range. */
 				srcProcNum = privIdToProcNum(srcId);	/* Get source proc num */
 				if (src != ANY && src != srcProcNum)

@@ -19,7 +19,9 @@
 										   on stack when booting).
 										   It should be aligned to the STACK_SIZE in boothead.s. */
 #define DEVICE				"c0d0p0s0"
-#define ALIGN(n)			(((n) + ((SECTOR_SIZE) - 1)) & ~((SECTOR_SIZE) - 1))
+#define ALIGN(n, m)			(((n) + ((m) - 1)) & ~((m) - 1))
+#define ALIGN_SECTOR(n)		ALIGN(n, SECTOR_SIZE)	
+#define CLICK_SIZE			1024		/* Unit in which memory is allocated */
 
 #define sDev(off)		Lseek(device, deviceFd, (off))
 #define sPart(off)		sDev(OFFSET(lowSector) + (off))
@@ -51,7 +53,7 @@ static char *imgTpl = "image=%d:%d;";
 static void usage() {
 	fprintf(stderr,
 	  "Usage: installboot -m(aster) device masterboot\n"
-	  "       installboot -d(evice) device bootBlock boot\n");
+	  "       installboot -d(evice) device bootBlock boot memSizeFile images...\n");
 	exit(1);
 }
 
@@ -194,7 +196,7 @@ static void copyExec(char *procName, FILE *imgFile, Elf32_Phdr *hdr) {
 	if (size == 0)
 	  return;
 	
-	padLen = ALIGN(size) - size;
+	padLen = ALIGN_SECTOR(size) - size;
 
 	adjustBuf(size);
 
@@ -221,12 +223,16 @@ FILE *openFile(char *file) {
 	return imgFile;
 }
 
-static void installImages(char **imgNames, int imgAddr, off_t bootSize, off_t *imgSizePtr) {
+static void installImages(char **imgNames, int imgAddr, off_t bootSize, 
+						off_t *imgSizePtr, size_t *memSizes) {
 	FILE *imgFile;
 	char *imgName, *file;
 	imgBuf = malloc(bufLen);
 	ImageHeader imgHdr;
 	Exec *proc;
+	Elf32_Phdr *hdr;
+	int i = 0;
+	size_t memSize;
 
 	while ((imgName = *imgNames++) != NULL) {
 		if ((file = strrchr(imgName, ':')) != NULL)
@@ -239,12 +245,21 @@ static void installImages(char **imgNames, int imgAddr, off_t bootSize, off_t *i
 		readHeader(imgName, imgFile, &imgHdr, true);
 		bwrite(&imgHdr, sizeof(imgHdr));
 		padImage(SECTOR_SIZE - sizeof(imgHdr));
-		
+
+		memSize = 0;
 		proc = &imgHdr.process;
-		if (isPLoad(&proc->codeHdr))
-		  copyExec(imgName, imgFile, &proc->codeHdr);
-		if (isPLoad(&proc->dataHdr))
-		  copyExec(imgName, imgFile, &proc->dataHdr);
+		if (isPLoad(&proc->codeHdr)) {
+			hdr = &proc->codeHdr;
+			copyExec(imgName, imgFile, hdr);
+			memSize = MEM_SIZE(hdr);
+		}
+		if (isPLoad(&proc->dataHdr)) {
+			hdr = &proc->dataHdr;
+			copyExec(imgName, imgFile, hdr);
+			memSize = max(memSize, MEM_SIZE(hdr));
+		}
+		/* Compute memory size for each image */
+		memSizes[i++] = memSize == 0 ? memSize : ALIGN(memSize, CLICK_SIZE); 
 		
 		fclose(imgFile);
 
@@ -285,8 +300,8 @@ static void checkBootMemSize(char *boot) {
 
 	bootFile = openFile(bootElf);
 	size = readHeader(bootElf, bootFile, &imgHdr, false);
-	printf("size: %x\n", size);
-	printf("size: %x\n", size + STACK_SIZE);
+	//printf("size: %x\n", size);
+	//printf("size: %x\n", size + STACK_SIZE);
 	if (size + STACK_SIZE > (BOOT_MAX << KB_SHIFT))
 	  fatal("Boot size > %d KB.", BOOT_MAX);
 }
@@ -338,7 +353,50 @@ static void installParams(char *params, int imgAddr, off_t imgSectors) {
 	  errExit("snprintf params");
 }
 
-static void installDevice(char *bootBlock, char *boot, char **imgNames) {
+static void saveMemSizes(char *fileName, char *boot, char **imgNames, int imgCount, size_t *memSizes) {
+#define MEM_BOOT	0x80000
+#define MEM_BASE_0	0x800
+#define MEM_BASE_1	0x100000
+#define BUF_LEN		100
+	int fd;
+	const char *format = "export %s=0x%x\n";
+	char buf[BUF_LEN];
+	char *name, *np;
+	off_t pos;
+	int n;
+
+	fd = Open(fileName, O_WRONLY | O_TRUNC);
+
+	for (int i = -1; i < imgCount; ++i) {
+		if (i == -1) {
+			name = boot;
+			pos = MEM_BOOT;
+		} else if (i == 0) {
+			name = imgNames[i];
+		    pos = MEM_BASE_0;
+		} else if (i == 1) {
+			name = imgNames[i];
+		    pos = MEM_BASE_1;
+		} else {
+			name = imgNames[i];
+		    pos += memSizes[i - 1];
+		}
+
+		if ((np = strrchr(name, '/')) != NULL)
+		  name = np + 1;
+		if ((np = strrchr(name, '.')) != NULL)
+		  *np = 0;
+
+		//printf("%s: %d, 0x%lx\n", name, memSizes[i], pos);
+
+		if ((n = snprintf(buf, BUF_LEN, format, name, pos)) < 0)
+		  errExit("sprintf params");
+		Write(fileName, fd, buf, n);
+	}
+	Close(fileName, fd);
+}
+
+static void installDevice(char *bootBlock, char *boot, char *memSizeFile, char **imgNames) {
 /* Install bootBlock to the boot sector with boot's disk addresses and sizes patched 
  * into the data segment of bootBlock. 
  */
@@ -349,6 +407,14 @@ static void installDevice(char *bootBlock, char *boot, char **imgNames) {
 	int bootAddr, imgAddr;
 	off_t bootSize, imgSize;
 	int bootSectors, imgSectors;
+	int imgCount = 0;
+	char **img = imgNames;
+
+	/* Get image count */
+	while (*img != NULL) {
+		++imgCount;
+		img += 1;
+	}
 
 	/* Install boot to device. */
 	installBoot(boot, &bootSize, &bootAddr);
@@ -377,10 +443,11 @@ static void installDevice(char *bootBlock, char *boot, char **imgNames) {
 	buf[SIGNATURE_POS] = SIGNATURE & 0xFF;
 	buf[SIGNATURE_POS + 1] = (SIGNATURE >> 8) & 0xFF;
 
-
 	/* Install images to device. */
 	printf("\n");
-	installImages(imgNames, imgAddr, bootSize, &imgSize);
+	size_t memSizes[imgCount];
+	installImages(imgNames, imgAddr, bootSize, &imgSize, memSizes);
+	saveMemSizes(memSizeFile, boot, imgNames, imgCount, memSizes);
 	printf("\n");
 	imgSectors = SECTORS(imgSize);
 
@@ -392,7 +459,7 @@ static void installDevice(char *bootBlock, char *boot, char **imgNames) {
 	wDev(buf, BOOT_BLOCK_SIZE);
 
 	printf("Boot addr: %d, sectors: %d\n", bootAddr, bootSectors);
-	printf("Image addr: %d, sectors: %d\n", imgAddr, imgSectors);
+	printf("Image addr: %d, sectors: %d\n\n", imgAddr, imgSectors);
 }
 
 void readBlock(Off_t blockNum, char *buf, int blockSize) {
@@ -419,8 +486,8 @@ int main(int argc, char *argv[]) {
 
 	if (isOpt(argv[1], "-master")) {
 	    installMasterboot(argv[3]);
-	} else if (argc >= 6 && isOpt(argv[1], "-device")) {
-	    installDevice(argv[3], argv[4], argv + 5);		
+	} else if (argc >= 7 && isOpt(argv[1], "-device")) {
+	    installDevice(argv[3], argv[4], argv[5], argv + 6);		
 	} else {
 	  usage();
 	}

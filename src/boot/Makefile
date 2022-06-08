@@ -10,11 +10,13 @@ LIBS = -L$(MY_HOME)/lib/m16 \
 INSTALL = $(DIR_TOOLS)/installboot.bin
 MKFS = $(DIR_TOOLS)/mkfs.bin
 BOOT = boot.bin
+ENV_MODULES_FILE=$(MY_HOME)/env_modules
 
 PROGRAMS = ../kernel/kernel.bin \
-		   ../servers/pm/pm.bin \
-		   ../drivers/memory/memory.bin \
-		   AT:../drivers/at_wini/at_wini.bin
+		   ../drivers/tty/tty.bin 
+		   #../drivers/memory/memory.bin 
+		   #../servers/pm/pm.bin 
+		   #AT:../drivers/at_wini/at_wini.bin
 
 all: compile
 
@@ -54,7 +56,7 @@ install_masterboot: masterboot.bin
 	$(INSTALL) -m $(DISK_IMAGE) $<
 
 install_device: bootblock.bin $(BOOT)
-	$(INSTALL) -d $(DISK_IMAGE) $< $(BOOT) $(PROGRAMS)
+	$(INSTALL) -d $(DISK_IMAGE) $< $(BOOT) $(ENV_MODULES_FILE) $(PROGRAMS)
 
 reset:
 	cd $(DIR_DEVICE) && ./run && cd ..

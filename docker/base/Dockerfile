@@ -5,6 +5,7 @@ RUN apt-get update && \
 			g++ \
 			make \
 			libc6-dev-i386 \
+			gdb \
 			vim \
 			nasm \
 			libx11-dev \

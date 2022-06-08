@@ -1,0 +1,4 @@
+IMAGE=helowken/myos-dev
+CWD=/usr/src
+MYOS_HOME=$CWD/myOS
+TMP_DIR=$CWD/tmp

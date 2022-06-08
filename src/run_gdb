@@ -1,6 +1,11 @@
 #!/bin/bash
 
+source $MY_HOME/env_modules
+
+IFS='/' read -r -a array <<< "$MY_DIR"
+export MY_MODULE="${array[-1]}"
+
 gdb -ex "target remote localhost:1234" \
-	-ex "source $MY_HOME/gdb_common_utils.py" \
-	-ex "source $MY_DIR/gdb_utils.py" \
+	-ex "source $MY_HOME/gdb_utils.py" \
+	-ex "set python print-stack full" \
 	$MY_DIR/debug.bin

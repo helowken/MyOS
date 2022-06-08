@@ -819,15 +819,16 @@ void main() {
 	
 	/* First one-time keyboard initialization. */
 	kbInitOnce();
-	
-	printf("\n");
+
+	printf("\n");	
 
 	while (true) {
 		/* Check for and handle any events on any of the ttys. */
+		/*TODO
 		for (tp = FIRST_TTY; tp < END_TTY; ++tp) {
 			if (tp->tty_events)
 			  handleEvents(tp);
-		}
+		}*/
 
 		/* Get a request message. */
 		receive(ANY, &msg);

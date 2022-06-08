@@ -1,0 +1,11 @@
+#!/bin/bash
+
+source ./_env
+
+docker run  -it  --rm  \
+			--name minixEdit \
+			-w $MYOS_HOME \
+			-v "$(pwd)/src":$MYOS_HOME  \
+			-v "$(pwd)/tmp":$TMP_DIR  \
+			$IMAGE
+

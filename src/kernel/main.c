@@ -85,14 +85,14 @@ void main() {
 		hdr = &imgHdr.dataHdr;
 		if (isPLoad(hdr)) {
 			dataBase = hdr->p_paddr >> CLICK_SHIFT;
-			dataClicks = (hdr->p_vaddr + hdr->p_memsz + CLICK_SIZE - 1) >> CLICK_SHIFT;
+			dataClicks = (MEM_SIZE(hdr) + CLICK_SIZE - 1) >> CLICK_SHIFT;
 		}
 		rp->p_memmap[T].physAddr = textBase;
 		rp->p_memmap[T].len = textClicks;
 		rp->p_memmap[D].physAddr = dataBase;
 		rp->p_memmap[D].len = dataClicks;
 		rp->p_memmap[S].physAddr = dataBase + dataClicks;
-		rp->p_memmap[S].virAddr = dataClicks;
+		rp->p_memmap[S].virAddr = dataClicks;	/* empty - stack is in data */
 
 		/* Set initial register values. The Proessor status word for tasks
 		 * is different from that of other processes because tasks can

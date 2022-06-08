@@ -365,7 +365,6 @@ static void execImage(char *image) {
 			printf("================\n");
 		}
 
-	    //addr = align(addr, proc->codeHdr.p_align);
 	    addr = align(addr, CLICK_SIZE);
 
 		/* Save a copy of the header for the kernel, with the address
@@ -395,6 +394,8 @@ static void execImage(char *image) {
 			addr += n;
 			dataSize = proc->dataHdr.p_filesz;
 			bssSize = proc->dataHdr.p_memsz - dataSize;
+			if (i > 0) 
+			  bssSize += IMG_STACK_SIZE;	/* TODO, add stack to user proc */
 			
 			/* Read the data segment. */
 			if (!getSegment(&vsec, dataSize, &addr, limit))

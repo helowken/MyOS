@@ -403,6 +403,7 @@ void kbInitOnce() {
 		sfKeyObs[i].pNum = NONE;	/* Shift F1-F12 Observers */
 		sfKeyObs[i].events = 0;
 	}
+	if(true)return;//TODO
 
 	/* Set interrupt handler and enable keyboard IRQ. */
 	irqHookId = KEYBOARD_IRQ;	/* Id to be returned on interrupt. */
@@ -433,4 +434,13 @@ void kbdInterrupt() {
 		}
 	}
 }
+
+void doPanicDumps(Message *msg) {
+//TODO
+}
+
+void doFKeyCtl(Message *msg) {
+//TODO
+}
+
 

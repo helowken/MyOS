@@ -222,6 +222,13 @@ void allocSegments(Proc *rp) {
 	initDataSeg(&rp->p_ldt[DS_LDT_INDEX], rp->p_memmap[D].physAddr << CLICK_SHIFT,
 				dataBytes, privilege);
 	rp->p_reg.cs = (CS_LDT_INDEX * DESC_SIZE) | T1 | privilege; 
+
+	/* All are in the same data segment.
+	 *
+	 * --- stack ---
+	 * --- bss   ---
+	 * --- data  ---
+	 */
 	rp->p_reg.gs = 
 	rp->p_reg.fs = 
 	rp->p_reg.ss = 

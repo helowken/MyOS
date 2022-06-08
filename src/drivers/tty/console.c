@@ -118,6 +118,7 @@ static void flush(register Console *console) {
 	}
 }
 
+/* Sound is disabled, see ".bochsrc" */
 static void beep() {
 //TODO
 }
@@ -506,7 +507,7 @@ static void consoleOriginAt0() {
 		}
 		flush(console);
 	}
-	selectConsole(currConsole);
+	selectConsole(currConsIdx);
 }
 
 void consoleStop() {
@@ -517,9 +518,16 @@ void consoleStop() {
 	consoleTable[0].c_attr = consoleTable[0].c_blank = BLANK_COLOR;
 }
 
+void doDiagnostics(Message *msg) {
+//TODO
+}
 
-
-
+void toggleScroll() {
+/* Toggle between hardware and software scroll. */
+	consoleOriginAt0();
+	softScroll = ! softScroll;
+	printf("%sware scrolling enabled.\n", softScroll ? "Soft" : "Hard");
+}
 
 
 
