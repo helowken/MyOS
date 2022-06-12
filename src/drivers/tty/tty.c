@@ -868,7 +868,7 @@ void main() {
 				if (sigismember(&sigset, SIGTERM))
 				  consoleStop();
 				if (sigismember(&sigset, SIGKMESS))
-				  doNewKernelMsg(&msg);
+				  doNewKernelMsgs(&msg);
 				continue;
 			}
 			case PANIC_DUMPS:	/* Allow panic dumps */

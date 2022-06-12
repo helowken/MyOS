@@ -459,7 +459,7 @@ void kputc(int c) {
 	putk(c);
 }
 
-void doNewKernelMsg(Message *msg) {
+void doNewKernelMsgs(Message *msg) {
 /* Notification for a new kernel message. */
 	KernelMsgs kMsgs;
 	static int prevNext = 0;	/* Previous next seen */

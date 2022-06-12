@@ -52,7 +52,7 @@ static void initBuffer() {
 	}
 }
 
-static int deviceCaller;
+int deviceCaller;
 
 static int doRW(Driver *dp, Message *msg) {
 /* Carry out a simple read or write request. */

@@ -132,7 +132,7 @@ void rsInterrupt(Message *msg);
 void kputc(int c);
 void screenInit(TTY *tp);
 void consoleStop();
-void doNewKernelMsg(Message *msg);
+void doNewKernelMsgs(Message *msg);
 void doDiagnostics(Message *msg);
 void toggleScroll();
 void selectConsole(int consoleLine);

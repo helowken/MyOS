@@ -1,5 +1,5 @@
 img=helowken/myos-base-dev
 # Should specify a http_proxy: -e http_proxy=xxx
 docker build . -t $img
-#docker push $img
+docker push $img
 

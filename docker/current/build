@@ -1,4 +1,4 @@
 img=helowken/myos-dev
 
 docker build . -t $img
-#docker push $img
+docker push $img

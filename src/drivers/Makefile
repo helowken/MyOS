@@ -3,6 +3,7 @@ all:
 	cd libdriver && $(MAKE)
 	cd at_wini && $(MAKE)
 	cd memory && $(MAKE)
+	cd log && $(MAKE)
 	cd tty && $(MAKE)
 
 clean:
@@ -10,4 +11,5 @@ clean:
 	cd libdriver && $(MAKE) clean
 	cd at_wini && $(MAKE) clean
 	cd memory && $(MAKE) clean
+	cd log && $(MAKE) clean
 	cd tty && $(MAKE) clean

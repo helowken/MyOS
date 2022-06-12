@@ -10,6 +10,11 @@ typedef struct __iobuf {
 	unsigned char	*_ptr;
 } FILE;
 
+#ifndef _SIZE_T
+#define _SIZE_T	
+typedef unsigned int	size_t;		/* Type returned by sizeof */
+#endif
+
 FILE *fopen(const char *path, const char *mode);
 int fclose(FILE *stream);
 size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
