@@ -9,7 +9,7 @@ compile:
 	cd boot && $(MAKE) 
 
 clean:
-	cd entry && rm *.o
+	cd entry && rm -f *.o
 	cd tools && $(MAKE) clean
 	cd lib && $(MAKE) clean
 	cd kernel && $(MAKE) clean

@@ -9,9 +9,10 @@
 #define isPLoad(p)		((p)->p_type == PT_LOAD)
 
 typedef struct {
-	Elf32_Ehdr ehdr;	/* ELF header */
-	Elf32_Phdr codeHdr;	/* Program header for text and rodata */
-	Elf32_Phdr dataHdr;	/* Program header for data and bss */
+	Elf32_Ehdr ehdr;		/* ELF header */
+	Elf32_Phdr codeHdr;		/* Program header for text and rodata */
+	Elf32_Phdr dataHdr;		/* Program header for data and bss */
+	size_t stackSize;		/* Stack size */
 } Exec;
 
 typedef struct {
@@ -20,8 +21,5 @@ typedef struct {
 } ImageHeader;
 
 #define EXEC_SIZE		(sizeof(Exec))
-
-#define IMG_STACK_SIZE	1024		/* TODO: Add stack to image's bss */
-#define MEM_SIZE(hdr)	((hdr)->p_vaddr + (hdr)->p_memsz + IMG_STACK_SIZE)	/*TODO*/
 
 #endif

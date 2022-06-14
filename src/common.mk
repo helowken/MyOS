@@ -23,6 +23,7 @@ C_SOURCE = $(wildcard *.c)
 HEADERS = $(wildcard $(INC_HEADERS))
 DEBUG = debug.bin
 ENTRY = $(MY_HOME)/entry/entry.o
+DIR_STACK = $(MY_HOME)/tools/stack
 
 
 %.o: %.c $(HEADERS)
@@ -48,6 +49,16 @@ define createDebug
 endef
 
 
+define setStack
+	mkdir -p $(DIR_STACK)
+	echo $(1) > $(DIR_STACK)/$(2)
+endef
+
+define cleanStack
+	rm -f $(DIR_STACK)$(1)
+endef
+
+
 define disasmCode
 	objdump -S -d -j .text -j .data -j .bss -mi386 -Matt,data$(2),addr$(2) $(1) > /tmp/$(1).txt && vim -R /tmp/$(1).txt
 endef
@@ -56,3 +67,6 @@ endef
 define cleanCommon
 	rm -f *.o *.bin *.elf
 endef
+
+
+

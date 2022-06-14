@@ -519,7 +519,26 @@ void consoleStop() {
 }
 
 void doDiagnostics(Message *msg) {
-//TODO
+/* Print a string for a server. */
+	char c;
+	int count;
+	int result = OK;
+	vir_bytes src;
+	int pNum = msg->DIAG_PROC_NR;
+	if (pNum == SELF) 
+	  pNum = msg->m_source;
+
+	src = (vir_bytes) msg->DIAG_PRINT_BUF;
+	for (count = msg->DIAG_BUF_COUNT; count > 0; --count) {
+		if (sysVirCopy(pNum, D, ++src, SELF, D, (vir_bytes) &c, 1) != OK) {
+			result = EFAULT;
+			break;
+		}
+		putk(c);
+	}
+	putk(0);	/* Always terminate, even with EFAULT */
+	msg->m_type = result;
+	send(msg->m_source, msg);
 }
 
 void toggleScroll() {

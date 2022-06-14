@@ -50,6 +50,40 @@ int doNewKernelMsgs(Message *msg) {
 }
 
 int doDiagnostics(Message *msg) {
-//TODO
-	return 0;
+/* The LOG server handles all diagnostic messages from servers and device
+ * drivers. It forwards the message to the TTY driver to display it to the
+ * user. It also saves a copy in a local buffer so that messages can be
+ * reviewed at a later time.
+ */
+	int result;
+	int pNum;
+	vir_bytes src;
+	int count;
+	int i = 0;
+	char c;
+	static char diagBuf[10240];
+
+	/* Forward the message to the TTY driver. Inform the TTY driver about the
+	 * original sender, so that it knows where the buffer to be printed is.
+	 * The message type, DIAGNOSTICS, remains the same.
+	 */
+	if ((pNum = msg->DIAG_PROC_NR) == SELF)
+	  msg->DIAG_PROC_NR = pNum = msg->m_source;
+	result = sendRec(TTY_PROC_NR, msg);
+	
+	/* Now also make a copy for the private buffer at the LOG server, so
+	 * that the messages can be reviewed at a later time.
+	 */
+	src = (vir_bytes) msg->DIAG_PRINT_BUF;	
+	count = msg->DIAG_BUF_COUNT;
+	while (count > 0 && i < sizeof(diagBuf) - 1) {
+		if (sysDataCopy(pNum, src, SELF, (vir_bytes) &c, 1) != OK)
+		  break;	/* Stop copying on error */
+		++src;
+		--count;
+		diagBuf[i++] = c;
+	}
+	logAppend(diagBuf, i);
+
+	return result;
 }

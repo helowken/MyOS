@@ -1,3 +1,5 @@
 export boot=0x80000
 export kernel=0x800
 export tty=0x100000
+export memory=0x106c00
+export log=0x10a000

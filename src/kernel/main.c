@@ -16,6 +16,7 @@ void main() {
 	register Priv *sp;	/* Privilege pointer */
 	register int i;
 	int hdrIdx;
+	bool hasData;
 	phys_clicks textBase = 0, dataBase = 0;
 	vir_clicks textClicks = 0, dataClicks = 0;
 	reg_t kernelTaskStackBase;
@@ -77,22 +78,30 @@ void main() {
 					(phys_bytes) EXEC_SIZE);
 
 		/* Build process memory map */
+		textBase = dataBase = 0;
+		textClicks = dataClicks = 0;
+		hasData = isPLoad(&imgHdr.dataHdr);
+
 		hdr = &imgHdr.codeHdr;
 		if (isPLoad(hdr)) {
 			textBase = hdr->p_paddr >> CLICK_SHIFT;
-			textClicks = (hdr->p_memsz + CLICK_SIZE - 1) >> CLICK_SHIFT;
+			textClicks = hdr->p_memsz;
+			if (!hasData)
+			  textClicks += imgHdr.stackSize;
+			textClicks = (textClicks + CLICK_SIZE - 1) >> CLICK_SHIFT;
 		}
-		hdr = &imgHdr.dataHdr;
-		if (isPLoad(hdr)) {
+		if (hasData) {
+			hdr = &imgHdr.dataHdr;
 			dataBase = hdr->p_paddr >> CLICK_SHIFT;
-			dataClicks = (MEM_SIZE(hdr) + CLICK_SIZE - 1) >> CLICK_SHIFT;
+			dataClicks = (hdr->p_vaddr + hdr->p_memsz + imgHdr.stackSize + 
+							CLICK_SIZE - 1) >> CLICK_SHIFT;
 		}
 		rp->p_memmap[T].physAddr = textBase;
 		rp->p_memmap[T].len = textClicks;
 		rp->p_memmap[D].physAddr = dataBase;
 		rp->p_memmap[D].len = dataClicks;
 		rp->p_memmap[S].physAddr = dataBase + dataClicks;
-		rp->p_memmap[S].virAddr = dataClicks;	/* empty - stack is in data */
+		rp->p_memmap[S].virAddr = dataClicks;	/* empty(len = 0) - stack is in data */
 
 		/* Set initial register values. The Proessor status word for tasks
 		 * is different from that of other processes because tasks can

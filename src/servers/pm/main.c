@@ -81,7 +81,7 @@ static void getMemChunks(Memory *memChunks) {
 			/* Read fresh size and expect comma or assume end. */
 			size = strtoul(s, &end, 16);
 			if (end != s && *end == ',')
-			  s = ++end;		/* Skip ';' */
+			  s = ++end;		/* Skip ',' */
 			else
 			  done = 1;
 
@@ -116,7 +116,7 @@ static void pmInit() {
 	static BootImage images[NR_BOOT_PROCS];
 	register BootImage *ip;
 	static char coreSigs[] = { SIGQUIT, SIGILL, SIGTRAP, SIGABRT,
-		SIGFPE, SIGUSR1, SIGSEGV, SIGUSR2 };
+								SIGFPE, SIGUSR1, SIGSEGV, SIGUSR2 };
 	static char ignoreSigs[] = { SIGCHLD };
 	register MProc *rmp;
 	register char *sigPtr;

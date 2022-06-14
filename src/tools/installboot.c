@@ -1,5 +1,6 @@
 #include "common.h"
 #include "image.h"
+#include "dirent.h"
 #include "../boot/rawfs.h"
 
 #define MASTER_BOOT_OFF		0			/* Master boot offset in device */
@@ -22,16 +23,26 @@
 #define ALIGN(n, m)			(((n) + ((m) - 1)) & ~((m) - 1))
 #define ALIGN_SECTOR(n)		ALIGN(n, SECTOR_SIZE)	
 #define CLICK_SIZE			1024		/* Unit in which memory is allocated */
+#define STACK_DIR			"stack"		/* Directory contains stack size files */
 
 #define sDev(off)		Lseek(device, deviceFd, (off))
 #define sPart(off)		sDev(OFFSET(lowSector) + (off))
 #define rDev(buf,size)	Read(device, deviceFd, (buf), (size))
 #define wDev(buf,size)	Write(device, deviceFd, (buf), (size)) 
 
+#define MODULE_NAME_LEN		30
+typedef struct {
+	char name[MODULE_NAME_LEN];
+	size_t size;
+} StackConfig;
+
 static char *procName;
 static char *device;
 static int deviceFd;
 static uint32_t lowSector;
+static int imgCount;
+static StackConfig *sc;
+static int scCount;
 
 static char *paramsTpl = 
 	"rootdev=%s;"
@@ -99,7 +110,28 @@ static void checkElfHeader(char *fileName, Elf32_Ehdr *ehdrPtr) {
 	  fatal("%s is not an executable.\n", fileName);
 }
 
-static long totalText = 0, totalData = 0, totalBss = 0;
+static char *formatName(char *name) {
+	char *np;
+
+	if ((np = strrchr(name, '/')) != NULL)
+	  name = np + 1;
+	if ((np = strrchr(name, '.')) != NULL)
+	  *np = 0;
+	return name;
+}
+
+static ssize_t getStackSize(char *name) {
+	int i;
+
+	for (i = 0; i < scCount; ++i) {
+		if (!strcmp(sc[i].name, name)) {
+			return sc[i].size;
+		}
+	}
+	return -1;
+}
+
+static long totalText = 0, totalData = 0, totalBss = 0, totalStack = 0;
 
 static size_t readHeader(char *fileName, FILE *imgFile, ImageHeader *imgHdr, bool print) {
 	int i, sn = 0;
@@ -111,7 +143,10 @@ static size_t readHeader(char *fileName, FILE *imgFile, ImageHeader *imgHdr, boo
 	size_t sizeInMemory = 0;
 
 	memset(imgHdr, 0, sizeof(*imgHdr));
-	strncpy(imgHdr->name, fileName, IMG_NAME_MAX);
+	strncpy(imgHdr->name, formatName(fileName), IMG_NAME_MAX);
+
+	if (print && (proc->stackSize = getStackSize(imgHdr->name)) == -1)
+	  fatal("No stack size found for: %s\n", imgHdr->name);
 
 	if (fread(ehdrPtr, sizeof(*ehdrPtr), 1, imgFile) != 1 || 
 				ferror(imgFile))
@@ -148,15 +183,17 @@ static size_t readHeader(char *fileName, FILE *imgFile, ImageHeader *imgHdr, boo
 
 	if (print) {
 		if (!banner) {
-			printf("     text     data      bss     size\n");
+			printf("     text     data      bss    stack     size\n");
 			banner = true;
 		}
-		printf(" %8d %8d %8d %8d	%s\n", textSize, dataSize, bssSize, 
-					textSize + dataSize + bssSize, imgHdr->name);
+		printf(" %8d %8d %8d %8d %8d	%s\n", textSize, dataSize, bssSize, 
+					proc->stackSize, textSize + dataSize + bssSize, 
+					imgHdr->name);
 
 		totalText += textSize;
 		totalData += dataSize;
 		totalBss += bssSize;
+		totalStack += proc->stackSize;
 	}
 	
 	return sizeInMemory;
@@ -223,6 +260,69 @@ FILE *openFile(char *file) {
 	return imgFile;
 }
 
+static size_t readStackSize(char *fileName) {
+	int fd;
+	ssize_t n;
+	size_t size;
+	char buf[20];
+
+	fd = ROpen(fileName);
+	n = Read(fileName, fd, buf, 20);
+	buf[n] = 0;
+	size = atol(buf);	
+	Close(fileName, fd);
+	return size;
+}
+
+static void readStacks() {
+	DIR *d;
+	struct dirent *dir;
+#define FILE_NAME_SIZE	256
+	char buf[FILE_NAME_SIZE], fileName[FILE_NAME_SIZE], *np, *fn;
+	ssize_t len;
+	int i = 0;
+	int listSize = 1;
+	sc = calloc(listSize, sizeof(StackConfig));
+	if (sc == NULL)
+	  fatal("calloc StackConfig failed with len: %d", listSize);
+
+	/* Get directory of this executable. */
+	if ((len = readlink("/proc/self/exe", buf, FILE_NAME_SIZE)) == -1)
+	  errExit("readlink %s", procName);
+	buf[len] = 0;
+	if ((np = strrchr(buf, '/')) != NULL)
+	  *np = 0;
+
+	/* Get full path of "stack" dir. */
+	if (snprintf(fileName, FILE_NAME_SIZE, "%s/%s", buf, STACK_DIR) < 0)
+	  errExit("snprintf dirName");
+
+	strcpy(buf, fileName);
+	d = opendir(buf);
+	if (d) {
+		/* Open dir and traverse files in it. */
+		while ((dir = readdir(d)) != NULL) {
+			fn = dir->d_name;
+			if (strcmp(fn, ".") && strcmp(fn, "..")) {	/* Skip "." and ".." files */
+				if (snprintf(fileName, FILE_NAME_SIZE, "%s/%s", buf, fn) < 0)
+				  errExit("snprintf fileName: %s", fn);
+				if (i == listSize) {
+					listSize *= 2;
+					sc = realloc(sc, sizeof(StackConfig) * listSize);
+					if (sc == NULL) 
+					  fatal("realloc StackConfig failed with len: %d", listSize);
+				}
+				strncpy(sc[i].name, fn, MODULE_NAME_LEN);
+				sc[i].size = readStackSize(fileName);
+				++i;
+			}
+		}
+		closedir(d);
+	}
+
+	scCount = i;
+}
+
 static void installImages(char **imgNames, int imgAddr, off_t bootSize, 
 						off_t *imgSizePtr, size_t *memSizes) {
 	FILE *imgFile;
@@ -231,10 +331,14 @@ static void installImages(char **imgNames, int imgAddr, off_t bootSize,
 	ImageHeader imgHdr;
 	Exec *proc;
 	Elf32_Phdr *hdr;
-	int i = 0;
+	int i;
 	size_t memSize;
 
-	while ((imgName = *imgNames++) != NULL) {
+	/* Read stack sizes. */
+	readStacks();
+
+	for (i = 0; i < imgCount; ++i) {
+		imgName = imgNames[i];
 		if ((file = strrchr(imgName, ':')) != NULL)
 		  ++file;
 		else
@@ -251,15 +355,15 @@ static void installImages(char **imgNames, int imgAddr, off_t bootSize,
 		if (isPLoad(&proc->codeHdr)) {
 			hdr = &proc->codeHdr;
 			copyExec(imgName, imgFile, hdr);
-			memSize = MEM_SIZE(hdr);
+			memSize = hdr->p_vaddr + hdr->p_memsz;
 		}
 		if (isPLoad(&proc->dataHdr)) {
 			hdr = &proc->dataHdr;
 			copyExec(imgName, imgFile, hdr);
-			memSize = max(memSize, MEM_SIZE(hdr));
+			memSize = max(memSize, hdr->p_vaddr + hdr->p_memsz);
 		}
 		/* Compute memory size for each image */
-		memSizes[i++] = memSize == 0 ? memSize : ALIGN(memSize, CLICK_SIZE); 
+		memSizes[i] = memSize == 0 ? memSize : ALIGN(memSize + proc->stackSize, CLICK_SIZE); 
 		
 		fclose(imgFile);
 
@@ -267,8 +371,8 @@ static void installImages(char **imgNames, int imgAddr, off_t bootSize,
 		  fatal("Total size of (boot + images) excceeds %dMB", 
 					  (BOOT_IMG_SIZE >> KB_SHIFT) >> KB_SHIFT);
 	}
-	printf("   ------   ------   ------   ------\n");
-	printf(" %8ld %8ld %8ld %8ld	total\n", totalText, totalData, totalBss, 
+	printf("   ------   ------   ------   ------   ------\n");
+	printf(" %8ld %8ld %8ld %8ld %8ld	total\n", totalText, totalData, totalBss, totalStack,
 				totalText + totalData + totalBss);
 
 	sPart(OFFSET(imgAddr));
@@ -276,6 +380,8 @@ static void installImages(char **imgNames, int imgAddr, off_t bootSize,
 	free(imgBuf);
 
 	*imgSizePtr = bufOff;
+
+	free(sc);
 }
 
 static void checkBootMemSize(char *boot) {
@@ -353,7 +459,7 @@ static void installParams(char *params, int imgAddr, off_t imgSectors) {
 	  errExit("snprintf params");
 }
 
-static void saveMemSizes(char *fileName, char *boot, char **imgNames, int imgCount, size_t *memSizes) {
+static void saveMemSizes(char *fileName, char *boot, char **imgNames, size_t *memSizes) {
 #define MEM_BOOT	0x80000
 #define MEM_BASE_0	0x800
 #define MEM_BASE_1	0x100000
@@ -361,7 +467,7 @@ static void saveMemSizes(char *fileName, char *boot, char **imgNames, int imgCou
 	int fd;
 	const char *format = "export %s=0x%x\n";
 	char buf[BUF_LEN];
-	char *name, *np;
+	char *name;
 	off_t pos;
 	int n;
 
@@ -382,11 +488,7 @@ static void saveMemSizes(char *fileName, char *boot, char **imgNames, int imgCou
 		    pos += memSizes[i - 1];
 		}
 
-		if ((np = strrchr(name, '/')) != NULL)
-		  name = np + 1;
-		if ((np = strrchr(name, '.')) != NULL)
-		  *np = 0;
-
+		name = formatName(name);
 		//printf("%s: %d, 0x%lx\n", name, memSizes[i], pos);
 
 		if ((n = snprintf(buf, BUF_LEN, format, name, pos)) < 0)
@@ -394,6 +496,14 @@ static void saveMemSizes(char *fileName, char *boot, char **imgNames, int imgCou
 		Write(fileName, fd, buf, n);
 	}
 	Close(fileName, fd);
+}
+
+static void computeImgCount(char **img) {
+	/* Get image count */
+	while (*img != NULL) {
+		++imgCount;
+		img += 1;
+	}
 }
 
 static void installDevice(char *bootBlock, char *boot, char *memSizeFile, char **imgNames) {
@@ -407,14 +517,8 @@ static void installDevice(char *bootBlock, char *boot, char *memSizeFile, char *
 	int bootAddr, imgAddr;
 	off_t bootSize, imgSize;
 	int bootSectors, imgSectors;
-	int imgCount = 0;
-	char **img = imgNames;
 
-	/* Get image count */
-	while (*img != NULL) {
-		++imgCount;
-		img += 1;
-	}
+	computeImgCount(imgNames);
 
 	/* Install boot to device. */
 	installBoot(boot, &bootSize, &bootAddr);
@@ -447,7 +551,7 @@ static void installDevice(char *bootBlock, char *boot, char *memSizeFile, char *
 	printf("\n");
 	size_t memSizes[imgCount];
 	installImages(imgNames, imgAddr, bootSize, &imgSize, memSizes);
-	saveMemSizes(memSizeFile, boot, imgNames, imgCount, memSizes);
+	saveMemSizes(memSizeFile, boot, imgNames, memSizes);
 	printf("\n");
 	imgSectors = SECTORS(imgSize);
 

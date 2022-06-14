@@ -13,8 +13,10 @@ BOOT = boot.bin
 ENV_MODULES_FILE=$(MY_HOME)/env_modules
 
 PROGRAMS = ../kernel/kernel.bin \
-		   ../drivers/tty/tty.bin 
-		   #../drivers/memory/memory.bin 
+		   ../drivers/tty/tty.bin \
+		   ../drivers/memory/memory.bin \
+		   ../drivers/log/log.bin 
+
 		   #../servers/pm/pm.bin 
 		   #AT:../drivers/at_wini/at_wini.bin
 

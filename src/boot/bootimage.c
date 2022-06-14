@@ -375,7 +375,7 @@ static void execImage(char *image) {
 		rawCopy((char *) (imgHdrPos + i * EXEC_SIZE), mon2Abs(proc), EXEC_SIZE);
 
 		if (!banner) {
-			printf("     cs       ds     text     data      bss\n");
+			printf("     cs       ds     text     data      bss    stack\n");
 			banner = true;
 		}
 		
@@ -395,7 +395,7 @@ static void execImage(char *image) {
 			dataSize = proc->dataHdr.p_filesz;
 			bssSize = proc->dataHdr.p_memsz - dataSize;
 			if (i > 0) 
-			  bssSize += IMG_STACK_SIZE;	/* TODO, add stack to user proc */
+			  bssSize += proc->stackSize;	/* add stack to user proc */
 			
 			/* Read the data segment. */
 			if (!getSegment(&vsec, dataSize, &addr, limit))
@@ -410,9 +410,9 @@ static void execImage(char *image) {
 			addr += bssSize;
 		}
 
-		printf("%07lx  %07lx %8ld %8ld %8ld  %s\n",
+		printf("%07lx  %07lx %8ld %8ld %8ld %8ld    %s\n",
 			procp->cs, procp->ds, proc->codeHdr.p_filesz, 
-			dataSize, bssSize, imgHdr.name);
+			dataSize, bssSize, proc->stackSize, imgHdr.name);
 
 		if (i == 0) {
 			addr = memList[1].base;
