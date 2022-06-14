@@ -55,7 +55,7 @@ define setStack
 endef
 
 define cleanStack
-	rm -f $(DIR_STACK)$(1)
+	rm -f $(DIR_STACK)/$(1)
 endef
 
 
