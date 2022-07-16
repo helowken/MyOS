@@ -218,7 +218,7 @@ void initInterrupts() {
 	outb(INT2_CTL_MASK, IRQ8_VECTOR);		/* ICW2 for slave, set up interrupt vector number for IRQ8. */
 	outb(INT2_CTL_MASK, CASCADE_IRQ);		/* Set up slave id. */
 	outb(INT2_CTL_MASK, ICW4_AT_MASTER);
-	outb(INT_CTL_MASK, ~0);					/* IRQ 8-15 mask */
+	outb(INT2_CTL_MASK, ~0);					/* IRQ 8-15 mask */
 	
 	/* Copy the BIOS vectors from the BIOS to the Minix location, so we can still make BIOS 
 	 * calls without reprogramming the i8259s. (See BIOS interrupt vectors aboved.)

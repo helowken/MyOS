@@ -173,7 +173,20 @@ hwint07:
  *                hwint08 - 15                *
  *=====================================================================*/
 .macro hwintSlave irq
-	retl
+	calll	save			/* Save interrupted process state. */
+	pushl	irqHandlers+\irq*4	/* irqHandlers[irq] */
+	calll	handleInterrupt		/* handleInterrupt(irqHandlers[irq]) */
+	popl	%ecx
+	cmpl	$0, irqActiveIds+\irq*4	/* Is interrupt still active? */
+	jz	0f
+	inb	$INT2_CTL_MASK		/* Get current mask */
+	orb	1<<(\irq-8), %al		/* Mask irq */
+	outb	$INT2_CTL_MASK	/* Disable the irq */
+0:
+	movb	$END_OF_INT, %al	
+	outb	$INT_CTL		/* Reenable master 8259 */
+	outb	$INT2_CTL		/* Reenable slave 8259 */
+	retl					/* Restart (another) process. (retAddr has been pushed by save().) */
 .endm
 
 /* Each of these entry points is an expansion of the hwintSlave macro. */

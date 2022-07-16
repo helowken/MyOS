@@ -47,7 +47,7 @@ void initSysCalls() {
 
 	map(GETSYSINFO, doGetSysInfo);
 	map(GETPROCNR, doGetProcNum);
-	//TODO map(ALLOCMEM, doAllocMem);
+	map(ALLOCMEM, doAllocMem);
 	//TODO map(FREEMEM, doFreeMem);
 	map(GETPRIORITY, doGetSetPriority);
 	map(SETPRIORITY, doGetSetPriority);

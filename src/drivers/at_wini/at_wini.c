@@ -341,17 +341,17 @@ static Device *wPrepare(int device) {
 	/* Disk drive has a partition table which has 4 partitions at most.
 	 * Wini has DEV_PER_DRIVE partitions and SUB_PER_DRIVE sub-partitions at most.
 	 *   DEV_PER_DRIVE = 1 + NR_PARTITIONS(4) = 5, the 1 is a logic partition for the total drive.
-	 *   SUB_PER_DRIVE = NR_PARTITIONS(4) * NR_PARTITIONS(4) = 16
+	 *   SUB_PER_DRIVE = NR_PARTITIONS(4) * NR_PARTITIONS(4) = 16, since each primary partition has 4 subPartitions.
 	 *
 	 * We assume machine has MAX_DRIVES(8) disk drives at most.
-	 *   NR_MINORS(40) = MAX_DRIVES(8) * DEV_PER_DRIVE(5) = 40
-	 *
-	 * 1. When using partition number to represent the device, 
-	 *     device = winiIdx * DEV_PER_DRIVE(5) + partNum;
-	 * 2. When using sub-partition number to represent the device, 
-	 *     device = MINOR_d0p0s0 + winiIdx * SUB_PER_DRIVE(16) + subPartIdx
-	 *
+	 *   NR_MINORS = MAX_DRIVES(8) * DEV_PER_DRIVE(5) = 40
+	 *   NR_SUB_DEVS = MAX_DRIVES(8) * SUB_PER_DRIVE(16) = 128
 	 *   MINOR_d0p0s0 = MAX_DRIVES(8) * SUB_PER_DRIVE(16) = 128 (drive[0-7], part[0-3], sub-part[0-3])
+	 *
+	 * 1. When using primary partition:
+	 *     device = drive * DEV_PER_DRIVE(5) + partIdx;
+	 * 2. When using sub-partition:
+	 *     device = MINOR_d0p0s0 + drive * SUB_PER_DRIVE(16) + partIdx * NR_PARTITIONS(4) + subPartIdx;
 	 */
 	if (device < NR_MINORS) {	/* d0, d0p[0-3], d1, ... */
 		currDrive = device / DEV_PER_DRIVE;	/* Save drive number */
@@ -547,7 +547,7 @@ static int cmdSimple(Command *cmd) {
 	if (currWn->state & IGNORING)
 	  return ERR;
 
-	if ((r = cmdOut(cmd)) == OK)
+	if ((r = cmdOut(cmd)) == OK)  
 	  r = atIntrWait();
 	currCmd = CMD_IDLE;
 	return r;
@@ -627,7 +627,7 @@ static int wIdentify() {
 		size = (u32_t) wn->pCylinders * wn->pHeads * wn->pSectors;
 
 		/* Capacities: LBA Supported? */
-		if ((idByte(49)[1] & 0x02) && size > 512L * 12024 * 2) {
+		if ((idByte(49)[1] & 0x02) && size > 512L * 1024 * 2) {
 			/* Drive is LBA capable and is big enough to trust it to
 			 * not make a mess of it.
 			 */
@@ -657,7 +657,7 @@ static int wIdentify() {
 				wn->lba48 = 1;
 			}
 		}
-		
+	
 		if (wn->lCylinders == 0) {
 			/* No BIOS parameters? Then make some up. */
 			wn->lCylinders = wn->pCylinders;
@@ -897,7 +897,7 @@ static int doTransfer(Wini *wn, unsigned int precomp, unsigned int count,
 
 	cmd.precomp = precomp;
 	cmd.count = count;
-	cmd.command = opCode == DEV_GATHER ? CMD_WRITE : CMD_READ;
+	cmd.command = opCode == DEV_SCATTER ? CMD_WRITE : CMD_READ;
 
 	if (wn->ldhPref & LDH_LBA) {
 		cmd.sector = (blockAddr >> 0) & 0xFF;
@@ -916,6 +916,7 @@ static int doTransfer(Wini *wn, unsigned int precomp, unsigned int count,
 		cmd.cylinderHigh = (cylinder >> 8) & BYTE;
 		cmd.ldh = wn->ldhPref | head;
 	}
+
 	return cmdOut(&cmd);
 }
 
@@ -1234,7 +1235,7 @@ static int wTransfer(int pNum, int opCode, off_t position, IOVec *iov,
 	unsigned long blockAddr;
 	unsigned long dvSize = cv64ul(currDev->dv_size);
 	unsigned numBytes;
-	
+
 	if (wn->state & ATAPI)
 	  return atapiTransfer(pNum, opCode, position, iov, numReq);
 
@@ -1249,11 +1250,11 @@ static int wTransfer(int pNum, int opCode, off_t position, IOVec *iov,
 		for (iop = iov; iop < iovEnd; ++iop) {
 			numBytes += iop->iov_size;
 		}
-		if ((numBytes & SECTOR_MASK) != 0)
+		if ((numBytes & SECTOR_MASK) != 0) 
 		  return EINVAL;
 
 		/* Which block on disk and how close to EOF? */
-		if (position >= dvSize)
+		if (position >= dvSize)  
 		  return OK;		/* At EOF */
 		if (position + numBytes > dvSize)
 		  numBytes = dvSize - position;
@@ -1289,7 +1290,7 @@ static int wTransfer(int pNum, int opCode, off_t position, IOVec *iov,
 			 */
 			if (opCode == DEV_GATHER) {
 				/* First an interrupt, then data. */
-				if ((r == atIntrWait()) != OK) {
+				if ((r = atIntrWait()) != OK) {
 					/* An error, send data to the bit bucket. */
 					if (wn->wStatus & STATUS_DRQ) {
 						if ((s = sysInsw(wn->baseCmd + REG_DATA, SELF, 
@@ -1309,7 +1310,7 @@ static int wTransfer(int pNum, int opCode, off_t position, IOVec *iov,
 			/* Copy bytes to or from the device's buffer. */
 			if (opCode == DEV_GATHER) {
 				if ((s = sysInsw(wn->baseCmd + REG_DATA, pNum, 
-							(void *) iov->iov_addr, SECTOR_SIZE)) != OK)
+							(void *) iov->iov_addr, SECTOR_SIZE)) != OK) 
 				  panic(wName(), "Call to sysInsw() failed", s);
 			} else {
 				if ((s = sysOutsw(wn->baseCmd + REG_DATA, pNum,

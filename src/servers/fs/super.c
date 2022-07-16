@@ -11,7 +11,7 @@ int readSuper(SuperBlock *sp) {
 	int magic, r;
 	static char sbBuf[SUPER_BLOCK_BYTES];
 	uint16_t bs;
-	
+
 	dev = sp->s_dev;	/* Save device (will be overwritten by copy) */
 	if (dev == NO_DEV)
 	  panic(__FILE__, "request for superblock of NO_DEV", NO_NUM);

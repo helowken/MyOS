@@ -530,7 +530,7 @@ void doDiagnostics(Message *msg) {
 
 	src = (vir_bytes) msg->DIAG_PRINT_BUF;
 	for (count = msg->DIAG_BUF_COUNT; count > 0; --count) {
-		if (sysVirCopy(pNum, D, ++src, SELF, D, (vir_bytes) &c, 1) != OK) {
+		if (sysVirCopy(pNum, D, src++, SELF, D, (vir_bytes) &c, 1) != OK) {
 			result = EFAULT;
 			break;
 		}

@@ -4,6 +4,7 @@ typedef struct MProc MProc;
 typedef struct Memory Memory;
 
 /* alloc.c */
+phys_clicks allocMemory(phys_clicks clicks);
 void initMemory(Memory *chunks, phys_clicks *free);
 void freeMemory(phys_clicks base, phys_clicks clicks);
 void swapIn();

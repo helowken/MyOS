@@ -188,7 +188,7 @@ static size_t readHeader(char *fileName, FILE *imgFile, ImageHeader *imgHdr, boo
 		}
 		printf(" %8d %8d %8d %8d %8d	%s\n", textSize, dataSize, bssSize, 
 					proc->stackSize, textSize + dataSize + bssSize, 
-					imgHdr->name);
+					fileName);
 
 		totalText += textSize;
 		totalData += dataSize;
@@ -562,7 +562,7 @@ static void installDevice(char *bootBlock, char *boot, char *memSizeFile, char *
 	sPart(BOOT_BLOCK_OFF);
 	wDev(buf, BOOT_BLOCK_SIZE);
 
-	printf("Boot addr: %d, sectors: %d\n", bootAddr, bootSectors);
+	printf("Boot addr:  %d, sectors: %d\n", bootAddr, bootSectors);
 	printf("Image addr: %d, sectors: %d\n\n", imgAddr, imgSectors);
 }
 

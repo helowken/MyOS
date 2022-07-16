@@ -1216,7 +1216,7 @@ static void execute() {
 				break;
 			case R_TEST:
 				// For testing */
-				name2Dev("c0d0p0s0");
+				printf("dev: %d\n", name2Dev("c0d0p0s0"));
 				ok = true;
 				break;
 		}

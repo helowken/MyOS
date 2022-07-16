@@ -22,6 +22,7 @@ void devStatus(Message *msg);
 /* utility.c */
 void panic(char *who, char *msg, int num);
 time_t clockTime();
+int noSys();
 
 /* dmap.c */
 void buildDMap();

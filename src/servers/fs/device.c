@@ -9,6 +9,11 @@ int noDev(int op, dev_t dev, int proc, int flags) {
 	return ENODEV;
 }
 
+int cloneOpCl(int op, dev_t dev, int proc, int flags) {
+//TODO
+	return 0;
+}
+
 int genOpCl(int op, dev_t dev, int proc, int flags) {
 	DMap *dp;
 	Message msg;
@@ -25,6 +30,38 @@ int genOpCl(int op, dev_t dev, int proc, int flags) {
 	(*dp->dmap_io)(dp->dmap_driver, &msg);
 
 	return msg.REP_STATUS;
+}
+
+int ttyOpCl(int op, dev_t dev, int proc, int flags) {
+/* This procedure is called from the dmap struct on tty open/close. */
+	int r;
+	register struct FProc *rfp;
+
+	/* Add O_NOCTTY to the flags if this process is not a session leader, or
+	 * if it already has a controlling tty, or if it is someone elses
+	 * controlling tty.
+	 */
+	if (!currFp->fp_session_leader || currFp->fp_tty != 0) {
+		flags |= O_NOCTTY;
+	} else {
+		for (rfp = &fprocTable[0]; rfp < &fprocTable[NR_PROCS]; ++rfp) {
+			if (rfp->fp_tty == dev)
+			  flags |= O_NOCTTY;
+		}
+	}
+
+	r = genOpCl(op, dev, proc, flags);
+	
+	/* Did this call make the tty the controlling tty? */
+	if (r == 1) {
+		currFp->fp_tty = dev;
+		r = OK;
+	}
+	return r;
+}
+
+int cttyOpCl(int op, dev_t dev, int proc, int flags) {
+	return currFp->fp_tty == 0 ? ENXIO : OK;
 }
 
 void genIO(int taskNum, Message *msg) {
@@ -92,6 +129,25 @@ void genIO(int taskNum, Message *msg) {
 		r = receive(taskNum, msg);
 	}
 }
+
+void cttyIO(int taskNum, Message *msg) {
+/* This routine is only called for one device, namely /dev/tty. Its job
+ * is to change the message to use the controlling terminal, instead of the
+ * major/minor pair for /dev/tty itself.
+ */
+	DMap *dp;
+
+	if (currFp->fp_tty == 0) {
+		/* No controlling tty present anymore, return an I/O error. */
+		msg->REP_STATUS = EIO;
+	} else {
+		/* Substitute the controlling terminal device. */
+		dp = &dmapTable[majorDev(currFp->fp_tty)];
+		msg->DEVICE = minorDev(currFp->fp_tty);
+		(*dp->dmap_io)(dp->dmap_driver, msg);
+	}
+}
+
 
 int devOpen(dev_t dev, int proc, int flags) {
 /* Determine the major device number call the device class specific

@@ -71,7 +71,7 @@ void partition(Driver *dp, int device, int style) {
 	limit = base + div64u(dv->dv_size, SECTOR_SIZE);
 
 	/* Read the partition table for the device. */
-	if (!getPartitionTable(dp, device, 0L, table)) 
+	if (!getPartitionTable(dp, device, 0L, table))  
 	  return;
 
 	/* Compute the device number of the first partition. */
@@ -81,7 +81,7 @@ void partition(Driver *dp, int device, int style) {
 			break;
 		case P_PRIMARY:
 			sort(table);		
-			device += 1;
+			device += 1;	/* Skip the 0th partition which is logical for the total drive. */
 			break;
 		case P_SUB:
 			disk = device / DEV_PER_DRIVE;
@@ -111,7 +111,7 @@ void partition(Driver *dp, int device, int style) {
 
 		if (style == P_PRIMARY) {
 			/* Each Minix primary partition can be sub-partitioned. */
-			if (pe->type == MINIX_PART)
+			if (pe->type == MINIX_PART) 
 			  partition(dp, device + part, P_SUB);
 
 			/* An extended partition has logical partitions. */
@@ -120,3 +120,4 @@ void partition(Driver *dp, int device, int style) {
 		}
 	}
 }
+

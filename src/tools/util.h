@@ -6,7 +6,13 @@
 #define OFFSET(n)			((n) * (SECTOR_SIZE))
 #define RATIO(n)			((n) / SECTOR_SIZE)
 
+#define arraySize(a)		(sizeof(a) / sizeof((a)[0]))
+#define arrayLimit(a)		((a) + arraySize(a))
+#define between(a, c, z)	((unsigned) ((c) - (a)) <= ((z) - (a)))
+
 void getActivePartition(int deviceFd, PartitionEntry *pe);
+
+void getActivePartition2(int deviceFd, PartitionEntry *pep, unsigned long *totalSectors);
 
 int Open(char *fileName, int flags);
 

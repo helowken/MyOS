@@ -7,7 +7,7 @@
 
 static void announce() {
 	kprintf("\nMINIX %s.%s. ", OS_RELEASE, OS_VERSION);
-	kprintf("Executing in 32-bit protected mode.\n\n");
+	kprintf("Executing in 32a-bit protected mode.\n\n");
 }
 
 void main() {

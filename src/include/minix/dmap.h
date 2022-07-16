@@ -46,8 +46,8 @@ extern DMap dmapTable[];
 #define CTRLR(n)	((n) == 0 ? 3 : (8 + 2 * ((n) - 1)))	/* Magic formula. (See initDMap in dmap.c) */
 
 /* Full device numbers that are special to the boot monitor and FS. */
-#define	DEV_RAM		0x0100 	/* Device number of /dev/ram, ((MEMORY_MAJOR << 8) | RAM_DEV) */
-#define DEV_BOOT	0x0104	/* Device number of /dev/boot, ((MEMORY_MAJOR << 8) | BOOT_DEV) */
+#define	DEV_RAM			0x0100 	/* Device number of /dev/ram, ((MEMORY_MAJOR << 8) | RAM_DEV) */
+#define DEV_BOOT		0x0104	/* Device number of /dev/boot, ((MEMORY_MAJOR << 8) | BOOT_DEV) */
 
 #define FLOPPY_MAJOR		2	/* Major device for floppy disks */
 #define TTY_MAJOR			4	/* Major device for ttys */

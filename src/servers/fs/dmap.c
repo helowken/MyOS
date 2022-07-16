@@ -23,8 +23,8 @@
  * the process numbers of the device drivers.
  */
 /*
- * Driver enabled	Open/Close	I/O		Driver #	Flags		   Device   File
- * --------------	----------	---		--------	-----		   ------   ----
+ * Driver enabled	Open/Close	I/O		Driver #	 Flags		   Device   File
+ * --------------	----------	---		--------	 -----		   ------   ----
  */
 DMap initDMap[] = {
 	DT(1,			noDev,		0,		0,			 0)			   /* 0  =  not used    */

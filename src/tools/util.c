@@ -1,11 +1,15 @@
 #include "common.h"
 #include "util.h"
 
-
 void getActivePartition(int deviceFd, PartitionEntry *pep) {
+	getActivePartition2(deviceFd, pep, NULL);
+}
+
+void getActivePartition2(int deviceFd, PartitionEntry *pep, unsigned long *totalSectors) {
 	int i, activeCount = 0;
 	bool found = false;
 	PartitionEntry pe;
+	unsigned long total = 0;
 
 	if (lseek(deviceFd, PART_TABLE_OFF, SEEK_SET) == -1)
 	  errExit("lseek partition table");
@@ -14,6 +18,7 @@ void getActivePartition(int deviceFd, PartitionEntry *pep) {
 		if (read(deviceFd, &pe, sizeof(pe)) != sizeof(pe))
 		  errExit("read partition %d from device", i);
 		//printf("%d, %u, %u, %u\n", i, pe.status, pe.type, pe.lowSector);
+		total += pe.sectorCount;
 		if (BOOTABLE(&pe)) {
 			if (!found) {
 				*pep = pe;
@@ -25,6 +30,9 @@ void getActivePartition(int deviceFd, PartitionEntry *pep) {
 	}
 	if (activeCount == 0)
 	  fatal("no active partition found");
+	
+	if (totalSectors) 
+	  *totalSectors = total;
 }
 
 int Open(char *fileName, int flags) {

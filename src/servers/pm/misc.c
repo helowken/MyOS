@@ -7,6 +7,18 @@
 #include "mproc.h"
 #include "param.h"
 
+int doAllocMem() {
+	vir_clicks memClicks;
+	phys_clicks memBase;
+
+	memClicks = (inputMsg.mem_size + CLICK_SIZE - 1) >> CLICK_SHIFT;
+	memBase = allocMemory(memClicks);
+	if (memBase == NO_MEM)
+	  return ENOMEM;
+	currMp->mp_reply.mem_base = (phys_bytes) (memBase << CLICK_SHIFT);
+	return OK;
+}
+
 int doGetSetPriority() {
 	int which, argWho, priority;
 	int pNum;

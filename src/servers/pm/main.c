@@ -40,9 +40,9 @@ static void patchMemChunks(Memory *memChunks, MemMap *memMap) {
 	Memory *memp;
 	for (memp = memChunks; memp < &memChunks[NR_MEMS]; ++memp) {
 		if (memp->base == memMap[T].physAddr) {
-			memp->base += memMap[D].len;
+			/* T and D has the same base and D has the total size. (see kernel/main.c) */
+			memp->base += memMap[D].len;	
 			memp->size -= memMap[D].len;
-			return;
 		}
 	}
 }
@@ -166,11 +166,11 @@ static void pmInit() {
 	 */
 	if ((s = sysGetImage(images)) != OK)
 	  panic(__FILE__, "couldn't get image table: %d\n", s);
-	procsInUse = 0;		/* Start populating table */
+	procsInUse = 0;				/* Start populating table */
 	printf("Building process table:");		/* Show what's happening */
 	for (i = 0; i < NR_BOOT_PROCS; ++i) { 
 		ip = &images[i];
-		if (ip->pNum >= 0) {
+		if (ip->pNum >= 0) {	/* Task have negative numbers */
 			++procsInUse;		/* Found user process */
 
 			/* Set process details found in the image table. */
@@ -194,7 +194,7 @@ static void pmInit() {
 			/* Get memory map for this process from the kernel. */
 			if ((s = getMemMap(ip->pNum, rmp->mp_memmap)) != OK)
 			  panic(__FILE__, "couldn't get process entry", s);
-			minixClicks = rmp->mp_memmap[S].physAddr + 
+			minixClicks += rmp->mp_memmap[S].physAddr + 
 				rmp->mp_memmap[S].len - rmp->mp_memmap[T].physAddr;
 			patchMemChunks(memChunks, rmp->mp_memmap);
 
@@ -226,7 +226,7 @@ static void pmInit() {
 	totalClicks = minixClicks + freeClicks;
 	printf(" total %u KB,", clickToRoundKB(totalClicks));
 	printf(" system %u KB,", clickToRoundKB(minixClicks));
-	printf(" free %u KB,", clickToRoundKB(freeClicks));
+	printf(" free %u KB.\n", clickToRoundKB(freeClicks));
 }
 
 static void getWork() {
@@ -287,8 +287,8 @@ int main() {
 			 * without the PM realizing it. If the slot is no longer in
 			 * use or just a zombie, don't try to reply.
 			 */
-			if ((rmp->mp_flags & (REPLY | ONSWAP | IN_USE | ZOMBIE)) ==
-					(REPLY | IN_USE)) {
+			if ((rmp->mp_flags & (REPLY | ONSWAP | IN_USE | ZOMBIE)) == 
+						(REPLY | IN_USE)) {
 				if ((s = send(pNum, &rmp->mp_reply)) != OK) {
 					panic(__FILE__, "PM can't reply to", pNum);
 				}

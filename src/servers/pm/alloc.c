@@ -12,18 +12,20 @@
 #define NIL_HOLE	(Hole *) 0		
 
 static struct Hole {
-	struct Hole *next;	/* Pointer to next entry on the list */
-	phys_clicks base;	/* Where does the hole begin? */
-	phys_clicks len;	/* How big is the hole? */
+	struct Hole *h_next;	/* Pointer to next entry on the list */
+	phys_clicks h_base;	/* Where does the hole begin? */
+	phys_clicks h_len;	/* How big is the hole? */
 } holes[NR_HOLES];
 
 typedef struct Hole Hole;
 
 static Hole *holeHead;		/* Pointer to first hole */
 static Hole *freeSlots;		/* Pointer to list of unused table slots */
+static int swapFd = -1;		/* File descriptor of open swap file/device */
 static phys_clicks swapBase;		/* Memory offset chosen as swap base */
 static phys_clicks swapMaxSize;		/* Maximum amount of swap "memory" possible */
 static MProc *inQueue;		/* Queue of processes wanting to swap in */
+//static MProc *outSwap = &mprocTable[0];		/* Outswap candidate? */
 
 static void deleteSlot(Hole *prevHp, Hole *hp) {
 /* Remove an entry from the hole list. This procedure is called when a
@@ -32,11 +34,11 @@ static void deleteSlot(Hole *prevHp, Hole *hp) {
  * entry in the hole list.
  */
 	if (hp == holeHead) 
-	  holeHead = hp->next;
+	  holeHead = hp->h_next;
 	else
-	  prevHp->next = hp->next;
+	  prevHp->h_next = hp->h_next;
 
-	hp->next = freeSlots;
+	hp->h_next = freeSlots;
 	freeSlots = hp;
 }
 
@@ -51,10 +53,10 @@ static void merge(Hole *hp) {
 	/* If 'hp' points to the last hole, no merging is possible. If it does not,
 	 * try to absorb its successor into it and free the successor's table entry.
 	 */
-	if ((nextHp = hp->next) == NIL_HOLE)
+	if ((nextHp = hp->h_next) == NIL_HOLE)
 	  return;
-	if (hp->base + hp->len == nextHp->base) {
-		hp->len += nextHp->len;		/* First one gets second one's memory */
+	if (hp->h_base + hp->h_len == nextHp->h_base) {
+		hp->h_len += nextHp->h_len;		/* First one gets second one's memory */
 		deleteSlot(hp, nextHp);
 	} else {
 		hp = nextHp;
@@ -63,10 +65,10 @@ static void merge(Hole *hp) {
 	/* If 'hp' now points to the last hole, return; otherwise, try to absorb its
 	 * successor into it.
 	 */
-	if ((nextHp = hp->next) == NIL_HOLE)
+	if ((nextHp = hp->h_next) == NIL_HOLE)
 	  return;
-	if (hp->base + hp->len == nextHp->base) {
-		hp->len += nextHp->len;		
+	if (hp->h_base + hp->h_len == nextHp->h_base) {
+		hp->h_len += nextHp->h_len;		
 		deleteSlot(hp, nextHp);
 	}
 }
@@ -83,18 +85,18 @@ void freeMemory(phys_clicks base, phys_clicks clicks) {
 	  return;
 	if ((newHp = freeSlots) == NIL_HOLE)
 	  panic(__FILE__, "hole table full", NO_NUM);
-	newHp->base = base;
-	newHp->len = clicks;
-	freeSlots = newHp->next;
+	newHp->h_base = base;
+	newHp->h_len = clicks;
+	freeSlots = newHp->h_next;
 	hp = holeHead;
 
 	/* If this block's address is numerically less than the lowest hole currently
 	 * available, or if no holes are currently available, put this hole on the
 	 * front of the hole list.
 	 */
-	if (hp == NIL_HOLE || base <= hp->base) {
+	if (hp == NIL_HOLE || base <= hp->h_base) {
 		/* Block to be freed goes on front of the hole list. */
-		newHp->next = hp;
+		newHp->h_next = hp;
 		holeHead = newHp;
 		merge(newHp);
 		return;
@@ -102,14 +104,14 @@ void freeMemory(phys_clicks base, phys_clicks clicks) {
 
 	/* Block to be returned does not go on front of hole list. */
 	prevHp = NIL_HOLE;
-	while (hp != NIL_HOLE && base > hp->base) {
+	while (hp != NIL_HOLE && base > hp->h_base) {
 		prevHp = hp;
-		hp = hp->next;
+		hp = hp->h_next;
 	}
 
 	/* We found where it goes. Insert block after 'prevHp'. */
-	newHp->next = hp;
-	prevHp->next = newHp;
+	newHp->h_next = hp;
+	prevHp->h_next = newHp;
 	merge(prevHp);		/* Sequence is 'prevHp', 'newHp', 'hp' */
 }
 
@@ -128,9 +130,9 @@ void initMemory(Memory *chunks, phys_clicks *freeClicks) {
 
 	/* Put all holes on the free list. */
 	for (hp = &holes[0]; hp < &holes[NR_HOLES]; ++hp) {
-		hp->next = hp + 1;
+		hp->h_next = hp + 1;
 	}
-	holes[NR_HOLES - 1].next = NIL_HOLE;
+	holes[NR_HOLES - 1].h_next = NIL_HOLE;
 	holeHead = NIL_HOLE;
 	freeSlots = &holes[0];
 	
@@ -174,4 +176,48 @@ void swapIn() {
  * interrupt it, or something.
  */	
 	//TODO
+}
+
+static bool swapOut() {
+/* Try to find a process that can be swapped out. Candidates are those blocked
+ * on a system call that PM handles, like wait(), pause() or sigsuspend().
+ */
+	//TODO
+	if (swapFd == -1) return false; //TODO
+	return false;
+}
+
+phys_clicks allocMemory(phys_clicks clicks) {
+/* Allocate a block of memory from the free list using first fit. The block
+ * consists of a sequence of contiguous bytes, whose length in clicks is 
+ * given by 'clicks'. A pointer to the block is returned. The block is
+ * always on a click boundary. This procedure is called when memory is
+ * needed for FORK or EXEC. Swap other processes out if needed.
+ */
+	register Hole *hp, *prevHp;
+	phys_clicks oldBase;
+	
+	do {
+		prevHp = NIL_HOLE;
+		hp = holeHead;
+		while (hp != NIL_HOLE && hp->h_base < swapBase) {
+			if (hp->h_len >= clicks) {
+				/* We found a hole that is big enough. Use it. */
+				oldBase = hp->h_base;	/* Remember where it started */
+				hp->h_base += clicks;	/* Bite a piece off */
+				hp->h_len -= clicks;	/* Ditto */
+
+				/* Delete the hole if used up completely. */
+				if (hp->h_len == 0)
+				  deleteSlot(prevHp, hp);
+				
+				/* Return the start address of the acquired block. */
+				return oldBase;
+			}
+			prevHp = hp;
+			hp = hp->h_next;
+		}
+	} while (swapOut());	/* Try to swap some other process out */
+
+	return NO_MEM;
 }

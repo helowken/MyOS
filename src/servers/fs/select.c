@@ -21,3 +21,8 @@ void initSelect() {
 		fsInitTimer(&selectTable[i].timer);
 	}
 }
+
+int selectNotified(int major, int minor, int ops) {
+//TODO
+	return 0;
+}

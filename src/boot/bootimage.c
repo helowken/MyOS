@@ -147,19 +147,6 @@ static void rawClear(u32_t addr, u32_t count) {
 	}
 }
 
-static void printProgramHeader(Elf32_Phdr *phdrPtr) {
-	if (phdrPtr->p_type != PT_NULL) {
-		printf("type: %d, ", phdrPtr->p_type);
-		printf("offset: %d, ", phdrPtr->p_offset);
-		printf("vaddr: %d, ", phdrPtr->p_vaddr);
-		printf("paddr: %d\n", phdrPtr->p_paddr);
-		printf("filesz: %d, ", phdrPtr->p_filesz);
-		printf("memsz: %d, ", phdrPtr->p_memsz);
-		printf("flags: %d, ", phdrPtr->p_flags);
-		printf("type: %d\n", phdrPtr->p_align);
-	}
-}
-
 static bool isBadImage(char *procName, Elf32_Ehdr *ehdrPtr) {
 	if (ehdrPtr->e_ident[EI_MAG0] != ELFMAG0 ||
 				ehdrPtr->e_ident[EI_MAG1] != ELFMAG1 ||
@@ -357,12 +344,6 @@ static void execImage(char *image) {
 
 			/* Bad label, skip this process */
 			vsec += getProcSize(&imgHdr);
-		}
-		if (false) {
-			printProgramHeader(&proc->codeHdr);
-			printf("----------------\n");
-			printProgramHeader(&proc->dataHdr);
-			printf("================\n");
 		}
 
 	    addr = align(addr, CLICK_SIZE);
