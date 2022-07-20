@@ -7,6 +7,7 @@
 #define EXIST_FLAG	0x02
 
 static char *progName;
+static bool showPrimary = false, showSubPart = false, quiet = false;
 static int nPart = 0;
 static PartitionEntry primary, table[2 * NR_PARTITIONS + 1];
 static char *device;
@@ -14,12 +15,12 @@ static const unsigned heads = 255;
 static const unsigned sectors = 63;
 
 static void usage() {
-	usageErr("%s [-mfn] device [type:]length[+*]", progName);
+	usageErr("%s [-psq] device [type:]length[+*]", progName);
 }
 
 static void parse(char *desc) {
 	int seen = 0, type, flags, c;
-	unsigned long lowSector, sectorCount;
+	unsigned long sectorCount;
 
 	if (strchr(desc, ':') == NULL) {
 		/* A hole. */
@@ -111,20 +112,15 @@ static void showCHS(unsigned long pos) {
 	printf("  %4d/%03d/%02d", cyl, head, sec);
 }
 
-static void showPart(PartitionEntry *p) {
+static void showPart(PartitionEntry *p, int n) {
 	static bool banner = false;
-	int n;
-
-	n = p - table;
-	if (n % 2 == 0)
-	  return;
 
 	if (!banner) {
-		printf("Part      First        Last         Base      Size       Kb\n");
+		printf("Part    CHS First     CHS Last     Start   Sectors       Kb\n");
 		banner = true;
 	}
 
-	printf("%3d ", (n - 1) / 2);
+	printf("%3d%s", n, (p->status & ACTIVE_FLAG) ? "*" : " ");
 	showCHS(p->lowSector);
 	showCHS(p->lowSector + p->sectorCount - 1);
 	printf("  %8u  %8u  %7u\n", p->lowSector, p->sectorCount, 
@@ -138,6 +134,7 @@ static void distribute() {
  */
 	PartitionEntry *pe, *exp;
 	unsigned long base, oldBase, count;
+	int i;
 
 	do {
 		exp = NULL;
@@ -164,7 +161,7 @@ static void distribute() {
 		}
 	} while (exp != NULL);
 
-	for (pe = table; pe < arrayLimit(table); ++pe) {
+	for (i = 0, pe = table; pe < arrayLimit(table); ++pe, ++i) {
 		if (pe->type == NO_PART) {
 			memset(pe, 0, sizeof(*pe));
 		} else {
@@ -172,15 +169,39 @@ static void distribute() {
 			sec2Dos(pe->lowSector + pe->sectorCount - 1, &pe->lastHead);
 			pe->status &= ACTIVE_FLAG;
 		}
-		showPart(pe);
+		if (i % 2 > 0 && !quiet)
+		  showPart(pe, (i - 1) / 2);
 	}
 }
 
 static void geometry() {
 	int fd;
+	int i;
+	PartitionEntry table[NR_PARTITIONS];
 
 	fd = ROpen(device);
-	getActivePartition(fd, &primary);
+	getPartitionTable(device, fd, PART_TABLE_OFF, table);
+	findActivePartition(table, &primary);
+
+	if (showPrimary) {
+		printf("\n");
+		printf("==== Primary Partition Table ====\n");
+		for (i = 0; i < NR_PARTITIONS; ++i) {
+			showPart(&table[i], i);
+		}
+	}
+
+	if (showSubPart) {
+		printf("\n");
+		memset(table, 0, sizeof(table));
+		getPartitionTable(device, fd, OFFSET(primary.lowSector) + PART_TABLE_OFF, table);
+		printf("==== Sub Partition Table ====\n");
+		for (i = 0; i < NR_PARTITIONS; ++i) {
+			showPart(&table[i], i);
+		}
+	}
+	printf("\n");
+
 	Close(device, fd);
 }
 
@@ -195,15 +216,41 @@ static void writeTable() {
 	}
 
 	fd = WOpen(device);
-	Lseek(device, fd, PART_TABLE_OFF);
+	Lseek(device, fd, OFFSET(primary.lowSector) + PART_TABLE_OFF);
+	Write(device, fd, (char *) newTable, sizeof(newTable));
+	Write(device, fd, (char *) &signature, sizeof(signature));
 	Close(device, fd);
 }
 
 int main(int argc, char **argv) {
 	int i;
+	char *opt;
 
 	progName = argv[0];
 	i = 1;
+	while (i < argc && argv[i][0] == '-') {
+		opt = argv[i++] + 1;
+
+		if (opt[0] == '-' && opt[1] == 0)
+		  break;
+
+		while (*opt != 0) {
+			switch (*opt++) {
+				case 'p':
+					showPrimary = true;
+					break;
+				case 's':
+					showSubPart = true;
+					break;
+				case 'q':
+					quiet = true;
+					break;
+				default:
+					usage();
+			}
+		}
+	}
+
 
 	if (argc - i < 1)
 	  usage();
@@ -213,8 +260,10 @@ int main(int argc, char **argv) {
 	while (i < argc) {
 		parse(argv[i++]);
 	}
-	distribute();
-	writeTable();
 
+	if (!showPrimary && !showSubPart) {
+		distribute();
+		writeTable();
+	}
 	exit(EXIT_SUCCESS);
 }

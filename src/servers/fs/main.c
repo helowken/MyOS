@@ -211,7 +211,8 @@ static void loadSuper(dev_t dev) {
 	bad = readSuper(sp) != OK;
 	if (!bad) {
 		ip = getInode(dev, ROOT_INODE);		/* Inode for root dir */
-		if ((ip->i_mode & I_TYPE) != I_DIRECTORY || ip->i_nlinks < 3)
+		if (ip == NIL_INODE || (ip->i_mode & I_TYPE) != I_DIRECTORY)
+					//TODO || ip->i_nlinks < 3)
 		  ++bad;
 	}
 	if (bad) 

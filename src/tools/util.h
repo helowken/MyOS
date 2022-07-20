@@ -10,9 +10,13 @@
 #define arrayLimit(a)		((a) + arraySize(a))
 #define between(a, c, z)	((unsigned) ((c) - (a)) <= ((z) - (a)))
 
-void getActivePartition(int deviceFd, PartitionEntry *pe);
+void getActivePartition(char *device, int fd, PartitionEntry *pe);
 
-void getActivePartition2(int deviceFd, PartitionEntry *pep, unsigned long *totalSectors);
+void findActivePartition(PartitionEntry *table, PartitionEntry *pe);
+
+void getPartitionTable(char *device, int fd, off_t off, PartitionEntry *table);
+
+char *parseDevice(char *device, uint32_t *bootSecPtr, PartitionEntry *pe);
 
 int Open(char *fileName, int flags);
 

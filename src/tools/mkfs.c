@@ -18,6 +18,8 @@
 #define MAX_MAX_SIZE	((unsigned long) 0xffffffff)
 #define ZONE_SHIFT		0
 
+static uint32_t reservedSectors = 0;
+static uint32_t sectorCount;
 static long currentTime;
 static char *device;
 static int deviceFd;
@@ -32,11 +34,11 @@ static int inodeOffset;
 static int nextZone, nextInode, zoneOffset, blocksPerZone;
 static Zone_t zoneMap;
 
-static char *procName;
+static char *progName;
 static char *units[] = {"bytes", "KB", "MB", "GB"};
 
 static void usage() {
-	usageErr("%s [-b blocks] [-i inodes] [-B blocksize] device\n", procName);
+	usageErr("%s [-b blocks] [-i inodes] [-B blocksize] device\n", progName);
 }
 
 static char *allocBlock() {
@@ -51,14 +53,11 @@ static char *allocBlock() {
 
 static Block_t sizeup() {
 	Block_t maxBlocks;
-	PartitionEntry pe;
 
-	getActivePartition(deviceFd, &pe);
-	lowSector = pe.lowSector;	/* Save the lowSector for writing data to disk */
-	maxBlocks = pe.sectorCount / RATIO(blockSize);
+	maxBlocks = sectorCount / RATIO(blockSize);
 
 	/* Reserve space for the boot image */
-	maxBlocks -= RATIO(BOOT_IMG_SIZE) / RATIO(blockSize);
+	maxBlocks -= reservedSectors / RATIO(blockSize);
 
 	return maxBlocks;
 }
@@ -70,10 +69,10 @@ static Block_t computeBlocks(Block_t blocks) {
 	if (blocks == 0) {
 		blocks = maxBlocks;
 		if (blocks < 1)
-		  fatal("%s: this device can't hold a filesystem.\n", procName);
+		  fatal("%s: this device can't hold a filesystem.\n", progName);
 	}
 	if (blocks > maxBlocks) 
-	  fatal("%s: number of blocks too large for device.\n", procName);
+	  fatal("%s: number of blocks too large for device.\n", progName);
 
 	if (blocks < 5)
 	  fatal("Block count too small");
@@ -591,6 +590,7 @@ static void calibrateBlockSize() {
 }
 
 int main(int argc, char *argv[]) {
+	PartitionEntry pe;
 	Zone_t zones;
 	Block_t blocks;
 	Ino_t inodes;
@@ -598,10 +598,10 @@ int main(int argc, char *argv[]) {
 	Ino_t rootInoNum;
 	int ch;
 
-	procName = argv[0];
+	progName = argv[0];
 	blocks = 0;
 	inodes = 0;
-	while ((ch = getopt(argc, argv, "b:i:B:h")) != EOF) {
+	while ((ch = getopt(argc, argv, "b:i:B:r:h")) != EOF) {
 		switch (ch) {
 			case 'b':
 				blocks = strtoul(optarg, (char **) NULL, 0);
@@ -612,6 +612,9 @@ int main(int argc, char *argv[]) {
 			case 'B':
 				blockSize = atoi(optarg);
 				break;
+			case 'r':
+				reservedSectors = atoi(optarg);
+				break;
 			default:
 				usage();
 		}
@@ -619,7 +622,9 @@ int main(int argc, char *argv[]) {
 	if (argc - optind < 1)
 	  usage();
 
-	device = argv[optind];
+	device = parseDevice(argv[optind], NULL, &pe);
+	lowSector = pe.lowSector;
+	sectorCount = pe.sectorCount;
 	deviceFd = RWOpen(device);
 	currentTime = time(NULL);
 

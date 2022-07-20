@@ -111,7 +111,7 @@ void partition(Driver *dp, int device, int style) {
 
 		if (style == P_PRIMARY) {
 			/* Each Minix primary partition can be sub-partitioned. */
-			if (pe->type == MINIX_PART) 
+			if (pe->type == MINIX_PART)  
 			  partition(dp, device + part, P_SUB);
 
 			/* An extended partition has logical partitions. */

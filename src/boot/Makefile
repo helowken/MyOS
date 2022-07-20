@@ -2,13 +2,34 @@ MY_HOME = ..
 MODE = M16
 include $(MY_HOME)/common.mk
 
+# Device
 DIR_DEVICE = device
 DIR_TOOLS = $(MY_HOME)/tools
 DISK_IMAGE = $(DIR_DEVICE)/testOS.img
+BOOT_IMG_SECTORS = 2048
+
+# Partition
+DEV_SIZE = $(shell stat -c%s $(DISK_IMAGE))
+ROOT_MB = 16
+ROOT_SECTORS = $(shell expr $(ROOT_MB) '*' 1024 '*' 2)
+HOME_SECTORS = $(shell expr $(DEV_SIZE) '/' 5 '/' 512)
+PART_TYPE = 81
+ROOT_PART = $(PART_TYPE):$(ROOT_SECTORS)* 
+HOME_PART = $(PART_TYPE):$(HOME_SECTORS)
+USR_PART = $(PART_TYPE):0+
+
+# Make FS
+PRIMARY = p0
+FS_ROOT = $(PRIMARY)s0
+FS_HOME = $(PRIMARY)s1
+FS_USR = $(PRIMARY)s2
+
+# Program
 LIBS = -L$(MY_HOME)/lib/m16 \
 	   -lmyc -lmysysutil
 INSTALL = $(DIR_TOOLS)/installboot.bin
 MKFS = $(DIR_TOOLS)/mkfs.bin
+PARTITION = $(DIR_TOOLS)/partition.bin
 BOOT = boot.bin
 ENV_MODULES_FILE=$(MY_HOME)/env_modules
 
@@ -50,19 +71,28 @@ boot.elf: \
 $(BOOT): boot.elf
 	objcopy -O binary -j .text -j .rodata -j .data $< $@ 
 
-install: reset \
+install: partition \
+	mkfs \
 	install_masterboot \
 	install_device 
 
 install_masterboot: masterboot.bin 
 	$(INSTALL) -m $(DISK_IMAGE) $<
+	$(INSTALL) -m $(PRIMARY):$(DISK_IMAGE) $<
 
 install_device: bootblock.bin $(BOOT)
-	$(INSTALL) -d $(DISK_IMAGE) $< $(BOOT) $(ENV_MODULES_FILE) $(PROGRAMS)
+	$(INSTALL) -d $(FS_ROOT):$(DISK_IMAGE) $^ $(BOOT_IMG_SECTORS) \
+		$(ENV_MODULES_FILE) $(PROGRAMS)
 
-reset:
+partition:
 	cd $(DIR_DEVICE) && ./run && cd ..
-	$(MKFS) $(DISK_IMAGE)
+	$(PARTITION) -q $(DISK_IMAGE) $(ROOT_PART) $(HOME_PART) $(USR_PART)
+	$(PARTITION) -ps $(DISK_IMAGE)
+
+mkfs:
+	$(MKFS) -r$(BOOT_IMG_SECTORS) $(FS_ROOT):$(DISK_IMAGE)
+	$(MKFS) $(FS_HOME):$(DISK_IMAGE)
+	$(MKFS) $(FS_USR):$(DISK_IMAGE)
 
 disasm: $(DEBUG)
 	$(call disasmCode,$<,16)

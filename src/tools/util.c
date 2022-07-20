@@ -1,27 +1,21 @@
 #include "common.h"
 #include "util.h"
 
-void getActivePartition(int deviceFd, PartitionEntry *pep) {
-	getActivePartition2(deviceFd, pep, NULL);
+void getActivePartition(char *device, int fd, PartitionEntry *pep) {
+	PartitionEntry table[NR_PARTITIONS];
+
+	getPartitionTable(device, fd, PART_TABLE_OFF, table);
+	findActivePartition(table, pep);	
 }
 
-void getActivePartition2(int deviceFd, PartitionEntry *pep, unsigned long *totalSectors) {
+void findActivePartition(PartitionEntry *table, PartitionEntry *pep) {
 	int i, activeCount = 0;
 	bool found = false;
-	PartitionEntry pe;
-	unsigned long total = 0;
 
-	if (lseek(deviceFd, PART_TABLE_OFF, SEEK_SET) == -1)
-	  errExit("lseek partition table");
-	
 	for (i = 0; i < NR_PARTITIONS; ++i) {
-		if (read(deviceFd, &pe, sizeof(pe)) != sizeof(pe))
-		  errExit("read partition %d from device", i);
-		//printf("%d, %u, %u, %u\n", i, pe.status, pe.type, pe.lowSector);
-		total += pe.sectorCount;
-		if (BOOTABLE(&pe)) {
+		if (BOOTABLE(&table[i])) {
 			if (!found) {
-				*pep = pe;
+				*pep = table[i];
 				found = true;
 			}
 			if (activeCount++ > 0)
@@ -30,9 +24,71 @@ void getActivePartition2(int deviceFd, PartitionEntry *pep, unsigned long *total
 	}
 	if (activeCount == 0)
 	  fatal("no active partition found");
-	
-	if (totalSectors) 
-	  *totalSectors = total;
+}
+
+void getPartitionTable(char *device, int fd, off_t off, PartitionEntry *table) {
+	int i;
+
+	Lseek(device, fd, off);
+	for (i = 0; i < NR_PARTITIONS; ++i) {
+		Read(device, fd, (char *) &table[i], sizeof(PartitionEntry));
+	}
+}
+
+char *parseDevice(char *device, uint32_t *bootSecPtr, PartitionEntry *pep) {
+	int fd;
+	char *s, *path;
+	int len, part, subPart;
+	PartitionEntry pe, table[NR_PARTITIONS];
+	uint32_t lowSector;
+
+	s = strchr(device, ':');
+	if (s == NULL) {
+		fd = ROpen(device);
+		getActivePartition(device, fd, &pe);
+		if (bootSecPtr) 
+		  *bootSecPtr = 0;
+		lowSector = pe.lowSector;
+	} else {
+		path = device;
+		device = s + 1;
+		*s = 0;
+		fd = ROpen(device);
+
+		len = strlen(path);
+		if (len == 2) {
+			sscanf(path, "p%d", &part);
+			subPart = -1;
+		} else if (len == 4) {
+			sscanf(path, "p%ds%d", &part, &subPart);
+		}
+
+		if (!between(0, part, NR_PARTITIONS))
+		  fatal("Invalid part: %d\n", part);
+		getPartitionTable(device, fd, PART_TABLE_OFF, table);
+		if (table[part].type == NO_PART)
+		  fatal("Invalid part: %d\n", part);
+
+		lowSector = table[part].lowSector;
+		if (bootSecPtr)
+		  *bootSecPtr = lowSector;
+
+		if (subPart != -1) {
+			if (!between(0, subPart, NR_PARTITIONS))
+			  fatal("Invalid sub-part: %d\n", subPart);
+			getPartitionTable(device, fd, 
+					OFFSET(lowSector) + PART_TABLE_OFF, table);
+			if (table[subPart].type == NO_PART)
+			  fatal("Invalid sub-part: %d\n", subPart);
+
+			lowSector = table[subPart].lowSector;
+			if (pep)
+			  *pep = table[subPart];
+		} else if (pep) {
+			*pep = table[part];
+		}
+	}
+	return device;
 }
 
 int Open(char *fileName, int flags) {

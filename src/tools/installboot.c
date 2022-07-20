@@ -3,14 +3,13 @@
 #include "dirent.h"
 #include "../boot/rawfs.h"
 
-#define MASTER_BOOT_OFF		0			/* Master boot offset in device */
 #define MASTER_BOOT_SIZE	440
 #define BOOT_BLOCK_OFF		0			/* Boot block offset in partition */
-#define BOOT_BLOCK_SIZE		1024		/* Like standard UNIX, reserves 1K block of disk device
+#define BOOT_BLOCK_SIZE		OFFSET(2)	/* Like standard UNIX, reserves 1K block of disk device
 										   as a bootBlock, but only one 512-byte sector is loaded
 										   by the master boot sector, so 512 bytes are available
 										   for saving settings (params) */
-#define PARAM_SIZE			512
+#define PARAM_SIZE			SECTOR_SIZE
 #define SIGNATURE_POS		510
 #define SIGNATURE			0xAA55
 #define BOOT_MAX			64			/* bootable max size must be <= 64K, since BIOS has a 
@@ -36,13 +35,14 @@ typedef struct {
 	size_t size;
 } StackConfig;
 
-static char *procName;
+static char *progName;
 static char *device;
 static int deviceFd;
-static uint32_t lowSector;
+static uint32_t bootSector, lowSector;
 static int imgCount;
 static StackConfig *sc;
 static int scCount;
+static uint32_t maxSize;
 
 static char *paramsTpl = 
 	"rootdev=%s;"
@@ -68,15 +68,6 @@ static void usage() {
 	exit(1);
 }
 
-static uint32_t getLowSector(int deviceFd) {
-	PartitionEntry pe;
-
-	getActivePartition(deviceFd, &pe);
-	return pe.lowSector;
-}
-
-typedef void (*preCopyFunc)(int destFd, int srcFd);
-
 static void installMasterboot(char *masterboot) {
 /* Install masterboot to the first sector of device */
 	int mbrFd;
@@ -85,7 +76,7 @@ static void installMasterboot(char *masterboot) {
 	memset(buf, 0, MASTER_BOOT_SIZE);
 	mbrFd = ROpen(masterboot);
 	Read(masterboot, mbrFd, buf, MASTER_BOOT_SIZE);
-	sDev(MASTER_BOOT_OFF);
+    sDev(OFFSET(bootSector));
 	wDev(buf, MASTER_BOOT_SIZE);
 	Close(masterboot, mbrFd);
 }
@@ -226,7 +217,7 @@ static void padImage(size_t len) {
 	bufOff += len;
 }
 
-static void copyExec(char *procName, FILE *imgFile, Elf32_Phdr *hdr) {
+static void copyExec(char *progName, FILE *imgFile, Elf32_Phdr *hdr) {
 	size_t size = hdr->p_filesz;
 	int padLen;
 
@@ -238,9 +229,9 @@ static void copyExec(char *procName, FILE *imgFile, Elf32_Phdr *hdr) {
 	adjustBuf(size);
 
 	if (fseek(imgFile, hdr->p_offset, SEEK_SET) == -1)
-	  errExit("fseek %s", procName);
+	  errExit("fseek %s", progName);
 	if (fread(currBuf, size, 1, imgFile) != 1 || ferror(imgFile))
-	  errExit("copyExec fread %s", procName);
+	  errExit("copyExec fread %s", progName);
 
 	bufOff += size;
 
@@ -288,7 +279,7 @@ static void readStacks() {
 
 	/* Get directory of this executable. */
 	if ((len = readlink("/proc/self/exe", buf, FILE_NAME_SIZE)) == -1)
-	  errExit("readlink %s", procName);
+	  errExit("readlink %s", progName);
 	buf[len] = 0;
 	if ((np = strrchr(buf, '/')) != NULL)
 	  *np = 0;
@@ -367,9 +358,9 @@ static void installImages(char **imgNames, int imgAddr, off_t bootSize,
 		
 		fclose(imgFile);
 
-		if (bootSize + bufOff > BOOT_IMG_SIZE)
+		if (bootSize + bufOff > maxSize)
 		  fatal("Total size of (boot + images) excceeds %dMB", 
-					  (BOOT_IMG_SIZE >> KB_SHIFT) >> KB_SHIFT);
+					  (maxSize >> KB_SHIFT) >> KB_SHIFT);
 	}
 	printf("   ------   ------   ------   ------   ------\n");
 	printf(" %8ld %8ld %8ld %8ld %8ld	total\n", totalText, totalData, totalBss, totalStack,
@@ -423,7 +414,7 @@ static void installBoot(char *boot, off_t *bootSizePtr, int *bootAddrPtr) {
 	/* Read and check the superblock. */
 	fsSize = rawSuper(&blockSize);
 	if (fsSize == 0)
-	  fatal("%s: %s is not a Minix file system\n", procName, device);
+	  fatal("%s: %s is not a Minix file system\n", progName, device);
 
 	/* Calculate boot size and addr. */
 	checkBootMemSize(boot);
@@ -580,18 +571,21 @@ static bool isOpt(char *opt, char *test) {
 }
 
 int main(int argc, char *argv[]) {
+	PartitionEntry pe;
+
 	if (argc < 4 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)
 	  usage();
 
-	procName = argv[0];
-	device = argv[2];
+	progName = argv[0];
+	device = parseDevice(argv[2], &bootSector, &pe);
+	lowSector = pe.lowSector;
 	deviceFd = RWOpen(device);
-	lowSector = getLowSector(deviceFd);
 
 	if (isOpt(argv[1], "-master")) {
 	    installMasterboot(argv[3]);
-	} else if (argc >= 7 && isOpt(argv[1], "-device")) {
-	    installDevice(argv[3], argv[4], argv[5], argv + 6);		
+	} else if (argc >= 8 && isOpt(argv[1], "-device")) {
+		maxSize = OFFSET(atoi(argv[5]));
+	    installDevice(argv[3], argv[4], argv[6], argv + 7); //TODO
 	} else {
 	  usage();
 	}

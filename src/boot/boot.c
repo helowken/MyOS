@@ -363,7 +363,7 @@ static void initialize() {
 			readDiskError(masterPos, r);
 			exit(1);
 		}
-	
+
 		/* See if we can find "lowSector" back. */
 		for (p = 0; p < NR_PARTITIONS; ++p) {
 			if (lowSector - table[p]->lowSector < table[p]->sectorCount) 
@@ -800,7 +800,7 @@ static void voidToken() {
 }
 
 static u32_t milliTime() {
-	return getTick() * MSEC_PER_TICK;
+	return getTick() * MSEC_PER_TICK;	//TODO, see tryclk */
 }
 
 static u32_t milliTimeSince(u32_t base) {

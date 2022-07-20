@@ -23,7 +23,6 @@ typedef enum { false, true } bool;
 
 #define KB				1024
 #define KB_SHIFT		10
-#define BOOT_IMG_SIZE	((1 << KB_SHIFT) << KB_SHIFT)
 
 #define EXTERN	extern
 

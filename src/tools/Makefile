@@ -26,7 +26,4 @@ partition.bin: partition.o $(COMMON_OBJS)
 clean:
 	rm -f *.o *.bin
 
-test: partition.bin
-	./$< ../boot/device/testOS.img 1 81:32768* 81:40960 81:0+
-
 
