@@ -7,7 +7,7 @@ typedef long	clock_t;			/* Unit for system accounting */
 #endif
 
 #ifndef _SIZE_T
-#define	_SIZE_T
+#define	_SIZE_T 
 typedef unsigned int size_t;
 #endif
 
@@ -51,6 +51,8 @@ typedef short			i16_t;
 typedef long			i32_t;
 
 typedef struct { u32_t _[2]; } u64_t;
+
+typedef int				_mnx_Mode_t;
 
 /* To avoid confliting with Linux types */
 typedef off_t			Off_t;		

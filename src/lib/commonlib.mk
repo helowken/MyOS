@@ -1,31 +1,28 @@
-MY_HOME = ../..
 include $(MY_HOME)/common.mk
-LIB_M32 = ../lib$(LIB_NAME).a
-LIB_M16 = ../m16/lib$(LIB_NAME).a
-LIB = $(LIB_M32)
-ifeq ($(MODE), M16)
-	LIB = $(LIB_M16)
+CFLAGS += -D_MINIX -D_POSIX_SOURCE
+CFLAGS_16 = $(CFLAGS) -D_M16
+LIB_DIR = $(MY_HOME)/lib
+LIB_M32 = $(LIB_DIR)/lib$(LIB_NAME).a
+LIB_M16 = $(LIB_DIR)/m16/lib$(LIB_NAME).a
+DIR_16 = b16
+
+ifdef NEED_16
+$(shell mkdir -p $(DIR_16))
 endif
 
-all: $(LIB)
 
-clean: clean_m16 clean_m32
+$(DIR_16)/%.o: %.c $(HEADERS)
+	$(CC) $(CFLAGS_16) $< -o $@
 
-clean_m16: clean_m16_objs
-	rm -f $(LIB_M16)
-
-clean_m16_objs:
-	rm -f $(OBJS_M16)
-
-clean_m32: clean_m32_objs
-	rm -f $(LIB_M32)
-
-clean_m32_objs:
-	rm -f $(OBJS_M32)
-
-$(LIB_M16): clean_m16_objs $(OBJS_M16)
+$(LIB_M16): $(OBJS_M16)
 	ar rcs $@ $(OBJS_M16)
 
-$(LIB_M32): clean_m32_objs $(OBJS_M32)
+$(LIB_M32): $(OBJS_M32)
 	ar rcs $@ $(OBJS_M32)
+
+clean16:
+	rm -f $(DIR_16)/*.o
+
+clean32: 
+	rm -f *.o
 

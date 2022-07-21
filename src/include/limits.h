@@ -13,6 +13,6 @@
 
 #define NAME_MAX	DIR_SIZE	/* chars in a file name */
 
-#define OPEN_MAX	20	/* # open files a process may hae */
+#define OPEN_MAX	20	/* # open files a process may have */
 
 #endif

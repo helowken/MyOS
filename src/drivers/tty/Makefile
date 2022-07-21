@@ -6,13 +6,14 @@ LIBS = -L$(MY_HOME)/lib \
 OBJS = $(ENTRY) tty.o console.o vidcopy.o keyboard.o rs232.o pty.o
 NAME = tty
 DRIVER = $(NAME).bin
+STACK_SIZE = 1024
 
 all: $(DRIVER)
 
 $(DRIVER): $(OBJS) 
 	$(call link,$^,$(LIBS),$@) 
 	$(call createDebug,$@,$(DEBUG))
-	$(call setStack,512,$(NAME))
+	$(call setStack,$(STACK_SIZE),$(NAME))
 
 clean:
 	$(call cleanCommon)

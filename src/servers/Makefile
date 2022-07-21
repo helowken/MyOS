@@ -1,7 +1,9 @@
-all:
-	cd pm && $(MAKE)
-	cd fs && $(MAKE)
+MODULES = \
+		pm \
+		fs \
+		init
 
-clean:
-	cd pm && $(MAKE) clean
-	cd fs && $(MAKE) clean
+
+include ../modules.mk
+
+clean: mk_clean

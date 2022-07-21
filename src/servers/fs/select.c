@@ -1,6 +1,5 @@
 #include "fs.h"
 #include "select.h"
-#include "file.h"
 #include "sys/time.h"
 #include "sys/select.h"
 

@@ -1,5 +1,4 @@
 #include "fs.h"
-#include "file.h"
 
 void updateTimes(Inode *ip) {
 /* Various system calls are required by the standard to update atime, ctime,

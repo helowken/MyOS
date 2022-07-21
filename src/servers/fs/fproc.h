@@ -6,6 +6,7 @@ typedef struct FProc {
 	mode_t fp_umask;		/* Mask set by umask system call */
 	Inode *fp_work_dir;		/* Pointer to working directory's inode */
 	Inode *fp_root_dir;		/* Pointer to current root dir (see chroot) */
+	Filp *fp_filp[OPEN_MAX];	/* The file description table */
 	uid_t fp_ruid;			/* Real user id */
 	uid_t fp_euid;			/* Effective user id */
 	gid_t fp_rgid;			/* Real group id */

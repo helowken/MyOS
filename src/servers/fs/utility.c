@@ -1,7 +1,6 @@
 #include "fs.h"
 #include "minix/com.h"
 #include "unistd.h"
-#include "file.h"
 #include "param.h"
 
 static bool panicking;		/* Inhibits recursive panics durin sync */

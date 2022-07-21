@@ -4,6 +4,7 @@ struct Inode;
 #include "buf.h"
 #include "super.h"
 #include "inode.h"
+#include "file.h"
 
 /* device.c */
 int devOpen(dev_t dev, int proc, int flags);
@@ -26,6 +27,12 @@ int noSys();
 
 /* dmap.c */
 void buildDMap();
+
+/* filedes.c */
+Filp *getFilp(int fd);
+
+/* stadir.c */
+int doFstat();
 
 /* super.c */
 int readSuper(SuperBlock *sp);

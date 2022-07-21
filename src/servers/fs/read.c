@@ -1,7 +1,6 @@
 #include "fs.h"
 #include "fcntl.h"
 #include "minix/com.h"
-#include "file.h"
 #include "param.h"
 
 void readAhead() {

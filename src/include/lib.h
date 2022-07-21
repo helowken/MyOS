@@ -19,5 +19,6 @@
 #define FS		FS_PROC_NR
 
 int syscall(int who, int callNum, Message *msg);
+void _loadName(const char *name, Message *msg);
 
 #endif

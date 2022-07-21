@@ -18,6 +18,7 @@ extern int errno;
 #define ENXIO		(_SIGN 6)	/* No such device or address */
 #define E2BIG		(_SIGN 7)	/* Arg list too long */
 #define ENOEXEC		(_SIGN 8)	/* Exec format error */
+#define EBADF		(_SIGN 9)	/* Bad file descriptor */
 #define ECHILD		(_SIGN 10)	/* No child process */
 #define EAGAIN		(_SIGN 11)	/* Resource temporarily unavailable */
 #define ENOMEM		(_SIGN 12)	/* No enough space */

@@ -4,7 +4,6 @@
 #include "minix/callnr.h"
 #include "minix/com.h"
 #include "sys/svrctl.h"
-#include "file.h"
 #include "param.h"
 
 int doSync() {

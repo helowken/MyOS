@@ -2,6 +2,7 @@
 #define NR_DIRECT_ZONES			7	/* # direct zone numbers in a inode */
 #define NR_TOTAL_ZONES			10	/* total # zone numbers in a inode */
 
+#define NR_FILPS				128	/* # slots in filp table */
 #define NR_INODES				64	/* # slots in "in core" inode table */
 #define NR_SUPERS				8	/* # slots in super block table */
 

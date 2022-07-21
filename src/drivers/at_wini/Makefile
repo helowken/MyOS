@@ -11,13 +11,14 @@ LIB_PCI = $(PCI_DIR)/pci.o $(PCI_DIR)/pci_table.o
 LIB_DRIVER = $(DRIVER_DIR)/driver.o $(DRIVER_DIR)/drvlib.o
 NAME = at_wini
 DRIVER = $(NAME).bin
+STACK_SIZE = 8192
 
 all: $(DRIVER)
 
 $(DRIVER): $(OBJS) $(LIB_PCI) $(LIB_DRIVER)
 	$(call link,$^,$(LIBS),$@) 
 	$(call createDebug,$@,$(DEBUG))
-	$(call setStack,8192,$(NAME))
+	$(call setStack,$(STACK_SIZE),$(NAME))
 
 $(LIB_PCI): 
 	cd $(PCI_DIR) && $(MAKE)

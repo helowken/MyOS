@@ -5,20 +5,9 @@ INC_HEADERS = *.h \
 			  $(INC)/*.h \
 			  $(INC)/sys/*.h \
 			  $(INC)/ibm/*.h \
-			  $(INC)/minix/*.h \
-			  $(INC)/sys/*.h 
+			  $(INC)/minix/*.h 
 
 CFLAGS = -g -c -m32 -ffreestanding -nostdinc -nodefaultlibs -Wall -Werror -I$(INC)
-O_CFLAGS = $(CFLAGS)
-ifeq ($(MODE), M16)
-	CFLAGS += -D_M16
-endif
-ifdef DEBUG
-	CFLAGS += -DDEBUG=1
-else
-	CFLAGS += -DDEBUG=0
-endif
-
 C_SOURCE = $(wildcard *.c)
 HEADERS = $(wildcard $(INC_HEADERS))
 DEBUG = debug.bin

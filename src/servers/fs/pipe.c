@@ -5,7 +5,6 @@
 #include "minix/com.h"
 #include "sys/select.h"
 #include "sys/time.h"
-#include "file.h"
 #include "param.h"
 #include "select.h"
 

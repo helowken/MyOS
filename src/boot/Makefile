@@ -1,6 +1,6 @@
 MY_HOME = ..
-MODE = M16
 include $(MY_HOME)/common.mk
+CFLAGS += -D_M16
 
 # Device
 DIR_DEVICE = device
@@ -25,8 +25,7 @@ FS_HOME = $(PRIMARY)s1
 FS_USR = $(PRIMARY)s2
 
 # Program
-LIBS = -L$(MY_HOME)/lib/m16 \
-	   -lmyc -lmysysutil
+LIBS = -L$(MY_HOME)/lib/m16 -lmyc -lmysysutil
 INSTALL = $(DIR_TOOLS)/installboot.bin
 MKFS = $(DIR_TOOLS)/mkfs.bin
 PARTITION = $(DIR_TOOLS)/partition.bin

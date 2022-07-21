@@ -10,7 +10,6 @@
 #include "minix/com.h"
 #include "minix/keymap.h"
 #include "minix/const.h"
-#include "file.h"
 #include "param.h"
 
 #define KB	1024

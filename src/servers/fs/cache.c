@@ -1,6 +1,5 @@
 #include "fs.h"
 #include "minix/com.h"
-#include "file.h"
 
 static void removeLRU(Buf *bp) {
 	Buf *next, *prev;

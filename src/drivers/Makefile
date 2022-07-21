@@ -1,15 +1,12 @@
-all:
-	cd libpci && $(MAKE)
-	cd libdriver && $(MAKE)
-	cd at_wini && $(MAKE)
-	cd memory && $(MAKE)
-	cd log && $(MAKE)
-	cd tty && $(MAKE)
+MODULES = \
+		libpci \
+		libdriver \
+		at_wini \
+		memory \
+		log \
+		tty	
 
-clean:
-	cd libpci && $(MAKE) clean
-	cd libdriver && $(MAKE) clean
-	cd at_wini && $(MAKE) clean
-	cd memory && $(MAKE) clean
-	cd log && $(MAKE) clean
-	cd tty && $(MAKE) clean
+
+include ../modules.mk
+
+clean: mk_clean

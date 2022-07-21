@@ -9,13 +9,14 @@ OBJS = $(ENTRY) memory.o
 LIB_DRIVER = $(DRIVER_DIR)/driver.o 
 NAME = memory
 DRIVER = $(NAME).bin
+STACK_SIZE = 4096
 
 all: $(DRIVER)
 
 $(DRIVER): $(OBJS) $(LIB_DRIVER)
 	$(call link,$^,$(LIBS),$@) 
 	$(call createDebug,$@,$(DEBUG))
-	$(call setStack,2048,$(NAME))
+	$(call setStack,$(STACK_SIZE),$(NAME))
 
 $(LIB_DRIVER):
 	cd $(DRIVER_DIR) && $(MAKE)
