@@ -16,6 +16,7 @@
 
 static char *version = "2.20";
 static int fsOK = -1;	/* File system state. Initially unknown. */
+static int blockSize;
 static int activate;
 
 static struct biosDev {
@@ -100,6 +101,12 @@ static dev_t devCNd0[] = {	/* Refer to dmap.c */
 };
 #define MINOR_d0p0s0	128
 
+static int checkFS() {
+	if (fsOK == -1) 
+	  fsOK = rawSuper(&blockSize) != 0;
+	return fsOK;
+}
+
 dev_t name2Dev(char *name) {
 /* Translate , say, /dev/c0d0p2 to a device number. If the name can't be
  * found on the boot device, then do some guesswork. The global structure
@@ -110,7 +117,7 @@ dev_t name2Dev(char *name) {
 	ino_t ino;
 	char *n;
 	struct stat st;
-	int controllerNum, blockSize;
+	int controllerNum;
 
 	/* "boot *d0p2" means: make partition 2 active before you boot it. */
 	if ((activate = (name[0] == '*')))
@@ -179,9 +186,7 @@ dev_t name2Dev(char *name) {
 	}
 
 	/* Look the name up on the boot device for the UNIX device number. */
-	if (fsOK == -1) 
-	  fsOK = rawSuper(&blockSize) != 0;
-	if (fsOK) {
+	if (checkFS()) {
 		/* The current working directory is "/dev". */
 		ino = rawLookup(rawLookup(ROOT_INO, "dev"), name);
 		if (ino != 0) {
@@ -206,17 +211,17 @@ dev_t name2Dev(char *name) {
 	return dev;
 }
 
-void readBlock(Off_t blockNum, char *buf, int blockSize) {
+void readBlock(Off_t blockNum, char *buf, int blkSize) {
 /* Read blocks for the rawfs package. */
 	int r, sectors;
 	u32_t pos;
 
-	if (!blockSize) {
+	if (!blkSize) {
 		printf("blockSize: 0\n");
 		exit(1);
 	}
 
-	sectors = RATIO(blockSize);
+	sectors = RATIO(blkSize);
 	pos = lowSector + blockNum * sectors;
 	if ((r = readSectors(mon2Abs(buf), pos, sectors)) != 0) {
 		readDiskError(pos, r);
@@ -405,12 +410,12 @@ static void initialize() {
 
 enum ReservedNameEnum {
 	R_NULL, R_BOOT, R_CTTY, R_DELAY, R_ECHO, R_EXIT, R_HELP,
-	R_LS, R_MENU, R_OFF, R_SAVE, R_SET, R_TRAP, R_TEST, R_UNSET 
+	R_LS, R_STAT, R_MENU, R_OFF, R_SAVE, R_SET, R_TRAP, R_TEST, R_UNSET 
 };
 
 char ReservedNames[][6] = {
 	"", "boot", "ctty", "delay", "echo", "exit", "help",
-	"ls", "menu", "off", "save", "set", "trap", "test", "unset", 
+	"ls", "stat", "menu", "off", "save", "set", "trap", "test", "unset", 
 };
 
 int reserved(char *s) {
@@ -932,6 +937,64 @@ void parseCode(char *code) {
 	tokenize(&cmds, code);
 }
 
+static char *unixErr(int err) {
+	switch (err) {
+		case ENOENT: 
+			return "No such file or directory";
+		case ENOTDIR:
+			return "Not a directory";
+		default:
+			return "Unknown error";
+	}
+}
+
+static void ls(char *dir) {
+/* List the contents of a directory. */
+	ino_t ino;
+	struct stat st;
+	char name[NAME_MAX + 1];
+	
+	if (checkFS()) {
+		if (dir == NULL)
+		  dir = "/";
+		if ((ino = rawLookup(ROOT_INO, dir)) == 0 ||
+				(rawStat(ino, &st), rawReadDir(name)) == -1) {	/* Skip "." */
+			printf("ls: %s: %s\n", dir, unixErr(errno));
+			return;
+		}
+		rawReadDir(name);	/* Skip ".." too. */
+
+		while ((ino = rawReadDir(name)) != 0) {
+			printf("%s%s%s\n", dir, 
+				strcmp(dir, "/") == 0 ? "" : "/", name);
+		}
+	}
+}
+
+static void doStat(char *path) {
+	ino_t ino;
+	struct stat st;
+
+	if (checkFS()) {
+		if ((ino = rawLookup(ROOT_INO, path)) == 0) {
+			printf("stat: %s: %s\n", path, unixErr(errno));
+			return;
+		}
+		rawStat(ino, &st);
+		
+		printf("ino: %d\n", st.st_ino);
+		printf("mode: %d\n", st.st_mode);
+		printf("nlink: %d\n", st.st_nlink);
+		printf("uid: %d\n", st.st_uid);
+		printf("gid: %d\n", st.st_gid);
+		printf("rdev: 0x%x\n", st.st_rdev);
+		printf("size: %d\n", st.st_size);
+		printf("atime: %d\n", st.st_atime);
+		printf("mtime: %d\n", st.st_mtime);
+		printf("ctime: %d\n", st.st_ctime);
+	}
+}
+
 static void execute() {
 	Token *second, *third, *fourth, *sep;
 	char *name;
@@ -1147,17 +1210,20 @@ static void execute() {
 				(res == R_BOOT ||	/* boot device */
 				 res == R_CTTY ||	/* ctty */
 				 res == R_DELAY ||	/* delay msec */
-				 res == R_LS)) {	/* ls dir */
+				 res == R_LS ||
+				 res == R_STAT)) {	/* ls dir */
 		/*TODO
 		if (res == R_BOOT)
 		  bootDevice(second->token);
 		else if (res == R_CTTY)
 		  ctty(second->token);
-		else if (res == R_LS)
-		  ls(second->token);
 		else 
 		*/
-		if (res == R_DELAY)
+		if (res == R_LS)
+		  ls(second->token);
+		else if (res == R_STAT)
+		  doStat(second->token);
+		else if (res == R_DELAY)
 		  delay(a2l(second->token));
 		voidToken();
 		voidToken();
@@ -1187,7 +1253,7 @@ static void execute() {
 				ok = true;
 				break;
 			case R_LS:
-				/* TODO ls(NULL); */
+				ls(NULL);
 				ok = true;
 				break;
 			case R_MENU:

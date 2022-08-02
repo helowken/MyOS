@@ -25,6 +25,7 @@
 #define DIR_ENTRY_SIZE			usizeof(DirEntry)	/* # bytes/dir entry */
 #define NR_DIR_ENTRIES(b)		((b) / DIR_ENTRY_SIZE)	/* # dir entries/block */
 #define SUPER_SIZE				usizeof(SuperBlock)	/* Superblock size */
+#define PIPE_SIZE(b)			(NR_DIRECT_ZONES * (b))	/* Pipe size in bytes */
 
 #define ROOT_INODE				1		/* Inode number for root directory */
 #define BOOT_BLOCK		((Block_t) 0)	/* Block number of boot block */
@@ -42,6 +43,13 @@
 #define NORMAL					0		/* Forces getBlock() to do disk read */
 #define NO_READ					1		/* Prevents getBlock() from doing disk read */
 #define PREFETCH				2		/* Tells getBlock() not to read or mark dev */
+
+#define NO_BIT			((bit_t) 0)		/* Returned by allocBit() to signal failure */
+
+#define LOOK_UP					0		/* Tells searchDir to lookup string */
+#define ENTER					1		/* Tells searchDir to make dir entry */
+#define DELETE					2		/* Tells searchDir to delete entry */
+#define IS_EMPTY				3		/* Tells searchDir to ret. OK or ENOTEMPTY */
 
 #define CLEAN					0		/* Disk and memory copies identical */
 #define DIRTY					1		/* Disk and memory copies differ */

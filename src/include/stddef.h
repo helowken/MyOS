@@ -1,7 +1,7 @@
 #ifndef _STDDEF_H
 #define _STDDEF_H
 
-#define NULL ((void *)0)
+#define NULL ((void *) 0)
 
 #define offsetof(type, ident) ((size_t) (unsigned long) &((type *)0)->ident)
 

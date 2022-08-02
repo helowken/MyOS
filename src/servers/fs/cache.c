@@ -69,7 +69,7 @@ Buf *getBlock(
 
 	/* Remove the block that was just taken from its hash chain. */
 	hashCode = (int) bp->b_block_num & HASH_MASK;
-	prev = bufHashTable[hashCode];
+	prev = bufHashTable[hashCode];		/* See initBufPool() in main.c */
 	if (prev == bp) {
 		bufHashTable[hashCode] = bp->b_hash_next;
 	} else {
@@ -318,5 +318,66 @@ void invalidate(
 		  bp->b_dev = NO_DEV;
 	}
 }
+
+void freeZone(dev_t dev, zone_t num) {
+/* Return a zone. */
+	register SuperBlock *sp;
+	bit_t bit;
+
+	/* Locate the appropriate SuperBlock and return bit. */
+	sp = getSuper(dev);
+	if (num < sp->s_first_data_zone || num >= sp->s_zones)
+	  return;
+	bit = (bit_t) (num - (sp->s_first_data_zone - 1));
+	freeBit(sp, ZMAP, bit);
+	if (bit < sp->s_zone_search)
+	  sp->s_zone_search = bit;
+}
+
+zone_t allocZone(
+	dev_t dev,
+	zone_t z	/* Try to allocate new zone near this one */
+) {
+/* Allocate a new zone on the indicated device and return its number. */
+
+	SuperBlock *sp;
+	bit_t bit, b;
+
+	/* Note that the routine allocBit() returns 1 for the lowest possible
+	 * zone, which corresponds to sp->s_first_data_zone. To convert a value
+	 * between the bit number, 'b', used by allocBit() and the zone number, 'z',
+	 * stored in the inode, use the formula:
+	 *		z = b + sp->s_first_data_zone - 1
+	 * AllocBit() never returns 0, since this is used for NO_BIT (failure).
+	 */
+	sp = getSuper(dev);
+
+	/* If z is sp->s_first_data_zone, skip initial part of the map known to be 
+	 * fully in used. 
+	 */
+	if (z == sp->s_first_data_zone) 
+	  bit = sp->s_zone_search;
+	else
+	  bit = (bit_t) z - (sp->s_first_data_zone - 1);
+	
+	b = allocBit(sp, ZMAP, bit);
+	if (b == NO_BIT) {
+		errCode = ENOSPC;
+		printf("No space on %sdevice %d/%d\n", 
+			sp->s_dev == rootDev ? "root " : "", majorDev(dev), minorDev(dev));
+		return NO_ZONE;
+	}
+	if (z == sp->s_first_data_zone)
+	  sp->s_zone_search = b;	/* For next time */
+
+	/* 'sp->s_first_data_zone - 1' since zone 0 occupy no space. */
+	return sp->s_first_data_zone - 1 + ((zone_t) b);	
+}
+
+
+
+
+
+
 
 

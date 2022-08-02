@@ -1,6 +1,6 @@
 	.code16gcc
 	.text
-.equ	STACK_SIZE,		0x1400		
+.equ	STACK_SIZE,		0x2000		
 .equ	ESC,			0x1B	
 .equ	DS_SELECTOR,	3*8			# Kernel data selector
 .equ	ES_SELECTOR,	4*8			# Flat 4 GB

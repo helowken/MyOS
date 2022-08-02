@@ -39,3 +39,49 @@ time_t clockTime() {
 
 	return (time_t) (bootTime + (uptime / HZ));
 }
+
+int fetchName(char *path, int len, int flag) {
+/* Go get path and put it in 'userPath'.
+ * If 'flag' = 3 and 'len' <= M3_STRING, the path is present in 'message'.
+ * If it is not, go copy it from user space.
+ */
+	register char *pu, *pm;
+	int r;
+
+	/* Check name length for validity. */
+	if (len <= 0) {
+		errCode = EINVAL;
+		return EGENERIC;
+	}
+
+	if (len > PATH_MAX) {
+		errCode = ENAMETOOLONG;
+		return EGENERIC;
+	}
+
+	if (flag == M3 && len <= M3_STRING) {
+		/* Just copy the path from the message to 'userPath'. */
+		pu = userPath;
+		pm = inMsg.pathName;	/* Contained in input message */
+		do {
+			*pu++ = *pm++;
+		} while (--len);
+		r = OK;
+	} else {
+		/* String is not contained in the message. Get it from user space. */
+		r = sysDataCopy(who, (vir_bytes) path,
+				FS_PROC_NR, (vir_bytes) userPath, (phys_bytes) len);
+	}
+	return r;
+}
+
+
+
+
+
+
+
+
+
+
+

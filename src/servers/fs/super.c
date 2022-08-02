@@ -39,7 +39,7 @@ int readSuper(SuperBlock *sp) {
 	  return EINVAL;
 
 	sp->s_inodes_per_block = INODES_PER_BLOCK(bs);
-	sp->s_dzones = NR_DIRECT_ZONES;
+	sp->s_dir_zones = NR_DIRECT_ZONES;
 	sp->s_ind_zones = INDIRECT_ZONES(bs);
 	sp->s_inode_search = 0;
 	sp->s_zone_search = 0;
@@ -89,5 +89,127 @@ SuperBlock *getSuper(dev_t dev) {
 	panic(__FILE__, "can't find superblock for device (in decimal)", dev);
 	return NIL_SUPER;
 }
+
+void freeBit(register SuperBlock *sp, int map, bit_t bitReturned) {
+/* Return a zone or inode by turning off its bitmap bit. */
+	unsigned block, word, bit;
+	block_t startBlock;
+	bitchunk_t k, mask;
+	Buf *bp;
+
+	if (sp->s_readonly)
+	  panic(__FILE__, "can't free bit on read-only filesystem.", NO_NUM);
+
+	if (map == IMAP) 
+	  startBlock = START_BLOCK;	
+	else 
+	  startBlock = START_BLOCK + sp->s_imap_blocks;
+
+	block = bitReturned / FS_BITS_PER_BLOCK(sp->s_block_size);
+	word = (bitReturned % FS_BITS_PER_BLOCK(sp->s_block_size)) / FS_BITCHUNK_BITS;
+	bit = bitReturned % FS_BITCHUNK_BITS;
+	mask = 1 << bit;
+
+	bp = getBlock(sp->s_dev, startBlock + block, NORMAL);
+	k = bp->b_bitmaps[word];
+	if (!(k & mask)) 
+	  panic(__FILE__, map == IMAP ? "tried to free unused inode" :
+				  "tried to free unused block", NO_NUM);
+
+	k &= ~mask;
+	bp->b_bitmaps[word] = k;
+	bp->b_dirty = DIRTY;
+	
+	putBlock(bp, MAP_BLOCK);	/* TODO WRITE_IMMED? */
+}
+
+bit_t allocBit(SuperBlock *sp, int map, bit_t origin) {
+/* Allocate a bit from a bit map and return its bit number. */
+
+	block_t startBlock;		/* First bit block */
+	bit_t mapBits;		/* How many bits are there in the bit map? */
+	unsigned bitBlocks;		/* How many blocks are there in the bit map? */
+	unsigned block, word, bCount;
+	Buf *bp;
+	bitchunk_t *wp, *wLimit, k;
+	bit_t i, b;
+
+	if (sp->s_readonly)
+	  panic(__FILE__, "can't allocate bit on read-only filesystem.", NO_NUM);
+
+	if (map == IMAP) {
+		startBlock = START_BLOCK;
+		mapBits = sp->s_inodes + 1;
+		bitBlocks = sp->s_imap_blocks;
+	} else {
+		startBlock = START_BLOCK + sp->s_imap_blocks;
+		mapBits = sp->s_zones - (sp->s_first_data_zone - 1);
+		bitBlocks = sp->s_zmap_blocks;
+	}
+
+	/* Figure out where to start the bit search (depends on 'origin'). */
+	if (origin >= mapBits)
+	  origin = 0;
+
+	/* Locate the starting place. */
+	block = origin / FS_BITS_PER_BLOCK(sp->s_block_size);
+	word = (origin % FS_BITS_PER_BLOCK(sp->s_block_size)) / FS_BITCHUNK_BITS;
+
+	/* Iterate over all blocks plus one, because we start in the middle. 
+	 * E.g, block = 3, bitBlocks = 6, word = n (n > 0),
+	 * searching will start from 3[n] to 6, then wrap around, from 0 to 2, 
+	 * and there is 3[0] ~ 3[n - 1] left, so need to plus 1.
+	 */
+	bCount = bitBlocks + 1;
+	do {
+		bp = getBlock(sp->s_dev, startBlock + block, NORMAL);		
+		wLimit = &bp->b_bitmaps[FS_BITMAP_CHUNKS(sp->s_block_size)];
+		
+		/* Iterate over the words in block. */
+		for (wp = &bp->b_bitmaps[word]; wp < wLimit; ++wp) {
+			/* Does this word contain a free bit? */
+			if (*wp == (bitchunk_t) ~0)
+			  continue;
+
+			/* Find and allocate the free bit. */
+			k = *wp;
+			for (i = 0; (k & (1 << i)) != 0; ++i) {
+			}
+
+			/* Bit number from the start of the bit map. */
+			b = ((bit_t) block * FS_BITS_PER_BLOCK(sp->s_block_size)) +
+				(wp - &bp->b_bitmaps[0]) * FS_BITCHUNK_BITS + i;
+			
+			/* Don't allocate bits beyond the end of the map, since there
+			 * may be more bits left, but no more space for inode/zone.
+			 */
+			if (b >= mapBits)
+			  break;
+
+			/* Allocate and return bit number. */
+			k |= 1 << i;
+			*wp = k;
+			bp->b_dirty = DIRTY;
+			putBlock(bp, MAP_BLOCK);
+			return b;
+		}
+		putBlock(bp, MAP_BLOCK);
+		if (++block >= bitBlocks)
+		  block = 0;	/* Last block, wrap around. */
+		word = 0;		/* Start from 0 instead of middle */
+	} while (--bCount > 0);
+	
+	return NO_BIT;		/* No bit could be allocated */
+}
+
+
+
+
+
+
+
+
+
+
 
 

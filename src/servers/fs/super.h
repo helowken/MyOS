@@ -18,11 +18,13 @@ typedef struct {
 	Dev_t s_dev;			/* Whose super block is this? */
 	int s_readonly;			/* Set to 1 iff file sys mounted read only */
 	int s_version;			/* File system version, zero means bad magic */
-	int s_dzones;			/* # direct zones in an inode */
+	int s_dir_zones;		/* # direct zones in an inode */
 	int s_ind_zones;		/* # indirect zones per indirect block */
 	Bit_t s_inode_search;	/* Inodes below this bit number are in use */
 	Bit_t s_zone_search;	/* All zones below this bit number are in use */
 } SuperBlock;
 
 #define NIL_SUPER	((SuperBlock *) 0)
+#define IMAP			0	/* Operating on the inode bit map */
+#define ZMAP			1	/* Operating on the zone bit map */
 #define IMAP_OFFSET		2	/* Inode-map offset blocks */

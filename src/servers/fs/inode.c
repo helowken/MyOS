@@ -84,7 +84,7 @@ void rwInode(register Inode *ip, int rwFlag) {
 	ip->i_dirty = CLEAN;
 }
 
-Inode *getInode(dev_t dev, int num) {
+Inode *getInode(dev_t dev, ino_t num) {
 /* Find a slot in the inode table, load the specified inode into it, and
  * return a pointer to the slot. If 'dev' == NO_DEV, just return a free slot.
  */
@@ -127,5 +127,112 @@ void dupInode(Inode *ip) {
  */
 	++ip->i_count;
 }
+
+void putInode(register Inode *ip) {
+/* The caller is no longer using this inode. If no one else is using it either
+ * write it back to the disk immediately. If it has no links, truncate it and
+ * return it to the pool of available inodes.
+ */
+	if (ip == NIL_INODE)	
+	  return;
+	if (--ip->i_count == 0) {	
+		/* i_count == 0 means no one is using it now */
+		if (ip->i_nlinks == 0) {
+			/* i_nlinks == 0 means free the inode. */
+			truncate(ip);	/* Retrun all the disk blocks */
+			ip->i_mode = I_NOT_ALLOC;	/* Clear I_TYPE field */
+			ip->i_dirty = DIRTY;
+			freeInode(ip->i_dev, ip->i_num);
+		} else {
+			if (ip->i_pipe == I_PIPE)
+			  truncate(ip);
+		}
+		ip->i_pipe = NO_PIPE;	/* Should always be cleared. */
+		if (ip->i_dirty == DIRTY)
+		  rwInode(ip, WRITING);
+	}
+}
+
+void freeInode(dev_t dev, ino_t iNum) {
+/* Return an inode to the pool of unallocated inodes. */
+	register SuperBlock *sp;
+	bit_t b;
+
+	/* Locate the appropriate SuperBlock. */
+	sp = getSuper(dev);
+	if (iNum <= 0 || iNum > sp->s_inodes)
+	  return;
+	b = iNum;
+	freeBit(sp, IMAP, b);
+	if (b < sp->s_inode_search)
+	  sp->s_inode_search = b;
+}
+
+void wipeInode(register Inode *ip) {
+/* Erase some fields in the inode.  This function is called from allocInode()
+ * when a new inode  is to be allocated, and from truncate(), when an existing
+ * inode is to be truncated.
+ */
+	register int i;
+
+	ip->i_size = 0;
+	ip->i_update = ATIME | CTIME | MTIME;	/* Update all times later */
+	ip->i_dirty = DIRTY;
+	for (i = 0; i < NR_TOTAL_ZONES; ++i) {
+		ip->i_zone[i] = NO_ZONE;
+	}
+}
+
+Inode *allocInode(dev_t dev, mode_t bits) {
+/* Allocate a free inode on 'dev', and return a pointer to it. */
+	register Inode *ip;
+	register SuperBlock *sp;
+	bit_t b;
+	int major, minor;
+	ino_t iNum;
+	
+	sp = getSuper(dev);
+	if (sp->s_readonly) {	/* Can't allocate an inode on a read only device. */
+		errCode = EROFS;
+		return NIL_INODE;
+	}
+
+	/* Acquire an inode from the bit map. */
+	b = allocBit(sp, IMAP, sp->s_inode_search);	
+	if (b == NO_BIT) {
+		errCode = ENFILE;
+		major = majorDev(sp->s_dev);
+		minor = minorDev(sp->s_dev);
+		printf("Out of i-nodes on %sdevice %d/%d\n",
+			sp->s_dev == rootDev ? "root " : "", major, minor);
+		return NIL_INODE;
+	}
+	sp->s_inode_search = b;		/* Next time start here */
+	iNum = (ino_t) b;
+
+	/* Try to acquire a slot in the inode table. */
+	if ((ip = getInode(NO_DEV, iNum)) == NIL_INODE) {
+		/* No inode table slots available. Free the inode bit just allocated. */
+		freeBit(sp, IMAP, b);
+	} else {
+		/* An inode slot is available. Put the inode just allocated into it. */
+		ip->i_mode = bits;	/* Set up RWX bits */
+		ip->i_nlinks = 0;	/* Initial no links */
+		ip->i_uid = currFp->fp_euid;	/* File's uid is owner's */
+		ip->i_gid = currFp->fp_egid;	/* ditto group id */
+		ip->i_dev = dev;	/* Mark which device it is on */
+		ip->i_dir_zones = sp->s_dir_zones;	/* # of direct zones */
+		ip->i_ind_zones = sp->s_ind_zones;	/* # of indirect zones per blk */
+		ip->i_sp = sp;		/* Pointer to super block */
+
+		/* Fields not cleared already are cleared in wipeInode(). */
+		wipeInode(ip);
+	}
+
+	return ip;
+}
+
+
+
 
 

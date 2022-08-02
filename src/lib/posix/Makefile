@@ -24,7 +24,9 @@ OBJS_M32 = \
 		_waitpid.o \
 		_wait.o \
 		_fstat.o \
-		_open.o 
+		_open.o \
+		_dup.o \
+		_fcntl.o
 
 
 all: build

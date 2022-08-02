@@ -14,7 +14,7 @@
 #include "unistd.h"
 #include "utmp.h"
 
-int main() {
+void main() {
 	
 	struct stat sb;
 

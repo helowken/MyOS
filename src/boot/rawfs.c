@@ -27,8 +27,8 @@ static int blockSize;
 static SuperBlock super;				/* Superblock of file system */
 
 static Inode currInode;					/* Inode of file under examination */
-static char indBuf[MAX_BLOCK_SIZE];		/* Single indirect block. */
-static char dblIndBuf[MAX_BLOCK_SIZE];	/* Double indirect block. */
+static char indBuf[MIN_BLOCK_SIZE];		/* Single indirect block. */
+static char dblIndBuf[MIN_BLOCK_SIZE];	/* Double indirect block. */
 static char dirBuf[MAX_BLOCK_SIZE];		/* Scratch/Directory block. */
 #define scratch	dirBuf
 
@@ -71,7 +71,7 @@ Off_t rawSuper(int *bs) {
 
 Ino_t rawLookup(Ino_t cwd, char *path) {
 /* Translate a pathname to an inode number. This is just a nice utility
- * function, it only needs rawStat and rawReadAddr.
+ * function, it only needs rawStat and rawReadDir.
  */
 	char name[NAME_MAX + 1], rawName[NAME_MAX + 1];
 	char *n;
@@ -239,7 +239,7 @@ Off_t rawVir2Abs(Off_t virBlockNum) {
 		
 		b = (Block_t) indZone << zoneShift;
 		if (dblIndAddr != b) {
-			readBlock(b, dblIndBuf, blockSize);
+			readBlock(b, dblIndBuf, MIN_BLOCK_SIZE);	/* Note: blockSize is too big */
 			dblIndAddr = b;
 		}
 		/* Extract the indirect zone number from it */
@@ -255,7 +255,7 @@ Off_t rawVir2Abs(Off_t virBlockNum) {
 	/* Extract the datablock number from the indirect zone */
 	b = (Block_t) indZone << zoneShift;
 	if (indAddr != b) {
-		readBlock(b, indBuf, blockSize);
+		readBlock(b, indBuf, MIN_BLOCK_SIZE);	/* Note: blockSize is too big */
 		indAddr = b;
 	}
 	zone = fsBuf(indBuf).b_inds[zone];

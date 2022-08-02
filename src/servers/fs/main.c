@@ -296,7 +296,7 @@ static void getWork() {
 			if (fp->fp_revived == REVIVING) {
 				who = (int) (fp - fprocTable);
 				callNum = fp->fp_fd & BYTE;
-				inMsg.fd = (fp->fp_fd >> 8) & BYTE;
+				inMsg.m_fd = (fp->fp_fd >> 8) & BYTE;
 				inMsg.buffer = fp->fp_buffer;
 				inMsg.nbytes = fp->fp_nbytes;
 				fp->fp_suspended = NOT_SUSPENDED;	/* No longer hanging */

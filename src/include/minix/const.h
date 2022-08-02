@@ -46,6 +46,7 @@
 #define	READING			0		/* Copy data to user */
 #define WRITING			1		/* Cooy data from user */
 #define	NO_NUM			0x8000	/* Used as numerical argument to panic() */
+#define NIL_PTR		(char *) 0	/* Generally useful expression */
 
 #define CLICK_SIZE		1024	/* Unit in which memory is allocated */
 #define CLICK_SHIFT		10		/* log2 of CLICK_SIZE */

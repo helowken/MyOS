@@ -89,7 +89,7 @@ partition:
 	$(PARTITION) -ps $(DISK_IMAGE)
 
 mkfs:
-	$(MKFS) -r$(BOOT_IMG_SECTORS) $(FS_ROOT):$(DISK_IMAGE)
+	$(MKFS) -r$(BOOT_IMG_SECTORS) -c $(FS_ROOT):$(DISK_IMAGE)
 	$(MKFS) $(FS_HOME):$(DISK_IMAGE)
 	$(MKFS) $(FS_USR):$(DISK_IMAGE)
 

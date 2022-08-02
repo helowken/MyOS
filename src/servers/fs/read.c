@@ -59,7 +59,7 @@ block_t readMap(Inode *ip, off_t pos) {
 		blockNum = (block_t) zoneNum << scale;
 		bp = getBlock(ip->i_dev, blockNum, NORMAL);	/* Get double indirect block */
 		idxInDblInd = (int) (excess / indZones);
-		zoneNum = readIndir(bp, idxInDblInd);	/* Zone for single indirect */
+		zoneNum = readIndirZone(bp, idxInDblInd);	/* Zone for single indirect */
 		putBlock(bp, INDIRECT_BLOCK);	/* Release double indirect block */
 		idxInInd = excess % indZones;	/* Index into single indirect block */
 	}
@@ -71,7 +71,7 @@ block_t readMap(Inode *ip, off_t pos) {
 	  return NO_BLOCK;
 	blockNum = (block_t) zoneNum << scale;	/* Block # for single indirect block */
 	bp = getBlock(ip->i_dev, blockNum, NORMAL);	/* Get single indirect block */
-	zoneNum = readIndir(bp, idxInInd);	/* Get final zone pointed to */
+	zoneNum = readIndirZone(bp, idxInInd);	/* Get final zone pointed to */
 	putBlock(bp, INDIRECT_BLOCK);		/* Release single indirect block */
 	if (zoneNum == NO_ZONE)
 	  return NO_BLOCK;
@@ -190,7 +190,7 @@ Buf *doReadAhead(
 	return getBlock(dev, baseBlock, NORMAL);
 }
 
-zone_t readIndir(Buf *bp, int index) {
+zone_t readIndirZone(Buf *bp, int index) {
 /* Given a pointer to an indirect block, read one entry. */
 	SuperBlock *sp;
 	zone_t zone;

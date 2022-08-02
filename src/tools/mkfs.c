@@ -1,6 +1,7 @@
 #include <time.h>
 #include "common.h"
 
+#include "../include/minix/dmap_nr.h"
 #include "../include/limits.h"
 #include "../include/dirent.h"
 #include "../include/minix/const.h"
@@ -8,16 +9,20 @@
 #include "../servers/fs/type.h"
 #include "../servers/fs/super.h"
 
-#define NULL			((void *)0)
-#define BIN				2
-#define BIN_GRP			2
-#define CACHE_SIZE		20
 #define UMAP_SIZE		(ULONG_MAX / MAX_BLOCK_SIZE)		
 #define BLOCK_OFF(n)	(OFFSET(lowSector) + (n) * blockSize)
 #define SUPER_OFFSET	BLOCK_OFF(0) + SUPER_OFFSET_BYTES
 #define MAX_MAX_SIZE	((unsigned long) 0xffffffff)
 #define ZONE_SHIFT		0
 
+#define	ROOT_GRP		0
+#define BIN				2
+#define BIN_GRP			2
+#define TTY_GRP			4
+#define RDEV(major, minor)	( (((major) & BYTE) << MAJOR) | \
+								(((minor) & BYTE) << MINOR) )
+
+static bool init;
 static uint32_t reservedSectors = 0;
 static uint32_t sectorCount;
 static long currentTime;
@@ -33,6 +38,8 @@ static char umap[UMAP_SIZE];
 static int inodeOffset;
 static int nextZone, nextInode, zoneOffset, blocksPerZone;
 static Zone_t zoneMap;
+static char modeString[11] = {0};
+static char timeBuf[26];
 
 static char *progName;
 static char *units[] = {"bytes", "KB", "MB", "GB"};
@@ -223,7 +230,7 @@ static void initSuperBlock(Zone_t zones, Ino_t inodes) {
 	free(sup);
 }
 
-static Ino_t allocInode(int mode, int uid, int gid) {
+static Ino_t allocInode(int mode, int uid, int gid, Zone_t z0) {
 	Ino_t num;
 	Block_t b;
 	int off;
@@ -235,17 +242,21 @@ static Ino_t allocInode(int mode, int uid, int gid) {
 		fprintf(stderr, "have %d inodes\n", numInodes);
 		fatal("File system does not have enough inodes");
 	}
-	b = ((num - 1) / inodesPerBlock) + inodeOffset;
-	off = (num - 1) % inodesPerBlock;
-
 	if (! (inodes = malloc(blockSize)))
 	  errExit("couldn't allocate a block of inodes");
+
+	b = ((num - 1) / inodesPerBlock) + inodeOffset;
+	off = (num - 1) % inodesPerBlock;
 
 	getBlock(b, (char *) inodes);
 	dip = &inodes[off];
 	dip->d_mode = mode;
 	dip->d_uid = uid;
 	dip->d_gid = gid;
+	dip->d_zone[0] = z0;
+	dip->d_atime = 
+	dip->d_mtime =
+	dip->d_ctime = currentTime;
 	putBlock(b, (char *) inodes);
 
 	free(inodes);
@@ -272,7 +283,7 @@ static Zone_t allocZone() {
 	return z;
 }
 
-static void addZone(Ino_t n, Zone_t z, size_t bytes, long currTime) {
+void addZone(Ino_t n, Zone_t z, size_t bytes, long currTime) {
 	Block_t b;
 	int off, i;
 	Zone_t indirZone;
@@ -322,13 +333,14 @@ static void addZone(Ino_t n, Zone_t z, size_t bytes, long currTime) {
 	fatal("File has grown beyond single indirect");
 }
 
-static void createDir(Ino_t parent, char *name, Ino_t child) {
+static void enterDir(Ino_t parent, char *name, Ino_t child) {
 	int k, l, i;
 	Zone_t z;
 	Block_t b, zoneBlocks;
 	int off;
-	DirEntry *dirs;	/* an array of Directory */
+	DirEntry *dirs;		/* an array of DirEntry */
 	DiskInode *inodes;		/* an array of DiskInode */
+	DiskInode *dip;
 
 	b = ((parent - 1) / inodesPerBlock) + inodeOffset;
 	off = (parent - 1) % inodesPerBlock;
@@ -340,13 +352,16 @@ static void createDir(Ino_t parent, char *name, Ino_t child) {
 	  fatal("couldn't allocate block of inodes entry");
 
 	getBlock(b, (char *) inodes);
+	dip = &inodes[off];
+	dip->d_size += DIR_ENTRY_SIZE;
+	dip->d_mtime = currentTime;
 	for (k = 0; k < NR_DIRECT_ZONES; ++k) {
-		z = inodes[off].d_zone[k];
+		z = dip->d_zone[k];
 		if (z == 0) {
 			z = allocZone();
-			inodes[off].d_zone[k] = z;
-			putBlock(b, (char *) inodes);
+			dip->d_zone[k] = z;
 		}
+
 		zoneBlocks = z << ZONE_SHIFT;
 		for (l = 0; l < blocksPerZone; ++l) {
 			getBlock(zoneBlocks + l, (char *) dirs);
@@ -355,6 +370,7 @@ static void createDir(Ino_t parent, char *name, Ino_t child) {
 					dirs[i].d_ino = child;
 					memcpy(dirs[i].d_name, name, 
 							min(strlen(name), DIR_SIZE));
+					putBlock(b, (char *) inodes);
 					putBlock(zoneBlocks + l, (char *) dirs);
 					free(dirs);
 					free(inodes);
@@ -369,7 +385,7 @@ static void createDir(Ino_t parent, char *name, Ino_t child) {
 	fatal("Halt");
 }
 
-static void increseLink(Ino_t n, int linkCount) {
+static void increaseLink(Ino_t n) {
 	Block_t b;
 	int off;
 	DiskInode *inodes;	
@@ -381,20 +397,10 @@ static void increseLink(Ino_t n, int linkCount) {
 	  errExit("couldn't allocate a block of inodes");
 
 	getBlock(b, (char *) inodes);
-	inodes[off].d_nlinks += linkCount;
+	++inodes[off].d_nlinks;
 	putBlock(b, (char *) inodes);
 
 	free(inodes);
-}
-
-static void initRootDir(Ino_t inoNum) {
-	Zone_t z;
-
-	z = allocZone();
-	addZone(inoNum, z, 2 * sizeof(DirEntry), currentTime);
-	createDir(inoNum, ".", inoNum);
-	createDir(inoNum, "..", inoNum);
-	increseLink(inoNum, 2);
 }
 
 static void printSize(char *format, size_t size) {
@@ -492,26 +498,96 @@ static void printMap(uint16_t mapBlocks, uint16_t startBlock) {
 	free(buf);
 }
 
+static char *getModeString(Mode_t mode) {
+	int i;
+	Mode_t fileType;
+
+	memset(modeString, '-', 10);
+	fileType = mode & I_TYPE;
+
+	i = 0;
+	/* file type */
+	if (fileType == I_BLOCK_SPECIAL)
+	  modeString[i] = 'b';
+	else if (fileType == I_DIRECTORY)
+	  modeString[i] = 'd';
+	else if (fileType == I_CHAR_SPECIAL)
+	  modeString[i] = 'c';
+	//TODO others
+
+
+	/* owner bits */
+	++i;
+	if (mode & S_IRUSR)
+	  modeString[i] = 'r';
+	++i;
+	if (mode & S_IWUSR)
+	  modeString[i] = 'w';
+	++i;
+	if (mode & S_IXUSR)
+	  modeString[i] = 'x';
+
+	/* group bits */
+	++i;
+	if (mode & S_IRGRP)
+	  modeString[i] = 'r';
+	++i;
+	if (mode & S_IWGRP)
+	  modeString[i] = 'w';
+	++i;
+	if (mode & S_IXGRP)
+	  modeString[i] = 'x';
+
+	/* other bits */
+	++i;
+	if (mode & S_IROTH)
+	  modeString[i] = 'r';
+	++i;
+	if (mode & S_IWOTH)
+	  modeString[i] = 'w';
+	++i;
+	if (mode & S_IXOTH)
+	  modeString[i] = 'x';
+	
+	return modeString;
+}
+
+static char *getTimeString(Time_t t) {
+	struct tm *ct = localtime((time_t *) &t);
+	strftime(timeBuf, 26, "%Y-%m-%d %H:%M:%S", ct);
+	return timeBuf;
+}
+
 static void printInode(DiskInode *inodes, DirEntry *dirs, int inoOff, Ino_t inoNum) {
 	int insPerBlock;
 	Block_t b;
+	DiskInode *dip;
 	int off, i;
+	Mode_t fileType;
 
 	insPerBlock = INODES_PER_BLOCK(blockSize);
 	b = ((inoNum - 1) / insPerBlock) + inoOff;
 	off = (inoNum - 1) % insPerBlock;
 	getBlock(b, (char *) inodes);
+	dip = &inodes[off];
+	fileType = dip->d_mode & I_TYPE;
 
-	printf("  %u: ", inoNum);
-	printf("mode=%06o, ", inodes[off].d_mode);
-	printf("uid=%d, gid=%d, size=%u, ", inodes[off].d_uid, inodes[off].d_gid, inodes[off].d_size);
-	printf("zone[0]=%u\n", inodes[off].d_zone[0]);
+	printf("  %2u: ", inoNum);
+	printf("mode=%07o, \"%s\", ", dip->d_mode, getModeString(dip->d_mode));
+	printf("uid=%d, gid=%d, ", dip->d_uid, dip->d_gid);
+	printf("nlink=%d, ", dip->d_nlinks);
+	if (fileType == I_CHAR_SPECIAL || fileType == I_BLOCK_SPECIAL)
+	  printf("rdev=0x%x, ", dip->d_zone[0]);
+	else 
+	  printf("zone[0]=%u, ", dip->d_zone[0]);
+	printf("size=%u, ", dip->d_size);
+	printf("mtime=%s\n", getTimeString(dip->d_mtime));
 
-	if ((inodes[off].d_mode & I_TYPE) == I_DIRECTORY) {
-		getBlock(inodes[off].d_zone[0], (char *) dirs);
+	if (fileType == I_DIRECTORY) {
+		getBlock(dip->d_zone[0], (char *) dirs);
 		for (i = 0; i < NR_DIR_ENTRIES(blockSize); ++i) {
 			if (dirs[i].d_ino) {
-				printf("     %s\n", dirs[i].d_name);
+				printf("     %8s (ino: %ld)\n", dirs[i].d_name, dirs[i].d_ino);
 			}
 		}
 	}
@@ -589,6 +665,77 @@ static void calibrateBlockSize() {
 				INODE_SIZE);
 }
 
+static Ino_t doMkdir(Ino_t pINum, char *dirName, mode_t mode, 
+			int uid, int gid, Zone_t z0) {
+	Ino_t iNum;
+
+	iNum = allocInode(mode, uid, gid, z0);
+	if (dirName == NULL)
+	  pINum = iNum;
+
+	enterDir(iNum, ".", iNum);
+	enterDir(iNum, "..", pINum);
+	increaseLink(iNum);
+	increaseLink(pINum);
+
+	if (dirName) 
+	  enterDir(pINum, dirName, iNum);
+
+	return iNum;
+}
+
+typedef struct {
+	char *name;
+	Mode_t mode;
+	int uid;
+	int gid;
+	Dev_t rdev;
+} DevFile;
+
+static DevFile devFiles[] = {
+	{ "console", I_CHAR_SPECIAL | 0620, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x0)    },
+	{ "pty0",    I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0xC0) },
+	{ "pty1",    I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0xC1) },
+	{ "pty2",    I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0xC2) },
+	{ "pty3",    I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0xC3) },
+	{ "tty",     I_CHAR_SPECIAL | 0666, SUPER_USER, ROOT_GRP,  RDEV(CTTY_MAJOR, 0x0)   },
+	{ "tty00",   I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x10) },
+	{ "tty01",   I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x11) },
+	{ "tty02",   I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x12) },
+	{ "tty03",   I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x13) },
+	{ "ttyc1",   I_CHAR_SPECIAL | 0600, SUPER_USER, ROOT_GRP,  RDEV(TTY_MAJOR, 0x1) },
+	{ "ttyc2",   I_CHAR_SPECIAL | 0600, SUPER_USER, ROOT_GRP,  RDEV(TTY_MAJOR, 0x2) },
+	{ "ttyc3",   I_CHAR_SPECIAL | 0600, SUPER_USER, ROOT_GRP,  RDEV(TTY_MAJOR, 0x3) },
+	{ "ttyp0",   I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x80) },
+	{ "ttyp1",   I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x81) },
+	{ "ttyp2",   I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x82) },
+	{ "ttyp3",   I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x83) }
+};
+
+static void mkSpecialFile(Ino_t pINum, char *name, DevFile *dfp) {
+	Ino_t iNum;
+
+	iNum = allocInode(dfp->mode, dfp->uid, dfp->gid, dfp->rdev);
+	increaseLink(iNum);
+	enterDir(pINum, dfp->name, iNum);
+}
+
+static void initFS(Ino_t pINum) {
+	Mode_t mode;
+	int uid, gid;
+	Ino_t iNum;
+	DevFile *dfp;
+	
+	mode = I_DIRECTORY | S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH; 
+	uid = gid = 0;
+
+	iNum = doMkdir(pINum, "dev", mode, uid, gid, 0);
+	
+	for (dfp = &devFiles[0]; dfp < arrayLimit(devFiles); ++dfp) {
+		mkSpecialFile(iNum, dfp->name, dfp);
+	}
+}
+
 int main(int argc, char *argv[]) {
 	PartitionEntry pe;
 	Zone_t zones;
@@ -601,7 +748,7 @@ int main(int argc, char *argv[]) {
 	progName = argv[0];
 	blocks = 0;
 	inodes = 0;
-	while ((ch = getopt(argc, argv, "b:i:B:r:h")) != EOF) {
+	while ((ch = getopt(argc, argv, "b:i:B:r:ch")) != EOF) {
 		switch (ch) {
 			case 'b':
 				blocks = strtoul(optarg, (char **) NULL, 0);
@@ -615,6 +762,9 @@ int main(int argc, char *argv[]) {
 			case 'r':
 				reservedSectors = atoi(optarg);
 				break;
+			case 'c':
+				init = true;
+				break;	
 			default:
 				usage();
 		}
@@ -635,18 +785,19 @@ int main(int argc, char *argv[]) {
 
 	numBlocks = blocks;
 	numInodes = inodes;
-	mode = I_DIRECTORY | RWX_MODES;
-	uid = BIN;
-	gid	= BIN_GRP;
 
 	zero = allocBlock();
 	putBlock(BOOT_BLOCK, zero);		/* Write a null boot block. */
 
 	zones = numBlocks >> ZONE_SHIFT;
-
 	initSuperBlock(zones, numInodes);
-	rootInoNum = allocInode(mode, uid, gid);
-	initRootDir(rootInoNum);
+
+	mode = I_DIRECTORY | RWX_MODES;
+	uid = BIN;
+	gid	= BIN_GRP;
+	rootInoNum = doMkdir(0, NULL, mode, uid, gid, 0);
+	if (init) 
+	  initFS(rootInoNum);
 
 	printFS();
 

@@ -20,7 +20,7 @@ int (*callVec[])() = {
 	noSys,
 	noSys,
 	noSys,
-	noSys,
+	doOpen,		/* 5 = open */
 	noSys,
 	noSys,
 	noSys,
@@ -54,7 +54,7 @@ int (*callVec[])() = {
 	noSys,
 	noSys,
 	noSys,
-	noSys,
+	doMkdir,	/* 39 = mkdir */
 	noSys,
 	noSys,
 	noSys,

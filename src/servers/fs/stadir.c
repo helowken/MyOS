@@ -48,8 +48,8 @@ int doFstat() {
 	register Filp *fp;
 
 	/* Is the file descriptor valid? */
-	if ((fp = getFilp(inMsg.fd)) == NIL_FILP)
+	if ((fp = getFilp(inMsg.m_fd)) == NIL_FILP)
 	  return errCode;
 
-	return statInode(fp->filp_ino, fp, inMsg.buffer);
+	return statInode(fp->filp_inode, fp, inMsg.buffer);
 }

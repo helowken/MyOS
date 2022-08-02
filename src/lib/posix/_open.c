@@ -16,7 +16,7 @@ int open(const char *name, int flags, ...) {
 		msg.m1_p1 = (char *) name;
 	} else {
 		_loadName(name, &msg);
-		msg.m2_i2 = flags;
+		msg.m3_i2 = flags;
 	}
 	va_end(argp);
 	

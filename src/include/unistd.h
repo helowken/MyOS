@@ -16,6 +16,8 @@
 #define SI_PROC_ADDR	1	/* Address of process table */
 #define SI_PROC_TAB		2	/* Copy of entire process table */
 
+int dup(int fd);
+
 gid_t getegid();
 uid_t geteuid();
 gid_t getgid();
