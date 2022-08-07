@@ -11,7 +11,10 @@ typedef	long time_t;		/* Time in sec since 1 Jan 1970 0000 GMT */
 typedef long clock_t;		/* Time in ticks since process started */
 #endif
 
-int stime(const time_t *t);
 time_t time(time_t *tp);	
+
+#ifdef _MINIX
+int stime(const time_t *t);
+#endif
 
 #endif

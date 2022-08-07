@@ -3,7 +3,7 @@ LIB_NAME = myc
 
 OBJS_M32 = \
 		_ipc.o \
-		_sigreturn.o 
+		__sigreturn.o 
 
 
 all: build

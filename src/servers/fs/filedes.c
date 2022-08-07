@@ -28,6 +28,9 @@ int getFd(int start, mode_t bits, int *fdPtr, Filp **fpp) {
 	if (*fdPtr < 0)
 	  return ENFILE;	
 
+	if (fpp == NULL)	/* Dup no need to find a filp slot */
+	  return OK;
+
 	/* Now that a file descriptor has been found, look for a free filp slot. */
 	for (fp = &filpTable[0]; fp < &filpTable[NR_FILPS]; ++fp) {
 		if (fp->filp_count == 0) {

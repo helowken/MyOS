@@ -30,7 +30,7 @@ int doPrivCtl(Message *msg) {
 	  return EINVAL;
 
 	rp = procAddr(pNum);
-	if (! (rp->p_rt_flags & NO_PRIV))
+	if (! (rp->p_rts_flags & NO_PRIV))
 	  return EPERM;
 
 	/* Make sure this process has its own privileges structure. This may fail,
@@ -70,9 +70,9 @@ int doPrivCtl(Message *msg) {
 	}
 
 	/* Done. Privileges have been set. Allow process to run again. */
-	oldFlags = rp->p_rt_flags;
-	rp->p_rt_flags &= ~NO_PRIV;
-	if (oldFlags != 0 && rp->p_rt_flags == 0)
+	oldFlags = rp->p_rts_flags;
+	rp->p_rts_flags &= ~NO_PRIV;
+	if (oldFlags != 0 && rp->p_rts_flags == 0)
 	  lockEnqueue(rp);
 
 	return OK;

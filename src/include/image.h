@@ -12,6 +12,7 @@ typedef struct {
 	Elf32_Ehdr ehdr;		/* ELF header */
 	Elf32_Phdr codeHdr;		/* Program header for text and rodata */
 	Elf32_Phdr dataHdr;		/* Program header for data and bss */
+	uint32_t dataOffset;	
 	size_t stackSize;		/* Stack size */
 } Exec;
 

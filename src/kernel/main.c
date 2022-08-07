@@ -17,10 +17,10 @@ void main() {
 	register int i;
 	int hdrIdx;
 	bool hasData;
-	phys_clicks textBase = 0, dataBase = 0;
-	vir_clicks textClicks = 0, dataClicks = 0;
+	phys_clicks textBase, textBytes, dataBase;
+	vir_clicks textClicks, dataClicks;
 	reg_t kernelTaskStackBase;
-	Exec imgHdr;
+	Exec exec;
 	Elf32_Phdr *hdr;
 
 	/* Initialize the interrupt controller. */
@@ -30,7 +30,7 @@ void main() {
 	 * Do the same for the table with privilege structures for the system processes.
 	 */
 	for (rp = BEG_PROC_ADDR, i = -NR_TASKS; rp < END_PROC_ADDR; ++rp, ++i) {
-		rp->p_rt_flags = SLOT_FREE;				/* Initialize free slot. */
+		rp->p_rts_flags = SLOT_FREE;				/* Initialize free slot. */
 		rp->p_nr = i;							/* Proc number from ptr. */
 		(procAddrTable + NR_TASKS)[i] = rp;		/* Proc ptr from number. */
 	}
@@ -72,36 +72,39 @@ void main() {
 		}
 
 		/* The bootstrap loader created an array of image headers at 
-		 * absolute address imgHdrPos. Get one element to imgHdr.
+		 * absolute address execPos. Get one element to exec.
 		 */
-		physCopy(imgHdrPos + hdrIdx * EXEC_SIZE, vir2Phys(&imgHdr), 
+		physCopy(imgHdrPos + hdrIdx * EXEC_SIZE, vir2Phys(&exec), 
 					(phys_bytes) EXEC_SIZE);
 
 		/* Build process memory map */
-		textBase = dataBase = 0;
+		textBase = textBytes = dataBase = 0;
 		textClicks = dataClicks = 0;
-		hasData = isPLoad(&imgHdr.dataHdr);
+		hasData = isPLoad(&exec.dataHdr);
 
-		hdr = &imgHdr.codeHdr;
+		hdr = &exec.codeHdr;
 		if (isPLoad(hdr)) {
 			textBase = hdr->p_paddr >> CLICK_SHIFT;
-			textClicks = hdr->p_memsz;
+			textBytes = hdr->p_memsz;
 			if (!hasData)
-			  textClicks += imgHdr.stackSize;
-			textClicks = (textClicks + CLICK_SIZE - 1) >> CLICK_SHIFT;
+			  textBytes += exec.stackSize;
+			textClicks = (textBytes + CLICK_SIZE - 1) >> CLICK_SHIFT;
 		}
 		if (hasData) {
-			hdr = &imgHdr.dataHdr;
+			hdr = &exec.dataHdr;
 			dataBase = hdr->p_paddr >> CLICK_SHIFT;
-			dataClicks = (hdr->p_vaddr + hdr->p_memsz + imgHdr.stackSize + 
+			dataClicks = (hdr->p_vaddr + hdr->p_memsz + exec.stackSize + 
 							CLICK_SIZE - 1) >> CLICK_SHIFT;
 		}
 		rp->p_memmap[T].physAddr = textBase;
 		rp->p_memmap[T].len = textClicks;
-		rp->p_memmap[D].physAddr = dataBase;
+		rp->p_memmap[D].physAddr = dataBase;	/* data virAddr = 0 */
 		rp->p_memmap[D].len = dataClicks;
 		rp->p_memmap[S].physAddr = dataBase + dataClicks;
 		rp->p_memmap[S].virAddr = dataClicks;	/* empty(len = 0) - stack is in data */
+
+		rp->p_memmap[S].offset = 
+		rp->p_memmap[D].offset = exec.dataOffset >> CLICK_SHIFT;
 
 		/* Set initial register values. The Proessor status word for tasks
 		 * is different from that of other processes because tasks can
@@ -121,10 +124,10 @@ void main() {
 		
 		/* Set ready. The HARDWARE task is never ready. */
 		if (rp->p_nr != HARDWARE) {
-			rp->p_rt_flags = 0;		/* Runnable if no flags */
+			rp->p_rts_flags = 0;		/* Runnable if no flags */
 			lockEnqueue(rp);	/* add to scheduling queues */
 		} else {
-			rp->p_rt_flags = NO_MAP;
+			rp->p_rts_flags = NO_MAP;
 		}
 
 		/* Code and data segments must be allocated in protected mode. */

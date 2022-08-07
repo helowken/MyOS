@@ -1,3 +1,6 @@
+#define _POSIX_SOURCE	1
+#define _MINIX	1
+
 #include "code.h"
 #include "debug.h"
 #include "stdarg.h"
@@ -987,7 +990,7 @@ static void doStat(char *path) {
 		printf("nlink: %d\n", st.st_nlink);
 		printf("uid: %d\n", st.st_uid);
 		printf("gid: %d\n", st.st_gid);
-		printf("rdev: 0x%x\n", st.st_rdev);
+		printf("rdev: 0x%X\n", st.st_rdev);
 		printf("size: %d\n", st.st_size);
 		printf("atime: %d\n", st.st_atime);
 		printf("mtime: %d\n", st.st_mtime);

@@ -10,11 +10,11 @@ int doGetKernelSig(Message *msg) {
  */
 	register Proc *rp;
 	for (rp = BEG_USER_ADDR; rp < END_PROC_ADDR; ++rp) {
-		if (rp->p_rt_flags & SIGNALED) {
+		if (rp->p_rts_flags & SIGNALED) {
 			msg->SIG_PROC = rp->p_nr;		/* Store signaled process */
 			msg->SIG_MAP = rp->p_pending;	/* Pending signals map */
 			sigemptyset(&rp->p_pending);	/* Ball is in PM's court */
-			rp->p_rt_flags &= ~SIGNALED;	/* Blocked by SIG_PENDING */
+			rp->p_rts_flags &= ~SIGNALED;	/* Blocked by SIG_PENDING */
 			return OK;
 		}
 	}

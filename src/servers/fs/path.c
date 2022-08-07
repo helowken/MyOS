@@ -326,7 +326,7 @@ Inode *eatPath(char *path) {
 	char string[NAME_MAX];		/* Hold 1 path component name here */
 
 	/* First open the path down to the final directory. */
-	if ((dirIp = lastDir(path, string)) == NIL_INODE)
+	if ((dirIp = lastDir(path, string)) == NIL_INODE) 
 	  return NIL_INODE;		/* We couldn't open final directory. */
 
 	/* The path consisting only of "/" is a special case, check for it. */

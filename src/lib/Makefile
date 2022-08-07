@@ -1,9 +1,9 @@
 DIR_16 = m16
 MODULES = \
 		ansi \
-		i386 \
 		other \
 		posix \
+		i386 \
 		syslib \
 		sysutil \
 		timers

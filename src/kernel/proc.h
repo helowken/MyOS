@@ -13,7 +13,7 @@ typedef struct Proc {
 
 	proc_nr_t p_nr;			/* Number of this process (for fast access) */
 	Priv *p_priv;			/* System privilege structure */
-	char p_rt_flags;		/* Runtime flags, SENDING, RECEIVING, etc. */
+	char p_rts_flags;		/* Runtime flags, SENDING, RECEIVING, etc. */
 
 	char p_priority;		/* Current scheduling priority */		
 	char p_max_priority;	/* Maximum scheduling priority */
@@ -37,7 +37,7 @@ typedef struct Proc {
 	char p_name[P_NAME_LEN];	/* Name of the process, including '\0' */	
 } Proc;
 
-/* Bits for the runtime flags. A process is rnnnable iff p_rt_flags == 0. */
+/* Bits for the runtime flags. A process is rnnnable iff p_rts_flags == 0. */
 #define SLOT_FREE		0x01	/* Process slot is free */
 #define NO_MAP			0x02	/* Keeps unmapped forked child from running */
 #define SENDING			0x04	/* Process blocked trying to SEND */
@@ -67,7 +67,7 @@ typedef struct Proc {
 
 #define isOkProcNum(n)		((unsigned) ((n) + NR_TASKS) < NR_PROCS + NR_TASKS)
 #define isEmptyProcNum(n)	isEmptyProc(procAddr(n))
-#define isEmptyProc(p)		((p)->p_rt_flags == SLOT_FREE)
+#define isEmptyProc(p)		((p)->p_rts_flags == SLOT_FREE)
 #define isKernelProc(p)		isKernelNum((p)->p_nr)
 #define isKernelNum(n)		((n) < 0)
 #define isUserProc(p)		isUserNum((p)->p_nr)

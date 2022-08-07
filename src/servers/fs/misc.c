@@ -35,3 +35,61 @@ int doFsync() {
 	doSync();
 	return OK;
 }
+
+int doFcntl() {
+/* Perform the fcntl(fd, request, ...) system call. */
+	
+	register Filp *fp;
+	int r, newFd, flags;
+	long cloexecMask;	/* Bit map for the FD_CLOEXEC flag */
+	long cloexecValue;	/* FD_CLOEXEC flag in proper position */
+
+	/* Is the file descriptor valid? */
+	if ((fp = getFilp(inMsg.m_fd)) == NIL_FILP)
+	  return errCode;
+	
+	switch (inMsg.request) {
+		case F_DUPFD:
+			if (inMsg.addr < 0 || inMsg.addr >= OPEN_MAX)
+			  return EINVAL;
+			if ((r = getFd(inMsg.addr, 0, &newFd, NULL)) != OK)
+			  return r;
+			++fp->filp_count;
+			currFp->fp_filp[newFd] = fp;
+			return newFd;
+
+		case F_GETFD:
+		/* Get close-on-exec flag. */
+			return ((currFp->fp_cloexec >> inMsg.m_fd) & 01) ? FD_CLOEXEC : 0;
+
+		case F_SETFD:
+		/* Set close-on-exec flag. */
+			cloexecMask = 1L << inMsg.m_fd;
+			cloexecValue = (inMsg.addr & FD_CLOEXEC ? cloexecMask : 0L);
+			currFp->fp_cloexec = (currFp->fp_cloexec & ~cloexecMask) | cloexecValue;
+			return OK;
+		
+		case F_GETFL:
+		/* Get file status flags (O_NONBLOCK and O_APPEND). */
+			flags = fp->filp_flags & (O_NONBLOCK | O_APPEND | O_ACCMODE);
+			return flags;
+
+		case F_SETFL:
+		/* Set file status flags (O_NONBLOCK and O_APPEND). */
+			flags = O_NONBLOCK | O_APPEND;
+			fp->filp_flags = (fp->filp_flags & ~flags) | (inMsg.addr & flags);
+			return OK;
+
+		case F_GETLK:
+		case F_SETLK:
+		case F_SETLKW:
+			//TODO
+		default:
+			return EINVAL;
+	}
+}
+
+
+
+
+

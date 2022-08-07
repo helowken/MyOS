@@ -38,18 +38,22 @@ PROGRAMS = ../kernel/kernel.bin \
 		   ../drivers/tty/tty.bin \
 		   ../drivers/memory/memory.bin \
 		   ../drivers/log/log.bin \
-		   AT:../drivers/at_wini/at_wini.bin
+		   AT:../drivers/at_wini/at_wini.bin \
+		   ../servers/init/init.bin 
 
 all: compile
 
 # Please see README for how to install Bochs.
 # Need to use a Bochs without gdb support.
-run: 
+run: rm_lock
 	$(BOCHS_NORMAL)/bin/bochs -q -f .bochsrc
 
 # Need to use a Bochs with gdb support.
-gdb:
+gdb: rm_lock
 	$(BOCHS_GDB)/bin/bochs -q -f .bochsrc_gdb
+
+rm_lock:
+	rm -f $(DISK_IMAGE).lock
 
 compile: masterboot.bin \
 		 bootblock.bin \

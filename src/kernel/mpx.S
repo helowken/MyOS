@@ -438,7 +438,7 @@ save:
 	incb	kernelReentryCount	/* From -1 if not reentering */
 	jnz	.setRestart				/* Stack is already kernel stack */
 	movl	$kStackTop, %esp	
-	pushl	$restart				/* Build return address for interrupt handler */
+	pushl	$restart			/* Build return address for interrupt handler */
 	xorl	%ebp, %ebp			/* For stacktrace */
 	jmp	*RETADDR-P_STACKBASE(%eax)	/* jmp *%eax is AT&T syntax for jmp eax. */
 

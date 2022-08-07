@@ -15,6 +15,9 @@
 #define F_SETLK			6	/* Set record locking information */
 #define F_SETLKW		7	/* Set record locking info; wait if blocked */
 
+/* File descriptor flags used for fcntl(). */
+#define FD_CLOEXEC		1	/* Close on exec flag for third arg of fcntl */
+
 /* Oflag values for open() */
 #define O_CREAT		00100	/* Create file if it doesn't exist */
 #define O_EXCL		00200	/* Exclusive use flag */

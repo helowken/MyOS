@@ -20,6 +20,8 @@
  *=====================================================================*/
 int taskCall(int who, int sysCallNum, Message *msg);
 int sysAbort(int how, ...);
+int sysFork(int parent, int child);
+int sysNewMap(int pNum, MemMap *memMap);
 int sysTrace(int req, int proc, long addr, long *data);
 int sysNice(int pNum, int priority);
 
@@ -66,6 +68,8 @@ int sysEndKernelSig(int pNum);
 int sysVirCopy(int srcProc, int srcSeg, vir_bytes srcVir, 
 		int dstProc, int dstSeg, vir_bytes dstVir, phys_bytes bytes);
 
+#define sysAbsCopy(srcPhys, dstPhys, bytes) \
+	sysPhysCopy(NONE, PHYS_SEG, srcPhys, NONE, PHYS_SEG, dstPhys, bytes)
 int sysPhysCopy(int srcProc, int srcSeg, vir_bytes srcVir,
 		int dstProc, int dstSeg, vir_bytes dstVir, phys_bytes bytes);
 

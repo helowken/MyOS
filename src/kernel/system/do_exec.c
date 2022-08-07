@@ -15,8 +15,8 @@ int doExec(register Message *msg) {
 		(LDT_SIZE - EXTRA_LDT_INDEX) * sizeof(rp->p_ldt[0]));
 
 	rp->p_reg.pc = (reg_t) msg->PR_IP_PTR;	/* Set pc */
-	rp->p_rt_flags &= ~RECEIVING;	/* PM does not reply to EXEC call */
-	if (rp->p_rt_flags == 0)
+	rp->p_rts_flags &= ~RECEIVING;	/* PM does not reply to EXEC call */
+	if (rp->p_rts_flags == 0)
 	  lockEnqueue(rp);
 
 	/* Save command name for debugging, ps(1) output, etc. */

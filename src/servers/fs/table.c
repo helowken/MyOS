@@ -6,106 +6,22 @@
 #include "lock.h"
 
 
+#define map(callNum, handler)	callVec[callNum] = (handler)
+
+int (*callVec[NCALLS])();
+
+void initSysCalls() {
+	int i;
+
+	for (i = 0; i < NCALLS; ++i) {
+		callVec[i] = noSys;
+	}
+
+	map(OPEN, doOpen);		/* 5 = open */
+	map(FSTAT, doFstat);	/* 28 = fstat */
+	map(MKDIR, doMkdir);	/* 39 = mkdir */
+	map(FCNTL, doFcntl);	/* 55 = fcntl */
+}
 
 
 
-
-
-
-
-
-int (*callVec[])() = {
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	doOpen,		/* 5 = open */
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	doFstat,	/* 28 = fstat */
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	doMkdir,	/* 39 = mkdir */
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys,
-	noSys
-};

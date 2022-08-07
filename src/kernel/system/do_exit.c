@@ -9,14 +9,14 @@ static void clearProc(register Proc *rc) {
 	resetTimer(&priv(rc)->s_alarm_timer);
 
 	/* Make sure that the exiting process is no longer scheduled. */
-	if (rc->p_rt_flags == 0)
+	if (rc->p_rts_flags == 0)
 	  lockDequeue(rc);
 
 	/* If the process being terminated happens to be queued trying to send a
 	 * message (e.g., the process was killed by a signal, rather than it doing
 	 * a normal exit), then it must be removed from the message queues.
 	 */
-	if (rc->p_rt_flags & SENDING) {
+	if (rc->p_rts_flags & SENDING) {
 		/* Check all proc slots to see if the exiting process is queued. */
 		for (xp = BEG_PROC_ADDR; xp < END_PROC_ADDR; ++xp) {
 			if (xp->p_sender_head == NIL_PROC)
@@ -46,7 +46,7 @@ static void clearProc(register Proc *rc) {
 	 * needed at this point. All important fields are reinitialized when the 
 	 * slots are assigned to another, new process.
 	 */
-	rc->p_rt_flags = SLOT_FREE;
+	rc->p_rts_flags = SLOT_FREE;
 	if (priv(rc)->s_flags & SYS_PROC)
 	  priv(rc)->s_proc_nr = NONE;
 }

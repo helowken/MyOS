@@ -36,7 +36,7 @@
 #define INIT_PROC_NR	7	/* Init -- goes multiuser */
 
 /* Number of processes contained in the system image. */
-#define NR_BOOT_PROCS	10	// TODO (NR_TASKS + INIT_PROC_NR + 1)
+#define NR_BOOT_PROCS	11	// TODO (NR_TASKS + INIT_PROC_NR + 1)
 
 /*=====================================================================*
  *			Kernel notification types			*

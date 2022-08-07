@@ -1,4 +1,7 @@
 #ifndef OTHER_OS
+#define _POSIX_SOURCE	1
+#define _MINIX	1
+
 #include "code.h"
 #include "sys/types.h"
 #include "stdint.h"

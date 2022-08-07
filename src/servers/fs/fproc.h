@@ -6,7 +6,7 @@ typedef struct FProc {
 	mode_t fp_umask;		/* Mask set by umask system call */
 	Inode *fp_work_dir;		/* Pointer to working directory's inode */
 	Inode *fp_root_dir;		/* Pointer to current root dir (see chroot) */
-	Filp *fp_filp[OPEN_MAX];	/* The file description table */
+	Filp *fp_filp[OPEN_MAX];	/* The file descriptor table */
 	uid_t fp_ruid;			/* Real user id */
 	uid_t fp_euid;			/* Effective user id */
 	gid_t fp_rgid;			/* Real group id */
@@ -19,6 +19,7 @@ typedef struct FProc {
 	char fp_revived;		/* Set to indicate process being revived */
 	char fp_session_leader;	/* true if proc is a session leader */
 	pid_t fp_pid;			/* Process id */
+	long fp_cloexec;		/* Bit map for POSIX Table 6-2 FD_CLOEXEC */
 } FProc;
 
 /* Field values. */

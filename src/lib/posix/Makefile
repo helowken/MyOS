@@ -26,7 +26,8 @@ OBJS_M32 = \
 		_fstat.o \
 		_open.o \
 		_dup.o \
-		_fcntl.o
+		_fcntl.o \
+		_fork.o
 
 
 all: build

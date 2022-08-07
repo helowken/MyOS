@@ -7,7 +7,7 @@ LIBS = -L$(MY_HOME)/lib \
 SERVER = $(NAME).bin
 all: $(SERVER)
 
-$(SERVER): $(OBJS) 
+$(SERVER): $(ENTRY) $(OBJS) 
 	$(call link,$^,$(LIBS),$@) 
 	$(call createDebug,$@,$(DEBUG))
 	$(call setStack,$(STACK_SIZE),$(NAME))

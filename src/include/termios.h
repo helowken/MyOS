@@ -97,6 +97,13 @@ struct termios {
 #define B19200		0xE000	/* 19200 baud */
 #define B38400		0xF000	/* 38400 baud */
 
+
+#ifdef _MINIX
+/* Here are the local extensions to the POSIX standard for Minix. Posix
+ * conforming programs are not able to access these, and therefore they are
+ * only defined when a Minix program is compiled.
+ */
+
 /* Extensions to the termios c_iflag bit map. */
 #define IXANY		0x0800	/* Allow any key to continue output */
 
@@ -145,5 +152,6 @@ typedef struct {
 	unsigned short ws_xpixel;	/* Horizontal size, pixels */
 	unsigned short ws_ypixel;	/* Vertical size, pixels */
 } WinSize;
+#endif	/* _MINIX */
 
 #endif

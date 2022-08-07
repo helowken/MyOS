@@ -164,7 +164,7 @@ static int miniSend(register Proc *caller, int dst, Message *msg, unsigned flags
 	
 	/* Check for deadlock by 'caller' and 'dst' sending to each other. */
 	xp = dstProc;
-	while (xp->p_rt_flags & SENDING) {		/* Check while sending */
+	while (xp->p_rts_flags & SENDING) {		/* Check while sending */
 		xp = procAddr(xp->p_send_to);		/* Get xp's destination */
 		if (xp == caller)
 		  return ELOCKED;		/* Deadlock if cyclic */
@@ -173,18 +173,18 @@ static int miniSend(register Proc *caller, int dst, Message *msg, unsigned flags
 	/* Check if 'dst' is blocked waiting for this message. The destination's
 	 * SENDING flag may be set when its SENDREC call blocked while sending.
 	 */
-	if ( (dstProc->p_rt_flags & (RECEIVING | SENDING)) == RECEIVING &&
+	if ( (dstProc->p_rts_flags & (RECEIVING | SENDING)) == RECEIVING &&
 			(dstProc->p_get_from == ANY || dstProc->p_get_from == caller->p_nr)) {
 		/* Destination is indeed waiting for this message. */
 		copyMsg(caller->p_nr, caller, msg, dstProc, dstProc->p_msg);
-		if ((dstProc->p_rt_flags &= ~RECEIVING) == 0)
+		if ((dstProc->p_rts_flags &= ~RECEIVING) == 0)
 		  enqueue(dstProc);
 	} else if (! (flags & NON_BLOCKING)) {
 		/* Destination is not waiting. Block and dequeue caller. */
 		caller->p_msg = msg;
-		if (caller->p_rt_flags == 0)
+		if (caller->p_rts_flags == 0)
 		  dequeue(caller);
-		caller->p_rt_flags |= SENDING;
+		caller->p_rts_flags |= SENDING;
 		caller->p_send_to = dst;
 
 		/* Process is now blocked. Put it on the destination's queue. */
@@ -221,7 +221,7 @@ static int miniReceive(register Proc *caller, int src, Message *msg, unsigned fl
 	 * The caller's SENDING flag may be set if SENDREC couldn't send. If it
 	 * is set, the process should be blocked.
 	 */
-	if (! (caller->p_rt_flags & SENDING)) {
+	if (! (caller->p_rts_flags & SENDING)) {
 		/* Check if there are pending notifications, except for SENDREC. */
 		if (! (priv(caller)->s_flags & SENDREC_BUSY)) {
 			map = &priv(caller)->s_notify_pending;
@@ -253,7 +253,7 @@ static int miniReceive(register Proc *caller, int src, Message *msg, unsigned fl
 			if (src == ANY || src == procNum(xp)) {
 				/* Found acceptable message. Copy it and update status. */
 				copyMsg(xp->p_nr, xp, xp->p_msg, caller, msg);
-				if ((xp->p_rt_flags &= ~SENDING) == 0)
+				if ((xp->p_rts_flags &= ~SENDING) == 0)
 				  enqueue(xp);
 				*xpp = xp->p_sender_next;	/* Remove from queue. */
 				return OK;
@@ -268,9 +268,9 @@ static int miniReceive(register Proc *caller, int src, Message *msg, unsigned fl
 	if (! (flags & NON_BLOCKING)) {
 		caller->p_get_from = src;
 		caller->p_msg = msg;
-		if (caller->p_rt_flags == 0)
+		if (caller->p_rts_flags == 0)
 		  dequeue(caller);
-		caller->p_rt_flags |= RECEIVING;
+		caller->p_rts_flags |= RECEIVING;
 		return OK;
 	}
 	return ENOTREADY;
@@ -287,7 +287,7 @@ static int miniNotify(register Proc *caller, int dst) {
 	int srcId;
 	Message notifyMsg;
 
-	if ((dstProc->p_rt_flags & (SENDING | RECEIVING)) == RECEIVING &&
+	if ((dstProc->p_rts_flags & (SENDING | RECEIVING)) == RECEIVING &&
 			! (priv(dstProc)->s_flags & SENDREC_BUSY) &&
 			(dstProc->p_get_from == ANY || dstProc->p_get_from == caller->p_nr)) {
 		/* Destination is indeed waiting for a message. Assemble a notification
@@ -296,8 +296,8 @@ static int miniNotify(register Proc *caller, int dst) {
 		 */
 		buildMsg(&notifyMsg, procNum(caller), dstProc);
 		copyMsg(procNum(caller), procAddr(HARDWARE), &notifyMsg, dstProc, dstProc->p_msg);
-		dstProc->p_rt_flags &= ~RECEIVING;		/* Deblock destination. */
-		if (dstProc->p_rt_flags == 0)
+		dstProc->p_rts_flags &= ~RECEIVING;		/* Deblock destination. */
+		if (dstProc->p_rts_flags == 0)
 		  enqueue(dstProc);
 		return OK;
 	}
@@ -415,7 +415,8 @@ int sys_call(int callNum, int srcDst, Message *msg) {
 			result = miniNotify(caller, srcDst);
 			break;
 		case ECHO:
-			// TODO
+			copyMsg(caller->p_nr, caller, msg, caller, msg);
+			result = OK;
 			break;
 		default:
 			result = EBADCALL;		/* Illegal system call */

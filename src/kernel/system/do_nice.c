@@ -33,7 +33,7 @@ int doNice(Message *msg) {
 	rp = procAddr(pNum);
 	lockDequeue(rp);
 	rp->p_max_priority = rp->p_priority = newQueue;
-	if (rp->p_rt_flags == 0)
+	if (rp->p_rts_flags == 0)
 	  lockEnqueue(rp);
 
 	return OK;

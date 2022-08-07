@@ -1,6 +1,6 @@
 /* The following names are synonyms for the variables in the input message. */
 
-
+#define addr			m1_i3
 #define buffer			m1_p1
 
 
@@ -36,7 +36,7 @@
 
 
 
-
+#define request			m1_i2
 
 #define slot1			m1_i1
 

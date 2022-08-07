@@ -23,6 +23,8 @@ OBJS_M32 = \
 		sys_segctl.o \
 		sys_physcopy.o \
 		sys_abort.o \
+		sys_fork.o \
+		sys_newmap.o \
 		taskcall.o 
 		   
 	

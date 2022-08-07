@@ -1,4 +1,5 @@
 #include "../system.h"
+#include "signal.h"
 #include "../protect.h"
 
 int doFork(register Message *msg) {
@@ -17,10 +18,12 @@ int doFork(register Message *msg) {
 	childProc->p_nr = msg->PR_PROC_NR;		/* This was obliterated by copy */
 
 	/* Only one in group should have SIGNALED, child doesn't inherit tracing. */
-	childProc->p_rt_flags |= NO_MAP;		/* Inhibit process from running. */
-	childProc->p_rt_flags &= ~(SIGNALED | SIG_PENDING | P_STOP);
+	childProc->p_rts_flags |= NO_MAP;		/* Inhibit process from running. */
+	childProc->p_rts_flags &= ~(SIGNALED | SIG_PENDING | P_STOP);
+	sigemptyset(&childProc->p_pending);
 
-	childProc->p_reg.retAddr = 0;		/* Child sees pid = 0 to know it is child. */
+	/*TODO childProc->p_reg.eax = 0;*/		/* Child sees pid = 0 to know it is child. 
+				   (??? It should use setReply(childNum, 0) in pm/forkexit.c) */
 	childProc->p_user_time = 0;		/* Set all accounting times to 0. */
 	childProc->p_sys_time = 0;
 
@@ -37,7 +40,7 @@ int doFork(register Message *msg) {
 	 */
 	if (priv(parentProc)->s_flags & SYS_PROC) {
 		childProc->p_priv = privAddr(USER_PRIV_ID);
-		childProc->p_rt_flags |= NO_PRIV;
+		childProc->p_rts_flags |= NO_PRIV;
 	}
 	return OK;
 }

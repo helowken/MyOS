@@ -7,12 +7,14 @@ INC_HEADERS = *.h \
 			  $(INC)/ibm/*.h \
 			  $(INC)/minix/*.h 
 
-CFLAGS = -g -c -m32 -ffreestanding -nostdinc -nodefaultlibs -Wall -Werror -I$(INC)
+CFLAGS = -g -c -m32 -ffreestanding -nostdinc -nodefaultlibs -Wall -Werror \
+		 -fno-asynchronous-unwind-tables -I$(INC)
 C_SOURCE = $(wildcard *.c)
 HEADERS = $(wildcard $(INC_HEADERS))
 DEBUG = debug.bin
 ENTRY = $(MY_HOME)/entry/entry.o
 DIR_STACK = $(MY_HOME)/tools/stack
+LINKER_SCRIPT = $(MY_HOME)/linkerScript.lds
 
 
 %.o: %.c $(HEADERS)
@@ -28,7 +30,7 @@ DIR_STACK = $(MY_HOME)/tools/stack
 
 
 define link
-	$(LD) $(1) -Ttext 0x0 -m elf_i386 -nostdlib $(2) -o $(3)
+	$(LD) $(1) -Ttext 0x0 -m elf_i386 -nostdlib $(2) -o $(3) -T $(LINKER_SCRIPT)
 endef
 
 
@@ -49,7 +51,7 @@ endef
 
 
 define disasmCode
-	objdump -S -d -j .text -j .data -j .bss -mi386 -Matt,data$(2),addr$(2) $(1) > /tmp/$(1).txt && vim -R /tmp/$(1).txt
+	objdump -S -d -j .text -j .rodata -j .data -j .bss -mi386 -Matt,data$(2),addr$(2) $(1) > /tmp/$(1).txt && vim -R /tmp/$(1).txt
 endef
 
 

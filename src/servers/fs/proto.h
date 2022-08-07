@@ -76,6 +76,7 @@ void invalidate(dev_t dev);
 /* misc.c */
 int doSync();
 int doFsync();
+int doFcntl();
 
 /* open.c */
 int doOpen();
@@ -111,4 +112,5 @@ void fsExpireTimers(clock_t now);
 /* main.c */
 void reply(int whom, int result);
 
-
+/* table.c */
+void initSysCalls();

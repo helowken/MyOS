@@ -64,7 +64,7 @@ static char *imgTpl = "image=%d:%d;";
 static void usage() {
 	fprintf(stderr,
 	  "Usage: installboot -m(aster) device masterboot\n"
-	  "       installboot -d(evice) device bootBlock boot memSizeFile images...\n");
+	  "       installboot -d(evice) device bootBlock boot memPosFile images...\n");
 	exit(1);
 }
 
@@ -450,7 +450,7 @@ static void installParams(char *params, int imgAddr, off_t imgSectors) {
 	  errExit("snprintf params");
 }
 
-static void saveMemSizes(char *fileName, char *boot, char **imgNames, size_t *memSizes) {
+static void saveMemPos(char *fileName, char *boot, char **imgNames, size_t *memSizes) {
 #define MEM_BOOT	0x80000
 #define MEM_BASE_0	0x800
 #define MEM_BASE_1	0x100000
@@ -497,7 +497,7 @@ static void computeImgCount(char **img) {
 	}
 }
 
-static void installDevice(char *bootBlock, char *boot, char *memSizeFile, char **imgNames) {
+static void installDevice(char *bootBlock, char *boot, char *memPosFile, char **imgNames) {
 /* Install bootBlock to the boot sector with boot's disk addresses and sizes patched 
  * into the data segment of bootBlock. 
  */
@@ -542,7 +542,7 @@ static void installDevice(char *bootBlock, char *boot, char *memSizeFile, char *
 	printf("\n");
 	size_t memSizes[imgCount];
 	installImages(imgNames, imgAddr, bootSize, &imgSize, memSizes);
-	saveMemSizes(memSizeFile, boot, imgNames, memSizes);
+	saveMemPos(memPosFile, boot, imgNames, memSizes);
 	printf("\n");
 	imgSectors = SECTORS(imgSize);
 

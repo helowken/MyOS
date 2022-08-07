@@ -1,4 +1,3 @@
 boot: disk
 ata0-master: type=disk, path="device/testOS.img"
 cpu: count=1:1:1
-

@@ -56,7 +56,7 @@ static void initialize() {
 	//map(SYS_INT86, doInt86);
 
 	/* Memory management. */
-	//map(SYS_NEWMAP, doNewMap);
+	map(SYS_NEWMAP, doNewMap);
 	map(SYS_SEGCTL, doSegCtl);
 	map(SYS_MEMSET, doMemset);
 	
@@ -213,10 +213,10 @@ void causeSig(int pNum, int sig) {
 	rp = procAddr(pNum);
 	if (! sigismember(&rp->p_pending, sig)) {
 		sigaddset(&rp->p_pending, sig);
-		if (! (rp->p_rt_flags & SIGNALED)) {		/* Other pending */
-			if (rp->p_rt_flags == 0)
+		if (! (rp->p_rts_flags & SIGNALED)) {		/* Other pending */
+			if (rp->p_rts_flags == 0)
 			  lockDequeue(rp);		/* Make not ready */
-			rp->p_rt_flags |= SIGNALED | SIG_PENDING;	/* Update flags */
+			rp->p_rts_flags |= SIGNALED | SIG_PENDING;	/* Update flags */
 			sendSig(pNum, sig);
 		}
 	}

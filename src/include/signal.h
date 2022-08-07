@@ -1,9 +1,18 @@
 #ifndef _SIGNAL_H
 #define _SIGNAL_H
 
+#ifdef _POSIX_SOURCE
 #ifndef _TYPES_H
 #include "sys/types.h"
 #endif
+
+#ifndef _SIGSET_T
+#define _SIGSET_T
+typedef unsigned long	sigset_t;
+#endif
+#endif	/* _POSIX_SOURCE */
+
+typedef int sig_atomic_t;
 
 #define NSIG		20	/* Number of signals used */
 
@@ -51,6 +60,7 @@ typedef void (*SigHandler)(int);
 #define SIG_CATCH	((SigHandler)  3)	/* Catch signal */
 #define SIG_MESS	((SigHandler)  4)	/* Pass as message (MINIX) */
 
+#ifdef _POSIX_SOURCE
 struct sigaction {			
 	SigHandler sa_handler;	/* SIG_DFL, SIG_IGN, or pointer to function */
 	sigset_t sa_mask;		/* Signals to be blocked during handler */
@@ -71,9 +81,12 @@ struct sigaction {
 #define SIG_UNBLOCK		1	/* For unblocking signals */
 #define SIG_SETMASK		2	/* For setting the signal mask */
 #define SIG_INQUIRE		4	/* For internel use only */
+#endif	/* _POSIX_SOURCE */
 
 int raise(int sig);
 SigHandler signal(int sig, SigHandler func);
+
+#ifdef _POSIX_SOURCE
 int kill(pid_t pid, int sig);
 int sigaction(int sig, const struct sigaction *sa, struct sigaction *oldSa);
 
@@ -85,5 +98,6 @@ int sigismember(const sigset_t *set, int sig);
 int sigpending(sigset_t *set);
 int sigprocmask(int how, const sigset_t *set, sigset_t *oldset);
 int sigsuspend(const sigset_t *sigmask);
+#endif	/* _POSIX_SOURCE */
 
 #endif

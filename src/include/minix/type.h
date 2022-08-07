@@ -23,6 +23,7 @@ typedef struct {
 	phys_clicks physAddr;			/* Physical address */
 	vir_clicks virAddr;				/* Virtual address */
 	vir_clicks len;					/* Length */
+	vir_clicks offset;				 
 } MemMap;
 
 typedef struct {

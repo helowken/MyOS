@@ -18,6 +18,7 @@
 #define	COLOR_MODE		0x03		/* 80x25 color. */
 
 #define CLICK_SIZE		1024		/* Unit in which memory is allocated */
+#define CLICK_SHIFT		10			/* Unit in which memory is allocated */
 
 #ifndef EXTERN
 #define EXTERN extern

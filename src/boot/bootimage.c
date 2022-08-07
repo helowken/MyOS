@@ -194,9 +194,9 @@ static bool isSelected(char *name) {
 }
 
 static u32_t getProcSize(ImageHeader *imgHdr) {
-	Exec *proc = &imgHdr->process;
-	u32_t len = align(proc->codeHdr.p_filesz, SECTOR_SIZE) + 
-				align(proc->dataHdr.p_filesz, SECTOR_SIZE);
+	Exec *exec = &imgHdr->process;
+	u32_t len = align(exec->codeHdr.p_filesz, SECTOR_SIZE) + 
+				align(exec->dataHdr.p_filesz, SECTOR_SIZE);
 	return len >> SECTOR_SHIFT;
 	
 }
@@ -288,7 +288,7 @@ static void execImage(char *image) {
 	char *delayValue;
 	char params[SECTOR_SIZE];
 	ImageHeader imgHdr;
-	Exec *proc;
+	Exec *exec;
 	u32_t vsec, addr, limit, imgHdrPos;
 	bool banner = false;
 	Process *procp;
@@ -298,6 +298,7 @@ static void execImage(char *image) {
 	char *console;
 	u16_t mode;
 	extern char *sbrk(int);
+	u32_t dataOffClicks, newAddr;
 
 	sbrk(0);
 
@@ -331,9 +332,9 @@ static void execImage(char *image) {
 			  return;
 
 			memcpy(&imgHdr, buf, sizeof(imgHdr));
-			proc = &imgHdr.process;
+			exec = &imgHdr.process;
 
-			if (isBadImage(imgHdr.name, &proc->ehdr)) {
+			if (isBadImage(imgHdr.name, &exec->ehdr)) {
 				errno = ENOEXEC;
 				return;
 			}
@@ -348,13 +349,6 @@ static void execImage(char *image) {
 
 	    addr = align(addr, CLICK_SIZE);
 
-		/* Save a copy of the header for the kernel, with the address
-		 * where the process is loaded at.
-		 */
-		proc->codeHdr.p_paddr = addr;
-		proc->dataHdr.p_paddr = addr;
-		rawCopy((char *) (imgHdrPos + i * EXEC_SIZE), mon2Abs(proc), EXEC_SIZE);
-
 		if (!banner) {
 			printf("     cs       ds     text     data      bss    stack\n");
 			banner = true;
@@ -362,24 +356,46 @@ static void execImage(char *image) {
 		
 		procp->cs = addr;
 		procp->ds = addr;
-		procp->entry = proc->ehdr.e_entry;
+		procp->entry = exec->ehdr.e_entry;
+
+		/* Save a copy of the header for the kernel, with the address
+		 * where the process is loaded at.
+		 */
+		exec->codeHdr.p_paddr = addr;
 
 		/* Read the text segment. */
-		if (!getSegment(&vsec, proc->codeHdr.p_filesz, &addr, limit))
+		if (!getSegment(&vsec, exec->codeHdr.p_filesz, &addr, limit))
 		  return;
 
 		dataSize = bssSize = 0;
-		if (isPLoad(&proc->dataHdr)) {
-			n = procp->ds + proc->dataHdr.p_vaddr - addr;
-			rawClear(addr, n);
-			addr += n;
-			dataSize = proc->dataHdr.p_filesz;
-			bssSize = proc->dataHdr.p_memsz - dataSize;
+		if (isPLoad(&exec->dataHdr)) {
+			newAddr = align(addr, CLICK_SIZE);
+			/* Compute the gap between data and code */
+			n = exec->dataHdr.p_vaddr - exec->codeHdr.p_vaddr -
+						align(exec->codeHdr.p_memsz, CLICK_SIZE);
+			/* Compute how many CLICK_SIZE we can remove from the gap */
+			dataOffClicks = n >> CLICK_SHIFT;
+			u32_t dsClicks = procp->ds >> CLICK_SHIFT;
+			/* Checking is needed since ds can't be negative */
+			if (dataOffClicks > dsClicks) 
+			  dataOffClicks = dsClicks;
+			u32_t dataOffBytes = dataOffClicks << CLICK_SHIFT;
+			/* We align ds to CLICK_SIZE */
+			procp->ds -= dataOffBytes;
+			exec->dataHdr.p_paddr = procp->ds;
+			exec->dataOffset = newAddr - procp->ds;
+			n -= dataOffBytes;
+			rawClear(addr, newAddr + n - addr);
+			/* Compute the address for data */
+			addr = newAddr + n;
+
+			dataSize = exec->dataHdr.p_filesz;
+			bssSize = exec->dataHdr.p_memsz - dataSize;
 			if (i > 0) 
-			  bssSize += proc->stackSize;	/* add stack to user proc */
+			  bssSize += exec->stackSize;	/* add stack to user exec */
 			
 			/* Read the data segment. */
-			if (!getSegment(&vsec, dataSize, &addr, limit))
+			if (!getSegment(&vsec, dataSize, &addr, limit)) 
 			  return;
 
 			if (addr + bssSize > limit) {
@@ -391,9 +407,11 @@ static void execImage(char *image) {
 			addr += bssSize;
 		}
 
-		printf("%07lx  %07lx %8ld %8ld %8ld %8ld    %s\n",
-			procp->cs, procp->ds, proc->codeHdr.p_filesz, 
-			dataSize, bssSize, proc->stackSize, imgHdr.name);
+		rawCopy((char *) (imgHdrPos + i * EXEC_SIZE), mon2Abs(exec), EXEC_SIZE);
+
+		printf("%07lx  %07lx  %07lx %8ld %8ld %8ld %8ld    %s\n",
+			procp->cs, procp->ds, exec->codeHdr.p_filesz, 
+			dataSize, bssSize, exec->stackSize, imgHdr.name);
 
 		if (i == 0) {
 			addr = memList[1].base;

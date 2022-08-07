@@ -19,6 +19,7 @@
 #define BIN				2
 #define BIN_GRP			2
 #define TTY_GRP			4
+#define KMEM_GRP		8
 #define RDEV(major, minor)	( (((major) & BYTE) << MAJOR) | \
 								(((minor) & BYTE) << MINOR) )
 
@@ -577,7 +578,7 @@ static void printInode(DiskInode *inodes, DirEntry *dirs, int inoOff, Ino_t inoN
 	printf("uid=%d, gid=%d, ", dip->d_uid, dip->d_gid);
 	printf("nlink=%d, ", dip->d_nlinks);
 	if (fileType == I_CHAR_SPECIAL || fileType == I_BLOCK_SPECIAL)
-	  printf("rdev=0x%x, ", dip->d_zone[0]);
+	  printf("rdev=0x%X, ", dip->d_zone[0]);
 	else 
 	  printf("zone[0]=%u, ", dip->d_zone[0]);
 	printf("size=%u, ", dip->d_size);
@@ -693,23 +694,38 @@ typedef struct {
 } DevFile;
 
 static DevFile devFiles[] = {
-	{ "console", I_CHAR_SPECIAL | 0620, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x0)    },
-	{ "pty0",    I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0xC0) },
-	{ "pty1",    I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0xC1) },
-	{ "pty2",    I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0xC2) },
-	{ "pty3",    I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0xC3) },
-	{ "tty",     I_CHAR_SPECIAL | 0666, SUPER_USER, ROOT_GRP,  RDEV(CTTY_MAJOR, 0x0)   },
-	{ "tty00",   I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x10) },
-	{ "tty01",   I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x11) },
-	{ "tty02",   I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x12) },
-	{ "tty03",   I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x13) },
-	{ "ttyc1",   I_CHAR_SPECIAL | 0600, SUPER_USER, ROOT_GRP,  RDEV(TTY_MAJOR, 0x1) },
-	{ "ttyc2",   I_CHAR_SPECIAL | 0600, SUPER_USER, ROOT_GRP,  RDEV(TTY_MAJOR, 0x2) },
-	{ "ttyc3",   I_CHAR_SPECIAL | 0600, SUPER_USER, ROOT_GRP,  RDEV(TTY_MAJOR, 0x3) },
-	{ "ttyp0",   I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x80) },
-	{ "ttyp1",   I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x81) },
-	{ "ttyp2",   I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x82) },
-	{ "ttyp3",   I_CHAR_SPECIAL | 0666, SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x83) }
+	/* CTTY */
+	{ "tty",     I_CHAR_SPECIAL | 0666, SUPER_USER, ROOT_GRP,  RDEV(CTTY_MAJOR, 0x0) },
+
+	/* TTY */
+	{ "console", I_CHAR_SPECIAL  | 0620,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x00) },
+	{ "log",     I_CHAR_SPECIAL  | 0222,  SUPER_USER, ROOT_GRP,  RDEV(TTY_MAJOR, 0x0F) },
+	{ "pty0",    I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0xC0) },
+	{ "pty1",    I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0xC1) },
+	{ "pty2",    I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0xC2) },
+	{ "pty3",    I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0xC3) },
+	{ "tty00",   I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x10) },
+	{ "tty01",   I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x11) },
+	{ "tty02",   I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x12) },
+	{ "tty03",   I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x13) },
+	{ "ttyc1",   I_CHAR_SPECIAL  | 0600,  SUPER_USER, ROOT_GRP,  RDEV(TTY_MAJOR, 0x01) },
+	{ "ttyc2",   I_CHAR_SPECIAL  | 0600,  SUPER_USER, ROOT_GRP,  RDEV(TTY_MAJOR, 0x02) },
+	{ "ttyc3",   I_CHAR_SPECIAL  | 0600,  SUPER_USER, ROOT_GRP,  RDEV(TTY_MAJOR, 0x03) },
+	{ "ttyp0",   I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x80) },
+	{ "ttyp1",   I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x81) },
+	{ "ttyp2",   I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x82) },
+	{ "ttyp3",   I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x83) },
+
+	/* MEMORY */
+	{ "ram",     I_BLOCK_SPECIAL | 0600,  SUPER_USER, KMEM_GRP,  RDEV(MEMORY_MAJOR, RAM_DEV) },
+	{ "mem",     I_CHAR_SPECIAL  | 0640,  SUPER_USER, KMEM_GRP,  RDEV(MEMORY_MAJOR, MEM_DEV) },
+	{ "kmem",    I_CHAR_SPECIAL  | 0640,  SUPER_USER, KMEM_GRP,  RDEV(MEMORY_MAJOR, KMEM_DEV) },
+	{ "null",    I_CHAR_SPECIAL  | 0666,  SUPER_USER, KMEM_GRP,  RDEV(MEMORY_MAJOR, NULL_DEV) },
+	{ "boot",    I_BLOCK_SPECIAL | 0600,  SUPER_USER, KMEM_GRP,  RDEV(MEMORY_MAJOR, BOOT_DEV) },
+	{ "zero",    I_CHAR_SPECIAL  | 0644,  SUPER_USER, KMEM_GRP,  RDEV(MEMORY_MAJOR, ZERO_DEV) },
+
+	/* LOG */
+	{ "klog",    I_CHAR_SPECIAL  | 0600,  SUPER_USER, ROOT_GRP,  RDEV(LOG_MAJOR, 0x00) }
 };
 
 static void mkSpecialFile(Ino_t pINum, char *name, DevFile *dfp) {

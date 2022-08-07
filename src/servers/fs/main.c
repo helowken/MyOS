@@ -268,6 +268,7 @@ static void fsInit() {
 	currFp = (FProc *) NULL;
 	who = FS_PROC_NR;
 
+	initSysCalls();		/* Init system calls */
 	initBufPool();		/* Initialize buffer pool */
 	buildDMap();		/* Build device table and map boot driver */
 	loadRam();			/* Init RAM disk, load if it is root */
@@ -333,7 +334,7 @@ int main() {
  * the reply. This loop never terminates as long as the file system runs.
  */
 	sigset_t sigset;
-	int error;
+	int r;
 
 	fsInit();
 
@@ -361,19 +362,19 @@ int main() {
 		} else {
 			/* Call the internal function that does the work. */
 			if (callNum < 0 || callNum >= NCALLS) {
-				error = ENOSYS;
+				r = ENOSYS;
 				printf("FS, warning illegal %d system call by %d\n", callNum, who);
 			} else if (currFp->fp_pid == PID_FREE) {
-				error = ENOSYS;
+				r = ENOSYS;
 				printf("FS, bad process, who= %d, callNum = %d, slot1 = %d\n",
 							who, callNum, inMsg.slot1);
 			} else {
-				error = (*callVec[callNum])();
+				r = (*callVec[callNum])();
 			}
 
 			/* Copy the results back to the user and send reply. */
-			if (error != SUSPEND)
-			  reply(who, error);
+			if (r != SUSPEND)
+			  reply(who, r);
 			if (readAheadInode != NIL_INODE)
 			  readAhead();	/* Do block read ahead */
 		}

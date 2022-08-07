@@ -11,12 +11,12 @@ int doEndKernelSig(Message *msg) {
 	 * process is already dead its flags will be reset.
 	 */
 	rp = procAddr(msg->SIG_PROC);
-	if (! (rp->p_rt_flags & SIG_PENDING))
+	if (! (rp->p_rts_flags & SIG_PENDING))
 	  return EINVAL;
 
 	/* PM has finished one kernel signal. Perhaps process is ready now? */
-	if (! (rp->p_rt_flags & SIGNALED)) {		/* New signal arrived? */
-		if ((rp->p_rt_flags &= ~SIG_PENDING) == 0)
+	if (! (rp->p_rts_flags & SIGNALED)) {		/* New signal arrived? */
+		if ((rp->p_rts_flags &= ~SIG_PENDING) == 0)
 		  lockEnqueue(rp);
 	}
 	return OK;

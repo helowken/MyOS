@@ -6,6 +6,8 @@
 #include "mproc.h"
 #include "param.h"
 
+#define LAST_FEW	2	/* Last few slots reserved for superuser */
+
 static void cleanup(register MProc *child) {
 /* Finish off the exit of a process. The process has exited or been killed
  * by a signal, and its parent is waiting.
@@ -170,3 +172,94 @@ int doWaitPid() {
 		return ECHILD;
 	}
 }
+
+int doFork() {
+/* The process pointed to by 'currMp' has forked. Create a child process. */	
+	register MProc *parentMp;
+	register MProc *childMp;
+	int s, childNum;
+	phys_clicks progClicks, childBase;
+	phys_bytes progBytes, parentAbs, childAbs;
+	pid_t newPid;
+
+	/* If tables might fill up during FORK, don't even start since recovery half
+	 * way through is such a nuisance.
+	 */
+	parentMp = currMp;
+	if ((procsInUse == NR_PROCS) ||
+		(procsInUse >= NR_PROCS - LAST_FEW && parentMp->mp_euid != SUPER_USER)) {
+		printf("PM: warning, process table is full!\n");
+		return EAGAIN;
+	}
+
+	/* Determine how much memory to allocate. Only the data and stack need to
+	 * be copied, because the text segment is either shared or of zero length.
+	 */
+	progClicks = (phys_clicks) parentMp->mp_memmap[S].virAddr + parentMp->mp_memmap[S].len -
+							parentMp->mp_memmap[D].virAddr - /* Note: data virAddr is 0 */
+							parentMp->mp_memmap[D].offset;
+	if ((childBase = allocMemory(progClicks)) == NO_MEM)
+	  return ENOMEM;
+
+	/* Create a copy of the parent's core image for the child. */
+	childAbs = (phys_bytes) childBase << CLICK_SHIFT;
+	parentAbs = (phys_bytes) (parentMp->mp_memmap[D].physAddr + 
+							parentMp->mp_memmap[D].offset) << CLICK_SHIFT;
+	progBytes = (phys_bytes) progClicks << CLICK_SHIFT;
+	if ((s = sysAbsCopy(parentAbs, childAbs, progBytes)) < 0)
+	  panic(__FILE__, "doFork can't copy", s);
+
+	/* Find a slot in 'mprocTable' for the child process. A slot must exist. */
+	for (childMp = &mprocTable[0]; childMp < &mprocTable[NR_PROCS]; ++childMp) {
+		if ((childMp->mp_flags & IN_USE) == 0)
+		  break;
+	}
+
+	/* Set up the child and its memory map; copy its 'mprocTable' slot from parent. */
+	childNum = (int) (childMp - mprocTable);	/* Slot number of the child */
+	++procsInUse;
+	*childMp = *parentMp;	/* Copy parent's process slot to child's */
+	childMp->mp_parent = who;	/* Record child's parent */
+	/* Inherit only these flags */
+	childMp->mp_flags &= (IN_USE | PRIV_PROC | DONT_SWAP);
+	childMp->mp_child_utime = 0;
+	childMp->mp_child_stime = 0;
+
+	/* Child keeps the parents text segment. The data and stack segments must 
+	 * refer to the new copy. 
+	 */
+
+	childMp->mp_memmap[D].physAddr = childBase - parentMp->mp_memmap[D].offset;
+	childMp->mp_memmap[S].physAddr = childMp->mp_memmap[D].physAddr + 
+				(parentMp->mp_memmap[S].virAddr - parentMp->mp_memmap[D].virAddr);
+	childMp->mp_exit_status = 0;
+	childMp->mp_sig_status = 0;
+
+	/* Find a free pid for the child and put it in the table. */
+	newPid = getFreePid();
+	childMp->mp_pid = newPid;	/* Assign pid to child */
+
+	/* Tell kernel and file system about the (now successful) FORK. */
+	sysFork(who, childNum);
+	tellFS(FORK, who, childNum, childMp->mp_pid);
+
+	/* Report child's memory map to kernel. */
+	sysNewMap(childNum, childMp->mp_memmap);
+
+	/* Reply to child to wake it up. */
+	setReply(childNum, 0);		/* Only parent gets details */
+	parentMp->mp_reply.proc_num = childNum;	/* Child's process number */
+	return newPid;
+}
+
+
+
+
+
+
+
+
+
+
+
+

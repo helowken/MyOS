@@ -23,9 +23,9 @@ int doTrace(Message *msg) {
 
 	switch (traceReq) {
 		case T_STOP:		/* Stop process */
-			if (rp->p_rt_flags == 0)
+			if (rp->p_rts_flags == 0)
 			  lockDequeue(rp);
-			rp->p_rt_flags |= P_STOP;
+			rp->p_rts_flags |= P_STOP;
 			rp->p_reg.psw &= ~TRACE_BIT;	/* Clear trace bit */
 			return OK;
 			
@@ -85,16 +85,16 @@ int doTrace(Message *msg) {
 			break;
 
 		case T_RESUME:		/* Resume execution */
-			rp->p_rt_flags &= ~P_STOP;
-			if (rp->p_rt_flags == 0)
+			rp->p_rts_flags &= ~P_STOP;
+			if (rp->p_rts_flags == 0)
 			  lockEnqueue(rp);
 			msg->CTL_DATA = 0;
 			break;
 
 		case T_STEP:		/* Set trace bit */
 			rp->p_reg.psw |= TRACE_BIT;
-			rp->p_rt_flags &= ~P_STOP;
-			if (rp->p_rt_flags == 0)
+			rp->p_rts_flags &= ~P_STOP;
+			if (rp->p_rts_flags == 0)
 			  lockEnqueue(rp);
 			msg->CTL_DATA = 0;
 			break;

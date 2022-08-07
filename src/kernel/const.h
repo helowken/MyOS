@@ -1,7 +1,6 @@
 #ifndef CONST_H 
 #define CONST_H
 
-#include "limits.h"
 #include "ibm/interrupt.h"
 #include "ibm/ports.h"
 #include "minix/config.h"
