@@ -139,20 +139,13 @@ static size_t readHeader(char *fileName, FILE *imgFile, ImageHeader *imgHdr, boo
 	if (print && (proc->stackSize = getStackSize(imgHdr->name)) == -1)
 	  fatal("No stack size found for: %s\n", imgHdr->name);
 
-	if (fread(ehdrPtr, sizeof(*ehdrPtr), 1, imgFile) != 1 || 
-				ferror(imgFile))
-	  errExit("fread elf header");
-
+	Fread(fileName, imgFile, ehdrPtr, sizeof(*ehdrPtr));
 	checkElfHeader(fileName, ehdrPtr);
-
-	if (fseek(imgFile, ehdrPtr->e_phoff, SEEK_SET) != 0)
-	  errExit("fseek");
+	Fseek(fileName, imgFile, ehdrPtr->e_phoff);
 
 	phdrSize = ehdrPtr->e_phentsize;	
 	for (i = 0; i < ehdrPtr->e_phnum; ++i) {
-		if (fread(&phdr, phdrSize, 1, imgFile) != 1 || 
-					ferror(imgFile))
-		  errExit("fread program headers");
+		Fread(fileName, imgFile, &phdr, phdrSize);
 
 		if (isPLoad(&phdr)) {
 			if (isRX(&phdr)) {
@@ -227,28 +220,11 @@ static void copyExec(char *progName, FILE *imgFile, Elf32_Phdr *hdr) {
 	padLen = ALIGN_SECTOR(size) - size;
 
 	adjustBuf(size);
-
-	if (fseek(imgFile, hdr->p_offset, SEEK_SET) == -1)
-	  errExit("fseek %s", progName);
-	if (fread(currBuf, size, 1, imgFile) != 1 || ferror(imgFile))
-	  errExit("copyExec fread %s", progName);
-
+	Fseek(progName, imgFile, hdr->p_offset);
+	Fread(progName, imgFile, currBuf, size);
 	bufOff += size;
 
 	padImage(padLen);
-}
-
-FILE *openFile(char *file) {
-	FILE *imgFile;
-	struct stat st;
-
-	if (stat(file, &st) < 0)
-	  errExit("stat \"%s\"", file);
-	if (!S_ISREG(st.st_mode))
-	  errExit("\"%s\" is not a file.", file);
-	if ((imgFile = fopen(file, "r")) == NULL)
-	  errExit("fopen \"%s\"", file);
-	return imgFile;
 }
 
 static size_t readStackSize(char *fileName) {
@@ -318,7 +294,7 @@ static void installImages(char **imgNames, int imgAddr, off_t bootSize,
 						off_t *imgSizePtr, size_t *memSizes) {
 	FILE *imgFile;
 	char *imgName, *file;
-	imgBuf = malloc(bufLen);
+	imgBuf = Malloc(bufLen);
 	ImageHeader imgHdr;
 	Exec *proc;
 	Elf32_Phdr *hdr;
@@ -335,7 +311,7 @@ static void installImages(char **imgNames, int imgAddr, off_t bootSize,
 		else
 		  file = imgName;
 
-		imgFile = openFile(file);
+		imgFile = Fopen(file);
 		/* Use on sector to store exec header */
 		readHeader(imgName, imgFile, &imgHdr, true);
 		bwrite(&imgHdr, sizeof(imgHdr));
@@ -355,8 +331,8 @@ static void installImages(char **imgNames, int imgAddr, off_t bootSize,
 		}
 		/* Compute memory size for each image */
 		memSizes[i] = memSize == 0 ? memSize : ALIGN(memSize + proc->stackSize, CLICK_SIZE); 
-		
-		fclose(imgFile);
+	
+		Fclose(file, imgFile);
 
 		if (bootSize + bufOff > maxSize)
 		  fatal("Total size of (boot + images) excceeds %dMB", 
@@ -395,7 +371,7 @@ static void checkBootMemSize(char *boot) {
 	bootElf[i++] = 'f';
 	bootElf[i] = 0;
 
-	bootFile = openFile(bootElf);
+	bootFile = Fopen(bootElf);
 	size = readHeader(bootElf, bootFile, &imgHdr, false);
 	//printf("size: %x\n", size);
 	//printf("size: %x\n", size + STACK_SIZE);
@@ -422,9 +398,7 @@ static void installBoot(char *boot, off_t *bootSizePtr, int *bootAddrPtr) {
 	bootAddr = fsSize * RATIO(blockSize);
 
 	/* Read boot to buf. */
-	bootBuf = (char *) malloc(bootSize);
-	if (bootBuf == NULL)
-	  errExit("malloc boot buf");
+	bootBuf = (char *) Malloc(bootSize);
 	bootFd = ROpen(boot);
 	Read(boot, bootFd, bootBuf, bootSize);
 

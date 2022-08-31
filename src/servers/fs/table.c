@@ -17,8 +17,13 @@ void initSysCalls() {
 		callVec[i] = noSys;
 	}
 
+	map(FORK, doFork);		/* 2 = fork */
 	map(OPEN, doOpen);		/* 5 = open */
+	map(CLOSE, doClose);	/* 6 = close */
+	map(CHDIR, doChdir);	/* 12 = chdir */
+	map(SETUID, doSet);		/* 23 = setuid */
 	map(FSTAT, doFstat);	/* 28 = fstat */
+	map(ACCESS, doAccess);	/* 33 = access */
 	map(MKDIR, doMkdir);	/* 39 = mkdir */
 	map(FCNTL, doFcntl);	/* 55 = fcntl */
 }

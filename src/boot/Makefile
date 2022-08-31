@@ -93,9 +93,13 @@ partition:
 	$(PARTITION) -ps $(DISK_IMAGE)
 
 mkfs:
+	@echo --------------------------------------------
 	$(MKFS) -r$(BOOT_IMG_SECTORS) -c $(FS_ROOT):$(DISK_IMAGE)
+	@echo --------------------------------------------
 	$(MKFS) $(FS_HOME):$(DISK_IMAGE)
+	@echo --------------------------------------------
 	$(MKFS) $(FS_USR):$(DISK_IMAGE)
+	@echo --------------------------------------------
 
 disasm: $(DEBUG)
 	$(call disasmCode,$<,16)

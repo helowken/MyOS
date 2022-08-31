@@ -36,4 +36,16 @@ void Lseek(char *fileName, int fd, off_t offset);
 
 void Close(char *fileName, int fd);
 
+FILE *Fopen(char *file);
+
+void Fseek(char *fileName, FILE *file, long off);
+
+void Fread(char *fileName, FILE *file, void *buf, size_t size);
+
+void Fread2(char *fileName, FILE *file, void *buf, size_t size, size_t num);
+
+void Fclose(char *fileName, FILE *file);
+
+void *Malloc(size_t size);
+
 #endif

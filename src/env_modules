@@ -1,9 +1,9 @@
 export boot=0x80000
 export kernel=0x800
 export pm=0x100000
-export fs=0x10d400
-export tty=0x625c00
-export memory=0x62c800
-export log=0x631000
-export at_wini=0x644800
-export init=0x651800
+export fs=0x112000
+export tty=0x62ac00
+export memory=0x631800
+export log=0x636000
+export at_wini=0x649800
+export init=0x656800

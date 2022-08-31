@@ -231,11 +231,11 @@ static void pmInit() {
 
 static void getWork() {
 /* Wait for the next message and extract useful information from it. */
-	if (receive(ANY, &inputMsg) != OK)
+	if (receive(ANY, &inMsg) != OK)
 	  panic(__FILE__, "PM receive error", NO_NUM);
 	
-	who = inputMsg.m_source;		/* Who sent the message */
-	callNum = inputMsg.m_type;		/* System call number */
+	who = inMsg.m_source;		/* Who sent the message */
+	callNum = inMsg.m_type;		/* System call number */
 
 	/* Process slot of caller. Misuse PM's own process slot if the kernel is
 	 * calling. This can happen in case of synchronous alarms (CLOCK) or event
@@ -257,10 +257,10 @@ int main() {
 
 		/* Check for system notifications first. Special cases. */
 		if (callNum == SYN_ALARM) {
-			pmExpireTimers(inputMsg.NOTIFY_TIMESTAMP);
+			pmExpireTimers(inMsg.NOTIFY_TIMESTAMP);
 			result = SUSPEND;		/* Don't reply */
 		} else if (callNum == SYS_SIG) {	/* Signals pending */
-			sigset = inputMsg.NOTIFY_ARG;
+			sigset = inMsg.NOTIFY_ARG;
 			if (sigismember(&sigset, SIGKSIG))
 			  kernelSigPending();
 			result = SUSPEND;		/* Don't reply */

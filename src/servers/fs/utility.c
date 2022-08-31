@@ -62,7 +62,7 @@ int fetchName(char *path, int len, int flag) {
 	if (flag == M3 && len <= M3_STRING) {
 		/* Just copy the path from the message to 'userPath'. */
 		pu = userPath;
-		pm = inMsg.pathName;	/* Contained in input message */
+		pm = inMsg.path_name;	/* Contained in input message */
 		do {
 			*pu++ = *pm++;
 		} while (--len);

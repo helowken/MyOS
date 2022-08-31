@@ -30,7 +30,7 @@ int doGetSet() {
 			rmp->mp_reply.reply_res2 = mprocTable[rmp->mp_parent].mp_pid;
 			break;
 		case SETUID:
-			uid = (uid_t) inputMsg.user_id;
+			uid = (uid_t) inMsg.user_id;
 			if (rmp->mp_ruid != uid && rmp->mp_euid != SUPER_USER)
 			  return EPERM;
 			rmp->mp_ruid = uid;
@@ -39,7 +39,7 @@ int doGetSet() {
 			r = OK;
 			break;
 		case SETGID:
-			gid = (gid_t) inputMsg.group_id;
+			gid = (gid_t) inMsg.group_id;
 			if (rmp->mp_rgid != gid && rmp->mp_euid != SUPER_USER)
 			  return EPERM;
 			rmp->mp_rgid = gid;

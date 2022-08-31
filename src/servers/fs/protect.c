@@ -74,3 +74,31 @@ int checkForbidden(register Inode *ip, mode_t accessDesired) {
 	return r;
 }
 
+int doAccess() {
+/* Perform the access(path, mode) system call. */
+	Inode *ip;
+	register int r;
+	
+	/* First check to see if the mode is correct. */
+	if ((inMsg.m_mode & ~(R_OK | W_OK | X_OK)) != 0 && 
+				inMsg.m_mode != F_OK)
+	  return EINVAL;
+
+	/* Temporarily open the file whose access is to be checked. */
+	if (fetchName(inMsg.name, inMsg.name_length, M3) != OK)
+	  return errCode;
+	if ((ip = eatPath(userPath)) == NIL_INODE)
+	  return errCode;
+
+	/* Now check the permissions. */
+	r = checkForbidden(ip, (mode_t) inMsg.m_mode);
+	putInode(ip);
+	return r;
+}
+
+
+
+
+
+
+

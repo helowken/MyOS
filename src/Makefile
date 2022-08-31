@@ -4,7 +4,8 @@ MODULES = \
 		kernel \
 		servers \
 		drivers \
-		boot
+		boot \
+		commands
 
 
 include modules.mk

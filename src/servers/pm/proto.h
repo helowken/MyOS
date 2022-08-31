@@ -1,5 +1,6 @@
 #include "timers.h"
 
+struct stat;
 typedef struct MProc MProc;
 typedef struct Memory Memory;
 
@@ -19,9 +20,12 @@ int noSys();
 void tellFS(int what, int p1, int p2, int p3);
 int getStackPtr(int pNum, vir_bytes *sp);
 int getPNumFromPid(pid_t pid);
+int getStackPtr(int pNum, vir_bytes *sp);
+int checkAllowed(char *name, struct stat *st, int mask);
 
 /* break.c */
 int doBrk();
+int adjust(MProc *rmp, vir_clicks dataClicks, vir_bytes sp);
 
 /* timers.c */
 void pmSetTimer(Timer *tp, clock_t delta, TimerFunc watchdog, int arg);

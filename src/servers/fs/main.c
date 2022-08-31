@@ -210,8 +210,8 @@ static void loadSuper(dev_t dev) {
 	bad = readSuper(sp) != OK;
 	if (!bad) {
 		ip = getInode(dev, ROOT_INODE);		/* Inode for root dir */
-		if (ip == NIL_INODE || (ip->i_mode & I_TYPE) != I_DIRECTORY)
-					//TODO || ip->i_nlinks < 3)
+		if (ip == NIL_INODE || (ip->i_mode & I_TYPE) != I_DIRECTORY 
+					|| ip->i_nlinks < 3)
 		  ++bad;
 	}
 	if (bad) 
@@ -275,6 +275,7 @@ static void fsInit() {
 	loadSuper(rootDev);		/* Load super block for root device */
 
 	/* The root device can now be accessed; set process directories. */
+	int i = 0;
 	for (fp = &fprocTable[0]; fp < &fprocTable[NR_PROCS]; ++fp) {
 		if (fp->fp_pid != PID_FREE) {
 			ip = getInode(rootDev, ROOT_INODE);
@@ -282,6 +283,7 @@ static void fsInit() {
 			fp->fp_root_dir = ip;
 			fp->fp_work_dir = ip;
 		}
+		++i;
 	}
 }
 

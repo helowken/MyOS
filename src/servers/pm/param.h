@@ -29,6 +29,8 @@
 #define reboot_flag		m1_i1
 #define	reboot_code		m1_p1
 #define reboot_str_len	m1_i2
+#define svrctl_req		m2_i1
+#define svrctl_argp		m2_p1
 #define stime			m2_l1
 #define	mem_size		m4_l1
 #define	mem_base		m4_l2

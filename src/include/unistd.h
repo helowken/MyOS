@@ -5,6 +5,12 @@
 #include "sys/types.h"
 #endif
 
+/* Values used by access(). */
+#define F_OK			0	/* Test if file exists */
+#define X_OK			1	/* Test if file is executable */
+#define W_OK			2	/* Test if file is writable */
+#define R_OK			3	/* Test if file is readable */
+
 /* Values used for whence in lseek(fd, offset, whence). POSIX table 2-9. */
 #define SEEK_SET		0	/* Offset is absolute */
 #define SEEK_CUR		1	/* Offset is relative to current position */
@@ -27,7 +33,10 @@
 /* NULL must be defined in <unistd.h> according to POSIX. */
 #define NULL	((void *) 0)
 
+void _exit(int status);
+int access(const char *path, int mode);
 int dup(int fd);
+int execve(const char *path, char *const argv[], char *const envp[]);
 pid_t fork();
 gid_t getegid();
 uid_t geteuid();

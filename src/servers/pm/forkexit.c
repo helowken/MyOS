@@ -33,7 +33,7 @@ int doPmExit() {
 /* Perform the exit(status) system call. The real work is done by pmExit(),
  * which is also called when a process is killed by a signal. 
  */
-	pmExit(currMp, inputMsg.status);
+	pmExit(currMp, inMsg.status);
 	return SUSPEND;		/* Can't communicate from beyond the grave */
 }
 
@@ -125,8 +125,8 @@ int doWaitPid() {
 	register MProc *rmp;
 	int pid, options, children;
 
-	pid = (callNum == WAIT ? -1 : inputMsg.proc_id);	/* 1st param of waitpid */
-	options = (callNum == WAIT ? 0 : inputMsg.sig_num);	/* 3rd param of waitpid */
+	pid = (callNum == WAIT ? -1 : inMsg.proc_id);	/* 1st param of waitpid */
+	options = (callNum == WAIT ? 0 : inMsg.sig_num);	/* 3rd param of waitpid */
 	if (pid == 0)
 	  pid = -currMp->mp_proc_grp;
 
@@ -228,7 +228,6 @@ int doFork() {
 	/* Child keeps the parents text segment. The data and stack segments must 
 	 * refer to the new copy. 
 	 */
-
 	childMp->mp_memmap[D].physAddr = childBase - parentMp->mp_memmap[D].offset;
 	childMp->mp_memmap[S].physAddr = childMp->mp_memmap[D].physAddr + 
 				(parentMp->mp_memmap[S].virAddr - parentMp->mp_memmap[D].virAddr);

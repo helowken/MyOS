@@ -9,7 +9,9 @@ OBJS_M32 = \
 		getprocnr.o \
 		findproc.o \
 		allocmem.o \
-		loadname.o 
+		loadname.o \
+		_svrctl.o \
+		_brk.o
 
 
 OBJS_M16 = \

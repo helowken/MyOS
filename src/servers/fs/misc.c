@@ -89,6 +89,63 @@ int doFcntl() {
 	}
 }
 
+int doSet() {
+/* Set uid_t or gid_t field. */
+	register FProc *rfp;
+
+	/* Only PM may make this call directly. */
+	if (who != PM_PROC_NR)
+	  return EGENERIC;
+
+	rfp = &fprocTable[inMsg.slot1];
+	if (callNum == SETUID) {
+		rfp->fp_ruid = (uid_t) inMsg.m_ruid;
+		rfp->fp_euid = (uid_t) inMsg.m_euid;
+	} else if (callNum == SETGID) {
+		rfp->fp_rgid = (gid_t) inMsg.m_rgid;
+		rfp->fp_egid = (gid_t) inMsg.m_egid;
+	}
+	return OK;
+}
+
+int doFork() {
+/* Perform those aspects of the fork() system call that relate to files.
+ * In particular, let the child inherit its parent's file descriptors.
+ * The parent and child parameters tell who forked off whom. The file
+ * system uses the same slot numbers as the kernel. Only MM makes this call.
+ */
+	register FProc *cp;
+	int i;
+
+	/* Only PM may make this call directly. */
+	if (who != PM_PROC_NR)
+	  return EGENERIC;
+
+	/* Copy the parent's FProc struct to the child. */
+	fprocTable[inMsg.child] = fprocTable[inMsg.parent];
+
+	/* Increase the counters in the 'filp' table. */
+	cp = &fprocTable[inMsg.child];
+	for (i = 0; i < OPEN_MAX; ++i) {
+		if (cp->fp_filp[i] != NIL_FILP)
+		  ++cp->fp_filp[i]->filp_count;
+	}
+
+	/* Fill in new prcoess id */
+	cp->fp_pid = inMsg.pid;
+
+	/* A child is not a process leader. */
+	cp->fp_session_leader = 0;
+
+	/* Record the fact that both root and working dir have another user. */
+	dupInode(cp->fp_root_dir);
+	dupInode(cp->fp_work_dir);
+
+	return OK;
+}
+
+
+
 
 
 

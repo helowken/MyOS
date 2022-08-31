@@ -53,3 +53,81 @@ int doFstat() {
 
 	return statInode(fp->filp_inode, fp, inMsg.buffer);
 }
+
+static int changeIntoDir(Inode **iip, Inode *rip) {
+	register int r;
+
+	/* It must be a directory and also be searchable. */
+	if ((rip->i_mode & I_TYPE) != I_DIRECTORY)
+	  r = ENOTDIR;
+	else 
+	  r = checkForbidden(rip, X_BIT);	/* Check if dir is searchable */
+
+	/* If error, return inode. */
+	if (r != OK) {
+		putInode(rip);
+		return r;
+	}
+
+	/* Everything is OK. Make the change. */
+	putInode(*iip);		/* Release the old directory */
+	*iip = rip;		/* Acquire the new one */
+	return OK;
+}
+
+static int changeDir(Inode **iip, char *pathName, int len) {
+/* Do the actual work for chdir() and chroot(). */
+	Inode *rip;
+
+	/* Try to open the new directory. */
+	if (fetchName(pathName, len, M3) != OK)
+	  return errCode;
+	if ((rip = eatPath(userPath)) == NIL_INODE)
+	  return errCode;
+	return changeIntoDir(iip, rip);
+}
+
+int doChdir() {
+/* Change directory. This function is also called by MM to simulate a chdir
+ * in order to do EXEC, etc. It also changes the root directory, the uids and
+ * gids, and the umask.
+ */
+	register FProc *rfp;
+	
+	if (who == PM_PROC_NR) {
+		rfp = &fprocTable[inMsg.slot1];
+		putInode(currFp->fp_root_dir);
+		currFp->fp_root_dir = rfp->fp_root_dir;
+		dupInode(currFp->fp_root_dir);
+
+		putInode(currFp->fp_work_dir);
+		currFp->fp_work_dir = rfp->fp_work_dir;
+		dupInode(currFp->fp_work_dir);
+
+		/* MM uses access() to check permissions. To make this work, pretend
+		 * that the user's real ids are the same as the user's effective ids.
+		 * FS calls other than access() do not use the real ids, so are not
+		 * affected.
+		 */
+		currFp->fp_ruid = 
+		currFp->fp_euid = rfp->fp_euid;
+		currFp->fp_rgid = 
+		currFp->fp_egid = rfp->fp_egid;
+		currFp->fp_umask = rfp->fp_umask;
+		return OK;
+	}
+
+	/* Perform the chdir(name0 system call. */
+	return changeDir(&currFp->fp_work_dir, inMsg.name, inMsg.name_length);
+}
+
+
+
+
+
+
+
+
+
+
+

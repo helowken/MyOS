@@ -27,4 +27,6 @@
 
 #define OPEN_MAX	20			/* # open files a process may have */
 
+#define ARG_MAX		16384		/* # bytes of args + environ for exec() */
+
 #endif

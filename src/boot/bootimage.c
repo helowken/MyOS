@@ -409,7 +409,7 @@ static void execImage(char *image) {
 
 		rawCopy((char *) (imgHdrPos + i * EXEC_SIZE), mon2Abs(exec), EXEC_SIZE);
 
-		printf("%07lx  %07lx  %07lx %8ld %8ld %8ld %8ld    %s\n",
+		printf("%07lx  %07lx %8ld %8ld %8ld %8ld    %s\n",
 			procp->cs, procp->ds, exec->codeHdr.p_filesz, 
 			dataSize, bssSize, exec->stackSize, imgHdr.name);
 

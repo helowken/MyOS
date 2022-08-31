@@ -39,6 +39,7 @@ int getFd(int start, mode_t bits, int *k, Filp **fpp);
 Filp *getFilp(int fd);
 
 /* stadir.c */
+int doChdir();
 int doFstat();
 
 /* super.c */
@@ -53,6 +54,7 @@ void suspend(int task);
 void revive(int proc, int bytes);
 
 /* protect.c */
+int doAccess();
 int checkReadOnly(Inode *ip);
 int checkForbidden(Inode *ip, mode_t accessDesired);
 
@@ -77,9 +79,12 @@ void invalidate(dev_t dev);
 int doSync();
 int doFsync();
 int doFcntl();
+int doFork();
+int doSet();
 
 /* open.c */
 int doOpen();
+int doClose();
 int doMkdir();
 
 /* path.c */

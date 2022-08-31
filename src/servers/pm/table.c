@@ -21,7 +21,7 @@ void initSysCalls() {
 	map(WAIT, doWaitPid);		/* 7 = wait */
 	map(WAITPID, doWaitPid);	/* 11 = waitpid */
 	map(TIME, doTime);			/* 13 = time */
-	//TODO map(BRK, doBrk);		/* 17 = break */
+	map(BRK, doBrk);			/* 17 = break */
 	map(GETPID, doGetSet);		/* 20 = getpid */
 	map(SETUID, doGetSet);		/* 23 = setuid */
 	map(GETUID, doGetSet);		/* 24 = getuid */
@@ -33,7 +33,7 @@ void initSysCalls() {
 	map(TIMES, doTimes);		/* 43 = times */
 	map(SETGID, doGetSet);		/* 46 = setgid */
 	map(GETGID, doGetSet);		/* 47 = getgid */
-	//TODO map(EXEC, doExec);	/* 59 = execve */
+	map(EXEC, doExec);			/* 59 = execve */
 	map(SETSID, doGetSet);		/* 62 = setsid */
 	map(GETPGRP, doGetSet);		/* 63 = getpgrp */
 
@@ -43,7 +43,7 @@ void initSysCalls() {
 	map(SIGPROCMASK, doSigProcMask);	/* 74 = sigprocmask */
 	map(SIGRETURN, doSigReturn);	/* 75 = sigreturn */
 	//TODO map(REBOOT, doReboot);	/* 76 = reboot */
-	//TODO map(SVRCTL, doSvrCtl);	/* 77 = svrctl */
+	map(SVRCTL, doSvrCtl);	/* 77 = svrctl */
 
 	map(GETSYSINFO, doGetSysInfo);	/* 79 = getsysinfo */
 	map(GETPROCNR, doGetProcNum);	/* 80 = getprocnr */

@@ -140,3 +140,42 @@ void Close(char *fileName, int fd) {
 	if (close(fd) == -1)
 	  errExit("close %s", fileName);
 }
+
+FILE *Fopen(char *fileName) {
+	FILE *file;
+	struct stat st;
+
+	if (stat(fileName, &st) < 0)
+	  errExit("stat \"%s\"", fileName);
+	if (!S_ISREG(st.st_mode))
+	  errExit("\"%s\" is not a fileName.", fileName);
+	if ((file = fopen(fileName, "r")) == NULL)
+	  errExit("fopen \"%s\"", fileName);
+	return file;
+}
+
+void Fseek(char *fileName, FILE *file, long off) {
+	if (fseek(file, off, SEEK_SET) == -1)
+	  errExit("fseek %s", fileName);
+}
+
+void Fread(char *fileName, FILE *file, void *buf, size_t size) {
+	Fread2(fileName, file, buf, size, 1);
+}
+
+void Fread2(char *fileName, FILE *file, void *buf, size_t size, size_t num) {
+	if (fread(buf, size, num, file) != num || ferror(file))
+	  errExit("fread %s", fileName);
+}
+
+void Fclose(char *fileName, FILE *file) {
+	if (fclose(file) != 0) 
+	  errExit("fclose %s", fileName);
+}
+
+void *Malloc(size_t size) {
+	void *ptr;
+	if (! (ptr = malloc(size)))
+	  fatal("couldn't allocate %d", size);
+	return ptr;
+}

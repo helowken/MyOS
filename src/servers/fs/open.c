@@ -77,6 +77,7 @@ static int commonOpen(register int oFlags, mode_t oMode) {
 	bits = (mode_t) modeMap[oFlags & O_ACCMODE];
 
 	/* See if file descriptor and filp slots are available. */
+		printf("==== fs, userPath: %s\n", userPath);//TODO
 	if ((r = getFd(0, bits, &inMsg.m_fd, &fp)) != OK)
 	  return r;
 
@@ -156,7 +157,7 @@ int doOpen() {
 	int r;
 
 	/* If O_CREAT is set, open has three parameters, otherwise two. */
-	if (inMsg.o_flags & O_CREAT) {
+	if (inMsg.m_mode & O_CREAT) {
 		createMode = inMsg.c_mode;
 		r = fetchName(inMsg.c_name, inMsg.name1_length, M1);
 	} else {
@@ -165,7 +166,7 @@ int doOpen() {
 
 	if (r != OK)
 	  return errCode;	/* Name was bad */
-	r = commonOpen(inMsg.o_flags, createMode);
+	r = commonOpen(inMsg.m_mode, createMode);
 	return r;
 }
 
@@ -224,7 +225,48 @@ int doMkdir() {
 	return errCode;		/* newNode() always sets 'errCode' (may be OK) */
 }
 
+int doClose() {
+/* Perform the close(fd) system call. */
+	register Filp *fp;
+	register Inode *ip;
+	int mode;
+	dev_t dev;
 
+	/* First locate the inode that belongs to the file descriptor. */
+	if ((fp = getFilp(inMsg.m_fd)) == NIL_FILP)
+	  return errCode;
+	ip = fp->filp_inode;	
+
+	if (fp->filp_count - 1 == 0 && fp->filp_mode != FILP_CLOSED) {
+		/* Check to see if the file is special. */
+		mode = ip->i_mode & I_TYPE;
+		if (mode == I_CHAR_SPECIAL || mode == I_BLOCK_SPECIAL) {
+			dev = (dev_t) ip->i_zone[0];
+			if (mode == I_BLOCK_SPECIAL) {
+				/* Invalidate cache entries unless special is mounted
+				 * or ROOT
+				 */
+				//TODO
+			}
+			/* Do any special processing on device close. */
+			devClose(dev);
+		}
+	}
+
+	/* If the inode being closed is a pipe, release everyone hanging on it. */
+	//TODO
+	
+	/* If a write has been done, the inode is already marked as DIRTY. */
+	//TODO
+
+	currFp->fp_cloexec &= ~(1L << inMsg.m_fd);	/* Turn off close-on-exec bit */
+	currFp->fp_filp[inMsg.m_fd] = NIL_FILP;
+
+	/* Check to see if the file is locked. If so, release all locks. */
+	//TODO
+	
+	return OK;
+}
 
 
 

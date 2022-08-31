@@ -1,6 +1,7 @@
 #include "pm.h"
 #include "minix/callnr.h"
 #include "signal.h"
+#include "sys/svrctl.h"
 #include "sys/resource.h"
 #include "minix/com.h"
 #include "string.h"
@@ -11,7 +12,7 @@ int doAllocMem() {
 	vir_clicks memClicks;
 	phys_clicks memBase;
 
-	memClicks = (inputMsg.mem_size + CLICK_SIZE - 1) >> CLICK_SHIFT;
+	memClicks = (inMsg.mem_size + CLICK_SIZE - 1) >> CLICK_SHIFT;
 	memBase = allocMemory(memClicks);
 	if (memBase == NO_MEM)
 	  return ENOMEM;
@@ -24,9 +25,9 @@ int doGetSetPriority() {
 	int pNum;
 	MProc *rmp;
 
-	which = inputMsg.m1_i1;
-	argWho = inputMsg.m1_i2;
-	priority = inputMsg.m1_i3;		/* For SETPRIORITY */
+	which = inMsg.m1_i1;
+	argWho = inMsg.m1_i2;
+	priority = inMsg.m1_i3;		/* For SETPRIORITY */
 
 	/* Only support PRIO_PROCESS for now. */
 	if (which != PRIO_PROCESS)
@@ -64,17 +65,17 @@ int doGetProcNum() {
 	int s;
 	int pNum = -1;
 
-	if (inputMsg.proc_id >= 0) {	/* Lookup process by pid */
+	if (inMsg.proc_id >= 0) {	/* Lookup process by pid */
 		for (rmp = &mprocTable[0]; rmp < &mprocTable[NR_PROCS]; ++rmp) {
 			if ((rmp->mp_flags & IN_USE) && 
-					(rmp->mp_pid == inputMsg.proc_id)) {
+					(rmp->mp_pid == inMsg.proc_id)) {
 				pNum = (int) (rmp - mprocTable);
 				break;
 			}
 		}
-	} else if (inputMsg.name_len > 0) {		/* Lookup process by name */
-		keyLen = MIN(PROC_NAME_LEN, inputMsg.name_len);
-		if ((s = sysDataCopy(who, (vir_bytes) inputMsg.addr, 
+	} else if (inMsg.name_len > 0) {		/* Lookup process by name */
+		keyLen = MIN(PROC_NAME_LEN, inMsg.name_len);
+		if ((s = sysDataCopy(who, (vir_bytes) inMsg.addr, 
 						SELF,(vir_bytes) searchKey, keyLen)) != OK)
 		  return s;
 		searchKey[keyLen] = '\0';		/* Terminate for safety */
@@ -100,7 +101,7 @@ int doGetSysInfo() {
 	size_t len;
 	int s;
 
-	switch (inputMsg.info_what) {
+	switch (inMsg.info_what) {
 		case SI_KINFO:		/* Kernel info is obtained via PM */
 			sysGetKernelInfo(&kernelInfo);
 			srcAddr = (vir_bytes) &kernelInfo;
@@ -118,8 +119,113 @@ int doGetSysInfo() {
 			return EINVAL;
 	}
 
-	dstAddr = (vir_bytes) inputMsg.info_where;
+	dstAddr = (vir_bytes) inMsg.info_where;
 	if ((s = sysDataCopy(SELF, srcAddr, who, dstAddr, len)) != OK)
 	  return s;
 	return OK;
+}
+
+int doSvrCtl() {
+	int s, req;
+	vir_bytes ptr;
+#define MAX_LOCAL_PARAMS 2
+	static struct {
+		char name[30];
+		char value[30];
+	} localParamOverrides[MAX_LOCAL_PARAMS];
+	static int localParams = 0;
+
+	req = inMsg.svrctl_req;
+	ptr = (vir_bytes) inMsg.svrctl_argp;
+
+	/* Is the request indeed for the MM? */
+	if (((req >> 8) & 0xFF) != 'M')
+	  return EINVAL;
+
+	/* Control operations local to the PM. */
+	switch (req) { 
+		case MM_SET_PARAM:
+		case MM_GET_PARAM: {
+			SysGetEnv sysGetEnv;
+			char searchKey[64];
+			char *valStart;
+			size_t valLen;
+			size_t copyLen;
+
+			/* Copy SysGetEnv struct to PM. */
+			if (sysDataCopy(who, ptr, SELF, (vir_bytes) &sysGetEnv, 
+						sizeof(sysGetEnv)) != OK)
+			  return EFAULT;
+			
+			/* Set a param override? */
+			if (req == MM_SET_PARAM) {
+				if (localParams >= MAX_LOCAL_PARAMS)
+				  return ENOSPC;
+				if (sysGetEnv.keyLen <= 0 || 
+					sysGetEnv.keyLen >= sizeof(localParamOverrides[localParams].name) ||
+					sysGetEnv.valLen <= 0 ||
+					sysGetEnv.valLen >= sizeof(localParamOverrides[localParams].value))
+				  return EINVAL;
+
+				if ((s = sysDataCopy(who, (vir_bytes) sysGetEnv.key,
+							SELF, (vir_bytes) localParamOverrides[localParams].name,
+							sysGetEnv.keyLen)) != OK)
+				  return s;
+				if ((s = sysDataCopy(who, (vir_bytes) sysGetEnv.val,
+							SELF, (vir_bytes) localParamOverrides[localParams].value,
+							sysGetEnv.valLen)) != OK)
+				  return s;
+
+				localParamOverrides[localParams].name[sysGetEnv.keyLen] = 0;
+				localParamOverrides[localParams].value[sysGetEnv.valLen] = 0;
+				++localParams;
+
+				return OK;
+			}
+
+			if (sysGetEnv.keyLen == 0) {	/* Copy all parameters */
+				valStart = monitorParams;
+				valLen = sizeof(monitorParams);
+			} else {	/* Lookup value for key */
+				int p;
+				/* Try to get a copy of the requested key. */
+				if (sysGetEnv.keyLen > sizeof(searchKey))
+				  return EINVAL;
+				if ((s = sysDataCopy(who, (vir_bytes) sysGetEnv.key,
+							SELF, (vir_bytes) searchKey, sysGetEnv.keyLen)) != OK)
+				  return s;
+
+				/* Make sure key is null-terminated and lookup value.
+				 * First check local overrides.
+				 */
+				searchKey[sysGetEnv.keyLen - 1] = 0;
+				for (p = 0; p < localParams; ++p) {
+					if (!strcmp(searchKey, localParamOverrides[p].name)) {
+						valStart = localParamOverrides[p].value;
+						break;
+					}
+				}
+				if (p >= localParams && (valStart = findParam(searchKey)) == NULL)
+				  return ESRCH;
+				valLen = strlen(valStart) + 1;
+			}
+
+			/* 	See if it fits in the client's buffer. */
+			if (valLen >= sysGetEnv.valLen)
+			  return E2BIG;
+
+			/* Value found, make the actual copy (as far as possible). */
+			copyLen = MIN(valLen, sysGetEnv.valLen);
+			if ((s = sysDataCopy(SELF, (vir_bytes) valStart,
+						who, (vir_bytes) sysGetEnv.val, copyLen)) != OK)
+			  return s;
+
+			return OK;
+		}
+		case MM_SWAP_ON:
+		case MM_SWAP_OFF:
+			//TODO
+		default:
+			return EINVAL;
+	}
 }

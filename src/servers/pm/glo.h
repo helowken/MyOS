@@ -10,7 +10,7 @@ EXTERN char monitorParams[128 * sizeof(char *)];	/* Boot minitor parameters */
 EXTERN KernelInfo kernelInfo;	/* Kernel information */
 
 /* The parameters of the call are kept here */
-EXTERN Message inputMsg;		/* The incoming message itself is kept here. */
+EXTERN Message inMsg;		/* The incoming message itself is kept here. */
 EXTERN int who;					/* Caller's proc number */
 EXTERN int callNum;				/* System call number */
 

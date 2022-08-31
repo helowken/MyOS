@@ -8,20 +8,13 @@
 #include "../servers/fs/const.h"
 #include "../servers/fs/type.h"
 #include "../servers/fs/super.h"
+#include "files.h"
 
 #define UMAP_SIZE		(ULONG_MAX / MAX_BLOCK_SIZE)		
 #define BLOCK_OFF(n)	(OFFSET(lowSector) + (n) * blockSize)
 #define SUPER_OFFSET	BLOCK_OFF(0) + SUPER_OFFSET_BYTES
 #define MAX_MAX_SIZE	((unsigned long) 0xffffffff)
 #define ZONE_SHIFT		0
-
-#define	ROOT_GRP		0
-#define BIN				2
-#define BIN_GRP			2
-#define TTY_GRP			4
-#define KMEM_GRP		8
-#define RDEV(major, minor)	( (((major) & BYTE) << MAJOR) | \
-								(((minor) & BYTE) << MINOR) )
 
 static bool init;
 static uint32_t reservedSectors = 0;
@@ -41,6 +34,7 @@ static int nextZone, nextInode, zoneOffset, blocksPerZone;
 static Zone_t zoneMap;
 static char modeString[11] = {0};
 static char timeBuf[26];
+static char *resDir = NULL;
 
 static char *progName;
 static char *units[] = {"bytes", "KB", "MB", "GB"};
@@ -52,10 +46,8 @@ static void usage() {
 static char *allocBlock() {
 	char *buf;
 
-	if (!(buf = malloc(blockSize)))
-	  errExit("Couldn't allocate file system buffer");
+	buf = Malloc(blockSize);
 	memset(buf, 0, blockSize);
-
 	return buf;
 }
 
@@ -180,6 +172,18 @@ static void insertBit(Block_t n, int bit) {
 	free(buf);
 }
 
+static DiskInode *getInode(Ino_t n, DiskInode *inodes, Block_t *bptr) {
+	Block_t b;
+	int off;
+
+	b = ((n - 1) / inodesPerBlock) + inodeOffset;
+	off = (n - 1) % inodesPerBlock;
+	getBlock(b, (char *) inodes);
+	*bptr = b;
+
+	return &inodes[off];
+}
+
 static void initSuperBlock(Zone_t zones, Ino_t inodes) {
 	int inodeBlocks, initBlocks;
 	Zone_t indirectZones, doubleIndirectZones;
@@ -231,10 +235,9 @@ static void initSuperBlock(Zone_t zones, Ino_t inodes) {
 	free(sup);
 }
 
-static Ino_t allocInode(int mode, int uid, int gid, Zone_t z0) {
+static Ino_t allocInode(FileInfo *fi) {
 	Ino_t num;
 	Block_t b;
-	int off;
 	DiskInode *dip;
 	DiskInode *inodes;	/* an array of DiskInode */
 
@@ -243,18 +246,13 @@ static Ino_t allocInode(int mode, int uid, int gid, Zone_t z0) {
 		fprintf(stderr, "have %d inodes\n", numInodes);
 		fatal("File system does not have enough inodes");
 	}
-	if (! (inodes = malloc(blockSize)))
-	  errExit("couldn't allocate a block of inodes");
+	inodes = Malloc(blockSize);
 
-	b = ((num - 1) / inodesPerBlock) + inodeOffset;
-	off = (num - 1) % inodesPerBlock;
-
-	getBlock(b, (char *) inodes);
-	dip = &inodes[off];
-	dip->d_mode = mode;
-	dip->d_uid = uid;
-	dip->d_gid = gid;
-	dip->d_zone[0] = z0;
+	dip = getInode(num, inodes, &b);
+	dip->d_mode = fi->mode;
+	dip->d_uid = fi->uid;
+	dip->d_gid = fi->gid;
+	dip->d_zone[0] = fi->rdev;
 	dip->d_atime = 
 	dip->d_mtime =
 	dip->d_ctime = currentTime;
@@ -284,76 +282,18 @@ static Zone_t allocZone() {
 	return z;
 }
 
-void addZone(Ino_t n, Zone_t z, size_t bytes, long currTime) {
-	Block_t b;
-	int off, i;
-	Zone_t indirZone;
-	Zone_t *zones;	/* an array of Zone_t */
-	DiskInode *dip;		
-	DiskInode *inodes;	/* an array of DiskInode */
-
-	if (! (zones = malloc(blockSize)))
-	  errExit("couldn't allocate indirect block");
-
-	if (! (inodes = malloc(blockSize)))
-	  errExit("couldn't allocate block of inodes");
-
-	b = ((n - 1) / inodesPerBlock) + inodeOffset;
-	off = (n - 1) % inodesPerBlock;
-	getBlock(b, (char *) inodes);
-	dip = &inodes[off];
-	dip->d_size += bytes;
-	dip->d_mtime = currTime;
-	for (i = 0; i < NR_DIRECT_ZONES; ++i) {
-		if (dip->d_zone[i] == 0) {
-			dip->d_zone[i] = z;
-			putBlock(b, (char *) inodes);
-			free(zones);
-			free(inodes);
-			return;
-		}
-	}
-
-	/* File has grown beyond a small file. */
-	if (dip->d_zone[NR_DIRECT_ZONES] == 0) {
-		dip->d_zone[NR_DIRECT_ZONES] = allocZone();
-		putBlock(b, (char *) inodes);
-	}
-	indirZone = dip->d_zone[NR_DIRECT_ZONES];
-	b = indirZone << ZONE_SHIFT;
-	getBlock(b, (char *) zones);
-	for (i = 0; i < INDIRECT_ZONES(blockSize); ++i) {
-		if (zones[i] == 0) {
-			zones[i] = z;
-			putBlock(b, (char *) zones);
-			free(zones);
-			free(inodes);
-			return;
-		}
-	}
-	fatal("File has grown beyond single indirect");
-}
-
 static void enterDir(Ino_t parent, char *name, Ino_t child) {
 	int k, l, i;
 	Zone_t z;
 	Block_t b, zoneBlocks;
-	int off;
 	DirEntry *dirs;		/* an array of DirEntry */
 	DiskInode *inodes;		/* an array of DiskInode */
 	DiskInode *dip;
 
-	b = ((parent - 1) / inodesPerBlock) + inodeOffset;
-	off = (parent - 1) % inodesPerBlock;
-	
-	if (! (dirs = malloc(blockSize)))
-	  fatal("couldn't allocate directory entry");
+	dirs = Malloc(blockSize);
+	inodes = Malloc(blockSize);
 
-	if (! (inodes = malloc(blockSize)))
-	  fatal("couldn't allocate block of inodes entry");
-
-	getBlock(b, (char *) inodes);
-	dip = &inodes[off];
+	dip = getInode(parent, inodes, &b);
 	dip->d_size += DIR_ENTRY_SIZE;
 	dip->d_mtime = currentTime;
 	for (k = 0; k < NR_DIRECT_ZONES; ++k) {
@@ -388,17 +328,12 @@ static void enterDir(Ino_t parent, char *name, Ino_t child) {
 
 static void increaseLink(Ino_t n) {
 	Block_t b;
-	int off;
 	DiskInode *inodes;	
+	DiskInode *dip;
 
-	b = ((n - 1) / inodesPerBlock) + inodeOffset;
-	off = (n - 1) % inodesPerBlock;
-	
-	if (! (inodes = malloc(blockSize)))
-	  errExit("couldn't allocate a block of inodes");
-
-	getBlock(b, (char *) inodes);
-	++inodes[off].d_nlinks;
+	inodes = Malloc(blockSize);
+	dip = getInode(n, inodes, &b);
+	++dip->d_nlinks;
 	putBlock(b, (char *) inodes);
 
 	free(inodes);
@@ -455,9 +390,7 @@ static void printMap(uint16_t mapBlocks, uint16_t startBlock) {
 	bool print, empty;
 	char *buf;
 
-	if (! (buf = malloc(blockSize)))
-	  errExit("couldn't allocate a block of maps");
-
+	buf = Malloc(blockSize);
 	mapsCnt = blockSize / sizeof(short);
 	for (k = 0; k < mapBlocks; ++k) {
 		getBlock(startBlock + k, buf);
@@ -560,17 +493,12 @@ static char *getTimeString(Time_t t) {
 }
 
 static void printInode(DiskInode *inodes, DirEntry *dirs, int inoOff, Ino_t inoNum) {
-	int insPerBlock;
 	Block_t b;
 	DiskInode *dip;
-	int off, i;
+	int i;
 	Mode_t fileType;
 
-	insPerBlock = INODES_PER_BLOCK(blockSize);
-	b = ((inoNum - 1) / insPerBlock) + inoOff;
-	off = (inoNum - 1) % insPerBlock;
-	getBlock(b, (char *) inodes);
-	dip = &inodes[off];
+	dip = getInode(inoNum, inodes, &b);
 	fileType = dip->d_mode & I_TYPE;
 
 	printf("  %2u: ", inoNum);
@@ -602,15 +530,9 @@ static void printInodes(SuperBlock *sup) {
 	Ino_t inoNum;
 	int k, j, i, mapsCnt;
 
-	if (! (maps = malloc(blockSize)))
-	  errExit("couldn't allocate a block of maps");
-
-	if (! (inodes = malloc(blockSize)))
-	  errExit("couldn't allocate a block of inodes");
-
-	if (! (dirs = malloc(blockSize)))
-	  errExit("couldn't allocate a block of directories");
-	
+	maps = Malloc(blockSize);
+	inodes = Malloc(blockSize);
+	dirs = Malloc(blockSize);
 	mapsCnt = blockSize / FS_BITCHUNK_BITS;
 	inoOff = IMAP_OFFSET + sup->s_imap_blocks + sup->s_zmap_blocks;
 	for (k = 0; k < sup->s_imap_blocks; ++k) {
@@ -635,9 +557,7 @@ static void printInodes(SuperBlock *sup) {
 static void printFS() {
 	SuperBlock *sup;
 
-	if (! (sup = malloc(blockSize)))
-	  errExit("couldn't allocate a block of super block");
-
+	sup = Malloc(blockSize);
 	printSuperBlock(sup);
 
 	printf("\n\nInode-Map:\n");
@@ -666,90 +586,151 @@ static void calibrateBlockSize() {
 				INODE_SIZE);
 }
 
-static Ino_t doMkdir(Ino_t pINum, char *dirName, mode_t mode, 
-			int uid, int gid, Zone_t z0) {
+static Ino_t doMkdir(Ino_t pINum, FileInfo *fi) {
 	Ino_t iNum;
 
-	iNum = allocInode(mode, uid, gid, z0);
-	if (dirName == NULL)
+	iNum = allocInode(fi);
+	if (fi->name == NULL)
 	  pINum = iNum;
 
 	enterDir(iNum, ".", iNum);
 	enterDir(iNum, "..", pINum);
 	increaseLink(iNum);
+	if (pINum != iNum) 
+	  increaseLink(iNum);
 	increaseLink(pINum);
 
-	if (dirName) 
-	  enterDir(pINum, dirName, iNum);
+	if (fi->name) 
+	  enterDir(pINum, fi->name, iNum);
 
 	return iNum;
 }
 
-typedef struct {
-	char *name;
-	Mode_t mode;
-	int uid;
-	int gid;
-	Dev_t rdev;
-} DevFile;
-
-static DevFile devFiles[] = {
-	/* CTTY */
-	{ "tty",     I_CHAR_SPECIAL | 0666, SUPER_USER, ROOT_GRP,  RDEV(CTTY_MAJOR, 0x0) },
-
-	/* TTY */
-	{ "console", I_CHAR_SPECIAL  | 0620,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x00) },
-	{ "log",     I_CHAR_SPECIAL  | 0222,  SUPER_USER, ROOT_GRP,  RDEV(TTY_MAJOR, 0x0F) },
-	{ "pty0",    I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0xC0) },
-	{ "pty1",    I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0xC1) },
-	{ "pty2",    I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0xC2) },
-	{ "pty3",    I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0xC3) },
-	{ "tty00",   I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x10) },
-	{ "tty01",   I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x11) },
-	{ "tty02",   I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x12) },
-	{ "tty03",   I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x13) },
-	{ "ttyc1",   I_CHAR_SPECIAL  | 0600,  SUPER_USER, ROOT_GRP,  RDEV(TTY_MAJOR, 0x01) },
-	{ "ttyc2",   I_CHAR_SPECIAL  | 0600,  SUPER_USER, ROOT_GRP,  RDEV(TTY_MAJOR, 0x02) },
-	{ "ttyc3",   I_CHAR_SPECIAL  | 0600,  SUPER_USER, ROOT_GRP,  RDEV(TTY_MAJOR, 0x03) },
-	{ "ttyp0",   I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x80) },
-	{ "ttyp1",   I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x81) },
-	{ "ttyp2",   I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x82) },
-	{ "ttyp3",   I_CHAR_SPECIAL  | 0666,  SUPER_USER, TTY_GRP,   RDEV(TTY_MAJOR, 0x83) },
-
-	/* MEMORY */
-	{ "ram",     I_BLOCK_SPECIAL | 0600,  SUPER_USER, KMEM_GRP,  RDEV(MEMORY_MAJOR, RAM_DEV) },
-	{ "mem",     I_CHAR_SPECIAL  | 0640,  SUPER_USER, KMEM_GRP,  RDEV(MEMORY_MAJOR, MEM_DEV) },
-	{ "kmem",    I_CHAR_SPECIAL  | 0640,  SUPER_USER, KMEM_GRP,  RDEV(MEMORY_MAJOR, KMEM_DEV) },
-	{ "null",    I_CHAR_SPECIAL  | 0666,  SUPER_USER, KMEM_GRP,  RDEV(MEMORY_MAJOR, NULL_DEV) },
-	{ "boot",    I_BLOCK_SPECIAL | 0600,  SUPER_USER, KMEM_GRP,  RDEV(MEMORY_MAJOR, BOOT_DEV) },
-	{ "zero",    I_CHAR_SPECIAL  | 0644,  SUPER_USER, KMEM_GRP,  RDEV(MEMORY_MAJOR, ZERO_DEV) },
-
-	/* LOG */
-	{ "klog",    I_CHAR_SPECIAL  | 0600,  SUPER_USER, ROOT_GRP,  RDEV(LOG_MAJOR, 0x00) }
-};
-
-static void mkSpecialFile(Ino_t pINum, char *name, DevFile *dfp) {
+static Ino_t mkFile(Ino_t pINum, FileInfo *fi) {
 	Ino_t iNum;
 
-	iNum = allocInode(dfp->mode, dfp->uid, dfp->gid, dfp->rdev);
+	iNum = allocInode(fi);
 	increaseLink(iNum);
-	enterDir(pINum, dfp->name, iNum);
+	enterDir(pINum, fi->name, iNum);
+
+	return iNum;
 }
 
-static void initFS(Ino_t pINum) {
-	Mode_t mode;
-	int uid, gid;
-	Ino_t iNum;
-	DevFile *dfp;
-	
-	mode = I_DIRECTORY | S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH; 
-	uid = gid = 0;
+static void addZone(DiskInode *dip, Zone_t z) {
+	int i;
+	Block_t b;
+	Zone_t indirZone;
+	Zone_t *zones;	
 
-	iNum = doMkdir(pINum, "dev", mode, uid, gid, 0);
-	
-	for (dfp = &devFiles[0]; dfp < arrayLimit(devFiles); ++dfp) {
-		mkSpecialFile(iNum, dfp->name, dfp);
+	for (i = 0; i < NR_DIRECT_ZONES; ++i) {
+		if (dip->d_zone[i] == 0) {
+			dip->d_zone[i] = z;
+			return;
+		}
 	}
+
+	/* File has grown beyond a small file. */
+	if (dip->d_zone[NR_DIRECT_ZONES] == 0) 
+	  dip->d_zone[NR_DIRECT_ZONES] = allocZone();
+
+	indirZone = dip->d_zone[NR_DIRECT_ZONES];
+	b = indirZone << ZONE_SHIFT;
+	zones = Malloc(blockSize);
+	getBlock(b, (char *) zones);
+	for (i = 0; i < INDIRECT_ZONES(blockSize); ++i) {
+		if (zones[i] == 0) {
+			zones[i] = z;
+			putBlock(b, (char *) zones);
+			free(zones);
+			return;
+		}
+	}
+	fatal("File has grown beyond single indirect");
+}
+
+static char *getResDir() {
+	char *lastSlash;
+
+	if (resDir == NULL) {
+		resDir = Malloc(strlen(progName));
+		strcpy(resDir, progName);
+		lastSlash = strrchr(resDir, '/');
+		if (lastSlash != NULL)
+		  *lastSlash = 0;
+	}
+	return resDir;
+}
+
+static char *getPath(char *path) {
+	static char fullPath[PATH_MAX + 1];
+
+	snprintf(fullPath, PATH_MAX, "%s/resources/%s", getResDir(), path);
+	return fullPath;
+}
+
+static void installFile(Ino_t pINum, FileInfo *fi) {
+	int fd;
+	char buf[blockSize];
+	char *path;
+	ssize_t count;
+	size_t size;
+	Ino_t iNum;
+	Zone_t z;
+	Block_t b, currBlk;
+	DiskInode *inodes;	
+	DiskInode *dip;		
+
+	iNum = mkFile(pINum, fi);
+	if (!fi->path)
+	  return;
+	
+	path = getPath(fi->path);
+	inodes = Malloc(blockSize);
+	dip = getInode(iNum, inodes, &b);
+	z = 0;
+
+	size = 0;
+	fd = ROpen(path);
+	while ((count = Read(path, fd, buf, blockSize)) > 0) {
+		if (z == 0) {
+			z = allocZone();
+			addZone(dip, z);
+			currBlk = z << ZONE_SHIFT;
+		}
+		size += count;
+		if (count < blockSize) 
+		  memset(&buf[count], 0, blockSize - count);
+
+		putBlock(currBlk, buf);
+
+		if (count < blockSize)
+		  break;
+
+		if (++currBlk >= blocksPerZone) 
+		  z = 0;
+	}
+	dip->d_size = size;
+	dip->d_mtime = time(NULL);
+
+	putBlock(b, (char *) inodes);
+	free(inodes);
+}
+
+static void doMk(Ino_t pINum, FileInfo *fi, bool recursive) {
+	Ino_t iNum;
+	Mode_t fileType;
+	FileInfo *cf;
+
+	fileType = fi->mode & I_TYPE;
+	if (fileType == I_DIRECTORY) { 
+		iNum = doMkdir(pINum, fi);
+		if (recursive && fi->files) {
+			for (cf = fi->files; cf->name; ++cf) {
+				doMk(iNum, cf, recursive);
+			}
+		}
+	} else 
+	  installFile(pINum, fi);
 }
 
 int main(int argc, char *argv[]) {
@@ -757,8 +738,6 @@ int main(int argc, char *argv[]) {
 	Zone_t zones;
 	Block_t blocks;
 	Ino_t inodes;
-	int mode, uid, gid;
-	Ino_t rootInoNum;
 	int ch;
 
 	progName = argv[0];
@@ -808,14 +787,10 @@ int main(int argc, char *argv[]) {
 	zones = numBlocks >> ZONE_SHIFT;
 	initSuperBlock(zones, numInodes);
 
-	mode = I_DIRECTORY | RWX_MODES;
-	uid = BIN;
-	gid	= BIN_GRP;
-	rootInoNum = doMkdir(0, NULL, mode, uid, gid, 0);
-	if (init) 
-	  initFS(rootInoNum);
+	doMk(0, &rootDir, init);
 
 	printFS();
+	free(zero);
 
 	Close(device, deviceFd);
 

@@ -27,7 +27,11 @@ OBJS_M32 = \
 		_open.o \
 		_dup.o \
 		_fcntl.o \
-		_fork.o
+		_fork.o \
+		_execve.o \
+		_access.o \
+		_close.o \
+		__exit.o
 
 
 all: build

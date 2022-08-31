@@ -3,7 +3,7 @@
 
 char *strncpy(char *ret, register const char *s2, register size_t n) {
 	register char *s1 = ret;
-	
+			
 	if (n > 0) {
 		while ((*s1++ = *s2++) && --n > 0) {
 		}

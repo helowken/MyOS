@@ -36,7 +36,7 @@ int doSTime() {
 
 	if ((s = getUptime(&uptime)) != OK)
 	  panic(__FILE__, "doSTime couldn't get uptime", s);
-	bootTime = (time_t) inputMsg.stime - (uptime / HZ);
+	bootTime = (time_t) inMsg.stime - (uptime / HZ);
 
 	/* Also inform FS about the new system time. */
 	tellFS(STIME, bootTime, 0, 0);

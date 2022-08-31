@@ -544,6 +544,7 @@ rawCopy:
 	movb	%dl, x_src_desc+4	# High byte of 24-bit source address
 	movw	$x_gdt, %si			# es:si = global descriptor table
 	shrw	$1, %cx				# Words to move
+	adcw	$0, %cx				# add 1 to words if size is odd
 	movb	$0x87, %ah	
 	int	$0x15
 .copyAdjust:
