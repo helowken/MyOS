@@ -17,7 +17,7 @@ static void cleanup(register MProc *child) {
 
 	/* Wake up the parent by sending the reply message. */
 	exitStatus = (child->mp_exit_status << 8) | (child->mp_sig_status & 0377);
-	parent->mp_reply.reply_res2 = exitStatus;
+	parent->mp_reply.m_reply_res2 = exitStatus;
 	setReply(child->mp_parent, child->mp_pid);
 	parent->mp_flags &= ~WAITING;		/* Parent no longer waiting */
 
@@ -33,7 +33,7 @@ int doPmExit() {
 /* Perform the exit(status) system call. The real work is done by pmExit(),
  * which is also called when a process is killed by a signal. 
  */
-	pmExit(currMp, inMsg.status);
+	pmExit(currMp, inMsg.m_status);
 	return SUSPEND;		/* Can't communicate from beyond the grave */
 }
 
@@ -125,8 +125,8 @@ int doWaitPid() {
 	register MProc *rmp;
 	int pid, options, children;
 
-	pid = (callNum == WAIT ? -1 : inMsg.proc_id);	/* 1st param of waitpid */
-	options = (callNum == WAIT ? 0 : inMsg.sig_num);	/* 3rd param of waitpid */
+	pid = (callNum == WAIT ? -1 : inMsg.m_proc_id);	/* 1st param of waitpid */
+	options = (callNum == WAIT ? 0 : inMsg.m_sig_num);	/* 3rd param of waitpid */
 	if (pid == 0)
 	  pid = -currMp->mp_proc_grp;
 
@@ -152,7 +152,7 @@ int doWaitPid() {
 			} 
 			if ((rmp->mp_flags & STOPPED) && rmp->mp_sig_status) {
 				/* This child meets the pid test and is being traced. */
-				currMp->mp_reply.reply_res2 = 0177 | (rmp->mp_sig_status << 8);
+				currMp->mp_reply.m_reply_res2 = 0177 | (rmp->mp_sig_status << 8);
 				rmp->mp_sig_status = 0;
 				return rmp->mp_pid;
 			}
@@ -178,7 +178,7 @@ int doFork() {
 	register MProc *parentMp;
 	register MProc *childMp;
 	int s, childNum;
-	phys_clicks progClicks, childBase;
+	phys_clicks progClicks, childBase, offsetClicks;
 	phys_bytes progBytes, parentAbs, childAbs;
 	pid_t newPid;
 
@@ -195,16 +195,15 @@ int doFork() {
 	/* Determine how much memory to allocate. Only the data and stack need to
 	 * be copied, because the text segment is either shared or of zero length.
 	 */
-	progClicks = (phys_clicks) parentMp->mp_memmap[S].virAddr + parentMp->mp_memmap[S].len -
-							parentMp->mp_memmap[D].virAddr - /* Note: data virAddr is 0 */
-							parentMp->mp_memmap[D].offset;
-	if ((childBase = allocMemory(progClicks)) == NO_MEM)
+	offsetClicks = parentMp->mp_memmap[D].offset;
+	progClicks = (phys_clicks) parentMp->mp_memmap[S].virAddr 
+					- parentMp->mp_memmap[D].virAddr - offsetClicks;
+	if ((childBase = allocMemory2(offsetClicks, progClicks)) == NO_MEM)
 	  return ENOMEM;
 
 	/* Create a copy of the parent's core image for the child. */
 	childAbs = (phys_bytes) childBase << CLICK_SHIFT;
-	parentAbs = (phys_bytes) (parentMp->mp_memmap[D].physAddr + 
-							parentMp->mp_memmap[D].offset) << CLICK_SHIFT;
+	parentAbs = (phys_bytes) (parentMp->mp_memmap[D].physAddr + offsetClicks) << CLICK_SHIFT;
 	progBytes = (phys_bytes) progClicks << CLICK_SHIFT;
 	if ((s = sysAbsCopy(parentAbs, childAbs, progBytes)) < 0)
 	  panic(__FILE__, "doFork can't copy", s);
@@ -228,7 +227,7 @@ int doFork() {
 	/* Child keeps the parents text segment. The data and stack segments must 
 	 * refer to the new copy. 
 	 */
-	childMp->mp_memmap[D].physAddr = childBase - parentMp->mp_memmap[D].offset;
+	childMp->mp_memmap[D].physAddr = childBase - offsetClicks;
 	childMp->mp_memmap[S].physAddr = childMp->mp_memmap[D].physAddr + 
 				(parentMp->mp_memmap[S].virAddr - parentMp->mp_memmap[D].virAddr);
 	childMp->mp_exit_status = 0;
@@ -247,7 +246,7 @@ int doFork() {
 
 	/* Reply to child to wake it up. */
 	setReply(childNum, 0);		/* Only parent gets details */
-	parentMp->mp_reply.proc_num = childNum;	/* Child's process number */
+	parentMp->mp_reply.m_proc_num = childNum;	/* Child's process number */
 	return newPid;
 }
 

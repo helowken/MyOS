@@ -77,7 +77,6 @@ static int commonOpen(register int oFlags, mode_t oMode) {
 	bits = (mode_t) modeMap[oFlags & O_ACCMODE];
 
 	/* See if file descriptor and filp slots are available. */
-		printf("==== fs, userPath: %s\n", userPath);//TODO
 	if ((r = getFd(0, bits, &inMsg.m_fd, &fp)) != OK)
 	  return r;
 
@@ -158,10 +157,10 @@ int doOpen() {
 
 	/* If O_CREAT is set, open has three parameters, otherwise two. */
 	if (inMsg.m_mode & O_CREAT) {
-		createMode = inMsg.c_mode;
-		r = fetchName(inMsg.c_name, inMsg.name1_length, M1);
+		createMode = inMsg.m_c_mode;
+		r = fetchName(inMsg.m_c_name, inMsg.m_name1_length, M1);
 	} else {
-		r = fetchName(inMsg.c_name, inMsg.name_length, M3);
+		r = fetchName(inMsg.m_c_name, inMsg.m_name_length, M3);
 	}
 
 	if (r != OK)
@@ -180,7 +179,7 @@ int doMkdir() {
 	register Inode *ip, *dirIp;
 
 	/* Check to see if it is possible to make another link in the parent dir. */
-	if (fetchName(inMsg.name1, inMsg.name1_length, M1) != OK)
+	if (fetchName(inMsg.m_name1, inMsg.m_name1_length, M1) != OK)
 	  return errCode;
 	dirIp = lastDir(userPath, string);	/* Pointer to new dir's parent */
 	if (dirIp->i_nlinks >= SHRT_MAX) {
@@ -189,7 +188,7 @@ int doMkdir() {
 	}
 
 	/* Next make the inode. If that fails, return error code. */
-	bits = I_DIRECTORY | (inMsg.c_mode & RWX_MODES & currFp->fp_umask);
+	bits = I_DIRECTORY | (inMsg.m_c_mode & RWX_MODES & currFp->fp_umask);
 	ip = newNode(userPath, bits, (zone_t) 0);
 	if (ip == NIL_INODE || errCode == EEXIST) {
 		putInode(ip);		

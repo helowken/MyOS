@@ -8,8 +8,7 @@ LIBS = -L$(MY_HOME)/lib -L. \
 
 OBJS = mpx.o start.o protect.o klib386.o table.o main.o proc.o \
 	   i8259.o exception.o system.o clock.o utility.o
-NAME = kernel
-BIN = $(NAME).bin
+BIN = kernel.bin
 
 all: $(BIN)
 
@@ -19,12 +18,11 @@ $(LIB_SYSTEM): $(DIR_SYSTEM)/*.o
 $(BIN): $(OBJS) $(LIB_SYSTEM)
 	$(call link,$(OBJS),$(LIBS),$@) 
 	$(call createDebug,$@,$(DEBUG))
-	$(call setStack,0,$(NAME))
+	$(call setStack,0,$(BIN))
 
 clean: 
 	cd $(DIR_SYSTEM) && $(MAKE) clean
 	$(call cleanCommon)
-	$(call cleanStack,$(NAME))
 
 disasm: $(DEBUG)
 	$(call disasmCode,$<,32)

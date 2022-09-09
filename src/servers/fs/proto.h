@@ -59,11 +59,13 @@ int checkReadOnly(Inode *ip);
 int checkForbidden(Inode *ip, mode_t accessDesired);
 
 /* read.c */
+int doRead();
 void readAhead();
 Buf *doReadAhead(Inode *ip, block_t baseBlock, 
 			off_t position, unsigned bytesAhead);
 block_t readMap(Inode *ip, off_t pos);
 zone_t readIndirZone(Buf *bp, int index);
+int readWrite(int rwFlag);
 
 /* cache.c */
 zone_t allocZone(dev_t dev, zone_t z);

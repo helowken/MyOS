@@ -15,17 +15,18 @@
    -------------------
  * |     0 (nil)     | 
  * |     lastEnvp    | 
- * |     envp3       | 
  * |     envp2       | 
  * |     envp1       | 
+ * |     envp0       | 
  * |     0 (nil)     | 
  * |     lastArgp    | 
  * |     argp2       |  
  * |     argp1       |  
- * ------------------- 
- * |     envp        | point to envp1
- * |     argv        | point to argp1
- * |     argc        | argcument count
+ * |     argp0       |  
+ * ------------------- Below is constructed in PM's exec().
+ * |     envp        | point to envp0
+ * |     argv        | point to argp0
+ * |     argc        | argument count
  * |     return      | at the start of main() execution
  */
 

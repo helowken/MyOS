@@ -74,7 +74,7 @@
 
 	jmp	main					/* main() */
 
-aa:
+aa:	/*TODO*/
 	jmp aa
 
 
@@ -374,38 +374,72 @@ coprError:
 /*=====================================================================*
  *                exception                *
  *=====================================================================*/
+/* "%ss:" must be used as prefix here, since %ds now is still the 
+ * process's ds, but trapErrno and exVector are in the kernel's ds. 
+ * We need a way referring to them. 
+ *
+ * In boothead.s, just after calling ".real2Prot()", we set 
+ *	%ds = DS_SELECTOR
+ * At the top of this file, we set ss = gs = fs = es = ds, so 
+ *	%ss = %ds = DS_SELECTOR
+ * In protect.c, we set 
+ *	tss.ss0 = DS_SELECTOR
+ *
+ * Now is in the interrupt context, stack has been switched to 
+ * "tss.ss0", that is:
+ *	%ss = tss.ss0 = DS_SELECTOR = kernel's data space
+ *
+ * So we use %ss as the data segment to refer to trapErrno and 
+ * exVector.
+ */
 	.type	exception, @function
 	.align	16
 exception:
-	movl	$0, %ss:(errorCode)		/* Clear errorCode */
-	popl	%ss:(exVector)
+	popl	%ss:(exVector)			/* Error vector pushed by aboved handlers */
+	movl	$0, %ss:(trapErrno)		/* Clear trapErrno */
 	jmp	.commonException	
 	
 
 /*=====================================================================*
  *                errException                *
  *=====================================================================*/
+/* For "%ss:" prefix, see "exception" aboved.
+ * 
+ * Interrupted Procedure's Stack:
+ * |    ....    |
+ * |     SS     |	Stack Usage with 
+ * |     ESP    |   Privilege-Level Change
+ * --------------
+ * |   EFLAGS   |	
+ * |     CS     |
+ * |     EIP    |
+ * | Error Code | <-- ESP After Transfer to Handler 
+ *                  Note: an exception may not have an error code.
+ * --------------
+ * |  exVector  |   Pushed by the aboved interrupt handlers.
+ */
 	.type	errException, @function
 	.align	16
 errException:
-	popl	%ss:(errorCode)			
-	popl	%ss:(exVector)
-.commonException:				/* Common for all exceptions */
+	popl	%ss:(exVector)			/* Error vector pushed by aboved handlers */
+	popl	%ss:(trapErrno)			/* Error code of interrupt */
+.commonException:					/* Common for all exceptions */
 	pushl	%eax
-	movl	4(%esp), %eax		/* Save old EIP */
+	movl	4(%esp), %eax			/* Save old EIP */
 	movl	%eax, %ss:(oldEip)
-	movl	8(%esp), %eax		/* Save old CS */
+	movl	8(%esp), %eax			/* Save old CS */
 	movl	%eax, %ss:(oldCs)
-	movl	12(%esp), %eax		/* Save old EFLAGS */
+	movl	12(%esp), %eax			/* Save old EFLAGS */
 	movl	%eax, %ss:(oldEflags)
 	popl	%eax
 	calll	save
 	pushl	oldEflags
 	pushl	oldCs
 	pushl	oldEip
-	pushl	errorCode
+	pushl	trapErrno
 	pushl	exVector
-	calll	handleException		/* handleException(exVector, errorCode, oldEip, oldCs, oldEflags); */
+	calll	handleException		/* handleException(exVector, trapErrno, oldEip, 
+													oldCs, oldEflags); */
 	addl	$(5*4), %esp
 	retl
 
@@ -435,7 +469,7 @@ save:
 	movw	%dx, %ds			/* Load rest of kernel segments */
 	movw	%dx, %es			/* Kernel does not use fs, gs */
 	movl	%esp, %eax			/* Prepare to return */
-	incb	kernelReentryCount	/* From -1 if not reentering */
+	incb	kernelReenter		/* From -1 if not reentering */
 	jnz	.setRestart				/* Stack is already kernel stack */
 	movl	$kStackTop, %esp	
 	pushl	$restart			/* Build return address for interrupt handler */
@@ -471,7 +505,7 @@ s_call:
 	movw	%ss, %dx
 	movw	%dx, %ds
 	movw	%dx, %es
-	incb	kernelReentryCount
+	incb	kernelReenter
 	movl	%esp, %esi			/* Assumes P_STACKBASE == 0 */
 	movl	$kStackTop, %esp
 	xorl	%ebp, %ebp			/* End of inline save() */
@@ -503,7 +537,7 @@ restart:
 	leal	P_STACKTOP(%esp), %eax	/* Arrange for next interrupt */
 	movl	%eax, tss+TSS3_S_SP0	/* To save state in process table */
 .doRestart:
-	decb	kernelReentryCount 
+	decb	kernelReenter
 	popl	%gs
 	popl	%fs
 	popl	%es
@@ -527,7 +561,7 @@ level0_call:
 	.lcomm	kStack, K_STACK_BYTES	/* Kernel stack */
 	.lcomm  kStackTop, 0		/* Top of kernel stack, just a position tag, no size. */
 	.lcomm	exVector, 4	
-	.lcomm	errorCode, 4
+	.lcomm	trapErrno, 4
 	.lcomm	oldEip, 4
 	.lcomm	oldCs, 4
 	.lcomm	oldEflags, 4

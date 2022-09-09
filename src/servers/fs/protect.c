@@ -78,14 +78,14 @@ int doAccess() {
 /* Perform the access(path, mode) system call. */
 	Inode *ip;
 	register int r;
-	
+
 	/* First check to see if the mode is correct. */
 	if ((inMsg.m_mode & ~(R_OK | W_OK | X_OK)) != 0 && 
 				inMsg.m_mode != F_OK)
 	  return EINVAL;
 
 	/* Temporarily open the file whose access is to be checked. */
-	if (fetchName(inMsg.name, inMsg.name_length, M3) != OK)
+	if (fetchName(inMsg.m_name, inMsg.m_name_length, M3) != OK)
 	  return errCode;
 	if ((ip = eatPath(userPath)) == NIL_INODE)
 	  return errCode;

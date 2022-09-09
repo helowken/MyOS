@@ -187,7 +187,7 @@ static bool swapOut() {
 	return false;
 }
 
-phys_clicks allocMemory(phys_clicks clicks) {
+phys_clicks allocMemory2(phys_clicks base, phys_clicks clicks) {
 /* Allocate a block of memory from the free list using first fit. The block
  * consists of a sequence of contiguous bytes, whose length in clicks is 
  * given by 'clicks'. A pointer to the block is returned. The block is
@@ -201,7 +201,7 @@ phys_clicks allocMemory(phys_clicks clicks) {
 		prevHp = NIL_HOLE;
 		hp = holeHead;
 		while (hp != NIL_HOLE && hp->h_base < swapBase) {
-			if (hp->h_len >= clicks) {
+			if (hp->h_len >= clicks && hp->h_base >= base) {
 				/* We found a hole that is big enough. Use it. */
 				oldBase = hp->h_base;	/* Remember where it started */
 				hp->h_base += clicks;	/* Bite a piece off */

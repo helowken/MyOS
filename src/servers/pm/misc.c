@@ -12,11 +12,11 @@ int doAllocMem() {
 	vir_clicks memClicks;
 	phys_clicks memBase;
 
-	memClicks = (inMsg.mem_size + CLICK_SIZE - 1) >> CLICK_SHIFT;
+	memClicks = (inMsg.m_mem_size + CLICK_SIZE - 1) >> CLICK_SHIFT;
 	memBase = allocMemory(memClicks);
 	if (memBase == NO_MEM)
 	  return ENOMEM;
-	currMp->mp_reply.mem_base = (phys_bytes) (memBase << CLICK_SHIFT);
+	currMp->mp_reply.m_mem_base = (phys_bytes) (memBase << CLICK_SHIFT);
 	return OK;
 }
 
@@ -65,17 +65,17 @@ int doGetProcNum() {
 	int s;
 	int pNum = -1;
 
-	if (inMsg.proc_id >= 0) {	/* Lookup process by pid */
+	if (inMsg.m_proc_id >= 0) {	/* Lookup process by pid */
 		for (rmp = &mprocTable[0]; rmp < &mprocTable[NR_PROCS]; ++rmp) {
 			if ((rmp->mp_flags & IN_USE) && 
-					(rmp->mp_pid == inMsg.proc_id)) {
+					(rmp->mp_pid == inMsg.m_proc_id)) {
 				pNum = (int) (rmp - mprocTable);
 				break;
 			}
 		}
-	} else if (inMsg.name_len > 0) {		/* Lookup process by name */
-		keyLen = MIN(PROC_NAME_LEN, inMsg.name_len);
-		if ((s = sysDataCopy(who, (vir_bytes) inMsg.addr, 
+	} else if (inMsg.m_name_len > 0) {		/* Lookup process by name */
+		keyLen = MIN(PROC_NAME_LEN, inMsg.m_name_len);
+		if ((s = sysDataCopy(who, (vir_bytes) inMsg.m_addr, 
 						SELF,(vir_bytes) searchKey, keyLen)) != OK)
 		  return s;
 		searchKey[keyLen] = '\0';		/* Terminate for safety */
@@ -91,7 +91,7 @@ int doGetProcNum() {
 	}
 	if (pNum == -1) 
 	  return ESRCH;
-	currMp->mp_reply.proc_num = pNum;
+	currMp->mp_reply.m_proc_num = pNum;
 	return OK;
 }
 
@@ -101,7 +101,7 @@ int doGetSysInfo() {
 	size_t len;
 	int s;
 
-	switch (inMsg.info_what) {
+	switch (inMsg.m_info_what) {
 		case SI_KINFO:		/* Kernel info is obtained via PM */
 			sysGetKernelInfo(&kernelInfo);
 			srcAddr = (vir_bytes) &kernelInfo;
@@ -119,7 +119,7 @@ int doGetSysInfo() {
 			return EINVAL;
 	}
 
-	dstAddr = (vir_bytes) inMsg.info_where;
+	dstAddr = (vir_bytes) inMsg.m_info_where;
 	if ((s = sysDataCopy(SELF, srcAddr, who, dstAddr, len)) != OK)
 	  return s;
 	return OK;
@@ -135,8 +135,8 @@ int doSvrCtl() {
 	} localParamOverrides[MAX_LOCAL_PARAMS];
 	static int localParams = 0;
 
-	req = inMsg.svrctl_req;
-	ptr = (vir_bytes) inMsg.svrctl_argp;
+	req = inMsg.m_svrctl_req;
+	ptr = (vir_bytes) inMsg.m_svrctl_argp;
 
 	/* Is the request indeed for the MM? */
 	if (((req >> 8) & 0xFF) != 'M')

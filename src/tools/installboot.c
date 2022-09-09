@@ -1,5 +1,4 @@
 #include "common.h"
-#include "image.h"
 #include "dirent.h"
 #include "../boot/rawfs.h"
 
@@ -30,18 +29,12 @@
 #define wDev(buf,size)	Write(device, deviceFd, (buf), (size)) 
 
 #define MODULE_NAME_LEN		30
-typedef struct {
-	char name[MODULE_NAME_LEN];
-	size_t size;
-} StackConfig;
 
 static char *progName;
 static char *device;
 static int deviceFd;
 static uint32_t bootSector, lowSector;
 static int imgCount;
-static StackConfig *sc;
-static int scCount;
 static uint32_t maxSize;
 
 static char *paramsTpl = 
@@ -81,26 +74,6 @@ static void installMasterboot(char *masterboot) {
 	Close(masterboot, mbrFd);
 }
 
-static void checkElfHeader(char *fileName, Elf32_Ehdr *ehdrPtr) {
-	if (ehdrPtr->e_ident[EI_MAG0] != ELFMAG0 ||
-				ehdrPtr->e_ident[EI_MAG1] != ELFMAG1 ||
-				ehdrPtr->e_ident[EI_MAG2] != ELFMAG2 ||
-				ehdrPtr->e_ident[EI_MAG3] != ELFMAG3)
-	  fatal("%s is not an ELF file.\n", fileName);
-	
-	if (ehdrPtr->e_ident[EI_CLASS] != ELFCLASS32)
-	  fatal("%s is not an 32-bit executable.\n", fileName);
-
-	if (ehdrPtr->e_ident[EI_DATA] != ELFDATA2LSB)
-	  fatal("%s is not little endian.\n", fileName);
-
-	if (ehdrPtr->e_ident[EI_VERSION] != EV_CURRENT)
-	  fatal("%s has an invalid version.\n", fileName);
-
-	if (ehdrPtr->e_type != ET_EXEC)
-	  fatal("%s is not an executable.\n", fileName);
-}
-
 static char *formatName(char *name) {
 	char *np;
 
@@ -111,59 +84,60 @@ static char *formatName(char *name) {
 	return name;
 }
 
-static ssize_t getStackSize(char *name) {
-	int i;
-
-	for (i = 0; i < scCount; ++i) {
-		if (!strcmp(sc[i].name, name)) {
-			return sc[i].size;
-		}
-	}
-	return -1;
-}
-
 static long totalText = 0, totalData = 0, totalBss = 0, totalStack = 0;
 
-static size_t readHeader(char *fileName, FILE *imgFile, ImageHeader *imgHdr, bool print) {
-	int i, sn = 0;
+static size_t readHeader(char *fileName, FILE *imgFile, ImgHdr *imgHdr, bool print) {
+	int i;
 	static bool banner = false;
 	Exec *proc = &imgHdr->process;
 	Elf32_Ehdr *ehdrPtr = &proc->ehdr;
 	Elf32_Phdr phdr;
-	size_t phdrSize, textSize = 0, dataSize = 0, bssSize = 0;
+	size_t phdrSize, textSize = 0, dataSize = 0, bssSize = 0, stackSize = 0;
 	size_t sizeInMemory = 0;
+	bool textFound = false, dataFound = false, stackFound = false;
 
 	memset(imgHdr, 0, sizeof(*imgHdr));
 	strncpy(imgHdr->name, formatName(fileName), IMG_NAME_MAX);
 
-	if (print && (proc->stackSize = getStackSize(imgHdr->name)) == -1)
-	  fatal("No stack size found for: %s\n", imgHdr->name);
-
 	Fread(fileName, imgFile, ehdrPtr, sizeof(*ehdrPtr));
 	checkElfHeader(fileName, ehdrPtr);
-	Fseek(fileName, imgFile, ehdrPtr->e_phoff);
 
+	Fseek(fileName, imgFile, ehdrPtr->e_phoff);
 	phdrSize = ehdrPtr->e_phentsize;	
 	for (i = 0; i < ehdrPtr->e_phnum; ++i) {
 		Fread(fileName, imgFile, &phdr, phdrSize);
 
 		if (isPLoad(&phdr)) {
 			if (isRX(&phdr)) {
+				if (textFound)
+				  fatal("More than 1 text program header: %s", fileName);
 				memcpy(&proc->codeHdr, &phdr, phdrSize);
 				textSize = phdr.p_filesz;
 				sizeInMemory = phdr.p_vaddr + phdr.p_memsz;
-				++sn;
+				textFound = true;
 			} else if (isRW(&phdr)) {
+				if (dataFound)
+				  fatal("More than 1 data program header: %s", fileName);
 				memcpy(&proc->dataHdr, &phdr, phdrSize);
 				dataSize = phdr.p_filesz;
 				bssSize = phdr.p_memsz - dataSize;
 				sizeInMemory = phdr.p_vaddr + phdr.p_memsz;
-				++sn;
-			}
-			if (sn >= 2)
-			  break;
+				dataFound = true;
+			} 	
+		} else if (isStack(&phdr)) {
+			if (stackFound)
+			  fatal("More than 1 stack program header: %s", fileName);
+			stackSize = phdr.p_memsz;
+			proc->stackHdr.p_memsz = stackSize;
+			stackFound = true;
 		}
 	}
+	if (!textFound)
+	  fatal("No text program header found: %s", fileName);
+	if (!dataFound)
+	  fatal("No data program header found: %s", fileName);
+	if (!stackFound)
+	  fatal("No stack program header found: %s", fileName);
 
 	if (print) {
 		if (!banner) {
@@ -171,13 +145,12 @@ static size_t readHeader(char *fileName, FILE *imgFile, ImageHeader *imgHdr, boo
 			banner = true;
 		}
 		printf(" %8d %8d %8d %8d %8d	%s\n", textSize, dataSize, bssSize, 
-					proc->stackSize, textSize + dataSize + bssSize, 
-					fileName);
+					stackSize, textSize + dataSize + bssSize, fileName);
 
 		totalText += textSize;
 		totalData += dataSize;
 		totalBss += bssSize;
-		totalStack += proc->stackSize;
+		totalStack += stackSize;
 	}
 	
 	return sizeInMemory;
@@ -227,82 +200,16 @@ static void copyExec(char *progName, FILE *imgFile, Elf32_Phdr *hdr) {
 	padImage(padLen);
 }
 
-static size_t readStackSize(char *fileName) {
-	int fd;
-	ssize_t n;
-	size_t size;
-	char buf[20];
-
-	fd = ROpen(fileName);
-	n = Read(fileName, fd, buf, 20);
-	buf[n] = 0;
-	size = atol(buf);	
-	Close(fileName, fd);
-	return size;
-}
-
-static void readStacks() {
-	DIR *d;
-	struct dirent *dir;
-#define FILE_NAME_SIZE	256
-	char buf[FILE_NAME_SIZE], fileName[FILE_NAME_SIZE], *np, *fn;
-	ssize_t len;
-	int i = 0;
-	int listSize = 1;
-	sc = calloc(listSize, sizeof(StackConfig));
-	if (sc == NULL)
-	  fatal("calloc StackConfig failed with len: %d", listSize);
-
-	/* Get directory of this executable. */
-	if ((len = readlink("/proc/self/exe", buf, FILE_NAME_SIZE)) == -1)
-	  errExit("readlink %s", progName);
-	buf[len] = 0;
-	if ((np = strrchr(buf, '/')) != NULL)
-	  *np = 0;
-
-	/* Get full path of "stack" dir. */
-	if (snprintf(fileName, FILE_NAME_SIZE, "%s/%s", buf, STACK_DIR) < 0)
-	  errExit("snprintf dirName");
-
-	strcpy(buf, fileName);
-	d = opendir(buf);
-	if (d) {
-		/* Open dir and traverse files in it. */
-		while ((dir = readdir(d)) != NULL) {
-			fn = dir->d_name;
-			if (strcmp(fn, ".") && strcmp(fn, "..")) {	/* Skip "." and ".." files */
-				if (snprintf(fileName, FILE_NAME_SIZE, "%s/%s", buf, fn) < 0)
-				  errExit("snprintf fileName: %s", fn);
-				if (i == listSize) {
-					listSize *= 2;
-					sc = realloc(sc, sizeof(StackConfig) * listSize);
-					if (sc == NULL) 
-					  fatal("realloc StackConfig failed with len: %d", listSize);
-				}
-				strncpy(sc[i].name, fn, MODULE_NAME_LEN);
-				sc[i].size = readStackSize(fileName);
-				++i;
-			}
-		}
-		closedir(d);
-	}
-
-	scCount = i;
-}
-
 static void installImages(char **imgNames, int imgAddr, off_t bootSize, 
 						off_t *imgSizePtr, size_t *memSizes) {
 	FILE *imgFile;
 	char *imgName, *file;
 	imgBuf = Malloc(bufLen);
-	ImageHeader imgHdr;
+	ImgHdr imgHdr;
 	Exec *proc;
 	Elf32_Phdr *hdr;
 	int i;
-	size_t memSize;
-
-	/* Read stack sizes. */
-	readStacks();
+	size_t memSize, stackSize;
 
 	for (i = 0; i < imgCount; ++i) {
 		imgName = imgNames[i];
@@ -311,7 +218,7 @@ static void installImages(char **imgNames, int imgAddr, off_t bootSize,
 		else
 		  file = imgName;
 
-		imgFile = Fopen(file);
+		imgFile = RFopen(file);
 		/* Use on sector to store exec header */
 		readHeader(imgName, imgFile, &imgHdr, true);
 		bwrite(&imgHdr, sizeof(imgHdr));
@@ -319,18 +226,20 @@ static void installImages(char **imgNames, int imgAddr, off_t bootSize,
 
 		memSize = 0;
 		proc = &imgHdr.process;
-		if (isPLoad(&proc->codeHdr)) {
-			hdr = &proc->codeHdr;
-			copyExec(imgName, imgFile, hdr);
-			memSize = hdr->p_vaddr + hdr->p_memsz;
-		}
-		if (isPLoad(&proc->dataHdr)) {
-			hdr = &proc->dataHdr;
-			copyExec(imgName, imgFile, hdr);
-			memSize = max(memSize, hdr->p_vaddr + hdr->p_memsz);
-		}
+		/* text */
+		hdr = &proc->codeHdr;
+		copyExec(imgName, imgFile, hdr);
+		memSize = hdr->p_vaddr + hdr->p_memsz;
+		/* data */
+		hdr = &proc->dataHdr;
+		copyExec(imgName, imgFile, hdr);
+		memSize = max(memSize, hdr->p_vaddr + hdr->p_memsz);
+		/* stack */
+		hdr = &proc->stackHdr;
+		stackSize = hdr->p_memsz;
+
 		/* Compute memory size for each image */
-		memSizes[i] = memSize == 0 ? memSize : ALIGN(memSize + proc->stackSize, CLICK_SIZE); 
+		memSizes[i] = memSize == 0 ? memSize : ALIGN(memSize + stackSize, CLICK_SIZE); 
 	
 		Fclose(file, imgFile);
 
@@ -347,13 +256,11 @@ static void installImages(char **imgNames, int imgAddr, off_t bootSize,
 	free(imgBuf);
 
 	*imgSizePtr = bufOff;
-
-	free(sc);
 }
 
 static void checkBootMemSize(char *boot) {
 	FILE *bootFile;
-	ImageHeader imgHdr;
+	ImgHdr imgHdr;
 	size_t size;
 	char bootElf[20];
 	char *s;
@@ -371,7 +278,7 @@ static void checkBootMemSize(char *boot) {
 	bootElf[i++] = 'f';
 	bootElf[i] = 0;
 
-	bootFile = Fopen(bootElf);
+	bootFile = RFopen(bootElf);
 	size = readHeader(bootElf, bootFile, &imgHdr, false);
 	//printf("size: %x\n", size);
 	//printf("size: %x\n", size + STACK_SIZE);
@@ -527,7 +434,7 @@ static void installDevice(char *bootBlock, char *boot, char *memPosFile, char **
 	sPart(BOOT_BLOCK_OFF);
 	wDev(buf, BOOT_BLOCK_SIZE);
 
-	printf("Boot addr:  %d, sectors: %d\n", bootAddr, bootSectors);
+	printf(" Boot addr: %d, sectors: %d\n", bootAddr, bootSectors);
 	printf("Image addr: %d, sectors: %d\n\n", imgAddr, imgSectors);
 }
 
@@ -559,7 +466,7 @@ int main(int argc, char *argv[]) {
 	    installMasterboot(argv[3]);
 	} else if (argc >= 8 && isOpt(argv[1], "-device")) {
 		maxSize = OFFSET(atoi(argv[5]));
-	    installDevice(argv[3], argv[4], argv[6], argv + 7); //TODO
+	    installDevice(argv[3], argv[4], argv[6], argv + 7); 
 	} else {
 	  usage();
 	}

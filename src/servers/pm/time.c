@@ -19,7 +19,7 @@ int doTime() {
 	if ((s = getUptime(&uptime)) != OK)
 	  panic(__FILE__, "doTime couldn't get uptime", s);
 
-	rmp->mp_reply.reply_time = (time_t) (bootTime + (uptime / HZ));
+	rmp->mp_reply.m_reply_time = (time_t) (bootTime + (uptime / HZ));
 	return OK;
 }
 
@@ -36,7 +36,7 @@ int doSTime() {
 
 	if ((s = getUptime(&uptime)) != OK)
 	  panic(__FILE__, "doSTime couldn't get uptime", s);
-	bootTime = (time_t) inMsg.stime - (uptime / HZ);
+	bootTime = (time_t) inMsg.m_stime - (uptime / HZ);
 
 	/* Also inform FS about the new system time. */
 	tellFS(STIME, bootTime, 0, 0);
@@ -53,11 +53,11 @@ int doTimes() {
 	if ((s = sysTimes(who, t)) != OK)
 	  panic(__FILE__, "doTimes couldn't get times", s);
 
-	rmp->mp_reply.reply_t1 = t[0];		/* User time */
-	rmp->mp_reply.reply_t2 = t[1];		/* System time */
-	rmp->mp_reply.reply_t3 = rmp->mp_child_utime;		/* Child user time */
-	rmp->mp_reply.reply_t4 = rmp->mp_child_stime;		/* Child system time */
-	rmp->mp_reply.reply_t5 = t[2];		/* Uptime since boot */
+	rmp->mp_reply.m_reply_t1 = t[0];		/* User time */
+	rmp->mp_reply.m_reply_t2 = t[1];		/* System time */
+	rmp->mp_reply.m_reply_t3 = rmp->mp_child_utime;		/* Child user time */
+	rmp->mp_reply.m_reply_t4 = rmp->mp_child_stime;		/* Child system time */
+	rmp->mp_reply.m_reply_t5 = t[2];		/* Uptime since boot */
 
 	return OK;
 }

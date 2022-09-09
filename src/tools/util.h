@@ -1,6 +1,8 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include "image.h"
+
 #define SECTOR_SIZE			512
 #define SECTORS(n)			(((n) + ((SECTOR_SIZE) - 1)) / (SECTOR_SIZE))
 #define OFFSET(n)			((n) * (SECTOR_SIZE))
@@ -18,13 +20,10 @@ void getPartitionTable(char *device, int fd, off_t off, PartitionEntry *table);
 
 char *parseDevice(char *device, uint32_t *bootSecPtr, PartitionEntry *pe);
 
+#define ROpen(fileName)		Open(fileName, O_RDONLY)
+#define WOpen(fileName)		Open(fileName, O_WRONLY)
+#define RWOpen(fileName)	Open(fileName, O_RDWR)
 int Open(char *fileName, int flags);
-
-int ROpen(char *fileName);
-
-int WOpen(char *fileName);
-
-int RWOpen(char *fileName);
 
 off_t getFileSize(char *pathName);
 
@@ -36,16 +35,26 @@ void Lseek(char *fileName, int fd, off_t offset);
 
 void Close(char *fileName, int fd);
 
-FILE *Fopen(char *file);
+#define RFopen(file)		Fopen(file, "r")
+#define WFopen(file)		Fopen(file, "r+")
+FILE *Fopen(char *file, const char *mode);
 
 void Fseek(char *fileName, FILE *file, long off);
 
-void Fread(char *fileName, FILE *file, void *buf, size_t size);
-
 void Fread2(char *fileName, FILE *file, void *buf, size_t size, size_t num);
+#define Fread(fileName, file, buf, size)	Fread2(fileName, file, buf, size, 1)
+
+void Fwrite2(char *fileName, FILE *file, void *buf, size_t size, size_t num);
+#define Fwrite(fileName, file, buf, size)	Fwrite2(fileName, file, buf, size, 1)
 
 void Fclose(char *fileName, FILE *file);
 
 void *Malloc(size_t size);
 
+void checkElfHeader(char *fileName, Elf32_Ehdr *ehdrPtr);
+
+#define findGNUStackHeader(fileName, file, phdrPtr, off)	\
+	findGNUStackHeader2(fileName, file, NULL, phdrPtr, off)
+void findGNUStackHeader2(char *fileName, FILE *file, Elf32_Ehdr *ehdr,
+			Elf32_Phdr *phdrPtr, off_t *off);
 #endif

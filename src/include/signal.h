@@ -34,6 +34,9 @@ typedef int sig_atomic_t;
 #define SIGTERM		15	/* Software termination signal from kill */
 #define SIGCHLD		17	/* Child process terminated or stopped */
 
+#define SIGEMT		7	/* Obsolete */
+#define SIGBUS		10	/* Obsolete */
+
 /* MINIX specific signals. These signals are not used by user processes,
  * but meant to inform system processes, like the PM, about system events.
  */

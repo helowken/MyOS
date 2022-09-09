@@ -31,7 +31,8 @@ OBJS_M32 = \
 		_execve.o \
 		_access.o \
 		_close.o \
-		__exit.o
+		__exit.o \
+		_read.o
 
 
 all: build

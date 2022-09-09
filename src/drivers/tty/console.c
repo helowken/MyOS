@@ -422,7 +422,7 @@ void screenInit(TTY *tp) {
 		 * c_cursor is updated automatically later.
 		 */
 		scrollScreen(console, SCROLL_UP);
-		console->c_row = screenLines - 1;
+		console->c_row = screenLines - 15; //TODO -1
 		console->c_column = 0;
 	}
 	selectConsole(0);

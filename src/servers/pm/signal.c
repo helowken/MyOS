@@ -211,7 +211,7 @@ int checkSig(pid_t procId, int sigNum) {
 
 int doKill() {
 /* Perform the kill(pid, sigNum) system call. */
-	return checkSig(inMsg.proc_id, inMsg.sig_num);
+	return checkSig(inMsg.m_proc_id, inMsg.m_sig_num);
 }
 
 static void handleSig(int pNum, sigset_t sigMap) {
@@ -284,24 +284,24 @@ int doSigAction() {
 	struct sigaction sa;
 	struct sigaction *oldSa;
 
-	sigNum = inMsg.sig_num;
-	if (inMsg.sig_num == SIGKILL)
+	sigNum = inMsg.m_sig_num;
+	if (inMsg.m_sig_num == SIGKILL)
 	  return OK;
-	if (inMsg.sig_num < 1 || inMsg.sig_num > NSIG)
+	if (inMsg.m_sig_num < 1 || inMsg.m_sig_num > NSIG)
 	  return EINVAL;
 	oldSa = &currMp->mp_sig_actions[sigNum]; 
-	if ((struct sigaction *) inMsg.sig_old_sa != (struct sigaction *) NULL) {
+	if ((struct sigaction *) inMsg.m_sig_old_sa != (struct sigaction *) NULL) {
 		r = sysDataCopy(PM_PROC_NR, (vir_bytes) oldSa, 
-				who, (vir_bytes) inMsg.sig_old_sa, (phys_bytes) sizeof(sa));
+				who, (vir_bytes) inMsg.m_sig_old_sa, (phys_bytes) sizeof(sa));
 		if (r != OK)
 		  return r;
 	}
 
-	if ((struct sigaction *) inMsg.sig_new_sa == (struct sigaction *) NULL)
+	if ((struct sigaction *) inMsg.m_sig_new_sa == (struct sigaction *) NULL)
 	  return OK;
 
 	/* Read in the sigaction structure. */
-	r = sysDataCopy(who, (vir_bytes) inMsg.sig_new_sa,
+	r = sysDataCopy(who, (vir_bytes) inMsg.m_sig_new_sa,
 				PM_PROC_NR, (vir_bytes) &sa, (phys_bytes) sizeof(sa));
 	if (r != OK)
 	  return r;
@@ -330,7 +330,7 @@ int doSigAction() {
 	sigdelset(&sa.sa_mask, SIGKILL);
 	oldSa->sa_mask = sa.sa_mask;
 	oldSa->sa_flags = sa.sa_flags;
-	currMp->mp_sig_return = (vir_bytes) inMsg.sig_return;
+	currMp->mp_sig_return = (vir_bytes) inMsg.m_sig_return;
 	return OK;
 }
 
@@ -363,10 +363,10 @@ int doSigReturn() {
  */
 	int r;
 
-	currMp->mp_sig_mask = (sigset_t) inMsg.sig_set;
+	currMp->mp_sig_mask = (sigset_t) inMsg.m_sig_set;
 	sigdelset(&currMp->mp_sig_mask, SIGKILL);
 
-	r = sysSigReturn(who, (SigMsg *) inMsg.sig_context);
+	r = sysSigReturn(who, (SigMsg *) inMsg.m_sig_context);
 	checkPending(currMp);
 	return r;
 }
@@ -388,7 +388,7 @@ static void causeSigAlarm(Timer *tp) {
 
 int doAlarm() {
 /* Perform the setAlarm(seconds) system call. */
-	return setAlarm(who, inMsg.seconds);
+	return setAlarm(who, inMsg.m_seconds);
 }
 
 clock_t setAlarm(int pNum, clock_t sec) {
@@ -437,11 +437,11 @@ int doSigProcMask() {
 	int i;
 	sigset_t *set;
 	
-	currMp->mp_reply.reply_mask = currMp->mp_sig_mask;
-	set = (sigset_t *) &inMsg.sig_set;
+	currMp->mp_reply.m_reply_mask = currMp->mp_sig_mask;
+	set = (sigset_t *) &inMsg.m_sig_set;
 	sigdelset(set, SIGKILL);
 
-	switch (inMsg.sig_how) {
+	switch (inMsg.m_sig_how) {
 		case SIG_BLOCK:
 			for (i = 1; i <= NSIG; ++i) {
 				if (sigismember(set, i))
@@ -469,7 +469,7 @@ int doSigProcMask() {
 
 int doSigSuspend() {
 	currMp->mp_sig_mask2 = currMp->mp_sig_mask;		/* Save the old mask */
-	currMp->mp_sig_mask = (sigset_t) inMsg.sig_set;
+	currMp->mp_sig_mask = (sigset_t) inMsg.m_sig_set;
 	sigdelset(&currMp->mp_sig_mask, SIGKILL);
 	currMp->mp_flags |= SIGSUSPENDED;
 	checkPending(currMp);
@@ -477,7 +477,7 @@ int doSigSuspend() {
 }
 
 int doSigPending() {
-	currMp->mp_reply.reply_mask = (long) currMp->mp_sig_pending;
+	currMp->mp_reply.m_reply_mask = (long) currMp->mp_sig_pending;
 	return OK;
 }
 

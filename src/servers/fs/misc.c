@@ -48,11 +48,11 @@ int doFcntl() {
 	if ((fp = getFilp(inMsg.m_fd)) == NIL_FILP)
 	  return errCode;
 	
-	switch (inMsg.request) {
+	switch (inMsg.m_request) {
 		case F_DUPFD:
-			if (inMsg.addr < 0 || inMsg.addr >= OPEN_MAX)
+			if (inMsg.m_addr < 0 || inMsg.m_addr >= OPEN_MAX)
 			  return EINVAL;
-			if ((r = getFd(inMsg.addr, 0, &newFd, NULL)) != OK)
+			if ((r = getFd(inMsg.m_addr, 0, &newFd, NULL)) != OK)
 			  return r;
 			++fp->filp_count;
 			currFp->fp_filp[newFd] = fp;
@@ -65,7 +65,7 @@ int doFcntl() {
 		case F_SETFD:
 		/* Set close-on-exec flag. */
 			cloexecMask = 1L << inMsg.m_fd;
-			cloexecValue = (inMsg.addr & FD_CLOEXEC ? cloexecMask : 0L);
+			cloexecValue = (inMsg.m_addr & FD_CLOEXEC ? cloexecMask : 0L);
 			currFp->fp_cloexec = (currFp->fp_cloexec & ~cloexecMask) | cloexecValue;
 			return OK;
 		
@@ -77,7 +77,7 @@ int doFcntl() {
 		case F_SETFL:
 		/* Set file status flags (O_NONBLOCK and O_APPEND). */
 			flags = O_NONBLOCK | O_APPEND;
-			fp->filp_flags = (fp->filp_flags & ~flags) | (inMsg.addr & flags);
+			fp->filp_flags = (fp->filp_flags & ~flags) | (inMsg.m_addr & flags);
 			return OK;
 
 		case F_GETLK:
@@ -97,7 +97,7 @@ int doSet() {
 	if (who != PM_PROC_NR)
 	  return EGENERIC;
 
-	rfp = &fprocTable[inMsg.slot1];
+	rfp = &fprocTable[inMsg.m_slot1];
 	if (callNum == SETUID) {
 		rfp->fp_ruid = (uid_t) inMsg.m_ruid;
 		rfp->fp_euid = (uid_t) inMsg.m_euid;
@@ -122,17 +122,18 @@ int doFork() {
 	  return EGENERIC;
 
 	/* Copy the parent's FProc struct to the child. */
-	fprocTable[inMsg.child] = fprocTable[inMsg.parent];
+	fprocTable[inMsg.m_child] = fprocTable[inMsg.m_parent];
 
 	/* Increase the counters in the 'filp' table. */
-	cp = &fprocTable[inMsg.child];
+	cp = &fprocTable[inMsg.m_child];
 	for (i = 0; i < OPEN_MAX; ++i) {
-		if (cp->fp_filp[i] != NIL_FILP)
+		if (cp->fp_filp[i] != NIL_FILP) {
 		  ++cp->fp_filp[i]->filp_count;
+		}
 	}
 
 	/* Fill in new prcoess id */
-	cp->fp_pid = inMsg.pid;
+	cp->fp_pid = inMsg.m_pid;
 
 	/* A child is not a process leader. */
 	cp->fp_session_leader = 0;

@@ -193,7 +193,7 @@ static bool isSelected(char *name) {
 	return cmp == 0;
 }
 
-static u32_t getProcSize(ImageHeader *imgHdr) {
+static u32_t getProcSize(ImgHdr *imgHdr) {
 	Exec *exec = &imgHdr->process;
 	u32_t len = align(exec->codeHdr.p_filesz, SECTOR_SIZE) + 
 				align(exec->dataHdr.p_filesz, SECTOR_SIZE);
@@ -287,18 +287,18 @@ static void printParams(char *params) {
 static void execImage(char *image) {
 	char *delayValue;
 	char params[SECTOR_SIZE];
-	ImageHeader imgHdr;
+	ImgHdr imgHdr;
 	Exec *exec;
 	u32_t vsec, addr, limit, imgHdrPos;
 	bool banner = false;
 	Process *procp;
-	size_t hdrLen, n, dataSize, bssSize;
+	size_t hdrLen, dataSize, bssSize, stackSize;
 	int i;
 	char *buf;
 	char *console;
 	u16_t mode;
 	extern char *sbrk(int);
-	u32_t dataOffClicks, newAddr;
+	u32_t dataAddr, dsClicks, offsetClicks, offsetBytes;
 
 	sbrk(0);
 
@@ -350,12 +350,11 @@ static void execImage(char *image) {
 	    addr = align(addr, CLICK_SIZE);
 
 		if (!banner) {
-			printf("     cs       ds     text     data      bss    stack\n");
+			printf("     cs       ds      off     text     data      bss    stack\n");
 			banner = true;
 		}
 		
 		procp->cs = addr;
-		procp->ds = addr;
 		procp->entry = exec->ehdr.e_entry;
 
 		/* Save a copy of the header for the kernel, with the address
@@ -367,51 +366,41 @@ static void execImage(char *image) {
 		if (!getSegment(&vsec, exec->codeHdr.p_filesz, &addr, limit))
 		  return;
 
-		dataSize = bssSize = 0;
-		if (isPLoad(&exec->dataHdr)) {
-			newAddr = align(addr, CLICK_SIZE);
-			/* Compute the gap between data and code */
-			n = exec->dataHdr.p_vaddr - exec->codeHdr.p_vaddr -
-						align(exec->codeHdr.p_memsz, CLICK_SIZE);
-			/* Compute how many CLICK_SIZE we can remove from the gap */
-			dataOffClicks = n >> CLICK_SHIFT;
-			u32_t dsClicks = procp->ds >> CLICK_SHIFT;
-			/* Checking is needed since ds can't be negative */
-			if (dataOffClicks > dsClicks) 
-			  dataOffClicks = dsClicks;
-			u32_t dataOffBytes = dataOffClicks << CLICK_SHIFT;
-			/* We align ds to CLICK_SIZE */
-			procp->ds -= dataOffBytes;
-			exec->dataHdr.p_paddr = procp->ds;
-			exec->dataOffset = newAddr - procp->ds;
-			n -= dataOffBytes;
-			rawClear(addr, newAddr + n - addr);
-			/* Compute the address for data */
-			addr = newAddr + n;
+		/* Read the data segment. */
+		dataAddr = align(addr, CLICK_SIZE);
+		dsClicks = dataAddr >> CLICK_SHIFT;
+		offsetClicks = exec->dataHdr.p_vaddr >> CLICK_SHIFT;
+		if (offsetClicks > dsClicks)
+		  offsetClicks = dsClicks;
+		offsetBytes = offsetClicks << CLICK_SHIFT;
+		procp->ds = dataAddr - offsetBytes;
+		dataAddr += exec->dataHdr.p_vaddr - offsetBytes;
+		rawClear(addr, dataAddr - addr);
+		exec->dataHdr.p_paddr = procp->ds;
+		exec->dataHdr.p_offset = offsetBytes;
+		addr = dataAddr;
 
-			dataSize = exec->dataHdr.p_filesz;
-			bssSize = exec->dataHdr.p_memsz - dataSize;
-			if (i > 0) 
-			  bssSize += exec->stackSize;	/* add stack to user exec */
-			
-			/* Read the data segment. */
-			if (!getSegment(&vsec, dataSize, &addr, limit)) 
-			  return;
+		dataSize = exec->dataHdr.p_filesz;
+		bssSize = exec->dataHdr.p_memsz - dataSize;
+		stackSize = exec->stackHdr.p_memsz;	
 
-			if (addr + bssSize > limit) {
-				errno = ENOMEM;
-				return;
-			}
-			/* Zero out bss. */
-			rawClear(addr, bssSize);
-			addr += bssSize;
+		/* Read the data segment. */
+		if (!getSegment(&vsec, dataSize, &addr, limit)) 
+		  return;
+
+		if (addr + bssSize + stackSize > limit) {
+			errno = ENOMEM;
+			return;
 		}
+		/* Zero out bss. */
+		rawClear(addr, bssSize + stackSize);
+		addr += bssSize + stackSize;
 
 		rawCopy((char *) (imgHdrPos + i * EXEC_SIZE), mon2Abs(exec), EXEC_SIZE);
 
-		printf("%07lx  %07lx %8ld %8ld %8ld %8ld    %s\n",
-			procp->cs, procp->ds, exec->codeHdr.p_filesz, 
-			dataSize, bssSize, exec->stackSize, imgHdr.name);
+		printf("%07lx  %07lx %8lx %8lx %8lx %8lx %8lx    %s\n",
+			procp->cs, procp->ds, offsetBytes, exec->codeHdr.p_filesz, 
+			dataSize, bssSize, stackSize, imgHdr.name);
 
 		if (i == 0) {
 			addr = memList[1].base;

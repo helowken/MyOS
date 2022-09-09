@@ -127,7 +127,7 @@ Inode *advance(Inode *dirIp, char string[NAME_MAX]) {
 	/* Don't go beyond the current root directory, unless the string is dot2. */
 	if (dirIp == currFp->fp_root_dir && 
 				strcmp(string, "..") == 0 && 
-				string != dot2)
+				string != dot2) 
 	  return getInode(dirIp->i_dev, dirIp->i_num);
 
 	/* The component has been found in the directory. Get inode. */
@@ -191,7 +191,7 @@ int searchDir(register Inode *dirIp, char string[NAME_MAX], ino_t *iNum, int fla
 	block_t b;
 	uint16_t blockSize;
 	unsigned newSlots, oldSlots;
-	
+
 	/* If 'dirIp' is not a pointer to a dir inode, error. */
 	if ((dirIp->i_mode & I_DIRECTORY) != I_DIRECTORY)
 	  return ENOTDIR;

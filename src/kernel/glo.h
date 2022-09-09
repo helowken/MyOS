@@ -24,7 +24,7 @@ EXTERN Proc *prevProc;
 EXTERN Proc *currProc;
 EXTERN Proc *nextProc;
 EXTERN Proc *billProc;
-EXTERN char kernelReentryCount;	/* Kernel reentry count (entry count less 1) */
+EXTERN char kernelReenter;		/* Kernel reentry count (entry count less 1) */
 EXTERN unsigned lostTicks;		/* Clock ticks counted outside clock task */
 
 /* Interrupt related variables. */

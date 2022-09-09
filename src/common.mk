@@ -13,8 +13,8 @@ C_SOURCE = $(wildcard *.c)
 HEADERS = $(wildcard $(INC_HEADERS))
 DEBUG = debug.bin
 ENTRY = $(MY_HOME)/entry/entry.o
-DIR_STACK = $(MY_HOME)/tools/stack
 LINKER_SCRIPT = $(MY_HOME)/linkerScript.lds
+SETSTACK = $(MY_HOME)/tools/setstack.bin
 
 
 %.o: %.c $(HEADERS)
@@ -41,12 +41,7 @@ endef
 
 
 define setStack
-	mkdir -p $(DIR_STACK)
-	echo $(1) > $(DIR_STACK)/$(2)
-endef
-
-define cleanStack
-	rm -f $(DIR_STACK)/$(1)
+	$(SETSTACK) $(1) $(2)
 endef
 
 

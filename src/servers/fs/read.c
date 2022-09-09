@@ -3,6 +3,287 @@
 #include "minix/com.h"
 #include "param.h"
 
+int doRead() {
+	return readWrite(READING);
+}
+
+static int rwChunk(
+	register Inode *ip,
+	off_t position,		/* Position within file to read or write */
+	unsigned off,		/* Off within the current block */
+	int chunk,			/* # of bytes to read or write */
+	unsigned bytesLeft,	/* Max number of bytes wanted after position */
+	int rwFlag,			/* READING or WRITING */
+	char *buf,			/* Virtual address of the user buffer */
+	int seg,			/* T or D segment in user space */
+	int usr,			/* Which user process */
+	int blockSize,		/* Block size of FS operating on */
+	int *completed		/* # of bytes copied */
+) {
+/* Read or write (part of) a block. */
+
+	register Buf *bp;
+	int r = OK;
+	int n, blockSpec;
+	block_t b;
+	dev_t dev;
+
+	*completed = 0;
+
+	blockSpec = (ip->i_mode & I_TYPE) == I_BLOCK_SPECIAL;
+	if (blockSpec) {
+		b = position / blockSize;
+		dev = (dev_t) ip->i_zone[0];
+	} else {
+		b = readMap(ip, position);
+		dev = ip->i_dev;
+	}
+
+	if (! blockSpec && b == NO_BLOCK) {
+		if (rwFlag == READING) {
+			/* Reading from a nonexistent block. Must read as all zeros. */
+			bp = getBlock(NO_DEV, NO_BLOCK, NORMAL);	/* Get a buffer */
+			zeroBlock(bp);
+		} else {
+			/* Writing to a nonexistent block. Create and enter in inode. */
+			if ((bp = newBlock(ip, position)) == NIL_BUF)
+			  return errCode;
+		}
+	} else if (rwFlag == READING) {
+		/* Read and read ahead if convenient. */
+		bp = doReadAhead(ip, b, position, bytesLeft);
+	} else {
+		/* Normally an existing block to be partially overwritten is first read
+		 * in. However, a full block need not be read in. If it is already in
+		 * the cache, acquire it, otherwise just acquire a free buffer.
+		 */
+		n = (chunk == blockSize ? NO_READ : NORMAL);
+		if (! blockSpec && off == 0 && position >= ip->i_size)
+		  n = NO_READ;
+		bp = getBlock(dev, b, n);
+	}
+
+	/* In all cases, bp now points to a valid buffer. */
+	if (bp == NIL_BUF)
+	  panic(__FILE__, "bp not valid in rwChunk, this can't happen", NO_NUM);
+
+	if (rwFlag == WRITING && 
+				chunk != blockSize && 
+				! blockSpec &&
+				position >= ip->i_size &&
+				off == 0) {
+		zeroBlock(bp);
+	}
+
+	if (rwFlag == READING) {
+		/* Copy a chunk from the block buffer to user space. */
+		r = sysVirCopy(FS_PROC_NR, D, (phys_bytes) (bp->b_data + off), 
+					usr, seg, (phys_bytes) buf, (phys_bytes) chunk);
+	} else {
+		/* Copy a chunk from user space to the block buffer. */
+		r = sysVirCopy(usr, seg, (phys_bytes) buf, 
+					FS_PROC_NR, D, (phys_bytes) (bp->b_data + off),
+					(phys_bytes) chunk);
+		bp->b_dirty = DIRTY;
+	}
+
+	n = (off + chunk == blockSize ? FULL_DATA_BLOCK : PARTIAL_DATA_BLOCK);
+	putBlock(bp, n);
+
+	return r;
+}
+
+int readWrite(int rwFlag) {
+/* Perform read(fd, buf, count) or write(fd, buf, count) call. */
+
+	Inode *ip;
+	Filp *fp;
+	off_t position, fileSize, bytesLeft;
+	unsigned int off, cumIO;
+	mode_t mode;
+	int regular;
+	int blockSize;
+	int r, usr, seg, chunk, op, oFlags, blockSpec = 0, charSpec = 0;
+	int completed, r2 = OK;
+	phys_bytes p;
+
+	if (bufsInUse < 0) 
+	  panic(__FILE__, "start - bufsInUse negative", bufsInUse);
+
+	/* MM loads segments by putting funny things in upper 10 bits of "fd". */
+	if (who == PM_PROC_NR && (inMsg.m_fd & (~BYTE))) {
+		usr = inMsg.m_fd >> 7;
+		seg = (inMsg.m_fd >> 5) & 03;
+		inMsg.m_fd &= 037;	/* Get rid of user and segment bits */
+	} else {
+		usr = who;	/* Normal case */
+		seg = D;
+	}
+
+	/* If the file descriptor is valid, get the inode, size and mode. */
+	if (inMsg.m_nbytes < 0)
+	  return EINVAL;
+	if ((fp = getFilp(inMsg.m_fd)) == NIL_FILP)
+	  return errCode;
+	if ((fp->filp_mode && (rwFlag == READING ? R_BIT : W_BIT)) == 0)
+	  return fp->filp_mode == FILP_CLOSED ? EIO : EBADF;
+
+	if (inMsg.m_nbytes == 0)
+	  return 0;		/* So char special files need not check for 0 */
+
+	/* Check if user process has the memory it needs.
+	 * If  not, copying will fail later.
+	 * Do this after 0-check above because umap doesn't want to map 0 bytes.
+	 */
+	if ((r = sysUMap(usr, seg, (vir_bytes) inMsg.m_buffer, 
+						inMsg.m_nbytes, &p)) != OK)
+	  return r;
+	position = fp->filp_pos;
+	oFlags = fp->filp_flags;
+	ip = fp->filp_inode;
+	fileSize = ip->i_size;
+	r = OK;
+	if (ip->i_pipe == I_PIPE) {
+		//TODO;
+	} else {
+		cumIO = 0;
+	}
+	op = (rwFlag == READING ? DEV_READ : DEV_WRITE);
+	mode = ip->i_mode & I_TYPE;
+	regular = mode == I_REGULAR || mode == I_NAMED_PIPE;
+
+	if ((charSpec = (mode == I_CHAR_SPECIAL))) {
+		if (ip->i_zone[0] == NO_DEV)
+		  panic(__FILE__, "readWrite tries to read from "
+					  "character device NO_DEV", NO_NUM);
+		blockSize = getBlockSize(ip->i_zone[0]);
+	} else if ((blockSpec = (mode == I_BLOCK_SPECIAL))) {
+		fileSize = ULONG_MAX;
+		if (ip->i_zone[0] == NO_DEV)
+		  panic(__FILE__, "readWrite tries to read from "
+					  "block device NO_DEV", NO_NUM);
+		blockSize = getBlockSize(ip->i_zone[0]);
+	}
+
+	if (!charSpec && !blockSpec)
+	  blockSize = ip->i_sp->s_block_size;
+
+	rdwtErr = OK;	/* Set to EIO if disk error occurs */
+
+	/* Check for character special files. */
+	if (charSpec) {
+		dev_t dev;
+		dev = (dev_t) ip->i_zone[0];
+		r = devIO(op, dev, usr, inMsg.m_buffer, position, 
+					inMsg.m_nbytes, oFlags);
+		if (r >= 0) {
+			cumIO = r;
+			position += r;
+			r = OK;
+		}
+	} else {
+		if (rwFlag == WRITING && ! blockSpec) {
+			/* Check in advance to see if file will grow too big. */
+			if (position > ip->i_sp->s_max_size - inMsg.m_nbytes)
+			  return EFBIG;
+
+			/* Check for O_APPEND flag. */
+			if (oFlags & O_APPEND)
+			  position = fileSize;
+
+			/* Clear the zone containing present EOF if hole about
+			 * to be created. This is necessary because all unwritten
+			 * blocks prior to the EOF must read as zeros.
+			 */
+			if (position > fileSize)
+			  clearZone(ip, fileSize, 0);
+		}
+
+		/* Pipes are a little different. Check. */
+		if (ip->i_pipe == I_PIPE) {
+			//TODO
+		}
+
+		// TODO if partial
+
+		/* Split the transfer into chunks that don't span two blocks. */
+		while (inMsg.m_nbytes) {
+			off = (unsigned int) (position % blockSize);	/* offset in block */
+			// if partial pipe
+			// else
+			chunk = MIN(inMsg.m_nbytes, blockSize - off);
+			if (chunk < 0)
+			  chunk = blockSize - off;
+
+			if (rwFlag == READING) {
+				if (position >= fileSize)
+				  break;	/* We are beyond EOF */
+				bytesLeft = fileSize - position;
+				if (chunk >= bytesLeft)
+				  chunk = (int) bytesLeft;
+			}
+
+			/* Read or write 'chunk' bytes. */
+			r2 = rwChunk(ip, position, off, chunk, (unsigned) inMsg.m_nbytes,
+					rwFlag, inMsg.m_buffer, seg, usr, blockSize, &completed);
+			if (r2 != OK)
+			  break;	/* EOF reached */
+
+			/* Update counters and pointers. */
+			inMsg.m_buffer += chunk;	/* User buffer address */
+			inMsg.m_nbytes -= chunk;	/* Bytes yet to be r/w */
+			cumIO += chunk;		/* Bytes r/w so far */
+			position += chunk;	/* Position within the file */
+
+			//TODO if partial pipe
+		}
+	}
+
+	/* On write, update file size and access time. */
+	if (rwFlag == WRITING) {
+		if (regular || mode == I_DIRECTORY) {
+			if (position > fileSize)
+			  ip->i_size = position;
+		}
+	} else {
+		// TODO if I_PIPE
+	}
+	fp->filp_pos = position;
+
+	/* Check to see if read ahead is called for, and if so, set it up. */
+	if (rwFlag == READING && 
+				ip->i_seek == NO_SEEK && 
+				position % blockSize == 0 &&
+				(regular || mode == I_DIRECTORY)) {
+		readAheadInode = ip;
+		readAheadPos = position;
+	}
+	ip->i_seek = NO_SEEK;
+
+	if (rdwtErr != OK)
+	  r = rdwtErr;	/* Check for disk error */
+	if (rdwtErr == END_OF_FILE)
+	  r = OK;
+	/* If user-space copying failed, r/w failed. */
+	if (r == OK && r2 != OK)
+	  r = r2;
+
+	if (r == OK) {
+		if (rwFlag == READING)
+		  ip->i_update |= ATIME;
+		else if (rwFlag == WRITING)
+		  ip->i_update |= CTIME | MTIME;
+		ip->i_dirty = DIRTY;	/* Inode is thus now dirty */
+		// TODO if partial pipe
+		currFp->fp_cum_io_partial = 0;
+		return cumIO;
+	}
+	if (bufsInUse < 0)
+	  panic(__FILE__, "end - bufsInUse negative", bufsInUse);
+
+	return r;
+}
+
 void readAhead() {
 /* Read a block into the cache before it is needed. */
 	int blockSize;
@@ -168,7 +449,7 @@ Buf *doReadAhead(
 	queueSize = 0;
 
 	/* Acquire block buffers. */
-	while (1) {
+	while (true) {
 		readQueue[queueSize++] = bp;
 
 		if (--blocksAhead == 0)

@@ -323,7 +323,7 @@ int lockNotify(int src, int dst) {
  */
 	int result;
 
-	if (kernelReentryCount >= 0) {
+	if (kernelReenter >= 0) {
 		result = miniNotify(procAddr(src), dst);
 	} else {
 		/* Call from task level, locking is required. */

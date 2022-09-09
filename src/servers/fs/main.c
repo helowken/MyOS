@@ -300,8 +300,8 @@ static void getWork() {
 				who = (int) (fp - fprocTable);
 				callNum = fp->fp_fd & BYTE;
 				inMsg.m_fd = (fp->fp_fd >> 8) & BYTE;
-				inMsg.buffer = fp->fp_buffer;
-				inMsg.nbytes = fp->fp_nbytes;
+				inMsg.m_buffer = fp->fp_buffer;
+				inMsg.m_nbytes = fp->fp_nbytes;
 				fp->fp_suspended = NOT_SUSPENDED;	/* No longer hanging */
 				fp->fp_revived = NOT_REVIVING;
 				--reviving;
@@ -325,7 +325,7 @@ void reply(int whom, int result) {
  */
 	int r;
 
-	outMsg.reply_type = result;
+	outMsg.m_reply_type = result;
 	if ((r = send(whom, &outMsg)) != OK)
 	  printf("FS: couldn't send reply %d: %d\n", result, r);
 }
@@ -369,7 +369,7 @@ int main() {
 			} else if (currFp->fp_pid == PID_FREE) {
 				r = ENOSYS;
 				printf("FS, bad process, who= %d, callNum = %d, slot1 = %d\n",
-							who, callNum, inMsg.slot1);
+							who, callNum, inMsg.m_slot1);
 			} else {
 				r = (*callVec[callNum])();
 			}

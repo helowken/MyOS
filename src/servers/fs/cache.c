@@ -1,6 +1,60 @@
 #include "fs.h"
 #include "minix/com.h"
 
+/* Note:
+ * 1. After init, all bufs are linked together in a LRU chain. FrontBp is
+ *    the head of the LRU chain and hashTable[0] = frontBp:
+ *		bufHashTable[0] = frontBp;	(initBufPool() in main.c)
+ *
+ * 2. When getBlock() at first time, no buf is found in hashTable
+ *    (assume blockNum > 0), so get from the LRU chain by frontBp:
+ *		bp = frontBp;
+ *		removeLRU(bp);
+ *
+ * 3. Since buf.b_block_num == 0, just go:
+ *		bufHashTable[hashCode] = bp->b_hash_next;
+ *
+ * 4. Then fill the buf with dev and blockNum, calculate the hashCode
+ *	  and put it to the hashTable:
+ *		++bp->b_count;
+ *		bufHashTable[hashCode] = bp;
+ *
+ * 5. When getBlock() again with the same dev and blockNum, the buf can
+ *    be found from hashTable, now its b_count == 1, so just increase
+ *    its b_count and return it:
+ *		++bp->b_count;
+ *		return bp;
+ *
+ * 6. After putBlock(), buf's b_count is decreased by 1, but still > 0, 
+ *	  so simply return:
+ *		--bp->b_count; 
+ *		if (bp->b_count != 0) 
+ *		  return;		
+ * 
+ * 7. Call putBlock() again, buf's b_count is decreased to 0. If it is 
+ *	  probably used again shortly, it will be added to the rear of the 
+ *	  LRU chain, otherwise to the front. The buf is still in hashTable.
+ *
+ * 8. If getBlock() with the same dev and blockNum, the buf can be found
+ *    from hashTable, now its b_count == 0, meaning that it is in the
+ *    LRU chain:
+ *		if (bp->b_count == 0) 
+ *		  removeLRU(bp); 
+ *		++bp->b_count;	
+ *		return bp;
+ * 
+ * 9. Else, no buf can be found from hashTable, needing to get from the 
+ *	  LRU chain. If the previous buf was added to the front of the LRU 
+ *	  chain, it will be removed from there and filled with different 
+ *	  information. Since its dev and blockNum will be changed, it should 
+ *	  be remvoed from the hashTable and then put into again with the new 
+ *	  dev and blockNum:
+ *		while (prev->b_hash_next != NIL_BUF) {
+ *			// remove from hashTable	
+ *		}
+ *		// go step 4
+ */
+
 static void removeLRU(Buf *bp) {
 	Buf *next, *prev;
 
@@ -69,7 +123,7 @@ Buf *getBlock(
 
 	/* Remove the block that was just taken from its hash chain. */
 	hashCode = (int) bp->b_block_num & HASH_MASK;
-	prev = bufHashTable[hashCode];		/* See initBufPool() in main.c */
+	prev = bufHashTable[hashCode];		
 	if (prev == bp) {
 		bufHashTable[hashCode] = bp->b_hash_next;
 	} else {

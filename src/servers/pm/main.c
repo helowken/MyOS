@@ -23,7 +23,7 @@ void setReply(int pNum, int result) {
  */
 	register MProc *rmp = &mprocTable[pNum];
 
-	rmp->mp_reply.reply_res = result;
+	rmp->mp_reply.m_reply_res = result;
 	rmp->mp_flags |= REPLY;		/* Reply pending */
 
 	if (rmp->mp_flags & ONSWAP) 
@@ -38,11 +38,13 @@ static void patchMemChunks(Memory *memChunks, MemMap *memMap) {
  * spaces and their memory will be remvoed from the list.
  */
 	Memory *memp;
+	vir_clicks size;
+
 	for (memp = memChunks; memp < &memChunks[NR_MEMS]; ++memp) {
 		if (memp->base == memMap[T].physAddr) {
-			/* T and D has the same base and D has the total size. (see kernel/main.c) */
-			memp->base += memMap[D].len;	
-			memp->size -= memMap[D].len;
+			size = memMap[T].len + memMap[D].len - memMap[D].offset;
+			memp->base += size;	
+			memp->size -= size;
 		}
 	}
 }
@@ -194,8 +196,8 @@ static void pmInit() {
 			/* Get memory map for this process from the kernel. */
 			if ((s = getMemMap(ip->pNum, rmp->mp_memmap)) != OK)
 			  panic(__FILE__, "couldn't get process entry", s);
-			minixClicks += rmp->mp_memmap[S].physAddr + 
-				rmp->mp_memmap[S].len - rmp->mp_memmap[T].physAddr;
+			minixClicks += rmp->mp_memmap[S].physAddr - rmp->mp_memmap[S].len
+							- rmp->mp_memmap[T].physAddr;
 			patchMemChunks(memChunks, rmp->mp_memmap);
 
 			/* Tell FS about this system process. */

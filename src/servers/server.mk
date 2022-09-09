@@ -10,11 +10,10 @@ all: $(SERVER)
 $(SERVER): $(ENTRY) $(OBJS) 
 	$(call link,$^,$(LIBS),$@) 
 	$(call createDebug,$@,$(DEBUG))
-	$(call setStack,$(STACK_SIZE),$(NAME))
+	$(call setStack,$(STACK_SIZE),$(SERVER))
 
 clean:
 	$(call cleanCommon)
-	$(call cleanStack,$(NAME))
 
 disasm: $(DEBUG)
 	$(call disasmCode,$<,32)

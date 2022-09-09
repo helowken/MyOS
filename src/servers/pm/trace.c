@@ -16,7 +16,7 @@ void stopProc(register MProc *rmp, int sigNum) {
 	rmp->mp_flags |= STOPPED;
 	if (parentMp->mp_flags & WAITING) {
 		parentMp->mp_flags &= ~WAITING;	/* Parent is no longer waiting */
-		parentMp->mp_reply.reply_res2 = 0177 | (sigNum << 8);
+		parentMp->mp_reply.m_reply_res2 = 0177 | (sigNum << 8);
 		setReply(rmp->mp_parent, rmp->mp_pid);
 	} else {
 		rmp->mp_sig_status = sigNum;

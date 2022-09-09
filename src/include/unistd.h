@@ -49,6 +49,7 @@ pid_t setsid();
 int setuid(uid_t uid);
 int setgid(gid_t gid);
 int pause();
+ssize_t read(int fd, void *buf, size_t n);
 
 
 #ifdef _MINIX

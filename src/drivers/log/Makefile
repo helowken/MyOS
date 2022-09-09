@@ -7,8 +7,7 @@ DRIVER_DIR = ../libdriver
 
 OBJS = $(ENTRY) log.o diag.o kputc.o
 LIB_DRIVER = $(DRIVER_DIR)/driver.o 
-NAME = log
-DRIVER = $(NAME).bin
+DRIVER = log.bin
 STACK_SIZE = 4096
 
 all: $(DRIVER)
@@ -16,14 +15,13 @@ all: $(DRIVER)
 $(DRIVER): $(OBJS) $(LIB_DRIVER)
 	$(call link,$^,$(LIBS),$@) 
 	$(call createDebug,$@,$(DEBUG))
-	$(call setStack,$(STACK_SIZE),$(NAME))
+	$(call setStack,$(STACK_SIZE),$(DRIVER))
 
 $(LIB_DRIVER):
 	cd $(DRIVER_DIR) && $(MAKE)
 
 clean:
 	$(call cleanCommon)
-	$(call cleanStack,$(NAME))
 
 disasm: $(DEBUG)
 	$(call disasmCode,$<,32)

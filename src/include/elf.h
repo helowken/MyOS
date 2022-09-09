@@ -96,6 +96,9 @@ typedef struct {
 	Elf32_Word	sh_entsize;		/* Entry size if section holds table */
 } Elf32_Shdr;
 
+/* Legal values for sh_type (section type). */
+#define SHT_NULL	0			/* Section header table entry unused */
+
 /* Program segment header */
 typedef struct {
 	Elf32_Word	p_type;			/* Segment type */
@@ -116,6 +119,7 @@ typedef struct {
 #define PT_NOTE		4			/* Auxiliary information */
 #define PT_SHLIB	5			/* Reserved */
 #define PT_PT_PHDR	6			/* Entry for header table itself */
+#define PT_GNU_STACK	0x6474e551	/* Indicates stack executability */
 
 /* Legal values for p_flags (segment flags). */
 #define PF_X		(1 << 0)	/* Segment is executable */

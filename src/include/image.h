@@ -7,19 +7,19 @@
 #define isRX(p)			(((p)->p_flags & PF_R) && ((p)->p_flags & PF_X))
 #define isRW(p)			(((p)->p_flags & PF_R) && ((p)->p_flags & PF_W))
 #define isPLoad(p)		((p)->p_type == PT_LOAD)
+#define isStack(p)		((p)->p_type == PT_GNU_STACK)
 
 typedef struct {
 	Elf32_Ehdr ehdr;		/* ELF header */
 	Elf32_Phdr codeHdr;		/* Program header for text and rodata */
 	Elf32_Phdr dataHdr;		/* Program header for data and bss */
-	uint32_t dataOffset;	
-	size_t stackSize;		/* Stack size */
+	Elf32_Phdr stackHdr;	/* Program header for data and bss */
 } Exec;
 
 typedef struct {
 	char name[IMG_NAME_MAX + 1];	/* Null terminated. */
 	Exec process;
-} ImageHeader;
+} ImgHdr;
 
 #define EXEC_SIZE		(sizeof(Exec))
 

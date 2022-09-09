@@ -1,4 +1,5 @@
 #include "common.h"
+#include "image.h"
 #include "util.h"
 
 void getActivePartition(char *device, int fd, PartitionEntry *pep) {
@@ -99,18 +100,6 @@ int Open(char *fileName, int flags) {
 	return fd;
 }
 
-int ROpen(char *fileName) {
-	return Open(fileName, O_RDONLY);
-}
-
-int WOpen(char *fileName) {
-	return Open(fileName, O_WRONLY);
-}
-
-int RWOpen(char *fileName) {
-	return Open(fileName, O_RDWR);
-}
-
 off_t getFileSize(char *pathName) {
 	struct stat sb;
 	if (stat(pathName, &sb) == -1)
@@ -141,7 +130,7 @@ void Close(char *fileName, int fd) {
 	  errExit("close %s", fileName);
 }
 
-FILE *Fopen(char *fileName) {
+FILE *Fopen(char *fileName, const char *mode) {
 	FILE *file;
 	struct stat st;
 
@@ -149,7 +138,7 @@ FILE *Fopen(char *fileName) {
 	  errExit("stat \"%s\"", fileName);
 	if (!S_ISREG(st.st_mode))
 	  errExit("\"%s\" is not a fileName.", fileName);
-	if ((file = fopen(fileName, "r")) == NULL)
+	if ((file = fopen(fileName, mode)) == NULL)
 	  errExit("fopen \"%s\"", fileName);
 	return file;
 }
@@ -159,13 +148,14 @@ void Fseek(char *fileName, FILE *file, long off) {
 	  errExit("fseek %s", fileName);
 }
 
-void Fread(char *fileName, FILE *file, void *buf, size_t size) {
-	Fread2(fileName, file, buf, size, 1);
-}
-
 void Fread2(char *fileName, FILE *file, void *buf, size_t size, size_t num) {
 	if (fread(buf, size, num, file) != num || ferror(file))
 	  errExit("fread %s", fileName);
+}
+
+void Fwrite2(char *fileName, FILE *file, void *buf, size_t size, size_t num) {
+	if (fwrite(buf, size, num, file) != num || ferror(file))
+	  errExit("fwrite %s", fileName);
 }
 
 void Fclose(char *fileName, FILE *file) {
@@ -179,3 +169,48 @@ void *Malloc(size_t size) {
 	  fatal("couldn't allocate %d", size);
 	return ptr;
 }
+
+void checkElfHeader(char *fileName, Elf32_Ehdr *ehdrPtr) {
+	if (ehdrPtr->e_ident[EI_MAG0] != ELFMAG0 ||
+				ehdrPtr->e_ident[EI_MAG1] != ELFMAG1 ||
+				ehdrPtr->e_ident[EI_MAG2] != ELFMAG2 ||
+				ehdrPtr->e_ident[EI_MAG3] != ELFMAG3)
+	  fatal("%s is not an ELF file.\n", fileName);
+	
+	if (ehdrPtr->e_ident[EI_CLASS] != ELFCLASS32)
+	  fatal("%s is not an 32-bit executable.\n", fileName);
+
+	if (ehdrPtr->e_ident[EI_DATA] != ELFDATA2LSB)
+	  fatal("%s is not little endian.\n", fileName);
+
+	if (ehdrPtr->e_ident[EI_VERSION] != EV_CURRENT)
+	  fatal("%s has an invalid version.\n", fileName);
+
+	if (ehdrPtr->e_type != ET_EXEC)
+	  fatal("%s is not an executable.\n", fileName);
+}
+
+void findGNUStackHeader2(char *path, FILE *file, Elf32_Ehdr *ehdr,
+			Elf32_Phdr *phdr, off_t *off) {
+	Elf32_Ehdr tmpEhdr;
+	int i;
+
+	if (ehdr == NULL) {
+		ehdr = &tmpEhdr;
+		Fread(path, file, ehdr, sizeof(*ehdr));
+		checkElfHeader(path, ehdr);
+	}
+	Fseek(path, file, ehdr->e_phoff);
+	*off = ehdr->e_phoff;
+
+	for (i = 0; i < ehdr->e_phnum; ++i) {
+		Fread(path, file, phdr, sizeof(*phdr));
+		if (phdr->p_type == PT_GNU_STACK) 
+		  return;
+		*off += sizeof(*phdr);
+	}
+	fatal("No GNU_STACK program header found.");
+}
+
+
+

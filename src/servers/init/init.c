@@ -14,15 +14,15 @@
 #include "unistd.h"
 #include "utmp.h"
 
-#include "minix/ipc.h" //TODO
-#include "stdio.h"	//TODO
-#include "string.h" //TODO
+#include "minix/ipc.h" //TODO delete
+#include "stdio.h"	//TODO delete
+#include "string.h" //TODO delete
 
 static int execute(char **cmd) {
 /* Execute a command with a path search along /sbin:/bin:/usr/sbin:/usr/bin. */
 	static char *nullEnv[] = { NULL };
 	char command[128];
-	char *path[] = { "/sbin", "/bin", "/usr/sbin", "/usr/bin" };
+	char *path[] = { "/bin"};//TODO, "/sbin", "/usr/sbin", "/usr/bin" };
 	int i;
 
 	if (cmd[0][0] == '/') {
@@ -31,7 +31,7 @@ static int execute(char **cmd) {
 	}
 
 	/* Path search. */
-	for (i = 0; i < 4; ++i) {
+	for (i = 0; i < 1; ++i) {	//TODO
 		if (strlen(path[i]) + 1 + strlen(cmd[0]) + 1 > sizeof(command)) {
 			errno = ENAMETOOLONG;
 			return -1;
@@ -51,6 +51,7 @@ void main() {
 	pid_t pid;		/* Pid of child process */
 	struct stat st;
 	struct sigaction sa;
+	Message msg;
 
 	if (fstat(0, &st) < 0) {
 		/* Open standard input, output & error. */
@@ -102,7 +103,6 @@ void main() {
 	
 	// TODO start
 	printf("====== init end =====\n");
-	Message msg;
 	receive(0x7ace, &msg);
 	//TODO end
 }

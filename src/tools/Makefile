@@ -9,7 +9,8 @@ COMMON_OBJS = util.o error_functions.o
 
 all: installboot.bin \
 	 mkfs.bin \
-	 partition.bin
+	 partition.bin \
+	 setstack.bin
 
 installboot.bin: installboot.o rawfs32.o $(COMMON_OBJS)
 	$(CC) -g -m32 -o $@ $^ 
@@ -20,6 +21,8 @@ mkfs.bin: mkfs.o $(COMMON_OBJS)
 partition.bin: partition.o $(COMMON_OBJS)
 	$(CC) -g -m32 -o $@ $^ 
 
+setstack.bin: setstack.o $(COMMON_OBJS)
+	$(CC) -g -m32 -o $@ $^ 
 
 .PHONY:	clean 
 

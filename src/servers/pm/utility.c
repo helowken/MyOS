@@ -81,9 +81,9 @@ void tellFS(int what, int p1, int p2, int p3) {
 	Message msg;
 	int r;
 
-	msg.tell_fs_arg1 = p1;
-	msg.tell_fs_arg2 = p2;
-	msg.tell_fs_arg3 = p3;
+	msg.m_tell_fs_arg1 = p1;
+	msg.m_tell_fs_arg2 = p2;
+	msg.m_tell_fs_arg3 = p3;
 	if ((r = taskCall(FS_PROC_NR, what, &msg)) != OK)
 	  panic(__FILE__, "tell fs failed", r);
 }
@@ -126,7 +126,6 @@ int checkAllowed(char *pathName, struct stat *st, int mask) {
 
 	/* Open the file and fstat it. Restore the ids early to handle errors. */
 	fd = open(pathName, O_RDONLY | O_NONBLOCK);
-	if (1) return EACCES;//TODO
 	savedErrno = errno;		/* Open might fail, e.g. from ENFILE */
 	tellFS(SETUID, PM_PROC_NR, (int) currMp->mp_euid, (int) currMp->mp_euid);
 	if (fd < 0)

@@ -18,6 +18,7 @@ void initSysCalls() {
 	}
 
 	map(FORK, doFork);		/* 2 = fork */
+	map(READ, doRead);		/* 3 = read */
 	map(OPEN, doOpen);		/* 5 = open */
 	map(CLOSE, doClose);	/* 6 = close */
 	map(CHDIR, doChdir);	/* 12 = chdir */

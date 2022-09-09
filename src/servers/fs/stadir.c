@@ -51,7 +51,7 @@ int doFstat() {
 	if ((fp = getFilp(inMsg.m_fd)) == NIL_FILP)
 	  return errCode;
 
-	return statInode(fp->filp_inode, fp, inMsg.buffer);
+	return statInode(fp->filp_inode, fp, inMsg.m_buffer);
 }
 
 static int changeIntoDir(Inode **iip, Inode *rip) {
@@ -95,7 +95,7 @@ int doChdir() {
 	register FProc *rfp;
 	
 	if (who == PM_PROC_NR) {
-		rfp = &fprocTable[inMsg.slot1];
+		rfp = &fprocTable[inMsg.m_slot1];
 		putInode(currFp->fp_root_dir);
 		currFp->fp_root_dir = rfp->fp_root_dir;
 		dupInode(currFp->fp_root_dir);
@@ -118,7 +118,7 @@ int doChdir() {
 	}
 
 	/* Perform the chdir(name0 system call. */
-	return changeDir(&currFp->fp_work_dir, inMsg.name, inMsg.name_length);
+	return changeDir(&currFp->fp_work_dir, inMsg.m_name, inMsg.m_name_length);
 }
 
 

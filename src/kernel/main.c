@@ -16,9 +16,8 @@ void main() {
 	register Priv *sp;	/* Privilege pointer */
 	register int i;
 	int hdrIdx;
-	bool hasData;
 	phys_clicks textBase, textBytes, dataBase;
-	vir_clicks textClicks, dataClicks;
+	vir_clicks textClicks, dataClicks, offsetClicks;
 	reg_t kernelTaskStackBase;
 	Exec exec;
 	Elf32_Phdr *hdr;
@@ -78,33 +77,24 @@ void main() {
 					(phys_bytes) EXEC_SIZE);
 
 		/* Build process memory map */
-		textBase = textBytes = dataBase = 0;
-		textClicks = dataClicks = 0;
-		hasData = isPLoad(&exec.dataHdr);
-
 		hdr = &exec.codeHdr;
-		if (isPLoad(hdr)) {
-			textBase = hdr->p_paddr >> CLICK_SHIFT;
-			textBytes = hdr->p_memsz;
-			if (!hasData)
-			  textBytes += exec.stackSize;
-			textClicks = (textBytes + CLICK_SIZE - 1) >> CLICK_SHIFT;
-		}
-		if (hasData) {
-			hdr = &exec.dataHdr;
-			dataBase = hdr->p_paddr >> CLICK_SHIFT;
-			dataClicks = (hdr->p_vaddr + hdr->p_memsz + exec.stackSize + 
-							CLICK_SIZE - 1) >> CLICK_SHIFT;
-		}
+		textBase = hdr->p_paddr >> CLICK_SHIFT;
+		textBytes = hdr->p_memsz;
+		textClicks = (textBytes + CLICK_SIZE - 1) >> CLICK_SHIFT;
+
+		hdr = &exec.dataHdr;
+		dataBase = hdr->p_paddr >> CLICK_SHIFT;
+		dataClicks = (hdr->p_vaddr + hdr->p_memsz + exec.stackHdr.p_memsz 
+						+ CLICK_SIZE - 1) >> CLICK_SHIFT;
+		offsetClicks = hdr->p_offset >> CLICK_SHIFT;
+
 		rp->p_memmap[T].physAddr = textBase;
 		rp->p_memmap[T].len = textClicks;
 		rp->p_memmap[D].physAddr = dataBase;	/* data virAddr = 0 */
 		rp->p_memmap[D].len = dataClicks;
+		rp->p_memmap[D].offset = offsetClicks;
 		rp->p_memmap[S].physAddr = dataBase + dataClicks;
 		rp->p_memmap[S].virAddr = dataClicks;	/* empty(len = 0) - stack is in data */
-
-		rp->p_memmap[S].offset = 
-		rp->p_memmap[D].offset = exec.dataOffset >> CLICK_SHIFT;
 
 		/* Set initial register values. The Proessor status word for tasks
 		 * is different from that of other processes because tasks can
@@ -117,8 +107,7 @@ void main() {
 		 * to give crtso.s something to use as "argc"
 		 */
 		if (isUserProc(rp)) {		/* Is user-space process? */
-			rp->p_reg.esp = (rp->p_memmap[S].virAddr + 
-						rp->p_memmap[S].len) << CLICK_SHIFT;
+			rp->p_reg.esp = (rp->p_memmap[S].virAddr + rp->p_memmap[S].len) << CLICK_SHIFT;
 			rp->p_reg.esp -= sizeof(reg_t);
 		}
 		

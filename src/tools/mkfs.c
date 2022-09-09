@@ -386,7 +386,7 @@ static void printMap(uint16_t mapBlocks, uint16_t startBlock) {
 #define COLS	8
 	static const char *ellipsis = "......";
 	int j, k, row, mapsCnt;
-	short *maps;
+	unsigned short *maps;
 	bool print, empty;
 	char *buf;
 
@@ -394,7 +394,7 @@ static void printMap(uint16_t mapBlocks, uint16_t startBlock) {
 	mapsCnt = blockSize / sizeof(short);
 	for (k = 0; k < mapBlocks; ++k) {
 		getBlock(startBlock + k, buf);
-		maps = (short *) buf;
+		maps = (unsigned short *) buf;
 		row = 1;
 		empty = false;
 		while (mapsCnt > 0) {

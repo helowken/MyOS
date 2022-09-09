@@ -8,7 +8,7 @@ int doGetSet() {
 /* Handle GETUID, GETGID, GETPID, GETPGPR, SETUID, SETGID, SETSID. The four
  * GETs and SETSID return their primary results in 'r'. GETUID, GETGID, and
  * GETPID also return secondary results (the effective IDs, or the parent
- * process ID) in 'reply_res2', which is returned to the user.
+ * process ID) in 'm_reply_res2', which is returned to the user.
  */
 
 	register MProc *rmp = currMp;
@@ -19,18 +19,18 @@ int doGetSet() {
 	switch (callNum) {
 		case GETUID:
 			r = rmp->mp_ruid;
-			rmp->mp_reply.reply_res2 = rmp->mp_euid;
+			rmp->mp_reply.m_reply_res2 = rmp->mp_euid;
 			break;
 		case GETGID:
 			r = rmp->mp_rgid;
-			rmp->mp_reply.reply_res2 = rmp->mp_egid;
+			rmp->mp_reply.m_reply_res2 = rmp->mp_egid;
 			break;
 		case GETPID:
 			r = rmp->mp_pid;
-			rmp->mp_reply.reply_res2 = mprocTable[rmp->mp_parent].mp_pid;
+			rmp->mp_reply.m_reply_res2 = mprocTable[rmp->mp_parent].mp_pid;
 			break;
 		case SETUID:
-			uid = (uid_t) inMsg.user_id;
+			uid = (uid_t) inMsg.m_user_id;
 			if (rmp->mp_ruid != uid && rmp->mp_euid != SUPER_USER)
 			  return EPERM;
 			rmp->mp_ruid = uid;
@@ -39,7 +39,7 @@ int doGetSet() {
 			r = OK;
 			break;
 		case SETGID:
-			gid = (gid_t) inMsg.group_id;
+			gid = (gid_t) inMsg.m_group_id;
 			if (rmp->mp_rgid != gid && rmp->mp_euid != SUPER_USER)
 			  return EPERM;
 			rmp->mp_rgid = gid;
