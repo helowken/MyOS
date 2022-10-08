@@ -12,11 +12,16 @@ OBJS_M32 = \
 		strncmp.o \
 		strchr.o \
 		strstr.o \
+		strrchr.o \
+		strtol.o \
 		memset.o \
 		chartab.o \
-		strtol.o \
 		atoi.o \
-		atol.o 
+		atol.o \
+		exit.o \
+		abort.o \
+		raise.o \
+		signal.o
 
 		
 OBJS_M16 = \

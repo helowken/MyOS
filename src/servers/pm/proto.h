@@ -42,6 +42,8 @@ void pmExit(MProc *rmp, int exitStatus);
 /* exec.c */
 int doExec();
 MProc *findShare(MProc *mp, ino_t ino, dev_t dev, time_t ctime);
+void rwSeg(int rw, int fd, int pNum, int seg, off_t dstOffset, 
+			phys_bytes segBytes);
 
 /* trace.c */
 int doTrace();

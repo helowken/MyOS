@@ -145,6 +145,32 @@ int doFork() {
 	return OK;
 }
 
+int doExec() {
+/* Files can be marked with the FD_CLOEXEC bit (in currFp->fp_cloexec). When
+ * MM does an EXEC, it calls FS to allow FS to find these files and close them.
+ */
+	register int i;
+	long bitmap;
+
+	/* Only PM may make this call directly. */
+	if (who != PM_PROC_NR)
+	  return EGENERIC;
+
+	/* The array of FD_CLOEXEC bits is in the fp_cloexec bit map. */
+	currFp = &fprocTable[inMsg.m_slot1];
+	bitmap = currFp->fp_cloexec;
+	if (bitmap == 0)
+	  return OK;	/* Normal case, no FD_CLOEXECs */
+
+	/* Check the file descriptors one by one for presence of FD_CLOEXEC. */
+	for (i = 0; i < OPEN_MAX; ++i) {
+		inMsg.m_fd = i;
+		if ((bitmap >> i) & 01)
+		  doClose();
+	}
+
+	return OK;
+}
 
 
 

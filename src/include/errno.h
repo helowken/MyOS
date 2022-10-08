@@ -32,9 +32,11 @@ extern int errno;
 #define EISDIR			(_SIGN 21)	/* Is a directory */
 #define EINVAL			(_SIGN 22)	/* Invalid argument */
 #define ENFILE			(_SIGN 23)  /* Too many open files in system */
+#define EMFILE			(_SIGN 24)	/* Too many open files */
 #define ENOTTY			(_SIGN 25)	/* Inappropriate I/O control operation */
 #define EFBIG			(_SIGN 27)	/* File too large */
 #define ENOSPC			(_SIGN 28)	/* No space left on device */
+#define ESPIPE			(_SIGN 29)	/* Invalid seek */
 #define EROFS			(_SIGN 30)	/* Read-only file system */
 #define EMLINK			(_SIGN 31)	/* Too many links */
 #define EDOM			(_SIGN 33)	/* Domain error (from ANSI C std) */

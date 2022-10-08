@@ -1,6 +1,11 @@
 #include "fs.h"
 #include "string.h"
 
+int doWrite() {
+/* Perform the write(fd, buffer, count) system call. */
+	return readWrite(WRITING);
+}
+
 static int writeMap(register Inode *ip, off_t position, zone_t newZone) {
 /* Write a new zone into an inode. */
 	Buf *bp;

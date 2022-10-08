@@ -97,6 +97,24 @@ struct termios {
 #define B19200		0xE000	/* 19200 baud */
 #define B38400		0xF000	/* 38400 baud */
 
+/* Optional actions for tcsetattr(). */
+#define TCSANOW			1	/* Changes take effect immediately */
+#define TCSADRAIN		2	/* Changes take effect after output is done */
+#define TCSAFLUSH		3	/* Wait for output to finish and flush input */
+
+/* Queue selector values for tcflush() */
+#define TCIFLUSH		1	/* Flush accumulated input data */
+#define TCOFLUSH		2	/* Flush accumulated output data */
+#define TCIOFLUSH		3	/* Flush accumulated input and output data */
+
+/* Action values for tcflow(). */
+#define TCOOFF			1	/* Suspend output */
+#define TCOON			2	/* Restart suspended output */
+#define TCIOFF			3	/* Transmit a STOP character on the line */
+#define TCION			4	/* Transmit a START character on the line */
+
+int tcgetattr(int fd, struct termios *termios_p);
+
 
 #ifdef _MINIX
 /* Here are the local extensions to the POSIX standard for Minix. Posix

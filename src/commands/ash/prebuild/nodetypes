@@ -1,0 +1,116 @@
+#!/bin/sh -
+
+
+# This file describes the nodes used in parse trees. Unindented lines
+# contain a node type followed by a structure tag. Subsequent indented
+# lines specify the fields of the structure. Several node types can share
+# the same structure, in which case the fields of the structure should be
+# specified only once.
+#
+# A field of structure is described by the name of the field followed
+# by a type. The currently implemented types are:
+#	NodePtr - a pointer to a node
+#	NodeList - a pointer to a list of nodes
+#	string - a pointer to a nul terminated string
+#	int - an integer
+#	other - any type that can be copied by assignment
+#	temp - a field that doesn't have to be copied when the node is copied
+# The last two types should be followed by the text of a C declaration for
+# the field.
+
+NSEMI nBinary				# Two commands separated by a semicolon
+	type		int
+	ch1			NodePtr		# The first child
+	ch2			NodePtr		# The second child
+
+NCMD nCmd					# A simple command
+	type		int
+	backgnd		int			# Set to run command in background
+	args		NodePtr		# The arguments
+	redirect	NodePtr		# List of file redirections
+
+NPIPE nPipe					# A pipeline
+	type		int
+	backgnd		int			# Set to run pipeline to background
+	cmdList		NodeList	# The commands in the pipeline
+
+NREDIR nRedir				# Redirection (of a complex command)
+	type		int
+	n			NodePtr		# The command
+	redirect	NodePtr		# List of file redirections
+
+NBACKGND nRedir				# Run command in background
+NSUBSHELL nRedir			# Run command in a subshell
+
+NAND nBinary				# The && operator
+NOR nBinary					# The || operator
+
+NIF nIf						# The if statement. Elif clauses are handled
+	type		int			# Using multiple if nodes
+	test		NodePtr		# If test
+	ifPart		NodePtr		# Then ifPart
+	elsePart	NodePtr		# Else elsePart
+
+NWHILE nBinary				# The while statement. First child is the test
+NUNTIL nBinary				# The until statement
+
+NFOR nFor					# The for statement
+	type		int
+	args		NodePtr		# For var in args
+	body		NodePtr		# Do body; done
+	var			string		# The for variable
+
+NCASE nCase					# A case statement
+	type		int
+	expr		NodePtr		# The word to switch on
+	cases		NodePtr		# The list of cases (NCLIST nodes)
+
+NCLIST nCList				# A case
+	type		int
+	next		NodePtr		# The next case in list
+	pattern		NodePtr		# List of patterns for this case
+	body		NodePtr		# Code to execute for this case
+
+NDEFUN nArg					# Define a function. The "next" field contains
+							# the body of the function.
+	
+NARG nArg					# Represents a word
+	type		int
+	next		NodePtr		# Next word in list
+	text		string		# The text of the word
+	backQuote	NodeList	# List of commands in back quotes
+
+NTO nFile					# fd > fileName
+NFROM nFile					# fd < fileName
+NAPPEND nFile				# fd >> fileName
+	type		int
+	next		NodePtr		# Next redirection in list
+	fd			int			# File descriptor being redirected
+	fileName	NodePtr		# File name, in a NARG node
+	expFileName	temp  char *expFileName	# Actual file name
+
+NTOFD nDup					# fd < &dupFd
+NFROMFD nDup				# fd > &dupFd
+	type		int	
+	next		NodePtr		# Next redirection in list
+	fd			int			# File descriptor being redirected
+	dupFd		int			# File descriptor to duplicate
+
+NHERE nHere					# fd<<\!
+NXHERE nHere				# fd<<!
+	type		int
+	next		NodePtr		# Next redirection in list
+	fd			int			# File descriptor being redirected
+	doc			NodePtr		# Input to command (NARG node)
+
+
+
+
+
+
+
+
+
+
+
+

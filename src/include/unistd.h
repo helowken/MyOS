@@ -42,14 +42,17 @@ gid_t getegid();
 uid_t geteuid();
 gid_t getgid();
 uid_t getuid();
+int isatty(int fd);
 pid_t getpid();
 pid_t getppid();
 pid_t getpgrp();
 pid_t setsid();
 int setuid(uid_t uid);
 int setgid(gid_t gid);
+off_t lseek(int fd, off_t offset, int whence);
 int pause();
 ssize_t read(int fd, void *buf, size_t n);
+ssize_t write(int fd, const void *buf, size_t count);
 
 
 #ifdef _MINIX
@@ -61,7 +64,6 @@ int brk(char *addr);
 char *sbrk(int incr);
 int getProcNum();
 int findProc(char *procName, int *pNum);
-ssize_t write(int fd, const void *buf, size_t count);
 int close(int fd);
 int allocMem(phys_bytes size, phys_bytes *base);
 #endif

@@ -8,8 +8,6 @@
 static char modeMap[] = {R_BIT, W_BIT, R_BIT | W_BIT, 0};
 
 
-
-
 static Inode *newNode(char *path, mode_t bits, zone_t z0) {
 /* NewNode() is called by commonOpen(), doMknode(), and doMkdir().
  * In all cases it allocates a new inode, makes a directory entry for it on
@@ -268,6 +266,49 @@ int doClose() {
 }
 
 
+int doLseek() {
+/* Perform the lseek(fd, offset, whence) system call. */
+
+	register Filp *fp;
+	register off_t pos;
+
+	/* Check to see if the file descriptor is valid. */
+	if ((fp = getFilp(inMsg.m_ls_fd)) == NIL_FILP)
+	  return errCode;
+
+	/* No lseek on pipes. */
+	if (fp->filp_inode->i_pipe == I_PIPE)
+	  return ESPIPE;
+
+	/* The value if 'whence' determines the start position to use. */
+	switch (inMsg.m_whence) {
+		case 0:		/* SEEK_SET */
+			pos = 0;
+			break;
+		case 1:		/* SEEK_CUR */
+			pos = fp->filp_pos;
+			break;
+		case 2:		/* SEEK_END */
+			pos = fp->filp_inode->i_size;
+			break;
+		default:
+			return EINVAL;
+	}
+
+	/* Check for overflow. */
+	if (((long) inMsg.m_offset > 0) && ((long) (pos + inMsg.m_offset) < (long) pos))
+	  return EINVAL;
+	if (((long) inMsg.m_offset < 0) && ((long) (pos + inMsg.m_offset) > (long) pos))
+	  return EINVAL;
+	pos += inMsg.m_offset;
+
+	if (pos != fp->filp_pos)
+	  fp->filp_inode->i_seek = I_SEEK;	/* Inhibit read ahead */
+	fp->filp_pos = pos;
+	outMsg.m_reply_l1 = pos;	
+
+	return OK;
+}
 
 
 

@@ -135,6 +135,7 @@ void consoleStop();
 void doNewKernelMsgs(Message *msg);
 void doDiagnostics(Message *msg);
 void toggleScroll();
+int consoleLoadFont(Message *msg);
 void selectConsole(int consoleLine);
 
 /* keyboard.c */
@@ -143,6 +144,7 @@ void kbInitOnce();
 void kbdInterrupt();
 void doPanicDumps(Message *msg);
 void doFKeyCtl(Message *msg);
+int kbdLoadMap(Message *msg);
 
 /* pty.c */
 void ptyInit(TTY *tp);

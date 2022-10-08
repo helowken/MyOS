@@ -7,7 +7,7 @@ INC_HEADERS = *.h \
 			  $(INC)/ibm/*.h \
 			  $(INC)/minix/*.h 
 
-CFLAGS = -g -c -m32 -ffreestanding -nostdinc -nodefaultlibs -Wall -Werror \
+CFLAGS = -g -c -m32 -ffreestanding -nostdinc -nostartfiles -nodefaultlibs -Wall -Werror \
 		 -fno-asynchronous-unwind-tables -I$(INC)
 C_SOURCE = $(wildcard *.c)
 HEADERS = $(wildcard $(INC_HEADERS))

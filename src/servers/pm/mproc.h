@@ -39,6 +39,7 @@ EXTERN struct MProc {
 	Timer mp_timer;				/* Watchdog timer for alarm */
 
 	unsigned mp_flags;		/* Flag bits */
+	vir_bytes mp_proc_args;	/* Ptr to proc's initial stack arguments */
 	MProc *mp_swap_in_q;	/* Queue of procs waiting to be swapped in */
 	Message mp_reply;		/* Reply message to be sent to one */
 

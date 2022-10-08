@@ -19,6 +19,7 @@ int cloneOpCl(int op, dev_t dev, int proc, int flags);
 void genIO(int taskNum, Message *msg);
 void cttyIO(int taskNum, Message *msg);
 void devStatus(Message *msg);
+int doIoctl();
 
 /* utility.c */
 void panic(char *who, char *msg, int num);
@@ -30,6 +31,7 @@ int fetchName(char *path, int len, int flag);
 Buf *newBlock(Inode *ip, off_t position);
 void zeroBlock(Buf *bp);
 void clearZone(Inode *ip, off_t pos, int flag);
+int doWrite();
 
 /* dmap.c */
 void buildDMap();
@@ -83,11 +85,13 @@ int doFsync();
 int doFcntl();
 int doFork();
 int doSet();
+int doExec();
 
 /* open.c */
 int doOpen();
 int doClose();
 int doMkdir();
+int doLseek();
 
 /* path.c */
 Inode *lastDir(char *path, char string[NAME_MAX]);

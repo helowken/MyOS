@@ -32,7 +32,13 @@ OBJS_M32 = \
 		_access.o \
 		_close.o \
 		__exit.o \
-		_read.o
+		_read.o \
+		_write.o \
+		_lseek.o \
+		_isatty.o \
+		_tcgetattr.o \
+		_ioctl.o \
+		_kill.o
 
 
 all: build

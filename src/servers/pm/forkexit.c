@@ -48,6 +48,8 @@ void pmExit(register MProc *rmp, int exitStatus) {
 	MProc *parentMp, *initMp;
 	clock_t t[3];
 
+	printf("====== pm exit....\n");	//TODO
+
 	pNum = (int) (rmp - mprocTable);	/* Get process slot number */
 
 	/* Remember a session leader's process group. */

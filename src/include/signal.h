@@ -53,19 +53,19 @@ typedef int sig_atomic_t;
 #define SIGTTIN		21	/* Background process wants to read */
 #define SIGTTOU		22	/* Background process wants to write */
 
-typedef void (*SigHandler)(int);
+typedef void (*__sighandler_t)(int);
 
 /* Macros used as function pointers. */
-#define SIG_ERR		((SigHandler) -1)	/* Error return */
-#define SIG_DFL		((SigHandler)  0)	/* Default signal handling */
-#define SIG_IGN		((SigHandler)  1)	/* Ignore signal */
-#define SIG_HOLD	((SigHandler)  2)	/* Block signal */
-#define SIG_CATCH	((SigHandler)  3)	/* Catch signal */
-#define SIG_MESS	((SigHandler)  4)	/* Pass as message (MINIX) */
+#define SIG_ERR		((__sighandler_t) -1)	/* Error return */
+#define SIG_DFL		((__sighandler_t)  0)	/* Default signal handling */
+#define SIG_IGN		((__sighandler_t)  1)	/* Ignore signal */
+#define SIG_HOLD	((__sighandler_t)  2)	/* Block signal */
+#define SIG_CATCH	((__sighandler_t)  3)	/* Catch signal */
+#define SIG_MESS	((__sighandler_t)  4)	/* Pass as message (MINIX) */
 
 #ifdef _POSIX_SOURCE
 struct sigaction {			
-	SigHandler sa_handler;	/* SIG_DFL, SIG_IGN, or pointer to function */
+	__sighandler_t sa_handler;	/* SIG_DFL, SIG_IGN, or pointer to function */
 	sigset_t sa_mask;		/* Signals to be blocked during handler */
 	int sa_flags;			/* Special flags */
 };
@@ -87,7 +87,7 @@ struct sigaction {
 #endif	/* _POSIX_SOURCE */
 
 int raise(int sig);
-SigHandler signal(int sig, SigHandler func);
+__sighandler_t signal(int sig, __sighandler_t func);
 
 #ifdef _POSIX_SOURCE
 int kill(pid_t pid, int sig);

@@ -442,4 +442,15 @@ void doFKeyCtl(Message *msg) {
 //TODO
 }
 
+int kbdLoadMap(Message *msg) {
+/* Load a new keymap. */
+	int r;
+
+	r = sysVirCopy(msg->PROC_NR, D, (vir_bytes) msg->ADDRESS,
+				SELF, D, (vir_bytes) keyMap, 
+				(vir_bytes) sizeof(keyMap));
+	return r;
+}
+
+
 

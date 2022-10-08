@@ -132,7 +132,7 @@ int readWrite(int rwFlag) {
 	  return 0;		/* So char special files need not check for 0 */
 
 	/* Check if user process has the memory it needs.
-	 * If  not, copying will fail later.
+	 * If not, copying will fail later.
 	 * Do this after 0-check above because umap doesn't want to map 0 bytes.
 	 */
 	if ((r = sysUMap(usr, seg, (vir_bytes) inMsg.m_buffer, 
@@ -163,10 +163,9 @@ int readWrite(int rwFlag) {
 		  panic(__FILE__, "readWrite tries to read from "
 					  "block device NO_DEV", NO_NUM);
 		blockSize = getBlockSize(ip->i_zone[0]);
+	} else { 
+		blockSize = ip->i_sp->s_block_size;
 	}
-
-	if (!charSpec && !blockSpec)
-	  blockSize = ip->i_sp->s_block_size;
 
 	rdwtErr = OK;	/* Set to EIO if disk error occurs */
 

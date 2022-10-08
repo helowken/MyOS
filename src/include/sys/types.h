@@ -68,4 +68,7 @@ typedef dev_t			Dev_t;
 typedef uid_t			Uid_t;
 typedef gid_t			Gid_t;
 
+/* Signal handler type, e.g. SIG_IGN */
+typedef void (*sighandler_t)(int);
+
 #endif

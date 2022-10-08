@@ -548,7 +548,12 @@ void toggleScroll() {
 	printf("%sware scrolling enabled.\n", softScroll ? "Soft" : "Hard");
 }
 
+int consoleLoadFont(Message *msg) {
+/* Load a font into the EGA or VGA adapter. */
 
+	//TODO
+	return 0;
+}
 
 
 

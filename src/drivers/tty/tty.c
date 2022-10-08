@@ -48,6 +48,7 @@ Timer *ttyTimers;		/* Queue of TTY timers */
 clock_t ttyNextTimeout;	/* Time that the next alarm is due */
 Machine machine;		/* Kernel environment variables */
 
+static void setAttr(TTY *tp);
 
 int ttyDevNop(TTY *tp, int try) {
 /* Some functions need not be implemented at the device level. */
@@ -690,8 +691,175 @@ static void doWrite(register TTY *tp, register Message *msg) {
 	ttyReply(TASK_REPLY, msg->m_source, msg->PROC_NR, r);
 }
 
-static void doIoctl(TTY *tp, Message *msg) {
-//TODO
+static void ttyInputCancel(register TTY *tp) {
+/* Discard all pending input, tty buffer or device. */
+
+	tp->tty_in_count = tp->tty_eot_count = 0;
+	tp->tty_in_tail = tp->tty_in_head;
+	(*tp->tty_in_cancel)(tp, 0);
+}
+
+static void doIoctl(register TTY *tp, Message *msg) {
+/* Perform an IOCTL on this terminal. Posix termios calls are handled
+ * by the IOCTL system call
+ */
+	int r;
+	size_t size;
+	int param;
+
+	/* Size of the ioctl parameter. */
+	switch (msg->TTY_REQUEST) {
+		case TC_GET:			/* Posix tcgetattr function */
+		case TC_SET_NOW:		/* Posix tcsetattr function, TCSANOW option */
+		case TC_SET_DRAIN:		/* Posix tcsetattr function, TCSADRAIN option */
+		case TC_SET_FLUSH:		/* Posix tcsetattr function, TCSAFLUSH option */
+			size = sizeof(struct termios);
+			break;
+
+		case TC_SEND_BREAK:		/* Posix tcsendbreak function */
+		case TC_FLOW:			/* Posix tcflow function */
+		case TC_FLUSH:			/* Posix tcflush function */
+		case TIOC_GET_PGRP:		/* Posix tcgetpgrp function */
+		case TIOC_SET_PGRP:		/* Posix tcsetpgrp function */
+			size = sizeof(int);
+			break;
+
+		case TIOC_GET_WINSZ:	/* Get window size (not Posix) */
+		case TIOC_SET_WINSZ:	/* Set window size (not Posix) */
+			size = sizeof(WinSize);
+			break;
+
+		case KIOC_SET_MAP:		/* Load keymap (Minix extension) */
+			size = sizeof(keymap_t);
+			break;
+		case TIOC_SET_FONT:		/* Load font (Minix extension) */
+			size = sizeof(u8_t [8192]);
+			break;
+
+		case TC_DRAIN:			/* Posix tcdrain function -- no -parameter */
+		default: 
+			size = 0;
+	}
+
+	r = OK;
+	switch (msg->TTY_REQUEST) {
+		case TC_GET:
+			/* Get the termios attributes. */
+			r = sysVirCopy(SELF, D, (vir_bytes) &tp->tty_termios,
+					msg->PROC_NR, D, (vir_bytes) msg->ADDRESS,
+					(vir_bytes) size);
+			break;
+
+		case TC_SET_DRAIN:
+		case TC_SET_FLUSH:
+		case TC_DRAIN:
+			if (tp->tty_out_left > 0) {
+				/* Wait for all ongoing output processing to finish. */
+				tp->tty_io_caller = msg->m_source;
+				tp->tty_io_proc = msg->PROC_NR;
+				tp->tty_io_req = msg->TTY_REQUEST;
+				tp->tty_io_vir = (vir_bytes) msg->ADDRESS;
+				r = SUSPEND;
+				break;
+			}
+			if (msg->TTY_REQUEST == TC_DRAIN)
+			  break;
+			if (msg->TTY_REQUEST == TC_SET_FLUSH)
+			  ttyInputCancel(tp);
+			/* Fall through */
+		case TC_SET_NOW:
+			/* Set the termios attributes. */
+			r = sysVirCopy(msg->PROC_NR, D, (vir_bytes) msg->ADDRESS,
+				SELF, D, (vir_bytes) &tp->tty_termios, (vir_bytes) size);
+			if (r != OK)
+			  break;
+			setAttr(tp);
+			break;
+
+		case TC_FLUSH:
+			r = sysVirCopy(msg->PROC_NR, D, (vir_bytes) msg->ADDRESS,
+				SELF, D, (vir_bytes) &param, (vir_bytes) size);
+			if (r != OK)
+			  break;
+			switch (param) {
+				case TCIFLUSH:
+					ttyInputCancel(tp);
+					break;
+				case TCOFLUSH:
+					(*tp->tty_out_cancel)(tp, 0);
+					break;
+				case TCIOFLUSH:
+					ttyInputCancel(tp);
+					(*tp->tty_out_cancel)(tp, 0);
+					break;
+				default:
+					r = EINVAL;
+			}
+			break;
+
+		case TC_FLOW:
+			r = sysVirCopy(msg->PROC_NR, D, (vir_bytes) msg->ADDRESS,
+				SELF, D, (vir_bytes) &param, (vir_bytes) size);
+			if (r != OK)
+			  break;
+			switch (param) { 
+				case TCOOFF:
+				case TCOON:
+					tp->tty_inhibited = (param == TCOOFF);
+					tp->tty_events = 1;
+					break;
+				case TCIOFF:
+					(*tp->tty_echo)(tp, tp->tty_termios.c_cc[VSTOP]);
+					break;
+				case TCION:
+					(*tp->tty_echo)(tp, tp->tty_termios.c_cc[VSTART]);
+					break;
+				default:
+					r = EINVAL;
+			}
+			break;
+
+		case TC_SEND_BREAK:
+			if (tp->tty_break != NULL)
+			  (*tp->tty_break)(tp, 0);
+			break;
+
+		case TIOC_GET_WINSZ:
+			r = sysVirCopy(SELF, D, (vir_bytes) &tp->tty_win_size,
+						msg->PROC_NR, D, (vir_bytes) msg->ADDRESS,
+						(vir_bytes) size);
+			break;
+		
+		case TIOC_SET_WINSZ:
+			r = sysVirCopy(msg->PROC_NR, D, (vir_bytes) msg->ADDRESS,
+						SELF, D, (vir_bytes) &tp->tty_win_size, 
+						(vir_bytes) size);
+			/* SIGWINCH... */
+			break;
+
+		case KIOC_SET_MAP:
+			/* Load a new keymap (only /dev/console). */
+			if (isConsole(tp))
+			  r = kbdLoadMap(msg);
+			break;
+
+		case TIOC_SET_FONT:
+			/* Load a font into an EGA or VGA card. */
+			if (isConsole(tp))
+			  r = consoleLoadFont(msg);
+			break;
+
+/* These Posix functions are allowed to fail if _POSIX_JOB_CONTROL is
+ * not defined.
+ */		
+		case TIOC_GET_PGRP:
+		case TIOC_SET_PGRP:
+			r = ENOTTY;
+			break;
+	}
+
+	/* Send the reply. */
+	ttyReply(TASK_REPLY, msg->m_source, msg->PROC_NR, r);
 }
 
 static void doOpen(register TTY *tp, Message *msg) {
@@ -715,16 +883,54 @@ static void doOpen(register TTY *tp, Message *msg) {
 	ttyReply(TASK_REPLY, msg->m_source, msg->PROC_NR, r);
 }
 
-static void ttyInputCancel(register TTY *tp) {
-/* Discard all pending input, tty buffer or device. */
-
-	tp->tty_in_count = tp->tty_eot_count = 0;
-	tp->tty_in_tail = tp->tty_in_head;
-	(*tp->tty_in_cancel)(tp, 0);
-}
-
 static void setAttr(TTY *tp) {
-//TODO
+/* Apply the new line attributes (raw/canonical, line speed, etc.) */
+	u16_t *inp;
+	int count;
+
+	if (! (tp->tty_termios.c_lflag & ICANON)) {
+		/* Raw mode; put a "line break" on all characters in the input queue.
+		 * It is undefined what happens to the input queue when ICANON is
+		 * switched off, a process should use TCSAFLUSH to flush the queue.
+		 * Keeping the queue to preserve typeahead is the Right Thing, however
+		 * when a process does use TCSANOW to switch to raw mode.
+		 */
+		count = tp->tty_eot_count = tp->tty_in_count;
+		inp = tp->tty_in_tail;
+		while (count > 0) {
+			*inp |= IN_EOT;
+			if (++inp == bufEnd(tp->tty_in_buf))
+			  inp = tp->tty_in_buf;
+			--count;
+		}
+	}
+
+	/* Inspect MIN and TIME. */
+	setTimer(tp, false);
+	if (tp->tty_termios.c_lflag & ICANON) {
+		/* No MIN & TIME in canonical mode. */
+		tp->tty_min = 1;
+	} else {
+		/* In raw mode MIN is the number of chars wanted, and TIME how long
+		 * to wait for then. With interesting exceptions if either is zero.
+		 */
+		tp->tty_min = tp->tty_termios.c_cc[VMIN];
+		if (tp->tty_min == 0 && tp->tty_termios.c_cc[VTIME] > 0)
+		  tp->tty_min = 1;
+	}
+
+	if (! (tp->tty_termios.c_iflag & IXON)) {
+		/* No start/stop output control, so don't leave output inhibited. */
+		tp->tty_inhibited = RUNNING;
+		tp->tty_events = 1;
+	}
+
+	/* Setting the output speed to zero hangs up the phone. */
+	if (tp->tty_termios.c_ospeed == B0)
+	  signalChar(tp, SIGHUP);
+
+	/* Set new line speed, character size, etc at the device level. */
+	(*tp->tty_ioctl)(tp, 0);
 }
 
 static void doClose(register TTY *tp, Message *msg) {

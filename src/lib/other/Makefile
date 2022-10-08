@@ -11,7 +11,8 @@ OBJS_M32 = \
 		allocmem.o \
 		loadname.o \
 		_svrctl.o \
-		_brk.o
+		_brk.o \
+		environ.o
 
 
 OBJS_M16 = \

@@ -137,4 +137,6 @@
 #define MAP_COLS		6		/* Number of columns in keyMap */
 #define NR_SCAN_CODES	0x80	/* Number of scan codes (rows in keyMap) */
 
+typedef unsigned short	keymap_t[NR_SCAN_CODES * MAP_COLS];
+
 #endif

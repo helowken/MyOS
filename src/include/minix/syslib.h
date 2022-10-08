@@ -20,6 +20,7 @@
  *=====================================================================*/
 int taskCall(int who, int sysCallNum, Message *msg);
 int sysAbort(int how, ...);
+int sysExec(int pNum, char *newSp, char *progName, vir_bytes initPc);
 int sysFork(int parent, int child);
 int sysNewMap(int pNum, MemMap *memMap);
 int sysTrace(int req, int proc, long addr, long *data);
@@ -72,6 +73,7 @@ int sysVirCopy(int srcProc, int srcSeg, vir_bytes srcVir,
 	sysPhysCopy(NONE, PHYS_SEG, srcPhys, NONE, PHYS_SEG, dstPhys, bytes)
 int sysPhysCopy(int srcProc, int srcSeg, vir_bytes srcVir,
 		int dstProc, int dstSeg, vir_bytes dstVir, phys_bytes bytes);
+int sysMemset(unsigned long pattern, phys_bytes base, phys_bytes bytes);
 
 int sysVecOutb(PvBytePair *pair, int num);
 int sysVecOutw(PvWordPair *pair, int num);

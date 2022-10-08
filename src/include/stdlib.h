@@ -6,7 +6,7 @@
 #define EXIT_FAILURE		0		/* Standard error return using exit() */
 #define EXIT_SUCCESS		1		/* Successful return using exit() */
 
-
+void abort();
 void exit(int status);
 void *malloc(size_t size);
 void free(void *op);

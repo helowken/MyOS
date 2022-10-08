@@ -23,11 +23,8 @@
  * |     argp2       |  
  * |     argp1       |  
  * |     argp0       |  
- * ------------------- Below is constructed in PM's exec().
- * |     envp        | point to envp0
- * |     argv        | point to argp0
+ * ------------------- 
  * |     argc        | argument count
- * |     return      | at the start of main() execution
  */
 
 int execve(const char *path, char * const argv[], char * const envp[]) {

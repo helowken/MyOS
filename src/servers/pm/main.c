@@ -42,7 +42,8 @@ static void patchMemChunks(Memory *memChunks, MemMap *memMap) {
 
 	for (memp = memChunks; memp < &memChunks[NR_MEMS]; ++memp) {
 		if (memp->base == memMap[T].physAddr) {
-			size = memMap[T].len + memMap[D].len - memMap[D].offset;
+			//size = memMap[T].len + memMap[D].len - memMap[D].offset;
+			size = memMap[S].physAddr + memMap[S].len - memMap[T].physAddr;
 			memp->base += size;	
 			memp->size -= size;
 		}

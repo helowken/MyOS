@@ -279,13 +279,15 @@ physMemset:
 	movw	%bx, %ds
 	movl	12(%ebp), %ebx		/* pattern */
 	shrl	$2, %eax			/* count /= 4, becuase pattern is unsigned long. */
+	jz	.beforeRemainFill
 .fillStart:
 	movl	%ebx, (%esi)
 	addl	$4, %esi
 	decl	%eax
 	jnz	.fillStart
+.beforeRemainFill:
 	movl	16(%ebp), %eax		/* Any remaining bytes? */
-	addl	$3, %eax			/* count %= 4 */
+	andl	$3, %eax			/* count %= 4 */
 .remainFill:
 	cmpl	$0, %eax
 	jz	.fillDone

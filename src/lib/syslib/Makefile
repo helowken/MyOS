@@ -25,6 +25,8 @@ OBJS_M32 = \
 		sys_abort.o \
 		sys_fork.o \
 		sys_newmap.o \
+		sys_memset.o \
+		sys_exec.o \
 		taskcall.o 
 		   
 	

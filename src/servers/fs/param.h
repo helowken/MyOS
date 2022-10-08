@@ -12,7 +12,7 @@
 
 
 #define m_rgid			m1_i2
-
+#define m_ls_fd			m2_i1
 
 
 #define m_mode			m3_i2
@@ -45,12 +45,13 @@
 
 
 
+#define m_whence		m2_i2
 
 
 
 
 
-
-
+#define m_offset		m2_l1
 /* The following names are synonums for the variables in the output message. */
 #define m_reply_type	m_type
+#define m_reply_l1		m2_l1

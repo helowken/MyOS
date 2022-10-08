@@ -10,6 +10,8 @@ typedef struct __iobuf {
 	unsigned char	*_ptr;
 } FILE;
 
+#define BUFSIZ		1024
+
 #ifndef _SIZE_T
 #define _SIZE_T	
 typedef unsigned int	size_t;		/* Type returned by sizeof */

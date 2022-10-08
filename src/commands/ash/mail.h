@@ -1,0 +1,3 @@
+
+
+void checkMail(int);

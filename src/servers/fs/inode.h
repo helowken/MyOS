@@ -31,6 +31,6 @@ typedef struct Inode {
 #define NO_MOUNT	0	/* i_mount is NO_MOUNT if file not mounted on */
 #define I_MOUNT		1	/* i_mount is I_MOUNT if file mounted on */
 #define NO_SEEK		0	/* i_seek is NO_SEEK if last op was not SEEK */
-#define I_SEEK		0	/* i_seek is I_SEEK if last op was SEEK */
+#define I_SEEK		1	/* i_seek is I_SEEK if last op was SEEK */
 
 
