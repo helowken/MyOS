@@ -39,3 +39,15 @@ void changePath(char *newVal) {
 		//TODO
 	}
 }
+
+void deleteFuncs() {
+	//TODO
+}
+
+#ifdef mkinit
+MKINIT void deleteFuncs();
+
+SHELLPROC {
+	deleteFuncs();
+}
+#endif

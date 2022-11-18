@@ -6,7 +6,8 @@ MODULES = \
 		i386 \
 		syslib \
 		sysutil \
-		timers
+		timers \
+		rts
 
 
 include ../modules.mk

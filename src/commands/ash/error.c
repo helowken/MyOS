@@ -6,7 +6,6 @@
 #include "main.h"
 #include "options.h"
 #include "error.h"
-#include "sys/types.h"
 #include "signal.h"
 #include "stdarg.h"
 #include "errno.h"

@@ -351,6 +351,7 @@ block_t readMap(Inode *ip, off_t pos) {
 	  return NO_BLOCK;
 	blockNum = (block_t) zoneNum << scale;	/* Block # for single indirect block */
 	bp = getBlock(ip->i_dev, blockNum, NORMAL);	/* Get single indirect block */
+	idxInInd = (int) excess;
 	zoneNum = readIndirZone(bp, idxInInd);	/* Get final zone pointed to */
 	putBlock(bp, INDIRECT_BLOCK);		/* Release single indirect block */
 	if (zoneNum == NO_ZONE)
@@ -389,7 +390,7 @@ Buf *doReadAhead(
 	
 	blockNum = baseBlock;
 	bp = getBlock(dev, blockNum, PREFETCH);
-	if (bp->b_dev != NO_DEV)
+	if (bp->b_dev != NO_DEV) 
 	  return bp;
 
 	/* The best guess for the number of blocks to prefetch: A lot.
@@ -446,6 +447,7 @@ Buf *doReadAhead(
 	  blocksAhead = blocksLeft;
 
 	queueSize = 0;
+	blocksAhead = 1;//TODO
 
 	/* Acquire block buffers. */
 	while (true) {

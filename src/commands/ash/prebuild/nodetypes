@@ -18,86 +18,86 @@
 # The last two types should be followed by the text of a C declaration for
 # the field.
 
-NSEMI nBinary				# Two commands separated by a semicolon
+NSEMI NBinary				# Two commands separated by a semicolon
 	type		int
 	ch1			NodePtr		# The first child
 	ch2			NodePtr		# The second child
 
-NCMD nCmd					# A simple command
+NCMD NCmd					# A simple command
 	type		int
 	backgnd		int			# Set to run command in background
 	args		NodePtr		# The arguments
 	redirect	NodePtr		# List of file redirections
 
-NPIPE nPipe					# A pipeline
+NPIPE NPipe					# A pipeline
 	type		int
 	backgnd		int			# Set to run pipeline to background
 	cmdList		NodeList	# The commands in the pipeline
 
-NREDIR nRedir				# Redirection (of a complex command)
+NREDIR NRedir				# Redirection (of a complex command)
 	type		int
 	n			NodePtr		# The command
 	redirect	NodePtr		# List of file redirections
 
-NBACKGND nRedir				# Run command in background
-NSUBSHELL nRedir			# Run command in a subshell
+NBACKGND NRedir				# Run command in background
+NSUBSHELL NRedir			# Run command in a subshell
 
-NAND nBinary				# The && operator
-NOR nBinary					# The || operator
+NAND NBinary				# The && operator
+NOR NBinary					# The || operator
 
-NIF nIf						# The if statement. Elif clauses are handled
+NIF NIf						# The if statement. Elif clauses are handled
 	type		int			# Using multiple if nodes
 	test		NodePtr		# If test
 	ifPart		NodePtr		# Then ifPart
 	elsePart	NodePtr		# Else elsePart
 
-NWHILE nBinary				# The while statement. First child is the test
-NUNTIL nBinary				# The until statement
+NWHILE NBinary				# The while statement. First child is the test
+NUNTIL NBinary				# The until statement
 
-NFOR nFor					# The for statement
+NFOR NFor					# The for statement
 	type		int
 	args		NodePtr		# For var in args
 	body		NodePtr		# Do body; done
 	var			string		# The for variable
 
-NCASE nCase					# A case statement
+NCASE NCase					# A case statement
 	type		int
 	expr		NodePtr		# The word to switch on
-	cases		NodePtr		# The list of cases (NCLIST nodes)
+	cases		NodePtr		# The list of cases (NCASELIST nodes)
 
-NCLIST nCList				# A case
+NCASELIST NCaseList			# A case
 	type		int
 	next		NodePtr		# The next case in list
 	pattern		NodePtr		# List of patterns for this case
 	body		NodePtr		# Code to execute for this case
 
-NDEFUN nArg					# Define a function. The "next" field contains
+NDEFUN NArg					# Define a function. The "next" field contains
 							# the body of the function.
 	
-NARG nArg					# Represents a word
+NARG NArg					# Represents a word
 	type		int
 	next		NodePtr		# Next word in list
 	text		string		# The text of the word
-	backQuote	NodeList	# List of commands in back quotes
+	backquote	NodeList	# List of commands in back quotes
 
-NTO nFile					# fd > fileName
-NFROM nFile					# fd < fileName
-NAPPEND nFile				# fd >> fileName
+NTO NFile					# fd > fileName
+NFROM NFile					# fd < fileName
+NAPPEND NFile				# fd >> fileName
 	type		int
 	next		NodePtr		# Next redirection in list
 	fd			int			# File descriptor being redirected
 	fileName	NodePtr		# File name, in a NARG node
 	expFileName	temp  char *expFileName	# Actual file name
 
-NTOFD nDup					# fd < &dupFd
-NFROMFD nDup				# fd > &dupFd
+NTOFD NDup					# fd < &dupFd
+NFROMFD NDup				# fd > &dupFd
 	type		int	
 	next		NodePtr		# Next redirection in list
 	fd			int			# File descriptor being redirected
 	dupFd		int			# File descriptor to duplicate
 
-NHERE nHere					# fd<<\!
-NXHERE nHere				# fd<<!
+NHERE NHere					# fd<<\!
+NXHERE NHere				# fd<<!
 	type		int
 	next		NodePtr		# Next redirection in list
 	fd			int			# File descriptor being redirected

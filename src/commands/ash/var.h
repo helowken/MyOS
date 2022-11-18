@@ -65,7 +65,7 @@ extern Var vterm;
 void initVar();
 void setVar(char *, char *, int);
 void setVarEq(char *, int);
-
+char *lookupVar(char *);
 
 
 

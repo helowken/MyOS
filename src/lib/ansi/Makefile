@@ -21,7 +21,9 @@ OBJS_M32 = \
 		exit.o \
 		abort.o \
 		raise.o \
-		signal.o
+		signal.o \
+		getenv.o \
+		sigmisc.o
 
 		
 OBJS_M16 = \

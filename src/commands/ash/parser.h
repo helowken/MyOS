@@ -18,3 +18,15 @@
 #define VS_PLUS		3	/* ${var+text} */
 #define VS_QUESTION	4	/* ${var?message} */
 #define VS_ASSIGN	5	/* ${var=text} */
+
+/* NEOF is returned by parseCmd when it encounters an end of file. It
+ * must be distinct from NULL, so we use the address of a variable that
+ * happens to be handy.
+ */
+extern int tokenPushback;
+#define NEOF	((Node *) &tokenPushback)
+
+union Node;
+
+union Node *parseCmd(int);
+int goodName(char *);

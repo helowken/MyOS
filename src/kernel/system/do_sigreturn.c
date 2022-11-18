@@ -7,7 +7,7 @@ int doSigReturn(Message *msg) {
 /* POSIX style signals require sysSigReturn() to put things in order before
  * the signalled process can resume execution
  */
-	SigContext sigCtx;
+	SigContext sc;
 	register Proc *rp;
 	phys_bytes srcPhys;
 	int pNum;
@@ -24,22 +24,22 @@ int doSigReturn(Message *msg) {
 				(vir_bytes) sizeof(SigContext));
 	if (srcPhys == 0)
 	  return EFAULT;
-	physCopy(srcPhys, vir2Phys(&sigCtx), (phys_bytes) sizeof(SigContext));
+	physCopy(srcPhys, vir2Phys(&sc), (phys_bytes) sizeof(SigContext));
 
 	/* Make sure that this is not just a jump buffer. */
-	if ((sigCtx.sc_flags & SC_SIGCONTEXT) == 0)
+	if ((sc.sc_flags & SC_SIGCONTEXT) == 0)
 	  return EINVAL;
 
-	sigCtx.sc_regs.psw = rp->p_reg.psw;
+	sc.sc_psw = rp->p_reg.psw;
 
 	/* Don't panic kernel if user gave bad selector. */
-	sigCtx.sc_regs.cs = rp->p_reg.cs;
-	sigCtx.sc_regs.ds = rp->p_reg.ds;
-	sigCtx.sc_regs.es = rp->p_reg.es;
-	sigCtx.sc_regs.fs = rp->p_reg.fs;
-	sigCtx.sc_regs.gs = rp->p_reg.gs;
+	sc.sc_cs = rp->p_reg.cs;
+	sc.sc_ds = rp->p_reg.ds;
+	sc.sc_es = rp->p_reg.es;
+	sc.sc_fs = rp->p_reg.fs;
+	sc.sc_gs = rp->p_reg.gs;
 
 	/* Restore the registers. */
-	memcpy(&rp->p_reg, &sigCtx.sc_regs, sizeof(SigRegs));
+	memcpy(&rp->p_reg, &sc.sc_regs, sizeof(SigRegs));
 	return OK;
 }

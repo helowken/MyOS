@@ -10,6 +10,7 @@ void abort();
 void exit(int status);
 void *malloc(size_t size);
 void free(void *op);
+char *getenv(const char *name);
 void *realloc(void *op, size_t size);
 long int strtol(const char *nptr, char **endptr, int base);
 unsigned long int strtoul(const char *nptr, char **endptr, int base);

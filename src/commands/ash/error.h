@@ -38,6 +38,7 @@ extern char *commandName;	/* Name of command--printed on error */
 
 #define INTOFF	++suppressInt
 #define INTON	if (--suppressInt == 0 && intPending) onInt(); else
+#define FORCE_INTON		{suppressInt = 0; if (intPending) onInt();}
 #define int_pending()	intPending
 
 

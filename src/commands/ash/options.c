@@ -12,8 +12,6 @@
 #include "error.h"
 #include "mystring.h"
 
-#include "stdio.h" //TODO
-
 char *arg0;			/* Value of $0 */
 ShellParam shellParam;	/* Current positional parameters */
 char **argPtr;		/* Argument list for builtin commands */
@@ -148,7 +146,30 @@ void procArgs(int argc, char **argv) {
 	}
 	setInteractive(iFlag);
 	//setJobCtl(jFlag);		no job control support
+
+	if (0) {
+		//TODO
+		printf("%s\n", optChar);
+		for (p = optVal; p < optVal + sizeof(optVal) - 1; ++p) {	
+			printf("%d", *p);
+		}
+		printf("\n");
+		printf("command: %s\n", commandName);
+		for (int i = 0; i < shellParam.numParam; ++i) {
+			printf("%s\n", shellParam.params[i]);
+		}
+	}
 }
 
 
+#ifdef mkinit
+INCLUDE "options.h"
+
+SHELLPROC {
+	char *p;
+	for (p = optVal; p < optVal + sizeof(optVal); ++p) {
+		*p = 0;
+	}
+}
+#endif
 

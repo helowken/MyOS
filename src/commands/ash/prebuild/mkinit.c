@@ -247,9 +247,15 @@ static int goodDefine(char *line) {
 static void doEvent(register Event *ep, FILE *fp, char *fileName) {
 	char line[1024];
 	int indent;
-	char *p;
+	char *p, *fname;
 
-	sprintf(line, "\n    /* from %s: */\n", fileName);
+	fname = strrchr(fileName, '/');
+	if (fname == NULL)
+	  fname = fileName;
+	else
+	  ++fname;
+
+	sprintf(line, "\n    /* from %s: */\n", fname);
 	addStr(line, &ep->code);
 	addStr("    {\n", &ep->code);
 	for (;;) {

@@ -7,7 +7,6 @@
 #include "var.h"
 #include "memalloc.h"
 #include "error.h"
-#include "sys/types.h"
 #include "sys/stat.h"
 
 #define MAX_MAIL_BOXES	10

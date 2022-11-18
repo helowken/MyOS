@@ -44,6 +44,31 @@ typedef struct {
 	} bin[RANDOM_SOURCES];
 } Randomness;
 
+typedef unsigned reg_t;		/* Machine register */
+
+typedef struct StackFrame {		/* currProc points here */
+	reg_t gs;			/* Last item pushed by save() */
+	reg_t fs;
+	reg_t es;
+	reg_t ds;
+	reg_t edi;			/* edi through ecx are not accessed in C */
+	reg_t esi;			/* Order is to match pusha/popa */
+	reg_t ebp;			
+	reg_t temp;			/* Hole for another copy of esp */
+	reg_t ebx;
+	reg_t edx;
+	reg_t ecx;
+	reg_t eax;			/* gs through eax are all pushed by save() in assembly */
+	reg_t retAddr;		/* Return address for save() in assembly */
+
+	/* These are pushed by CPU during interrupt */
+	reg_t pc;			/* pc(eip), cs, psw(eflags) are pushed by interrupt */
+	reg_t cs;
+	reg_t psw;			/* psw (program status word) = eflags */
+	reg_t esp;			/* esp, ss are pushed by processor when a stack switched */
+	reg_t ss;
+} StackFrame;
+
 typedef struct {
 	u16_t limitLow;
 	u16_t baseLow;

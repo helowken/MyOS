@@ -5,7 +5,7 @@
 #define TILDE		1
 #define USEGETPW	0
 #define ATTY		0
-#define READLINE	1
+#define READLINE	0	// TODO 1
 #define HASHBANG	0
 #define POSIX		1
 #define DEBUG		0
@@ -16,3 +16,9 @@ typedef void *	pointer;
 #endif
 
 #define MKINIT
+
+#include "sys/types.h"
+
+extern char nullStr[1];		/* Null string */
+
+#include "stdio.h"//TODO

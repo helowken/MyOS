@@ -317,7 +317,6 @@ void rwScattered(dev_t dev, Buf **bufQueue, int queueSize, int rwFlag) {
 		r = devIO(rwFlag == WRITING ? DEV_SCATTER : DEV_GATHER,
 				dev, FS_PROC_NR, ioVec,
 				(off_t) bufQueue[0]->b_block_num * blockSize, j, 0);
-		
 		/* Harvest the results. devIO reports the first error it may have
 		 * encountered, but we only care if it's the first block that failed.
 		 */

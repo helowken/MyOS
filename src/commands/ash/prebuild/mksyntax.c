@@ -10,18 +10,18 @@ typedef struct {
 
 /* Syntax classes */
 SyntaxClass synClass[] = {
-	{"C_WORD",		"character is nothing special"},
-	{"C_NL",		"newline character"},
-	{"C_BACK",		"a backslash character"},
-	{"C_S_QUOTE",	"single quote"},
-	{"C_D_QUOTE",	"double quote"},
-	{"C_END_QUOTE",	"a terminating quote"},
-	{"C_B_QUOTE",	"backwards single quote"},
-	{"C_VAR",		"a dollar sign"},
-	{"C_END_VAR",	"a '}' character"},
-	{"C_EOF",		"end of file"},
-	{"C_CTL",		"like C_WORD, except it must be escaped"},
-	{"C_SPCL",		"these terminate a word"},
+	{"CWORD",		"character is nothing special"},
+	{"CNL",		"newline character"},
+	{"CBACK",		"a backslash character"},
+	{"CS_QUOTE",	"single quote"},
+	{"CD_QUOTE",	"double quote"},
+	{"CEND_QUOTE",	"a terminating quote"},
+	{"CB_QUOTE",	"backwards single quote"},
+	{"CVAR",		"a dollar sign"},
+	{"CEND_VAR",	"a '}' character"},
+	{"CEOF",		"end of file"},
+	{"CCTL",		"like CWORD, except it must be escaped"},
+	{"CSPCL",		"these terminate a word"},
 	{NULL, NULL}
 };
 
@@ -51,29 +51,29 @@ int size;	/* # of values which a char variable can have */
 int nBits;	/* # of bits in a character */
 int digitConfig;	/* true if digits are contiguous */
 
-/* Output character classification macros (e.g. is_digit). If digits are
+/* Output character classification macros (e.g. isDigit). If digits are
  * contiguous, we can test for them quickly.
  */
 char *macro[] = {
-	"#define isDigit(c)\t((is_type + SYN_BASE)[c] & IS_DIGIT)",
-	"#define isAlpha(c)\t((is_type + SYN_BASE)[c] & (IS_UPPER|IS_LOWER))",
-	"#define isName(c)\t((is_type + SYN_BASE)[c] & (IS_UPPER|IS_LOWER|IS_UNDER))",
-	"#define isInName(c)\t((is_type + SYN_BASE)[c] & (IS_UPPER|IS_LOWER|IS_UNDER|IS_DIGIT))",
-	"#define isSpecial(c)\t((is_type + SYN_BASE)[c] & (IS_SPECL|IS_DIGIT))",
+	"#define isDigit(c)\t((isType + SYN_BASE)[(int) c] & IS_DIGIT)",
+	"#define isAlpha(c)\t((isType + SYN_BASE)[(int) c] & (IS_UPPER|IS_LOWER))",
+	"#define isName(c)\t((isType + SYN_BASE)[(int) c] & (IS_UPPER|IS_LOWER|IS_UNDER))",
+	"#define isInName(c)\t((isType + SYN_BASE)[(int) c] & (IS_UPPER|IS_LOWER|IS_UNDER|IS_DIGIT))",
+	"#define isSpecial(c)\t((isType + SYN_BASE)[(int) c] & (IS_SPECL|IS_DIGIT))",
 	NULL
 };
 
 static void outputTypeMacros() {
 	char **pp;
 	if (digitConfig) 
-	  macro[0] = "#define is_digit(c)\t((unsigned)((c) - '0') <= 9)";
+	  macro[0] = "#define isDigit(c)\t((unsigned)((c) - '0') <= 9)";
 	for (pp = macro; *pp; ++pp) {
 		fprintf(hFile, "%s\n", *pp);
 	}
 	if (digitConfig)
-	  fputs("#define digit_val(c)\t((c) - '0')\n", hFile);
+	  fputs("#define digitVal(c)\t((c) - '0')\n", hFile);
 	else
-	  fputs("#define digit_val(c)\t(digit_value[c])\n", hFile);
+	  fputs("#define digitVal(c)\t(digitValue[c])\n", hFile);
 }
 
 /* Clear the syntax table. */
@@ -96,13 +96,13 @@ static void add(char *p, char *type) {
 /* Initialize the syntax table with default values.
  */
 static void init() {
-	fillTable("C_WORD");
-	syntax[0] = "C_EOF";
-	syntax[base + CTL_ESC] = "C_CTL";
-	syntax[base + CTL_VAR] = "C_CTL";
-	syntax[base + CTL_END_VAR] = "C_CTL";
-	syntax[base + CTL_BACK_Q] = "C_CTL";
-	syntax[base + CTL_BACK_Q + CTL_QUOTE] = "C_CTL";
+	fillTable("CWORD");
+	syntax[0] = "CEOF";
+	syntax[base + CTL_ESC] = "CCTL";
+	syntax[base + CTL_VAR] = "CCTL";
+	syntax[base + CTL_END_VAR] = "CCTL";
+	syntax[base + CTL_BACK_Q] = "CCTL";
+	syntax[base + CTL_BACK_Q + CTL_QUOTE] = "CCTL";
 }
 
 /* Output the syntax table.
@@ -144,8 +144,8 @@ static void digitConvert() {
 		if (*p > maxDigit)
 		  maxDigit = *p;
 	}
-	fputs("extern const char digit_value[];\n", hFile);
-	fputs("\n\nconst char digit_value] = {\n", cFile);
+	fputs("extern const char digitValue[];\n", hFile);
+	fputs("\n\nconst char digitValue] = {\n", cFile);
 	for (i = 0; i <= maxDigit; ++i) {
 		for (p = digit; *p && *p != i; ++p) {
 		}
@@ -225,11 +225,11 @@ int main() {
 	fprintf(hFile, "#define SYN_BASE %d\n", base);
 	fprintf(hFile, "#define PEOF %d\n\n", -base);
 	putc('\n', hFile);
-	fputs("#define BASESYNTAX (baseSyntax + SYN_BASE)\n", hFile);
-	fputs("#define DOSYNTAX (dqSyntax + SYN_BASE)\n", hFile);
-	fputs("#define SQSYNTAX (sqSyntax + SYN_BASE)\n", hFile);
+	fputs("#define BASE_SYNTAX (baseSyntax + SYN_BASE)\n", hFile);
+	fputs("#define DQ_SYNTAX (dqSyntax + SYN_BASE)\n", hFile);
+	fputs("#define SQ_SYNTAX (sqSyntax + SYN_BASE)\n", hFile);
 	putc('\n', hFile);
-	outputTypeMacros();		/* is_digit, etc. */
+	outputTypeMacros();		/* isDigit, etc. */
 	putc('\n', hFile);
 
 	/* Generate the syntax tables. */
@@ -238,32 +238,32 @@ int main() {
 
 	init();
 	fputs("/* Syntax table used when not in quotes */\n", cFile);
-	add("\n", "C_NL");
-	add("\\", "C_BACK");
-	add("'", "C_S_QUOTE");
-	add("\"", "C_D_QUOTE");
-	add("`", "C_B_QUOTE");
-	add("$", "C_VAR");
-	add("}", "C_END_VAR");
-	add("<>();&| \t", "C_SPCL");
+	add("\n", "CNL");
+	add("\\", "CBACK");
+	add("'", "CS_QUOTE");
+	add("\"", "CD_QUOTE");
+	add("`", "CB_QUOTE");
+	add("$", "CVAR");
+	add("}", "CEND_VAR");
+	add("<>();&| \t", "CSPCL");
 	print("baseSyntax");
 
 	init();
 	fputs("\n/* Syntax Table used when in double quotes */\n", cFile);
-	add("\n", "C_NL");
-	add("\\", "C_BACK");
-	add("\"", "C_END_QUOTE");
-	add("`", "C_B_QUOTE");
-	add("$", "C_VAR");
-	add("}", "C_END_VAR");
-	add("!*?[=", "C_CTL");
+	add("\n", "CNL");
+	add("\\", "CBACK");
+	add("\"", "CEND_QUOTE");
+	add("`", "CB_QUOTE");
+	add("$", "CVAR");
+	add("}", "CEND_VAR");
+	add("!*?[=", "CCTL");
 	print("dqSyntax");
 
 	init();
 	fputs("\n/* Syntax table used when in single quotes */\n", cFile);
-	add("\n", "C_NL");
-	add("'", "C_END_QUOTE");
-	add("!*?[=", "C_CTL");
+	add("\n", "CNL");
+	add("'", "CEND_QUOTE");
+	add("!*?[=", "CCTL");
 	print("sqSyntax");
 
 	fillTable("0");
@@ -273,7 +273,7 @@ int main() {
 	add("ABCDEFGHIJKLMNOPQRSTUCVWXYZ", "IS_UPPER");
 	add("_", "IS_UNDER");
 	add("#?$!-*@", "IS_SPECL");
-	print("is_type");
+	print("isType");
 	if (! digitConfig)
 	  digitConvert();
 

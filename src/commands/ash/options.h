@@ -10,15 +10,15 @@ typedef struct {
 } ShellParam;
 
 
-#define eFlag	optVal[0]
-#define fFlag	optVal[1]
-#define IFlag	optVal[2]
-#define iFlag	optVal[3]
-#define jFlag	optVal[4]
-#define nFlag	optVal[5]
-#define sFlag	optVal[6]
-#define xFlag	optVal[7]
-#define zFlag	optVal[8]
+#define eFlag	optVal[0]	/* Cause the shell to exit when a command terminates with a nonzero exit status. */
+#define fFlag	optVal[1]	/* Turn off file name generation. */
+#define IFlag	optVal[2]	/* Cause the shell to ignore end of file conditions. */
+#define iFlag	optVal[3]	/* Make the shell interactive. */
+#define jFlag	optVal[4]	/* Turns on Berkeley job control, on systems that support it. */
+#define nFlag	optVal[5]	/* Cause the shell to read commands but not execute them. (For checking syntax) */
+#define sFlag	optVal[6]	/* If set, when the shell starts up, the shell reads commands from its stdin. */
+#define xFlag	optVal[7]	/* If set, the shell will print out each command before executing it. */
+#define zFlag	optVal[8]	/* If set, the file name generation process may generate zero files. */
 #define vFlag	optVal[9]
 
 
@@ -32,6 +32,11 @@ char optVal[NUM_OPTS + 1];
 extern const char optChar[NUM_OPTS + 1];
 extern char optVal[NUM_OPTS + 1];
 #endif
+
+extern char *minusC;	/* Argument to -c option: the shell executes the specified shell command */
+extern char *arg0;		/* $0 */
+extern ShellParam shellParam;	/* $@ */
+extern int editable;	/* isatty(0) && isatty(1) */
 
 extern int isatty(int fd);
 

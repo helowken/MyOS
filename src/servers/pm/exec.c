@@ -394,7 +394,7 @@ void rwSeg(
 	newFd = (pNum << 7) | (seg << 5) | fd;
 	buf = (char *) (((vir_bytes) sp->virAddr << CLICK_SHIFT) + dstOffset);
 	
-	while (bytes != 0) {
+	while (segBytes != 0) {
 #define PM_CHUNK_SIZE 8192
 		bytes = MIN((INT_MAX / PM_CHUNK_SIZE) * PM_CHUNK_SIZE, segBytes);
 		if (rw == 0)

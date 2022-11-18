@@ -6,6 +6,9 @@
 #include "mystring.h"
 
 
+char nullStr[1];	/* Zero length string */
+
+
 /* isPrefix -- see if pfx is a prefix os string.
  */
 int isPrefix(register char const *pfx,
@@ -17,3 +20,15 @@ int isPrefix(register char const *pfx,
 	return 1;
 }
 
+/* bcopy - copy bytes
+ *
+ * This routine are derived from code by Henry Spencer.
+ */
+void myBcopy(const pointer src, pointer dst, int len) {
+	register char *d = dst;
+	register char *s = src;
+
+	while (--len >= 0) {
+		*d++ = *s++;
+	}
+}

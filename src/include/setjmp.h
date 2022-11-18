@@ -13,11 +13,6 @@ int sigjmp(jmp_buf _jb, int _retVal);
 
 #define setjmp(env)	__setjmp((env), 1)
 
-#ifdef _MINIX
-#define _setjmp(env)	__setjmp((env), 0)
-void _longjmp(jmp_buf _env, int _val);
-#endif
-
 #ifdef _POSIX_SOURCE
 typedef jmp_buf	sigjmp_buf;
 #define siglongjmp	longjmp

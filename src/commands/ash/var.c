@@ -51,25 +51,6 @@ const VarInit varInit[] = {
 Var *varTable[VTAB_SIZE];
 
 
-/* Initialize the variable symbol tables and import the environment.
- */
-#ifdef mkinit
-INCLUDE "var.h"
-
-INIT {
-	char **envp;
-	extern char **environ;
-
-	initVar();
-	for (envp = environ; *envp; ++envp) {
-		if (strchr(*envp, '=')) {
-			setVarEq(*envp, V_EXPORT | V_TEXT_FIXED);
-		}
-	}
-}
-#endif
-
-
 /* Find the appropriate entry in the hash table from the name.
  */
 static Var **hashVar(register char *p) {
@@ -202,7 +183,50 @@ void setVarEq(char *s, int flags) {
 	*vpp = vp;
 }
 
+void shProcVar() {
+	//TODO
+}
 
+/* Find the value of a variable. Returns NULL if not set.
+ */
+char *lookupVar(char *name) {
+	Var *v;
+
+	for (v = *hashVar(name); v; v = v->next) {
+		if (varEqual(v->text, name)) {
+			if (v->flags & V_UNSET)
+			  return NULL;
+			return strchr(v->text, '=') + 1;
+		}
+	}
+	return NULL;
+}
+
+
+
+/* Initialize the variable symbol tables and import the environment.
+ */
+#ifdef mkinit
+INCLUDE "var.h"
+
+INIT {
+	char **envp;
+	extern char **environ;
+
+	initVar();
+	for (envp = environ; *envp; ++envp) {
+		if (strchr(*envp, '=')) {
+			setVarEq(*envp, V_EXPORT | V_TEXT_FIXED);
+		}
+	}
+}
+
+MKINIT void shProcVar();
+
+SHELLPROC {
+	shProcVar();
+}
+#endif
 
 
 

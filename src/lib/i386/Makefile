@@ -1,7 +1,8 @@
 MODULES = \
 		int64 \
 		misc \
-		rts
+		rts \
+		em
 
 include ../../modules.mk
 

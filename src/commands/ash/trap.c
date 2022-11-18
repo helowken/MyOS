@@ -12,7 +12,6 @@
 #include "error.h"
 #include "trap.h"
 #include "mystring.h"
-#include "sys/types.h"
 #include "signal.h"
 
 
@@ -54,6 +53,29 @@ static void onSig(int sigNum) {
 	}
 	gotSig[sigNum - 1] = 1;
 	++pendingSigs;
+}
+
+/* Called to execute a trap. Perhaps we should avoid entering new trap
+ * handlers while we are executing a trap handler.
+ */
+void doTrap() {
+	int i;
+	int saveStatus;
+
+	for (;;) {
+		for (i = 1; ; ++i) {
+			if (gotSig[i - 1])	
+			  break;
+			if (i >= MAX_SIG)
+			  goto done;
+		}
+		gotSig[i - 1] = 0;
+		saveStatus = exitStatus;
+		evalString(trap[i]);
+		exitStatus = saveStatus;
+	}
+done:
+	pendingSigs = 0;
 }
 
 /* Set the signal handler for the specified signal. The routine figures
