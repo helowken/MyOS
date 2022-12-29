@@ -1,5 +1,6 @@
 
 
+#include "stdlib.h"
 #include "shell.h"
 #include "syntax.h"
 #include "error.h"
@@ -32,3 +33,33 @@ void myBcopy(const pointer src, pointer dst, int len) {
 		*d++ = *s++;
 	}
 }
+
+/* Convert a string of digits to an integer, printing an error 
+ * message on failure.
+ */
+int number(const char *s) {
+	if (! isNumber(s))
+	  error2("Illegal number", (char *) s);
+	return atoi(s);
+}
+
+/* Check for a valid number. This should be elsewhere.
+ */
+int isNumber(register const char *p) {
+	do {
+		if (! isDigit(*p))
+		  return 0;
+	} while (*++p != '\0');
+	return 1;
+}
+
+/* prefix -- see if pfx is a prefix of string.
+ */
+int prefix(register const char *pfx, register const char *string) {
+	while (*pfx) {
+		if (*pfx++ != *string++)
+		  return 0;
+	}
+	return 1;
+}
+

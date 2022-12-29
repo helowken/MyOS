@@ -23,7 +23,8 @@ OBJS_M32 = \
 		raise.o \
 		signal.o \
 		getenv.o \
-		sigmisc.o
+		sigmisc.o \
+		malloc.o
 
 		
 OBJS_M16 = \

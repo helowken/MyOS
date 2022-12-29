@@ -7,8 +7,9 @@ INC_HEADERS = *.h \
 			  $(INC)/ibm/*.h \
 			  $(INC)/minix/*.h 
 
-CFLAGS = -g -c -m32 -ffreestanding -nostdinc -nostartfiles -nodefaultlibs -Wall -Werror \
-		 -fno-asynchronous-unwind-tables -I$(INC)
+CFLAGS = -g -c -m32 -ffreestanding -nostdinc -nostartfiles -nodefaultlibs \
+		 -fno-asynchronous-unwind-tables -I$(INC) #-Wall -Werror 
+		 
 C_SOURCE = $(wildcard *.c)
 HEADERS = $(wildcard $(INC_HEADERS))
 DEBUG = debug.bin

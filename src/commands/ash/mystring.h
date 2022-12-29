@@ -1,7 +1,10 @@
 
 
 void myBcopy(const pointer, pointer, int);
+int prefix(const char *, const char *);
 char *strchr(const char *, int);
+int number(const char *);
+int isNumber(const char *);
 int strlen(const char *);	/* From C library */
 char *strcpy(char *, const char *);		/* From C library */
 int strcmp(const char *, const char *);	/* From C library */

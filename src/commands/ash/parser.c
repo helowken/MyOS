@@ -108,6 +108,8 @@ static int noExpand(char *text) {
 	return 1;
 }
 
+/* Parse the right part. 
+ */
 static void parseFileName() {
 	Node *n = redirNode;
 
@@ -138,6 +140,7 @@ static void parseFileName() {
 			p->next = here;
 		}
 	} else if (n->type == NTOFD || n->type == NFROMFD) {
+		/* NFile contains NDup */
 		if (isDigit(wordText[0]))
 		  n->nDup.dupFd = digitVal(wordText[0]);
 		else if (wordText[0] == '-')
@@ -173,7 +176,7 @@ int goodName(char *name) {
 
 static Node *simpleCmd(Node **rpp, Node *redir) {
 	Node *args, **app;
-	Node **origRpp = rpp;
+	Node **origRpp;
 	Node *n;
 
 	/* If we don't have any redirections already, then we must reset
@@ -187,6 +190,7 @@ static Node *simpleCmd(Node **rpp, Node *redir) {
 	 * functions. There can not be a redirect or an argument between
 	 * the function name and the open parenthesis.
 	 */
+	origRpp = rpp;
 	for (;;) {
 		if (readToken() == TWORD) {
 			n = (Node *) stackAlloc(sizeof(NArg));
@@ -220,14 +224,6 @@ static Node *simpleCmd(Node **rpp, Node *redir) {
 	n->nCmd.backgnd = 0;
 	n->nCmd.args = args;
 	n->nCmd.redirect = redir;
-
-	printf("=== CMD: ");//TODO
-	Node *v = args;
-	while (v != NULL) {
-		printf("%s ", v->nArg.text);
-		v = v->nArg.next;
-	}
-	printf("\n");
 
 	return n;
 }
@@ -428,7 +424,7 @@ static Node *command() {
 				if (lastToken != TRP)	/* ')' */
 				  syntaxExpect(TRP);
 				cp->nCaseList.body = list(0);	/* commands */
-				if ((t = readToken()) != TESAC)
+				if ((t = readToken()) == TESAC)
 				  ++tokenPushback;
 				else if (t != TEND_CASE)	/* expect ';;' to end the case */
 				  syntaxExpect(TEND_CASE);
@@ -555,12 +551,14 @@ static Node *andOr() {
 	}
 }
 
+/* Link commands together.
+ */
 static Node *list(int nlFlag) {
 	Node *n1, *n2, *n3, **pn;
 	int first;
 
 	checkKwd = 2;
-	if (nlFlag == 0 && tokenEndList[peekToken()])
+	if (nlFlag == 0 && tokenEndList[peekToken()]) 
 	  return NULL;
 	n1 = andOr();
 	for (first = 1; ; first = 0) {
@@ -592,8 +590,15 @@ tsemi:		case TSEMI:
 				} else {
 					++tokenPushback;
 				}
+				/* For example: 
+				 *  echo aaa; echo bbb 
+				 * or
+				 *  echo aaa
+				 *  echo bbb
+				 *  (will be converted to => echo aaa; echo bbb)
+				 */
 				checkKwd = 2;
-				if (tokenEndList[peekToken()])
+				if (tokenEndList[peekToken()])  
 				  return n1;
 				n2 = andOr();
 				n3 = (Node *) stackAlloc(sizeof(NBinary));
@@ -661,8 +666,10 @@ static int readToken1(int firstChar, char const *syntax,
 		  CHECK_END();	/* Set c to PEOF if at end of here document */
 		  for (;;) {	/* Until end of line or end of word */
 			CHECK_STR_SPACE(3, out);	/* Permit 3 calls to UST_PUTC */
+			printf("'%c'", c);
 			switch (syntax[c]) {
 				case CNL:	/* '\n' */
+					printf("1 ");
 					if (syntax == BASE_SYNTAX)
 					  goto endWord;		/* Exit outer loop */
 					UST_PUTC(c, out);
@@ -672,39 +679,52 @@ static int readToken1(int firstChar, char const *syntax,
 					c = pGetChar();
 					goto loop;		/* Continue outer loop */
 				case CWORD:
+					printf("2 ");
 					UST_PUTC(c, out);
 					break;
 				case CCTL:
+					printf("3 ");
 					if (eofMark == NULL || dblquote)
 					  UST_PUTC(CTL_ESC, out);
 					UST_PUTC(c, out);
 					break;
 				case CBACK:	/* Backslash */
+					printf("4");
 					c = pGetChar();
 					if (c == PEOF) {
+						printf("1 ");
 						UST_PUTC('\\', out);
 						pUngetChar();
 					} else if (c == '\n') {
+						printf("2 ");
 						if (doPrompt)
 						  putPrompt(ps2Val());
 					} else {
 						if (dblquote && c != '\\' && c != '`' && c != '$' &&
-									(c != '"' || eofMark != NULL))
+									(c != '"' || eofMark != NULL)) {
+							printf("3");
 						  UST_PUTC('\\', out);
-						if (SQ_SYNTAX[c] == CCTL)
+						}
+						if (SQ_SYNTAX[c] == CCTL) {
+							printf("4");
 						  UST_PUTC(CTL_ESC, out);
+						}
+						printf("5 ");
 						UST_PUTC(c, out);
 						++quoteF;
 					}
 					break;
 				case CS_QUOTE:
+					printf("5 ");
 					syntax = SQ_SYNTAX;
 					break;
 				case CD_QUOTE:
+					printf("6 ");
 					syntax = DQ_SYNTAX;
 					dblquote = 1;
 					break;
 				case CEND_QUOTE:
+					printf("7 ");
 					if (eofMark) {
 						UST_PUTC(c, out);
 					} else {
@@ -714,9 +734,11 @@ static int readToken1(int firstChar, char const *syntax,
 					}
 					break;
 				case CVAR:	/* '$' */
+					printf("8 ");
 					PARSE_SUB();	/* Parse substitution */
 					break;
 				case CEND_VAR:	/* '}' */
+					printf("9 ");
 					if (varNest > 0) {
 						--varNest;
 						UST_PUTC(CTL_END_VAR, out);
@@ -725,11 +747,14 @@ static int readToken1(int firstChar, char const *syntax,
 					}
 					break;
 				case CB_QUOTE:	/* '`' */
+					printf("0 ");
 					PARSE_BACKQUOTE_OLD();
 					break;
 				case CEOF:
+					printf("+ ");
 					goto endWord;	/* Exit outer loop */
 				default:
+					printf("- ");
 					if (varNest == 0)
 					  goto endWord;		/* Exit outer loop */
 					UST_PUTC(c, out);
@@ -738,6 +763,7 @@ static int readToken1(int firstChar, char const *syntax,
 		  }
 	}
 endWord:
+		  printf("\n");
 	if (syntax != BASE_SYNTAX && ! parseBackquote && eofMark == NULL) 
 	  syntaxError("Unterminated quoted string");
 	if (varNest != 0) {
@@ -748,10 +774,14 @@ endWord:
 	len = out - stackBlock();
 	out = stackBlock();
 	if (eofMark == NULL) {
+		/* Parse the left part:
+		 *  >&2:  *out='\0', len = 1
+		 *  1>&2: *out="1", len = 2	('1' + '\0')
+		 */
 		if ((c == '>' || c == '<') &&
 				quoteF == 0 &&
-				len <= 2 &&
-				(*out == '\0' || isDigit(*out))) {
+				len <= 2 &&		
+				(*out == '\0' || isDigit(*out))) {	
 			PARSE_REDIR();
 			RETURN(TREDIR);
 		} else {
@@ -841,7 +871,10 @@ parseRedir: {
 			pUngetChar();
 		}
 	}
-	if (fd != '\0')
+	/* >&2:  fd = '\0'
+	 * 1>&2: fd = 1
+	 */
+	if (fd != '\0') 
 	  np->nFile.fd = digitVal(fd);
 	redirNode = np;
 	goto parseRedirReturn;
@@ -857,6 +890,9 @@ parseSub: {
 	char *p;
 
 	c = pGetChar();
+	if (c == '1') {
+		printf("=== test: %d, %d\n", isName(c), isSpecial(c));
+	}
 	if (c != '(' && c != '{' && !isName(c) && !isSpecial(c)) {
 		UST_PUTC('$', out);
 		pUngetChar();
@@ -906,7 +942,7 @@ badSub:		  syntaxError("Bad substitution");
 }
 
 /* Called to parse command substitutions. Newstyle is set if the command
- * is enclosed inside $(...); nlpp is a pointer to the head of te linked
+ * is enclosed inside $(...); nlpp is a pointer to the head of the linked
  * list of commands (passed b reference), and saveLen is the number of
  * characters on the top of the stack which must be preserved.
  */
@@ -1127,15 +1163,15 @@ static int readToken() {
 			}
 		} else {
 			checkKwd = 0;
-			/* CHeck for keywords */
-			if (t == TWORD && ! quoteFlag) {
-				register char *const *pp;
+		}
+		/* CHeck for keywords */
+		if (t == TWORD && ! quoteFlag) {
+			register char *const *pp;
 
-				for (pp = parseKwd; *pp; ++pp) {
-					if (**pp == *wordText && equal(*pp, wordText)) {
-						lastToken = t = pp - parseKwd + KWD_OFFSET;
-						break;
-					}
+			for (pp = parseKwd; *pp; ++pp) {
+				if (**pp == *wordText && equal(*pp, wordText)) {
+					lastToken = t = pp - parseKwd + KWD_OFFSET;
+					break;
 				}
 			}
 		}

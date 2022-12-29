@@ -20,8 +20,8 @@ extern JmpLoc *handler;
 extern int exception;
 
 /* Exceptions */
-#define EX_INT		0	/* SIGINT received */
-#define EX_ERROR	1	/* A generic error */
+#define EX_INT			0	/* SIGINT received */
+#define EX_ERROR		1	/* A generic error */
 #define EX_SHELL_PROC	2	/* Execute a shell procedure */
 
 
@@ -36,12 +36,14 @@ extern volatile int suppressInt;
 extern volatile int intPending;
 extern char *commandName;	/* Name of command--printed on error */
 
-#define INTOFF	++suppressInt
-#define INTON	if (--suppressInt == 0 && intPending) onInt(); else
-#define FORCE_INTON		{suppressInt = 0; if (intPending) onInt();}
-#define int_pending()	intPending
+#define INTOFF				++suppressInt
+#define INTON				if (--suppressInt == 0 && intPending) onInt(); else
+#define FORCE_INTON			{suppressInt = 0; if (intPending) onInt();}
+#define CLEAR_PENDING_INT	intPending = 0
+#define int_pending()		intPending
 
 
 void exRaise(int);
 void onInt();
 void error(char *, ...);
+void error2(char *, char *);

@@ -96,7 +96,13 @@ int doAccess() {
 	return r;
 }
 
-
+int doUmask() {
+/* Perform the umask(mask) system call. */
+	register mode_t r;
+	r = ~currFp->fp_umask;		/* Set 'r' to complement of old mask */
+	currFp->fp_umask = ~(inMsg.m_mask & RWX_MODES);	
+	return r;		/* Return complement of old mask */
+}
 
 
 

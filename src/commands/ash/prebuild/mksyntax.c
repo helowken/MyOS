@@ -214,7 +214,7 @@ int main() {
 	putc('\n', hFile);
 	fputs("/* Syntax classes for is_ functions */\n", hFile);
 	for (i = 0; is_entry[i].name; ++i) {
-		sprintf(buf, "#define %s %#o", is_entry[i].name, i << i);
+		sprintf(buf, "#define %s %#o", is_entry[i].name, 1 << i);
 		fputs(buf, hFile);
 		for (pos = strlen(buf); pos < 32; pos = (pos + 8) &~ 07) {
 			putc('\t', hFile);

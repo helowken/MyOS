@@ -2,34 +2,37 @@ MY_HOME = ../..
 include $(MY_HOME)/common.mk
 CFLAGS += -DSHELL -D_MINIX -D_POSIX_SOURCE 
 LIBS = -L$(MY_HOME)/lib \
-	   -lmysysutil -lmysys -lmytimers -lmyc -le
+	   -lmysys -lmysysutil -lmytimers -lmyc -le
 DST_DIR = $(MY_HOME)/tools/resources/bin
+PB_DIR = prebuild
+BLTIN_DIR = bltin
 
 START_FILE = $(MY_HOME)/entry/crtso.o
 
-SRCS = error.c eval.c exec.c expand.c input.c \
-	   jobs.c mail.c main.c memalloc.c mystring.c nodes.c \
+SRCS = builtins.c cd.c error.c eval.c exec.c expand.c input.c \
+	   jobs.c mail.c main.c memalloc.c miscbltin.c mystring.c nodes.c \
 	   options.c parser.c redir.c signames.c syntax.c trap.c \
 	   output.c var.c
 
-OBJS = error.o eval.o exec.o expand.o input.o \
-	   jobs.o mail.o main.o memalloc.o mystring.o nodes.o \
+OBJS = builtins.o cd.o error.o eval.o exec.o expand.o input.o \
+	   jobs.o mail.o main.o memalloc.o miscbltin.o mystring.o nodes.o \
 	   options.o parser.o redir.o signames.o syntax.o trap.o \
-	   output.o var.o init.o
+	   output.o var.o init.o \
+	   $(BLTIN_DIR)/echo.o $(BLTIN_DIR)/expr.o $(BLTIN_DIR)/operators.o
 
-CLEAN_FILES = init.c signames.c signames.h syntax.c syntax.h token.h \
-			  nodes.c nodes.h
+CLEAN_FILES = builtins.c builtins.h init.c signames.c signames.h \
+			  syntax.c syntax.h token.h nodes.c nodes.h \
+			  $(BLTIN_DIR)/operators.h $(BLTIN_DIR)/operators.c
 
 STACK_SIZE = 102400
 BIN = sh.bin
-PREBUILD = prebuild
 
 all: doInit $(BIN)
 
-$(OBJS): init.h syntax.h signames.h nodes.h
+$(OBJS): init.h syntax.h signames.h nodes.h $(BLTIN_DIR)/*.h
 
 doInit:
-	cd $(PREBUILD) && $(MAKE)
+	cd $(PB_DIR) && $(MAKE)
 
 $(BIN): $(START_FILE) $(OBJS)
 	$(call link,$^,$(LIBS),$@) 
@@ -37,26 +40,34 @@ $(BIN): $(START_FILE) $(OBJS)
 	$(call setStack,$(STACK_SIZE),$(BIN))
 	cp $@ $(DST_DIR)/$(NAME)
 
-init.c: $(PREBUILD)/mkinit.bin $(SRCS)
-	cd $(PREBUILD) && $(MAKE) mkinit ARGS="$(SRCS)"
+init.c: $(PB_DIR)/mkinit.bin $(SRCS)
+	cd $(PB_DIR) && $(MAKE) mkinit ARGS="$(SRCS)"
 
 syntax.c syntax.h: prebuild/mksyntax.bin
-	cd $(PREBUILD) && $(MAKE) mksyntax
+	cd $(PB_DIR) && $(MAKE) mksyntax
 
-signames.c signames.h: $(PREBUILD)/mksignames.bin
-	cd $(PREBUILD) && $(MAKE) mksignames
+signames.c signames.h: $(PB_DIR)/mksignames.bin
+	cd $(PB_DIR) && $(MAKE) mksignames
 
-token.h: $(PREBUILD)/mktokens.sh
-	cd $(PREBUILD) && $(MAKE) mktokens
+token.h: $(PB_DIR)/mktokens.sh
+	cd $(PB_DIR) && $(MAKE) mktokens
 
 parser.o: token.h
 
-nodes.c nodes.h: $(PREBUILD)/mknodes.bin $(PREBUILD)/nodetypes $(PREBUILD)/nodespat.c
-	cd $(PREBUILD) && $(MAKE) mknodes
+nodes.c nodes.h: $(PB_DIR)/mknodes.bin $(PB_DIR)/nodetypes $(PB_DIR)/nodespat.c
+	cd $(PB_DIR) && $(MAKE) mknodes
 
+builtins.c builtins.h: $(PB_DIR)/mkbuiltins.sh $(PB_DIR)/builtins.table
+	cd $(PB_DIR) && $(MAKE) mkbuiltins
+
+$(BLTIN_DIR)/operators.h $(BLTIN_DIR)/operators.c: $(BLTIN_DIR)/mkexpr.sh $(BLTIN_DIR)/unary_op $(BLTIN_DIR)/binary_op
+	cd $(BLTIN_DIR) && $(MAKE) mkexpr
+
+$(BLTIN_DIR)/expr.o: $(BLTIN_DIR)/operators.h
 
 clean: 
-	cd $(PREBUILD) && $(MAKE) clean
+	cd $(PB_DIR) && $(MAKE) clean
+	cd $(BLTIN_DIR) && $(MAKE) clean
 	rm -f $(CLEAN_FILES)
 	$(call cleanCommon)
 

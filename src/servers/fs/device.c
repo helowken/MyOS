@@ -186,7 +186,7 @@ int devIO(int op, dev_t dev, int proc, void *buf,
 	msg.ADDRESS = buf;
 	msg.COUNT = bytes;
 	msg.TTY_FLAGS = flags;
-	
+
 	/* Call the task. */
 	(*dp->dmap_io)(dp->dmap_driver, &msg);
 

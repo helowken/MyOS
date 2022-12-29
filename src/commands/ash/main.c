@@ -55,27 +55,23 @@ void cmdLoop(int top) {
 
 	setStackMark(&stackMark);
 	numEOF = 0;
-	//for (;;) {
-	for (int i = 0; i < 3; ++i) {//TODO
+	for (;;) {
 		if (pendingSigs)
 		  doTrap();
 		inter = 0;
-		if (iFlag && top) {
+		if (iflag && top) {
 			++inter;
-			//NOT SUPPORT showJobs(1);
+			//TODO showJobs(1);
 			checkMail(0);
 			flushOut(&output);
 		}
 		n = parseCmd(inter);
-		if (n != NULL && n != NEOF)
-			printf("cmd: %d\n", n->type);//TODO
 		if (n == NEOF) {
-			if (IFlag == 0 || numEOF >= 50)
+			if (Iflag == 0 || numEOF >= 50)
 				break;
 			out2Str("\nUse \"exit\" to leave shell.\n");
 			++numEOF;
-		} else if (n != NULL && nFlag == 0) {
-			printf("=== 222 evalTree\n");
+		} else if (n != NULL && nflag == 0) {
 			if (inter) {
 				INTOFF;
 				if (prevCmd)
@@ -84,6 +80,7 @@ void cmdLoop(int top) {
 				currCmd = copyFunc(n);
 				INTON;
 			}
+			printf("------------------------\n");
 			evalTree(n, 0);
 		}
 		popStackMark(&stackMark);
@@ -123,7 +120,7 @@ void main(int argc, char **argv) {
 			rootShell = 1;
 			minusC = NULL;
 			state = 3;
-		} else if (state == 0 || iFlag == 0 || ! rootShell) {
+		} else if (state == 0 || iflag == 0 || ! rootShell) {
 		  exitShell(2);
 		}
 		reset();
@@ -150,10 +147,10 @@ void main(int argc, char **argv) {
 	init();
 	setStackMark(&stackMark);
 	procArgs(argc, argv);
-	if (eFlag)
-	  eFlag = 2;	/* Truely enable [ex]Flag after init. */
-	if (xFlag)
-	  xFlag = 2;
+	if (eflag)
+	  eflag = 2;	/* Truely enable [ex]flag after init. */
+	if (xflag)
+	  xflag = 2;
 	if (argv[0] && argv[0][0] == '-') {
 		state = 1;
 		readProfile("/etc/profile");
@@ -167,7 +164,7 @@ state1:
 		} else {
 			readProfile(".profile");
 		}
-	} else if ((sFlag || minusC) && (shInit = getenv("SHINIT")) != NULL) {
+	} else if ((sflag || minusC) && (shInit = getenv("SHINIT")) != NULL) {
 		state = 2;
 		evalString(shInit);
 	}
@@ -188,17 +185,17 @@ state2:
 state3:
 	if (ashrc != NULL)
 	  free(ashrc);
-	if (eFlag)
-	  eFlag = 1;	/* Init done, enable [ex]Flag */
-	if (xFlag)
-	  xFlag = 1;
+	if (eflag)
+	  eflag = 1;	/* Init done, enable [ex]flag */
+	if (xflag)
+	  xflag = 1;
 	exitStatus = 0;	/* Init shouldn't influence initial $? */
 
 	state = 4;
 	if (minusC) 
 	  evalString(minusC);
 
-	if (sFlag || minusC == NULL) {
+	if (sflag || minusC == NULL) {
 state4:
 		cmdLoop(1);
 	}
@@ -208,6 +205,27 @@ state4:
 	exitShell(exitStatus);
 }
 
+/* Take commands from a file. To be compatable we should do a path
+ * search for the file, but a path search doesn't make any sense.
+ */
+int dotCmd(int argc, char **argv) {
+	printf("=== dotCmd\n");//TODO
+	exitStatus = 0;
+	if (argc >= 2) {	/* That's what SVR2 does */
+		setInputFile(argv[1], 1);
+		commandName = argv[1];
+		cmdLoop(0);
+		popFile();
+	}
+	return exitStatus;
+}
 
+int exitCmd(int argc, char **argv) {
+	printf("=== exitCmd\n");//TODO
+	if (argc > 1)
+	  exitStatus = number(argv[1]);
+	exitShell(exitStatus);
+	return 0;
+}
 
 

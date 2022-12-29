@@ -1,11 +1,16 @@
 
 #include "unistd.h"
 #include "shell.h"
+#include "nodes.h"
+#include "expand.h"
 #include "syntax.h"
+#include "options.h"
 #include "mail.h"
 #include "exec.h"
+#include "eval.h"
 #include "var.h"
 #include "memalloc.h"
+#include "output.h"
 #include "error.h"
 #include "mystring.h"
 
@@ -162,9 +167,9 @@ void setVarEq(char *s, int flags) {
 				error("%.*s: is read only", len, s);
 			}
 			INTOFF;
-			if (vp == &vpath)
+			if (vp == &vpath) 
 			  changePath(s + 5);	/* 5  strlen("PATH=") */
-			if ((vp->flags & (V_TEXT_FIXED | V_STACK)) == 0)
+			if ((vp->flags & (V_TEXT_FIXED | V_STACK)) == 0) 
 			  ckFree(vp->text);
 			vp->flags &= ~(V_TEXT_FIXED | V_STACK | V_UNSET);
 			vp->flags |= flags;
@@ -175,6 +180,7 @@ void setVarEq(char *s, int flags) {
 			return;
 		}
 	}
+
 	/* Not found */
 	vp = ckMalloc(sizeof(*vp));
 	vp->flags = flags;
@@ -202,6 +208,173 @@ char *lookupVar(char *name) {
 	return NULL;
 }
 
+/* Process a linked list of variable assignments.
+ */
+void listSetVar(struct StrList *list) {
+	struct StrList *lp;
+
+	INTOFF;
+	for (lp = list; lp; lp = lp->next) {
+		setVarEq(saveStr(lp->text), 0);
+	}
+	INTON;
+}
+
+/* Generate a list of exported variables. This routine is used to construct
+ * the third argument to execve when executing a program.
+ */
+char **environment() {
+	int nEnv;
+	Var **vpp;
+	Var *vp;
+	char **env, **ep;
+
+	nEnv = 0;
+	for (vpp = varTable; vpp < varTable + VTAB_SIZE; ++vpp) {
+		for (vp = *vpp; vp; vp = vp->next) {
+			if (vp->flags & V_EXPORT)
+			  ++nEnv;
+		}
+	}
+	ep = env = stackAlloc((nEnv + 1) * sizeof(*env));
+	for (vpp = varTable; vpp < varTable + VTAB_SIZE; ++vpp) {
+		for (vp = *vpp; vp; vp = vp->next) {
+			if (vp->flags & V_EXPORT)
+			  *ep++ = vp->text;
+		}
+	}
+	*ep = NULL;
+	return env;
+}
+
+/* Command to list all variables which are set. Currently this command
+ * is invoked from the set command when the set command is called without
+ * any variables.
+ */
+int showVarsCmd(int argc, char **argv) {
+	Var **vpp;
+	Var *vp;
+
+	for (vpp = varTable; vpp < varTable + VTAB_SIZE; ++vpp) {
+		for (vp = *vpp; vp; vp = vp->next) {
+			if ((vp->flags & V_UNSET) == 0)
+			  out1Format("%s\n", vp->text);
+		}
+	}
+	return 0;
+}
+
+/* Unset the specified variable. */
+static void unsetVar(char *s) {
+	Var **vpp;
+	Var *vp;
+
+	vpp = hashVar(s);
+	for (vp = *vpp; vp; vpp = &vp->next, vp = *vpp) {
+		if (varEqual(vp->text, s)) {
+			INTOFF;
+			if (*(strchr(vp->text, '=') + 1) != '\0' ||
+					(vp->flags & V_READONLY)) {
+				setVar(s, nullStr, 0);
+			}
+			vp->flags &= ~V_EXPORT;
+			vp->flags |= V_UNSET;
+			if ((vp->flags & V_STR_FIXED) == 0) {
+				if ((vp->flags & V_TEXT_FIXED) == 0) 
+				  ckFree(vp->text);
+				*vpp = vp->next;
+				ckFree(vp);
+			}
+			INTON;
+			return;
+		}
+	}
+}
+
+/* The unset builtin command. We unset the function before we unset the
+ * variable to allow a function to be unset when where is a readonly variable
+ * with the same name.
+ */
+int unsetCmd(int argc, char **argv) {
+	char **ap;
+
+	for (ap = argv + 1; *ap; ++ap) {
+		unsetFunc(*ap);
+		unsetVar(*ap);
+	}
+	return 0;
+}
+
+int setVarCmd(int argc, char **argv) {
+	if (argc <= 2) 
+	  return unsetCmd(argc, argv);
+	else if (argc == 3)
+	  setVar(argv[1], argv[2], 0);
+	else
+	  error("List assignment not implemented");
+	return 0;
+}
+
+/* The export and readonly commands. */
+int exportCmd(int argc, char **argv) {
+	Var **vpp;
+	Var *vp;
+	char *name;
+	char *p;
+	int flag = argv[0][0] == 'r' ? V_READONLY : V_EXPORT;
+
+	listSetVar(cmdEnviron);
+	if (argc > 1) {
+		while ((name = *argPtr++) != NULL) {
+			if ((p = strchr(name, '=')) != NULL) {
+				++p;
+			} else {
+				vpp = hashVar(name);
+				for (vp = *vpp; vp; vp = vp->next) {
+					if (varEqual(vp->text, name)) {
+						vp->flags |= flag;
+						goto found;
+					}
+				}
+			}
+			setVar(name, p, flag);
+found:;
+		}
+	} else {
+		for (vpp = varTable; vpp < varTable + VTAB_SIZE; ++vpp) {
+			for (vp = *vpp; vp; vp = vp->next) {
+				if (vp->flags & flag) {
+					for (p = vp->text; *p != '='; ++p) {
+						out1Char(*p);
+					}
+					out1Char('\n');
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+/* The "local" command. */
+int localCmd(int argc, char **argv) {
+	char *name;
+
+	if (! isInFunction())
+	  error("Not in a function");
+	while ((name = *argPtr++) != NULL) {
+		mkLocal(name);
+	}
+	return 0;
+}
+
+/* Make a variable a local variable. When a variable is made local, it's
+ * value and flags are saved in a LocalVar structure. The saved values
+ * will be restored when the shell function returns. We handle the name
+ * "-" as a special case.
+ */
+void mkLocal(char *name) {
+	//TODO
+}
 
 
 /* Initialize the variable symbol tables and import the environment.

@@ -10,16 +10,16 @@ typedef struct {
 } ShellParam;
 
 
-#define eFlag	optVal[0]	/* Cause the shell to exit when a command terminates with a nonzero exit status. */
-#define fFlag	optVal[1]	/* Turn off file name generation. */
-#define IFlag	optVal[2]	/* Cause the shell to ignore end of file conditions. */
-#define iFlag	optVal[3]	/* Make the shell interactive. */
-#define jFlag	optVal[4]	/* Turns on Berkeley job control, on systems that support it. */
-#define nFlag	optVal[5]	/* Cause the shell to read commands but not execute them. (For checking syntax) */
-#define sFlag	optVal[6]	/* If set, when the shell starts up, the shell reads commands from its stdin. */
-#define xFlag	optVal[7]	/* If set, the shell will print out each command before executing it. */
-#define zFlag	optVal[8]	/* If set, the file name generation process may generate zero files. */
-#define vFlag	optVal[9]
+#define eflag	optVal[0]	/* Cause the shell to exit when a command terminates with a nonzero exit status. */
+#define fflag	optVal[1]	/* Turn off file name generation. */
+#define Iflag	optVal[2]	/* Cause the shell to ignore end of file conditions. */
+#define iflag	optVal[3]	/* Make the shell interactive. */
+#define jflag	optVal[4]	/* Turns on Berkeley job control, on systems that support it. */
+#define nflag	optVal[5]	/* Cause the shell to read commands but not execute them. (For checking syntax) */
+#define sflag	optVal[6]	/* If set, when the shell starts up, the shell reads commands from its stdin. */
+#define xflag	optVal[7]	/* If set, the shell will print out each command before executing it. */
+#define zflag	optVal[8]	/* If set, the file name generation process may generate zero files. */
+#define vflag	optVal[9]
 
 
 
@@ -35,6 +35,8 @@ extern char optVal[NUM_OPTS + 1];
 
 extern char *minusC;	/* Argument to -c option: the shell executes the specified shell command */
 extern char *arg0;		/* $0 */
+extern char **argPtr;	/* Argument list for builtin commands */
+extern char *optPtr;	/* Used by nextOpt */
 extern ShellParam shellParam;	/* $@ */
 extern int editable;	/* isatty(0) && isatty(1) */
 

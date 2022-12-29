@@ -6,6 +6,7 @@
 #include "options.h"
 #undef DEFINE_OPTIONS
 #include "input.h"
+#include "output.h"
 #include "trap.h"
 #include "var.h"
 #include "memalloc.h"
@@ -15,6 +16,7 @@
 char *arg0;			/* Value of $0 */
 ShellParam shellParam;	/* Current positional parameters */
 char **argPtr;		/* Argument list for builtin commands */
+char *optPtr;		/* Used by nextOpt */
 int editable;		/* isatty(0) && isatty(1) */
 char *minusC;		/* Argument to -c option */
 
@@ -46,7 +48,7 @@ static void options(int cmdLine) {
 				if (! cmdLine) {
 					/* "-" means turn off -x and -v */
 					if (p[0] == '\0')
-					  xFlag = vFlag = 0;
+					  xflag = vflag = 0;
 					/* "--" means reset params */
 					else if (*argPtr == NULL)
 					  setParam(argPtr);
@@ -121,18 +123,18 @@ void procArgs(int argc, char **argv) {
 	}
 	options(1);
 	if (*argPtr == NULL && minusC == NULL)
-	  sFlag = 1;
+	  sflag = 1;
 	editable = (isatty(0) && isatty(1));
-	if (iFlag == 2 && sFlag == 1 && editable)
-	  iFlag = 1;
-	if (jFlag == 2)
-	  jFlag = iFlag;
+	if (iflag == 2 && sflag == 1 && editable)
+	  iflag = 1;
+	if (jflag == 2)
+	  jflag = iflag;
 	for (p = optVal; p < optVal + sizeof(optVal) - 1; ++p) {
 		if (*p == 2)
 		  *p = 0;
 	}
 	arg0 = argv[0];
-	if (sFlag == 0) {
+	if (sflag == 0) {
 		arg0 = *argPtr++;
 		if (minusC == NULL) {
 			commandName = arg0;
@@ -144,8 +146,8 @@ void procArgs(int argc, char **argv) {
 		++shellParam.numParam;
 		++argPtr;
 	}
-	setInteractive(iFlag);
-	//setJobCtl(jFlag);		no job control support
+	setInteractive(iflag);
+	//setJobCtl(jflag);		no job control support
 
 	if (0) {
 		//TODO
@@ -159,6 +161,108 @@ void procArgs(int argc, char **argv) {
 			printf("%s\n", shellParam.params[i]);
 		}
 	}
+}
+
+/* The set command builtin. */
+int setCmd(int argc, char **argv) {
+	printf("=== setCmd\n");//TODO
+	if (argc == 1)
+	  return showVarsCmd(argc, argv);
+	INTOFF;
+	options(0);
+	setInteractive(iflag);
+	//setJobCtl(jflag);	TODO
+	if (*argPtr != NULL)
+	  setParam(argPtr);
+	INTON;
+	return 0;
+}
+
+/* The getOpts builtin. ShellParam.optNext points to the next argument
+ * to be processed. ShellParam.optPtr points to the next character to
+ * be processed in the current argument. If ShellParam.optNext is NULL,
+ * then it's the first time getOpts has been called.
+ */
+int getOptsCmd(int argc, char **argv) {
+	register char *p, *q;
+	char c;
+	char s[10];
+
+	if (argc != 3)
+	  error("Usage: getopts optString var");
+	if (shellParam.optNext == NULL) {
+		shellParam.optNext = shellParam.params;
+		shellParam.optPtr = NULL;
+	}
+	if ((p = shellParam.optPtr) == NULL || *p == '\0') {
+		p = *shellParam.optNext;
+		if (p == NULL || *p != '-' || *++p == '\0') {	/* No options */
+atEnd:
+			formatStr(s, 10, "%d", shellParam.optNext - shellParam.params + 1);
+			setVar("OPTIND", s, 0);
+			shellParam.optNext = NULL;
+			return 1;
+		}
+		++shellParam.optNext;
+		if (p[0] == '-' && p[1] == '\0')	/* Check for "--" */
+		  goto atEnd;
+	}
+	/* Check if option is included in optString. */
+	c = *p++;
+	for (q = argv[1]; *q != c; ) {
+		if (*q == '\0') {
+			out1Format("Illegal option -%c\n", c);
+			c = '?';
+			goto out;
+		}
+		if (*++q == ':')
+		  ++q;
+	}
+	if (*++q == ':') {	/* Option value is needed. */
+		if (*p == '\0') {
+			if ((p = *shellParam.optNext) == NULL) {
+				out1Format("No arg for -%c option\n", c);
+				c = '?';
+				goto out;
+			}
+			++shellParam.optNext;
+		}
+		setVar("OPTARG", p, 0);
+		p = "";
+	}
+out:
+	shellParam.optPtr = p;
+	s[0] = c;
+	s[1] = '\0';
+	setVar(argv[2], s, 0);
+	formatStr(s, 10, "%d", shellParam.optNext - shellParam.params + 1);
+	setVar("OPTIND", s, 0);
+	return 0;
+}
+
+/* The shift builtin command. */
+int shiftCmd(int argc, char **argv) {
+	int n;
+	char **ap1, **ap2;
+
+	n = 1;
+	if (argc > 1)
+	  n = number(argv[1]);
+	if (n > shellParam.numParam)
+	  n = shellParam.numParam;
+
+	INTOFF;
+	shellParam.numParam -= n;
+	for (ap1 = shellParam.params; --n >= 0; ++ap1) {
+		if (shellParam.malloc)
+		  ckFree(*ap1);
+	}
+	ap2 = shellParam.params;
+	while ((*ap2++ = *ap1++) != NULL) {
+	}
+	shellParam.optNext = NULL;
+	INTON;
+	return 0;
 }
 
 

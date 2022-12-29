@@ -138,6 +138,7 @@ int readWrite(int rwFlag) {
 	if ((r = sysUMap(usr, seg, (vir_bytes) inMsg.m_buffer, 
 						inMsg.m_nbytes, &p)) != OK)
 	  return r;
+
 	position = fp->filp_pos;
 	oFlags = fp->filp_flags;
 	ip = fp->filp_inode;

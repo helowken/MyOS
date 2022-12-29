@@ -23,7 +23,9 @@ OBJS_M32 = \
 		_setsid.o \
 		_waitpid.o \
 		_wait.o \
+		_stat.o \
 		_fstat.o \
+		lstat.o \
 		_open.o \
 		_dup.o \
 		_fcntl.o \
@@ -38,7 +40,8 @@ OBJS_M32 = \
 		_isatty.o \
 		_tcgetattr.o \
 		_ioctl.o \
-		_kill.o
+		_kill.o \
+		_umask.o
 
 
 all: build

@@ -665,6 +665,8 @@ static void doWrite(register TTY *tp, register Message *msg) {
 		r = EINVAL;
 	} else if (sysUMap(msg->PROC_NR, D, (vir_bytes) 
 					msg->ADDRESS, msg->COUNT, &physAddr) != OK) {
+		r = EFAULT;
+	} else {
 		/* Copy message parameters to the tty structure. */
 		tp->tty_out_rep_code = TASK_REPLY;
 		tp->tty_out_caller = msg->m_source;

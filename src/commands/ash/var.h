@@ -65,7 +65,12 @@ extern Var vterm;
 void initVar();
 void setVar(char *, char *, int);
 void setVarEq(char *, int);
+struct StrList;
+void listSetVar(struct StrList *);
 char *lookupVar(char *);
+char **environment();
+int showVarsCmd(int, char **);
+void mkLocal(char *);
 
 
 

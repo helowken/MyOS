@@ -1,4 +1,1 @@
-# /etc/rc System startup script run by init before going multiuser.
-
-umask 022
-
+echo \01

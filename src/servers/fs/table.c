@@ -23,6 +23,7 @@ void initSysCalls() {
 	map(OPEN, doOpen);		/* 5 = open */
 	map(CLOSE, doClose);	/* 6 = close */
 	map(CHDIR, doChdir);	/* 12 = chdir */
+	map(STAT, doStat);		/* 18 = stat */
 	map(LSEEK, doLseek);	/* 19 = lseek */
 	map(SETUID, doSet);		/* 23 = setuid */
 	map(FSTAT, doFstat);	/* 28 = fstat */
@@ -32,6 +33,7 @@ void initSysCalls() {
 	map(IOCTL, doIoctl);	/* 54 = ioctl */
 	map(FCNTL, doFcntl);	/* 55 = fcntl */
 	map(EXEC, doExec);		/* 59 = execve */
+	map(UMASK, doUmask);	/* 60 = umask */
 }
 
 

@@ -57,5 +57,9 @@ struct stat {
 
 int fstat(int fd, struct stat *buf);
 int stat(const char *path, struct stat *buf);
+mode_t umask(mode_t mask);
+
+/* Open Group Base Specifications Issue 6 (not complete) */
+int lstat(const char *path, struct stat *buf);
 
 #endif

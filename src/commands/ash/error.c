@@ -5,6 +5,7 @@
 #include "shell.h"
 #include "main.h"
 #include "options.h"
+#include "output.h"
 #include "error.h"
 #include "signal.h"
 #include "stdarg.h"
@@ -36,7 +37,7 @@ void exRaise(int e) {
  * this routine is not called.) SuppressInt is nonzero when interrupts
  * are held using the INTOFF macro. The call to _exit is necessary because
  * there is a short period after a fork before the signal handlers are
- * set to the appropriate value for the child. (The test for iFlag is
+ * set to the appropriate value for the child. (The test for iflag is
  * just defensive programming.)
  */
 void onInt() {
@@ -45,12 +46,33 @@ void onInt() {
 		return;
 	}
 	intPending = 0;
-	if (rootShell && iFlag) 
+	if (rootShell && iflag) 
 	  exRaise(EX_INT);
 	else
 	  _exit(128 + SIGINT);
 }
 
+/* Error is called to raise the error exception. If the first argument
+ * is not NULL then error prints an error message using printf style
+ * formatting. It then raises the error exception.
+ */
 void error(char *msg, ...) {
-//TODO
+	va_list ap;
+
+	CLEAR_PENDING_INT;
+	INTOFF;
+	va_start(ap, msg);
+	if (msg) {
+		if (commandName)
+		  outFormat(&errOut, "%s: ", commandName);
+		doFormat(&errOut, msg, ap);
+		out2Char('\n');
+	}
+	va_end(ap);
+	flushAll();
+	exRaise(EX_ERROR);
+}
+
+void error2(char *a, char *b) {
+	error("%s: %s", a, b);
 }

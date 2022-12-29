@@ -43,6 +43,7 @@ Filp *getFilp(int fd);
 /* stadir.c */
 int doChdir();
 int doFstat();
+int doStat();
 
 /* super.c */
 bit_t allocBit(SuperBlock *sp, int map, bit_t origin);
@@ -57,6 +58,7 @@ void revive(int proc, int bytes);
 
 /* protect.c */
 int doAccess();
+int doUmask();
 int checkReadOnly(Inode *ip);
 int checkForbidden(Inode *ip, mode_t accessDesired);
 

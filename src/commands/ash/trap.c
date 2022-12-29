@@ -95,13 +95,13 @@ int setSignal(int sigNum) {
 	if (rootShell && action == S_DFL) {
 		switch (sigNum) {
 			case SIGINT:
-				if (iFlag)
+				if (iflag)
 				  action = S_CATCH;
 				break;
 			case SIGQUIT:
 				/* Fall through */
 			case SIGTERM:
-				if (iFlag)
+				if (iflag)
 				  action = S_IGN;
 				break;
 		}
@@ -156,6 +156,11 @@ void exitShell(int status) {
 	//TODO
 	
 	_exit(status);
+}
+
+int trapCmd(int argc, char **argv) {
+	printf("=== trapCmd\n");//TODO
+	return 0;
 }
 
 

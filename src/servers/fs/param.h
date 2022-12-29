@@ -3,7 +3,7 @@
 #define m_addr			m1_i3
 #define m_buffer		m1_p1
 #define m_child			m1_i2
-
+#define m_mask			m1_i1
 #define m_egid			m1_i3
 #define m_euid			m1_i3
 
@@ -20,7 +20,7 @@
 #define m_c_name		m1_p1
 #define m_name			m3_p1
 #define	m_name1			m1_p1
-
+#define m_name2			m1_p2
 #define m_name_length	m3_i1
 #define m_name1_length	m1_i1
 

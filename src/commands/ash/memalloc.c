@@ -21,7 +21,7 @@ pointer ckMalloc(int bytes) {
 	register pointer p;
 	pointer malloc();
 
-	if ((p = malloc()) == NULL)
+	if ((p = malloc(bytes)) == NULL)
 	  error("Out of space");
 	return p;
 }
@@ -152,3 +152,8 @@ char *growStackStr() {
 	return stackBlock() + len;
 }
 
+void ungrabStackStr(char *s, char *p) {
+	stackNumLeft += stackNext - s;
+	stackNext = s;
+	stackStrNumLeft = stackNumLeft - (p - s);
+}

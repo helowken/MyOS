@@ -121,7 +121,22 @@ int doChdir() {
 	return changeDir(&currFp->fp_work_dir, inMsg.m_name, inMsg.m_name_length);
 }
 
+int doStat() {
+/* Perform the stat(name, buf) system call. */
+	register Inode *rip;
+	register int r;
 
+	/* Both stat() and fstat() use the same routine to do the real work. That
+	 * routine expects an inode, so acquire it temporarily.
+	 */
+	if (fetchName(inMsg.m_name1, inMsg.m_name1_length, M1) != OK)
+	  return errCode;
+	if ((rip = eatPath(userPath)) == NIL_INODE)
+	  return errCode;
+	r = statInode(rip, NIL_FILP, inMsg.m_name2);	/* Actually do the work. */
+	putInode(rip);		/* Release the inode */
+	return r;
+}
 
 
 

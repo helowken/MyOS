@@ -34,6 +34,9 @@ $(MK_NODES): mknodes.c
 mknodes: $(MK_NODES)
 	./$< nodetypes nodespat.c
 
+mkbuiltins:	mkbuiltins.sh 
+	./$< builtins.table
+
 clean: 
 	rm -f *.o *.bin
 

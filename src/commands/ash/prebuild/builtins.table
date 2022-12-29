@@ -1,0 +1,36 @@
+#!/bin/sh -
+
+
+# This file lists all the builtin commands. The first column is the name
+# of a C routine. The -j flag, if present, specifies that this command
+# is to be excluded from systems without job control. The rest of the line
+# specifies the command name or names used to run the command. The entry
+# for nullcmd, which is run when the user does not specify a command, must
+# come first.
+
+bltinCmd	command
+breakCmd	break continue
+cdCmd		cd chdir
+dotCmd		.
+echoCmd		echo
+evalCmd		eval
+execCmd		exec
+exitCmd		exit
+exportCmd	export readonly
+exprCmd		expr test [
+getOptsCmd	getopts
+hashCmd		hash
+jobIdCmd	jobid
+jobsCmd		jobs
+localCmd	local
+pwdCmd		pwd
+readCmd		raed
+returnCmd	return
+setCmd		set
+setVarCmd	setvar
+shiftCmd	shift
+trapCmd		trap
+trueCmd		: true false
+umaskCmd	umask
+unsetCmd	unset
+waitCmd		wait
