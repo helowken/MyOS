@@ -27,6 +27,7 @@ extern int errno;
 #define EFAULT			(_SIGN 14)	/* Bad address */
 #define EBUSY			(_SIGN 16)	/* Resource busy */
 #define EEXIST			(_SIGN 17)	/* File exists */
+#define EXDEV			(_SIGN 18)	/* Improper link */
 #define ENODEV			(_SIGN 19)	/* No such device */
 #define ENOTDIR			(_SIGN 20)	/* Not a directory */
 #define EISDIR			(_SIGN 21)	/* Is a directory */

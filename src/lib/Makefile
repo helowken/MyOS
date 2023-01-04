@@ -7,7 +7,8 @@ MODULES = \
 		syslib \
 		sysutil \
 		timers \
-		rts
+		rts \
+		stdio
 
 
 include ../modules.mk

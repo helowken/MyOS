@@ -3,6 +3,9 @@
 
 #define EXTERN		extern		/* Used in *.h files */
 
+#define TRUE			1		/* Used for turning integers into Booleans */
+#define FALSE			0		/* Used for turning integers into Booleans */
+
 #define HZ				60		/* clock freq (software settable on IBM-PC) */
 
 #define SUPER_USER		0		/* uid_t of superuser */

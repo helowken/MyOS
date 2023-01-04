@@ -310,7 +310,15 @@ int doLseek() {
 	return OK;
 }
 
+int doCreat() {
+/* Perform the creat(name, mode) system call. */
+	int r;
 
+	if (fetchName(inMsg.m_name, inMsg.m_name_length, M3) != OK)
+	  return errCode;
+	r = commonOpen(O_WRONLY | O_CREAT | O_TRUNC, (mode_t) inMsg.m_mode);
+	return r;
+}
 
 
 

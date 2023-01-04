@@ -9,7 +9,7 @@
 #include "stdlib.h"
 #include "loc_incl.h"
 
-ssize_t _read(ssize_t d, char *buf, size_t bytes);
+ssize_t read(int fd, void *buf, size_t n);
 
 int __fillBuf(register FILE *stream) {
 	static unsigned char ch[FOPEN_MAX];
@@ -55,7 +55,7 @@ int __fillBuf(register FILE *stream) {
 		stream->_bufSize = 1;
 	}
 	stream->_ptr = stream->_buf;
-	stream->_count = _read(stream->_fd, (char *) stream->_buf, stream->_bufSize);
+	stream->_count = read(stream->_fd, (char *) stream->_buf, stream->_bufSize);
 
 	if (stream->_count <= 0) {
 		if (stream->_count == 0) 

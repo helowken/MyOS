@@ -45,6 +45,7 @@ struct flock {
 	pid_t l_pid;			/* Process id of the locks' owner */
 };
 
+int creat(const char *path, mode_t mode);
 int fcntl(int fd, int cmd, ...);
 int open(const char *path, int oflag, ...);
 

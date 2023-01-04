@@ -23,7 +23,7 @@
 #define m_name2			m1_p2
 #define m_name_length	m3_i1
 #define m_name1_length	m1_i1
-
+#define m_name2_length	m1_i2
 #define m_nbytes		m1_i2
 
 #define m_parent		m1_i1

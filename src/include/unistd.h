@@ -31,7 +31,9 @@
 #define SI_PROC_TAB		2	/* Copy of entire process table */
 
 /* NULL must be defined in <unistd.h> according to POSIX. */
+#ifndef NULL
 #define NULL	((void *) 0)
+#endif
 
 void _exit(int status);
 int access(const char *path, int mode);
@@ -52,6 +54,7 @@ int setgid(gid_t gid);
 off_t lseek(int fd, off_t offset, int whence);
 int pause();
 ssize_t read(int fd, void *buf, size_t n);
+int unlink(const char *path);
 ssize_t write(int fd, const void *buf, size_t count);
 
 

@@ -41,7 +41,10 @@ OBJS_M32 = \
 		_tcgetattr.o \
 		_ioctl.o \
 		_kill.o \
-		_umask.o
+		_umask.o \
+		_creat.o \
+		_unlink.o \
+		_rename.o
 
 
 all: build

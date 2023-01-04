@@ -5,17 +5,17 @@
 #include "stdio.h"
 
 struct __iobuf __stdin = {
-	0, 0, _IOREAD, 0,
+	0, 0, _IOREAD | _IOLBF, 0,
 	(unsigned char *) NULL, (unsigned char *) NULL
 };
 
 struct __iobuf __stdout = {
-	0, 0, _IOWRITE, 0,
+	0, 1, _IOWRITE | _IOLBF, 0,
 	(unsigned char *) NULL, (unsigned char *) NULL
 };
 
 struct __iobuf __stderr = {
-	0, 0, _IOWRITE | _IOLBF, 0,
+	0, 2, _IOWRITE | _IONBF, 0,
 	(unsigned char *) NULL, (unsigned char *) NULL
 };
 

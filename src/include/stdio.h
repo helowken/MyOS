@@ -35,7 +35,9 @@ typedef struct __iobuf {
 #define stderr		(&__stderr)
 
 #define BUFSIZ		1024
+#ifndef NULL
 #define NULL		((void *)0)
+#endif
 #define EOF			(-1)
 
 #define FOPEN_MAX	20
@@ -57,19 +59,59 @@ typedef unsigned int	size_t;		/* Type returned by sizeof */
 extern FILE *__iotab[FOPEN_MAX];
 extern FILE __stdin, __stdout, __stderr;
 
-FILE *fopen(const char *path, const char *mode);
+int remove(const char *path);
+int rename(const char *oldPath, const char *newPath);
+FILE *tmpfile(void);
+char *tmpnam(char *s);
 int fclose(FILE *stream);
 int fflush(FILE *stream);
-size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
-int fseek(FILE *stream, long offset, int whence);
-int ferror(FILE *stream);
+FILE *fopen(const char *path, const char *mode);
+FILE *freopn(const char *path, const char *mode, FILE *stream);
+void setbuf(FILE *stream, char *buf);
+void setvbuf(FILE *stream, char *buf, int mode, size_t size);
+int fprintf(FILE * stream, const char *format, ...);
 int printf(const char *format, ...);
+int sprintf(char *s, const char *format, ...);
+int vfprintf(FILE *stream, const char *format, char *ap);
+int vprintf(const char *format, char *ap);
+int vsprintf(char *s, const char *format, char *ap);
+int fscanf(FILE *stream, const char *format, ...);
+int scanf(const char *format, ...);
+int sscanf(const char *s, const char *format, ...);
+#define vfscanf	_doScan
+int vfscanf(FILE *stream, const char *format, char *ap);
+int vscanf(const char *format, char *ap);
+int vsscanf(const char *s, const char *format, char *ap);
+int fgetc(FILE *stream);
+char *fgets(char *s, int size, FILE *stream);
+int fputc(int c, FILE *stream);
+int fputs(const char *s, FILE *stream);
+int getc(FILE *stream);
+int getchar(void);
+char *gets(char *s);
+int putc(int c, FILE *stream);
+int putchar(int c);
+int puts(const char *s);
+int ungetc(int c, FILE *stream);
+size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
+size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
+int fgetpos(FILE *stream, fpos_t *pos);
+int fseek(FILE *stream, long offset, int whence);
+int fsetpos(FILE *stream, fpos_t *pos);
+long ftell(FILE *stream);
+void rewind(FILE *stream);
+void clearerr(FILE *stream);
+int feof(FILE *stream);
+int ferror(FILE *stream);
+void perror(const char *s);
+int __fillBuf(FILE *stream);
+int __flushBuf(int c, FILE *stream);
 
 #define getchar()	getc(stdin)
 #define putchar(c)	putc(c, stdout)
 #define getc(p)		(--(p)->_count >= 0 ? \
 						(int) (*(p)->_ptr++) : \
-						_fillBuf(p))
+						__fillBuf(p))
 #define putc(c, p)	(--(p)->_count >= 0 ? \
 						(int) (*(p)->_ptr++ = (c)) : \
 						__flushBuf((c), (p)))
@@ -88,6 +130,7 @@ FILE *fdopen(int fildes, const char *types);
 
 #ifdef _MINIX
 int snprintf(char *str, size_t size, const char *format, ...);
+int vsnprintf(char *str, size_t size, const char *format, char *ap);
 #endif
 
 #endif
