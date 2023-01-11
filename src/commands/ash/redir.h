@@ -11,3 +11,4 @@ void redirect(union Node *, int);
 void popRedir();
 int copyFd(int, int);
 void clearRedir();
+int isFd0Redirected();

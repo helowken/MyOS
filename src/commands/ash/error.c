@@ -20,7 +20,6 @@ volatile int intPending;
 char *commandName;
 
 
-
 /* Called to raise an exception. Since C doesn't include exception, we
  * just do a longjmp to the exception handler. The type of exception is
  * stored in the global variable "exception"
@@ -76,3 +75,4 @@ void error(char *msg, ...) {
 void error2(char *a, char *b) {
 	error("%s: %s", a, b);
 }
+

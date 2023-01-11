@@ -11,7 +11,35 @@ OBJS_M32 = \
 		fclose.o \
 		tmpfile.o \
 		tmpnam.o \
-		icompute.o
+		icompute.o \
+		setbuf.o \
+		setvbuf.o \
+		fprintf.o \
+		printf.o \
+		sprintf.o \
+		vfprintf.o \
+		vprintf.o \
+		vsprintf.o \
+		fscanf.o \
+		scanf.o \
+		sscanf.o \
+		vscanf.o \
+		vsscanf.o \
+		fgetc.o \
+		fgets.o \
+		fputc.o \
+		fputs.o \
+		gets.o \
+		puts.o \
+		ungetc.o \
+		fread.o \
+		fwrite.o \
+		fgetpos.o \
+		fseek.o \
+		fsetpos.o \
+		ftell.o \
+		rewind.o \
+		perror.o 
 
 
 all: build

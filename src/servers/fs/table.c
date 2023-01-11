@@ -33,6 +33,7 @@ void initSysCalls() {
 	map(RENAME, doRename);	/* 38 = rename */
 	map(MKDIR, doMkdir);	/* 39 = mkdir */
 	map(RMDIR, doUnlink);	/* 40 = rmdir */
+	map(PIPE, doPipe);		/* 42 = pipe */
 	map(SETGID, doSet);		/* 46 = setgid */
 	map(IOCTL, doIoctl);	/* 54 = ioctl */
 	map(FCNTL, doFcntl);	/* 55 = fcntl */

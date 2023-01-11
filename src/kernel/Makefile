@@ -18,7 +18,7 @@ $(LIB_SYSTEM): $(DIR_SYSTEM)/*.o
 $(BIN): $(OBJS) $(LIB_SYSTEM)
 	$(call link,$(OBJS),$(LIBS),$@) 
 	$(call createDebug,$@,$(DEBUG))
-	$(call setStack,0,$(BIN))
+	$(call setStack,0,$@)
 
 clean: 
 	cd $(DIR_SYSTEM) && $(MAKE) clean

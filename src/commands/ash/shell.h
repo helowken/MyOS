@@ -21,4 +21,6 @@ typedef void *	pointer;
 
 extern char nullStr[1];		/* Null string */
 
+#ifndef AAA
 #include "stdio.h"//TODO
+#endif

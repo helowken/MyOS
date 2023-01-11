@@ -275,6 +275,16 @@ retry:
 	return *parseNextChar++;
 }
 
+/* Close the file(s) that the shell is reading commands from.
+ * Called after a fork is done.
+ */
+void closeScript() {
+	popAllFiles();
+	if (parseFile->fd > 0) {
+		close(parseFile->fd);
+		parseFile->fd = 0;
+	}
+}
 
 
 

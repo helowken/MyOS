@@ -139,4 +139,6 @@
 
 typedef unsigned short	keymap_t[NR_SCAN_CODES * MAP_COLS];
 
+#define KEY_MAGIC	"KMAZ"		/* Magic number of keyMap file */
+
 #endif

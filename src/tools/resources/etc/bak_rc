@@ -43,3 +43,12 @@ case "$#:$1" in
 	;;
 *)	usage
 esac
+
+case $action in
+start)
+	echo ""
+	echo -n "Multiuser startup in progress ...:"
+
+	# National keyboard?
+	test -f /etc/keymap && loadKeys /etc/keymap
+esac

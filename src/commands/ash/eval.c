@@ -6,6 +6,7 @@
 #include "syntax.h"
 #include "expand.h"
 #include "parser.h"
+#include "jobs.h"
 #include "eval.h"
 #include "exec.h"
 #include "builtins.h"
@@ -19,6 +20,7 @@
 #include "error.h"
 #include "mystring.h"
 #include "signal.h"
+#include "unistd.h"
 
 
 /* Flags in argument to evalTree */
@@ -82,7 +84,6 @@ static void expRedir(Node *n) {
 	register Node *redir;
 
 	for (redir = n; redir; redir = redir->nFile.next) {
-		//printf("=== expand redirect...\n");
 		if (redir->type == NFROM ||
 				redir->type == NTO ||
 				redir->type == NAPPEND) {
@@ -101,12 +102,14 @@ static void evalCommand(Node *cmd, int flags, BackCmd *backCmd) {
 	ArgList varList;
 	char **argv;
 	int argc;
-	//char **envp;
+	char **envp;
 	int varFlag;
 	StrList *sp;
 	register char *p;
 	int mode;
+	int pip[2];
 	CmdEntry cmdEntry;
+	Job *jp;
 	JmpLoc jmpLoc;
 	JmpLoc *volatile saveHandler;
 	char *volatile saveCmdName;
@@ -135,8 +138,9 @@ static void evalCommand(Node *cmd, int flags, BackCmd *backCmd) {
 	}
 	*argList.last = NULL;
 	*varList.last = NULL;
-
 	expRedir(cmd->nCmd.redirect);
+
+	/* Compute argc, populate argv and set lastArg if needed. */
 	argc = 0;
 	for (sp = argList.list; sp; sp = sp->next) {
 		++argc;
@@ -151,6 +155,7 @@ static void evalCommand(Node *cmd, int flags, BackCmd *backCmd) {
 		lastArg = argv[-1];
 	}
 	argv -= argc;
+
 	/* Print the command if xFlag is set. */
 	if (xflag == 1) {
 		outChar('+', &errOut);
@@ -173,6 +178,7 @@ static void evalCommand(Node *cmd, int flags, BackCmd *backCmd) {
 	} else {
 		findCommand(argv[0], &cmdEntry, 1);
 		if (cmdEntry.cmdType == CMD_UNKNOWN) {	/* Command not found */
+			printf("=== cmd is unknown.\n");
 			exitStatus = 2;
 			flushOut(&errOut);
 			popStackMark(&stackMark);
@@ -204,13 +210,32 @@ static void evalCommand(Node *cmd, int flags, BackCmd *backCmd) {
 				(cmdEntry.cmdType != CMD_BUILTIN ||
 					cmdEntry.u.index == DOTCMD ||
 					cmdEntry.u.index == EVALCMD))) {
-		printf("=== backgnd, cmdType: %d\n", cmdEntry.cmdType);
-		//TODO
+		jp = makeJob(cmd, 1);
+		mode = cmd->nCmd.backgnd;
+		if (flags & EV_BACKCMD) {
+			printf("==== fork no job with pipe\n");
+			mode = FORK_NO_JOB;
+			if (pipe(pip) < 0)
+			  error("Pipe call failed");
+		}
+		if (forkShell(jp, cmd, mode) != 0)
+		  goto parent;		/* At end of routine */
+		if (flags & EV_BACKCMD) {
+			FORCE_INTON;
+			close(pip[0]);
+			if (pip[1] != 1) {
+				close(1);
+				copyFd(pip[1], 1);
+				close(pip[1]);
+			}
+		}
+		flags |= EV_EXIT;
 	}
 
 	/* This is the child process if a fork occurred. */
 	/* Execute the command. */
 	if (cmdEntry.cmdType == CMD_FUNCTION) {
+		printf("=== cmd is function\n");
 		//TODO
 	} else if (cmdEntry.cmdType == CMD_BUILTIN) {
 		mode = (cmdEntry.u.index == EXECCMD) ? 0 : REDIR_PUSH;
@@ -238,7 +263,6 @@ static void evalCommand(Node *cmd, int flags, BackCmd *backCmd) {
 		flushAll();
 cmdDone:
 		out1 = &output;
-		printf("==== result: %s\n", out1->buf);
 		out2 = &errOut;
 		freeStdout();
 		if (e != EX_SHELL_PROC) {
@@ -264,11 +288,33 @@ cmdDone:
 			memOut.buf = NULL;
 		}
 	} else {
-		//TODO
+		clearRedir();
+		redirect(cmd->nCmd.redirect, 0);
+		if (varList.list) {
+			p = stackAlloc(strlen(pathVal()) + 1);
+			scopy(pathVal(), p);
+		} else {
+			p = pathVal();
+		}
+		for (sp = varList.list; sp; sp = sp->next) {
+			setVarEq(sp->text, V_EXPORT | V_STACK);
+		}
+		envp = environment();
+		shellExec(argv, envp, p, cmdEntry.u.index);
+		/* Not reached. */
 	}
 	goto out;
 
-//TODO parent:		/* Parent process gets here (if we forked) */
+parent:		/* Parent process gets here (if we forked) */
+	if (mode == FORK_FG) {	/* Argument to fork */
+		INTOFF;
+		exitStatus = waitForJob(jp);
+		INTON;
+	} else if (mode == FORK_NO_JOB) {
+		backCmd->fd = pip[0];
+		close(pip[1]);
+		backCmd->jp = jp;
+	}
 
 out:
 	if (lastArg)
@@ -352,7 +398,7 @@ void evalTree(Node *n, int flags) {
 			break;
 		case NOR:
 			evalTree(n->nBinary.ch1, EV_TESTED);
-			if (evalSkip || exitStatus != 0)
+			if (evalSkip || exitStatus == 0)
 			  goto out;
 			evalTree(n->nBinary.ch2, flags);
 			break;

@@ -53,6 +53,7 @@ int getBlockSize(dev_t dev);
 void freeBit(SuperBlock *sp, int map, bit_t bitReturned);
 
 /* pipe.c */
+int doPipe(void);
 void suspend(int task);
 void revive(int proc, int bytes);
 

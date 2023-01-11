@@ -205,6 +205,19 @@ state4:
 	exitShell(exitStatus);
 }
 
+void readCmdFile(char *name) {
+	int fd;
+
+	INTOFF;
+	if ((fd = open(name, O_RDONLY)) >= 0)
+	  setInputFd(fd, 1);
+	else
+	  error("Can't open %s", name);
+	INTON;
+	cmdLoop(0);
+	popFile();
+}
+
 /* Take commands from a file. To be compatable we should do a path
  * search for the file, but a path search doesn't make any sense.
  */

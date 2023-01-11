@@ -18,7 +18,7 @@ static void setStackSize(size_t stackSize, char *path) {
 int main(int argc, char **argv) {
 	progName = argv[0];
 	if (argc < 3) 
-	  usageErr("Usage: %s stackSize program\n", progName);	
+	  usageErr("%s stackSize program\n", progName);	
 
 	setStackSize(atoi(argv[1]), argv[2]);
 	return EXIT_SUCCESS;

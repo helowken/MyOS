@@ -1,11 +1,11 @@
 
 
+#define AAA	//TODO
 
 #include "../shell.h"
 #include "../mystring.h"
 #ifdef SHELL
 #include "../output.h"
-/*
 #define stdout	out1
 #define stderr	out2
 #define printf	out1Format
@@ -14,7 +14,6 @@
 #define fprintf	outFormat
 #define fputs	outStr
 #define fflush	flushOut
-*/
 #define INIT_ARGS(argv)
 #else
 #undef NULL

@@ -8,6 +8,7 @@
 #include "minix/dmap.h"
 #include "minix/callnr.h"
 #include "sys/types.h"
+#include "stdint.h"
 #include "minix/const.h"
 #include "minix/devio.h"
 #include "minix/syslib.h"

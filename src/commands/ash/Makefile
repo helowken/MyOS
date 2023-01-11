@@ -3,7 +3,7 @@ include $(MY_HOME)/common.mk
 CFLAGS += -DSHELL -D_MINIX -D_POSIX_SOURCE 
 LIBS = -L$(MY_HOME)/lib \
 	   -lmysys -lmysysutil -lmytimers -lmyc -le
-DST_DIR = $(MY_HOME)/tools/resources/bin
+DST_DIR = $(RES_DIR)/bin
 PB_DIR = prebuild
 BLTIN_DIR = bltin
 
@@ -27,18 +27,20 @@ CLEAN_FILES = builtins.c builtins.h init.c signames.c signames.h \
 STACK_SIZE = 102400
 BIN = sh.bin
 
-all: doInit $(BIN)
+all: compile $(BIN)
 
 $(OBJS): init.h syntax.h signames.h nodes.h $(BLTIN_DIR)/*.h
 
-doInit:
+init:
 	cd $(PB_DIR) && $(MAKE)
+
+compile: init token.h $(BLTIN_DIR)/operators.h
 
 $(BIN): $(START_FILE) $(OBJS)
 	$(call link,$^,$(LIBS),$@) 
 	$(call createDebug,$@,$(DEBUG))
-	$(call setStack,$(STACK_SIZE),$(BIN))
-	cp $@ $(DST_DIR)/$(NAME)
+	$(call setStack,$(STACK_SIZE),$@)
+	$(call copyTo,$@,$(DST_DIR))
 
 init.c: $(PB_DIR)/mkinit.bin $(SRCS)
 	cd $(PB_DIR) && $(MAKE) mkinit ARGS="$(SRCS)"
@@ -60,7 +62,7 @@ nodes.c nodes.h: $(PB_DIR)/mknodes.bin $(PB_DIR)/nodetypes $(PB_DIR)/nodespat.c
 builtins.c builtins.h: $(PB_DIR)/mkbuiltins.sh $(PB_DIR)/builtins.table
 	cd $(PB_DIR) && $(MAKE) mkbuiltins
 
-$(BLTIN_DIR)/operators.h $(BLTIN_DIR)/operators.c: $(BLTIN_DIR)/mkexpr.sh $(BLTIN_DIR)/unary_op $(BLTIN_DIR)/binary_op
+$(BLTIN_DIR)/operators.c $(BLTIN_DIR)/operators.h: $(BLTIN_DIR)/mkexpr.sh $(BLTIN_DIR)/unary_op $(BLTIN_DIR)/binary_op
 	cd $(BLTIN_DIR) && $(MAKE) mkexpr
 
 $(BLTIN_DIR)/expr.o: $(BLTIN_DIR)/operators.h
@@ -69,7 +71,10 @@ clean:
 	cd $(PB_DIR) && $(MAKE) clean
 	cd $(BLTIN_DIR) && $(MAKE) clean
 	rm -f $(CLEAN_FILES)
+	rm -f $(DST_DIR)/$(BIN)
 	$(call cleanCommon)
 
 disasm: $(DEBUG)
 	$(call disasmCode,$<,32)
+
+

@@ -16,6 +16,11 @@
 #define SEEK_CUR		1	/* Offset is relative to current position */
 #define SEEK_END		2	/* Offset is relative to end of file */
 
+/* These three definitions are required by POSIX */
+#define STDIN_FILENO	0	/* File descriptor for stdin */
+#define STDOUT_FILENO	1	/* File descriptor for stdout */
+#define STDERR_FILENO	2	/* File descriptor for stderr */
+
 #ifdef _MINIX
 /* How to exit the system or stop a server process. */
 #define RBT_HALT		0	
@@ -53,6 +58,7 @@ int setuid(uid_t uid);
 int setgid(gid_t gid);
 off_t lseek(int fd, off_t offset, int whence);
 int pause();
+int pipe(int fds[2]);
 ssize_t read(int fd, void *buf, size_t n);
 int unlink(const char *path);
 ssize_t write(int fd, const void *buf, size_t count);

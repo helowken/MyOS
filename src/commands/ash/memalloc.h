@@ -29,6 +29,7 @@ void grabStackBlock(int);
 char *growStackStr();
 char *makeStrSpace();
 pointer stackAlloc(int);
+void stackUnalloc(pointer);
 void ungrabStackStr(char *, char *);
 
 

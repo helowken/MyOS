@@ -1,5 +1,5 @@
-MODULES = \
-		ash
+MODULES = ash \
+		  ibm
 
 
 include ../modules.mk

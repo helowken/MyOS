@@ -18,6 +18,7 @@ typedef struct {
 } CmdEntry;
 
 void shellExec(char **, char **, char *, int);
+char *pathAdvance(char **, char *);
 void changePath(char *);
 void defineFunc(char *, union Node *);
 void findCommand(char *, CmdEntry *, int);

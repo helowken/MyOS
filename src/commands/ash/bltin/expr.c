@@ -123,8 +123,9 @@ true:
 				sp->u.num = 1;
 			} else {
 false:
-				sp->type = BOOLEAN;
+				sp->u.num = 0;
 			}
+			sp->type = BOOLEAN;
 			break;
 		case IS_SETUID:
 			i = S_ISUID;

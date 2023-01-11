@@ -3,6 +3,7 @@ LIB_NAME = myc
 NEED_16 = 1
 
 OBJS_M32 = \
+		memcmp.o \
 		memcpy.o \
 		strcat.o \
 		strcpy.o \
@@ -24,7 +25,9 @@ OBJS_M32 = \
 		signal.o \
 		getenv.o \
 		sigmisc.o \
-		malloc.o
+		malloc.o \
+		strerror.o \
+		errlist.o
 
 		
 OBJS_M16 = \

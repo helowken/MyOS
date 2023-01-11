@@ -9,14 +9,8 @@ DISK_IMAGE = $(DIR_DEVICE)/testOS.img
 BOOT_IMG_SECTORS = 2048
 
 # Partition
-DEV_SIZE = $(shell stat -c%s $(DISK_IMAGE))
 ROOT_MB = 16
-ROOT_SECTORS = $(shell expr $(ROOT_MB) '*' 1024 '*' 2)
-HOME_SECTORS = $(shell expr $(DEV_SIZE) '/' 5 '/' 512)
-PART_TYPE = 81
-ROOT_PART = $(PART_TYPE):$(ROOT_SECTORS)* 
-HOME_PART = $(PART_TYPE):$(HOME_SECTORS)
-USR_PART = $(PART_TYPE):0+
+PART_TYPE=81
 
 # Make FS
 PRIMARY = p0
@@ -29,6 +23,8 @@ LIBS = -L$(MY_HOME)/lib/m16 -lmyc -lmysysutil
 INSTALL = $(DIR_TOOLS)/installboot.bin
 MKFS = $(DIR_TOOLS)/mkfs.bin
 PARTITION = $(DIR_TOOLS)/partition.bin
+MASTER_BOOT = masterboot.bin
+BOOT_BLOCK = bootblock.bin
 BOOT = boot.bin
 ENV_MODULES_FILE=$(MY_HOME)/env_modules
 
@@ -43,6 +39,9 @@ PROGRAMS = ../kernel/kernel.bin \
 
 all: compile
 
+$(DISK_IMAGE):
+	cd $(DIR_DEVICE) && ./run && cd ..
+
 # Please see README for how to install Bochs.
 # Need to use a Bochs without gdb support.
 run: rm_lock
@@ -54,10 +53,6 @@ gdb: rm_lock
 
 rm_lock:
 	rm -f $(DISK_IMAGE).lock
-
-compile: masterboot.bin \
-		 bootblock.bin \
-		 $(BOOT)
 
 %.bin: %.asm
 	nasm -f bin $< -o $@
@@ -74,25 +69,21 @@ boot.elf: \
 $(BOOT): boot.elf
 	objcopy -O binary -j .text -j .rodata -j .data $< $@ 
 
-install: partition \
-	mkfs \
-	install_masterboot \
-	install_device 
+compile: $(MASTER_BOOT) $(BOOT_BLOCK) $(BOOT)
 
-install_masterboot: masterboot.bin 
-	$(INSTALL) -m $(DISK_IMAGE) $<
-	$(INSTALL) -m $(PRIMARY):$(DISK_IMAGE) $<
+install: install_masterboot install_device 
 
-install_device: bootblock.bin $(BOOT)
-	$(INSTALL) -d $(FS_ROOT):$(DISK_IMAGE) $^ $(BOOT_IMG_SECTORS) \
-		$(ENV_MODULES_FILE) $(PROGRAMS)
-
-partition:
-	cd $(DIR_DEVICE) && ./run && cd ..
+partition: $(DISK_IMAGE)
+	$(eval DEV_SIZE := $(shell stat -c%s $(DISK_IMAGE)))
+	$(eval ROOT_SECTORS := $(shell expr $(ROOT_MB) '*' 1024 '*' 2))
+	$(eval HOME_SECTORS := $(shell expr $(DEV_SIZE) '/' 5 '/' 512))
+	$(eval ROOT_PART := $(PART_TYPE):$(ROOT_SECTORS)*)
+	$(eval HOME_PART := $(PART_TYPE):$(HOME_SECTORS))
+	$(eval USR_PART := $(PART_TYPE):0+)
 	$(PARTITION) -q $(DISK_IMAGE) $(ROOT_PART) $(HOME_PART) $(USR_PART)
 	$(PARTITION) -ps $(DISK_IMAGE)
 
-mkfs:
+mkfs: partition
 	@echo --------------------------------------------
 	$(MKFS) -r$(BOOT_IMG_SECTORS) -c $(FS_ROOT):$(DISK_IMAGE)
 	@echo --------------------------------------------
@@ -101,10 +92,19 @@ mkfs:
 	$(MKFS) $(FS_USR):$(DISK_IMAGE)
 	@echo --------------------------------------------
 
+install_masterboot: $(MASTER_BOOT) mkfs
+	$(INSTALL) -m $(DISK_IMAGE) $<
+	$(INSTALL) -m $(PRIMARY):$(DISK_IMAGE) $<
+
+install_device: $(BOOT_BLOCK) $(BOOT) mkfs
+	$(INSTALL) -d $(FS_ROOT):$(DISK_IMAGE) $(BOOT_BLOCK) $(BOOT) \
+		$(BOOT_IMG_SECTORS) $(ENV_MODULES_FILE) $(PROGRAMS)
+
 disasm: $(DEBUG)
 	$(call disasmCode,$<,16)
 
 clean:
 	$(call cleanCommon)
-
+	rm -f $(DISK_IMAGE)
+	rm -f eth_null*
 

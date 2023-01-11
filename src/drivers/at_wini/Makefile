@@ -17,7 +17,7 @@ all: $(DRIVER)
 $(DRIVER): $(OBJS) $(LIB_PCI) $(LIB_DRIVER)
 	$(call link,$^,$(LIBS),$@) 
 	$(call createDebug,$@,$(DEBUG))
-	$(call setStack,$(STACK_SIZE),$(DRIVER))
+	$(call setStack,$(STACK_SIZE),$@)
 
 $(LIB_PCI): 
 	cd $(PCI_DIR) && $(MAKE)

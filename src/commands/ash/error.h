@@ -1,6 +1,11 @@
 
 
 
+/* Types of operations (passed to the errMsg routine). */
+#define E_OPEN	01		/* Opening a file */
+#define E_CREAT	02		/* Creating a file */
+#define E_EXEC	03		/* Executing a program */ 
+
 
 /* We enclose jmp_buf in a struture so that we can declare pointers to
  * jump locations. The global variable handler contains the location to
@@ -47,3 +52,6 @@ void exRaise(int);
 void onInt();
 void error(char *, ...);
 void error2(char *, char *);
+char *errMsg(int, int);
+
+#define errMsg(errno, action)	strerror(errno)

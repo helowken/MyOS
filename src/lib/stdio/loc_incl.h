@@ -4,8 +4,8 @@
 
 #include "stdarg.h"
 
-int _doprnt(const char *format, va_list ap, FILE *stream);
-int _doscan(FILE *stream, const char *format, va_list ap);
+int _doPrint(const char *format, va_list ap, FILE *stream);
+int _doScan(FILE *stream, const char *format, va_list ap);
 char *_i_compute(unsigned long val, int base, char *s, int numDigits);
 char *_f_print(va_list *ap, int flags, char *s, char c, int precision);
 void __cleanup();

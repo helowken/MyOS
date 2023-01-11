@@ -78,8 +78,8 @@ void pmExit(register MProc *rmp, int exitStatus) {
 		freeMemory(rmp->mp_memmap[T].physAddr, rmp->mp_memmap[T].len);
 	}
 	/* Free the data and stack segments. */
-	freeMemory(rmp->mp_memmap[D].physAddr, rmp->mp_memmap[S].physAddr + 
-				rmp->mp_memmap[S].len - rmp->mp_memmap[D].virAddr);
+	freeMemory(rmp->mp_memmap[D].physAddr + rmp->mp_memmap[D].offset, 
+				rmp->mp_memmap[D].len - rmp->mp_memmap[D].offset);
 
 	/* The process slot can only be freed if the parent has done a WAIT. */
 	rmp->mp_exit_status = (char) exitStatus;
@@ -199,7 +199,7 @@ int doFork() {
 	 */
 	offsetClicks = parentMp->mp_memmap[D].offset;
 	progClicks = (phys_clicks) parentMp->mp_memmap[S].virAddr 
-					- parentMp->mp_memmap[D].virAddr - offsetClicks;
+					- parentMp->mp_memmap[D].virAddr;
 	if ((childBase = allocMemory2(offsetClicks, progClicks)) == NO_MEM)
 	  return ENOMEM;
 

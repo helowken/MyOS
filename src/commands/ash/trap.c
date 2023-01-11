@@ -158,6 +158,15 @@ void exitShell(int status) {
 	_exit(status);
 }
 
+/* Ignore a signal. */
+void ignoreSig(int sigNum) {
+	if (sigMode[sigNum - 1] != S_IGN && 
+			sigMode[sigNum - 1] != S_HARD_IGN) {
+		signal(sigNum, SIG_IGN);	
+	}
+	sigMode[sigNum - 1] = S_HARD_IGN;
+}
+
 int trapCmd(int argc, char **argv) {
 	printf("=== trapCmd\n");//TODO
 	return 0;

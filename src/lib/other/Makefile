@@ -12,7 +12,8 @@ OBJS_M32 = \
 		loadname.o \
 		_svrctl.o \
 		_brk.o \
-		environ.o
+		environ.o \
+		fdopen.o
 
 
 OBJS_M16 = \

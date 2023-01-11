@@ -15,7 +15,7 @@ all: $(DRIVER)
 $(DRIVER): $(OBJS) $(LIB_DRIVER)
 	$(call link,$^,$(LIBS),$@) 
 	$(call createDebug,$@,$(DEBUG))
-	$(call setStack,$(STACK_SIZE),$(DRIVER))
+	$(call setStack,$(STACK_SIZE),$@)
 
 $(LIB_DRIVER):
 	cd $(DRIVER_DIR) && $(MAKE)

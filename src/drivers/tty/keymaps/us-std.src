@@ -1,4 +1,4 @@
-u16_t keyMap[NR_SCAN_CODES * MAP_COLS] = {
+uint16_t keyMap[NR_SCAN_CODES * MAP_COLS] = {
 
 /* scan-code		!Shift    Shift    Alt1      Alt2      Alt+Sh    Ctrl	*/
 /* =========================================================================*/

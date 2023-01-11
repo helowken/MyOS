@@ -44,7 +44,8 @@ OBJS_M32 = \
 		_umask.o \
 		_creat.o \
 		_unlink.o \
-		_rename.o
+		_rename.o \
+		_pipe.o
 
 
 all: build

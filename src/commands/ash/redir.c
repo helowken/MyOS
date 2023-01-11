@@ -1,11 +1,13 @@
 
 
 #include "unistd.h"
+#include "stdlib.h"
 #include "shell.h"
 #include "nodes.h"
 #include "redir.h"
 #include "eval.h"
 #include "memalloc.h"
+#include "mystring.h"
 #include "error.h"
 #include "signal.h"
 #include "fcntl.h"
@@ -72,7 +74,16 @@ void popRedir() {
 /* Discard all saved file descriptors.
  */
 void clearRedir() {
-	//TODO
+	register RedirTable *rp;
+	int i;
+
+	for (rp = redirList; rp; rp = rp->next) {
+		for (i = 0; i < 10; ++i) {
+			if (rp->renamed[i] >= 0) 
+			  close(rp->renamed[i]);
+			rp->renamed[i] = EMPTY;
+		}
+	}
 }
 
 static void openRedirect(Node *redir, char memory[10]) {
@@ -87,7 +98,46 @@ static void openRedirect(Node *redir, char memory[10]) {
 	 * descriptors around. This may not be such a good idea because
 	 * an open of a device or a fifo can block indefinitely.
 	 */
-	//TODO
+	INTOFF;
+	memory[fd] = 0;
+	switch(redir->nFile.type) {
+		case NFROM:
+			fileName = redir->nFile.expFileName;
+			if ((f = open(fileName, O_RDONLY)) < 0)
+			  error("cannot open %s: %s", fileName, errMsg(errno, E_OPEN));
+moveFd:
+			if (f != fd) {
+				copyFd(f, fd);
+				close(f);
+			}
+			break;
+		case NTO:
+			fileName = redir->nFile.expFileName;
+			if ((f = creat(fileName, 0666)) < 0)
+			  error("cannot create %s: %s", fileName, errMsg(errno, E_CREAT));
+			goto moveFd;
+		case NAPPEND:
+			fileName = redir->nFile.expFileName;
+			if ((f = open(fileName, O_WRONLY | O_CREAT | O_APPEND, 0666)) < 0)
+			  error("cannot create %s: %s", fileName, errMsg(errno, E_CREAT));
+			goto moveFd;
+		case NTOFD:
+		case NFROMFD:
+			if (redir->nDup.dupFd >= 0) {	/* If not ">&-" */
+				if (memory[redir->nDup.dupFd])
+				  memory[fd] = 1;
+				else
+				  copyFd(redir->nDup.dupFd, fd);
+			}
+			break;
+		case NHERE:
+		case NXHERE:
+			//TODO f = openHere(redir);
+			goto moveFd;
+		default:
+			abort();
+	}
+	INTON;
 }
 
 /* Process a list of redirection commands. If the REDIR_PUSH flag is set,
@@ -139,6 +189,10 @@ void redirect(union Node *redir, int flags) {
 	  out2 = &memOut;
 }
 
+/* Return true if fd 0 has already been redirected at least once. */
+int isFd0Redirected() {
+	return fd0Redirected != 0;
+}
 
 /* Undo all redirections. Called on error or interrupt.
  */

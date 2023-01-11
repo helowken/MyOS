@@ -16,7 +16,7 @@ DEBUG = debug.bin
 ENTRY = $(MY_HOME)/entry/entry.o
 LINKER_SCRIPT = $(MY_HOME)/linkerScript.lds
 SETSTACK = $(MY_HOME)/tools/setstack.bin
-
+RES_DIR = $(MY_HOME)/tools/resources
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) $< -o $@
@@ -56,4 +56,7 @@ define cleanCommon
 endef
 
 
-
+define copyTo
+	mkdir -p $(2)
+	cp $(1) $(2)
+endef

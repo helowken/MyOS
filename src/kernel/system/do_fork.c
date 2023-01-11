@@ -13,7 +13,7 @@ int doFork(register Message *msg) {
 	  return EINVAL;
 
 	oldLdtSel = childProc->p_ldt_sel;		/* Backup local descriptors */
-	*childProc = *parentProc;		/* Copy 'Proc' struct */
+	*childProc = *parentProc;				/* Copy 'Proc' struct */
 	childProc->p_ldt_sel = oldLdtSel;		/* Restore descriptors */
 	childProc->p_nr = msg->PR_PROC_NR;		/* This was obliterated by copy */
 

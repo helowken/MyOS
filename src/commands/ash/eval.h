@@ -8,6 +8,7 @@ typedef struct {	/* Result of evalBackCmd */
 	int fd;			/* File descriptor to read from */
 	char *buf;		/* Buffer */
 	int numLeft;	/* Number of chars in buffer */
+	struct Job *jp;		/* job structure for command */
 } BackCmd;
 
 union Node;

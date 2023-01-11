@@ -63,9 +63,7 @@ int main(int argc, char **argv) {
 						c = 0;
 						count = 3;
 
-						printf("11 %d, %d\n", count, (*p - '0'));
 						while (--count >= 0 && (unsigned)(*p - '0') < 8) {
-							printf("%d, %d\n", count, (*p - '0'));
 							c = (c << 3) + (*p++ - '0');	
 						}
 						break;

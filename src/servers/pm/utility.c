@@ -84,8 +84,10 @@ void tellFS(int what, int p1, int p2, int p3) {
 	msg.m_tell_fs_arg1 = p1;
 	msg.m_tell_fs_arg2 = p2;
 	msg.m_tell_fs_arg3 = p3;
-	if ((r = taskCall(FS_PROC_NR, what, &msg)) != OK)
+	if ((r = taskCall(FS_PROC_NR, what, &msg)) != OK) {
+		printf("=== pm call fs: %d\n", what);
 	  panic(__FILE__, "tell fs failed", r);
+	}
 }
 
 int getStackPtr(int pNum, vir_bytes *sp) {

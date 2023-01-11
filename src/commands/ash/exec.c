@@ -1,6 +1,7 @@
 
 
 #include "shell.h"
+#include "main.h"
 #include "nodes.h"
 #include "mail.h"
 #include "parser.h"
@@ -13,6 +14,9 @@
 #include "mystring.h"
 #include "memalloc.h"
 #include "builtins.h"
+#include "output.h"
+#include "unistd.h"
+#include "errno.h"
 #include "limits.h"
 
 
@@ -30,7 +34,9 @@ typedef struct TableEntry {
 
 static TableEntry *cmdTable[CMD_TABLE_SIZE];
 static int builtinLoc = -1;		/* Index in path of %builtin, or -1 */
+static char *pathOpt;
 
+static void deleteCmdEntry(void);
 
 /* Clear out command entries. The argument specifies the first entry in
  * PATH which has changed.
@@ -142,14 +148,12 @@ static TableEntry *cmdLookup(char *name, int add) {
  */
 void findCommand(char *name, CmdEntry *entry, int printErr) {
 	TableEntry *cmdp;
-	/*
 	int index;
 	int prev;
 	char *path;
 	char *fullName;
-	struct stat sb;
+	struct stat st;
 	int e;
-	*/
 	int i;
 
 	/* If name contains a slash, don't use the hash table */
@@ -173,13 +177,133 @@ void findCommand(char *name, CmdEntry *entry, int printErr) {
 		goto success;
 	}
 
-//TODO 
+	/* We have to search path. */
+	prev = -1;		/* Where to start */
+	if (cmdp) {		/* Doing a rehash */
+		if (cmdp->cmdType == CMD_BUILTIN)
+		  prev = builtinLoc;
+		else
+		  prev = cmdp->param.index;
+	}
 
+	path = pathVal();
+	e = ENOENT;
+	index = -1;		/* Indicates which dir in PATH. */
+loop:
+	while ((fullName = pathAdvance(&path, name)) != NULL) {
+		stackUnalloc(fullName);
+		++index;
+		if (pathOpt) {
+			if (prefix("builtin", pathOpt)) {
+				if ((i = findBuiltin(name)) < 0) 
+				  goto loop;
+				INTOFF;
+				cmdp = cmdLookup(name, 1);
+				cmdp->cmdType = CMD_BUILTIN;
+				cmdp->param.index = i;
+				INTON;
+				goto success;
+			} else if (prefix("func", pathOpt)) {
+				/* handled below */
+			} else {
+				goto loop;	/* Ignore unimplemented options */
+			}
+		}
+		/* If rehash, don't redo absolute path names. */
+		if (fullName[0] == '/' && index <= prev) {
+			if (index < prev)
+			  goto loop;
+			goto success;
+		}
+		while (stat(fullName, &st) < 0) {
+			if (errno != ENOENT && errno != ENOTDIR)
+			  e = errno;
+			goto loop;
+		}
+
+		e = EACCES;		/* If we fail, this will be the error. */
+		if ((st.st_mode & S_IFMT) != S_IFREG)
+		  goto loop;
+		if (pathOpt) {	/* This is a %func directory. */
+			stackAlloc(strlen(fullName) + 1);
+			readCmdFile(fullName);
+			if ((cmdp = cmdLookup(name, 0)) == NULL || 
+					cmdp->cmdType != CMD_FUNCTION) {
+				error("%s not defined in %s", name, fullName);
+			}
+			stackUnalloc(fullName);
+			goto success;
+		}
+
+		/* Check permission. */
+		if (st.st_uid == geteuid()) {
+			if ((st.st_mode & S_IXUSR) == 0)
+			  goto loop;
+		} else if (st.st_gid == getegid()) {
+			if ((st.st_mode & S_IXGRP) == 0)
+			  goto loop;
+		} else {
+			if ((st.st_mode & S_IXOTH) == 0)
+			  goto loop;
+		}
+
+		INTOFF;
+		cmdp = cmdLookup(name, 1);
+		cmdp->cmdType = CMD_NORMAL;
+		cmdp->param.index = index;
+		INTON;
+		goto success;
+	}
+	
+	/* We failed. If there was en entry for this command, delete it. */
+	if (cmdp)
+	  deleteCmdEntry();
+	if (printErr)
+	  outFormat(out2, "%s: %s\n", name, errMsg(e, E_EXEC));
+	entry->cmdType = CMD_UNKNOWN;
+	return;
 
 success:
 	cmdp->rehash = 0;
 	entry->cmdType = cmdp->cmdType;
 	entry->u = cmdp->param;
+}
+
+char *pathAdvance(char **path, char *name) {
+	register char *p, *q;
+	char *start;
+	int len;
+
+	if (*path == NULL)
+	  return NULL;
+	start = *path;
+	for (p = start; *p && *p != ':' && *p != '%'; ++p) {
+	}
+	len = p - start + strlen(name) + 2;	/* "2" is for '/' and '\0' */
+	while (stackBlockSize() < len) {
+		growStackBlock();
+	}
+
+	q = stackBlock();
+	if (p != start) {
+		bcopy(start, q, p - start);
+		q += p - start;
+		*q++ = '/';
+	}
+	strcpy(q, name);
+
+	pathOpt = NULL;
+	if (*p == '%') {
+		pathOpt = ++p;
+		while (*p && *p != ':') {
+			++p;
+		}
+	}
+	if (*p == ':')
+	  *path = p + 1;
+	else
+	  *path = NULL;
+	return stackAlloc(len);
 }
 
 /* Search the table of builtin commands */
@@ -193,11 +317,35 @@ int findBuiltin(char *name) {
 	return -1;
 }
 
+static void tryExec(char *cmd, char **argv, char **envp) {
+	execve(cmd, argv, envp);
+}
+
 /* Exec a program. Never returns. If you change this rontine, you may
  * have to change the findCommand routine as well.
  */
 void shellExec(char **argv, char **envp, char *path, int index) {
-	//TODO
+	char *cmdName;
+	int e;
+
+	if (strchr(argv[0], '/') != NULL) {
+		tryExec(argv[0], argv, envp);
+		e = errno;
+	} else {
+		e = ENOENT;
+		/* "index" comes from findCommand(), indicates which dir in 
+		 * the PATH. When "index" < 0, means we get the right dir.
+		 */
+		while ((cmdName = pathAdvance(&path, argv[0])) != NULL) {
+			if (--index < 0 && pathOpt == NULL) {
+				tryExec(cmdName, argv, envp);
+				if (errno != ENOENT && errno != ENOTDIR)
+				  e = errno;
+			}
+			stackUnalloc(cmdName);
+		}
+	}
+	error2(argv[0], errMsg(e, E_EXEC));
 }
 
 /* Delete the command entry returned on the last lookup. */

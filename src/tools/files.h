@@ -54,12 +54,15 @@ static FileInfo devFiles[] = {
 };
 
 static FileInfo binFiles[] = {
-	{ "sh",      I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "bin/sh.bin" },
+	{ "sh",       I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "bin/sh.bin" },
+	{ "loadkeys", I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "bin/loadkeys.bin" },
+	{ "testProc", I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "bin/testProc.bin" },
 	{ NULL }
 };
 
 static FileInfo etcFiles[] = {
 	{ "rc",      I_REGULAR | 0755, SU,  ROOT_GRP, 0, NULL, "etc/rc" },
+	{ "keymap",  I_REGULAR | 0644, BIN, ROOT_GRP, 0, NULL, "etc/us-std.map" },
 	{ NULL }
 };
 

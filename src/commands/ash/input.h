@@ -21,6 +21,7 @@ void setInputFd(int, int);
 void setInputString(char *, int);
 void popFile();
 void popAllFiles();
+void closeScript();
 
 #define pGetCharMacro()	(--parseNumLeft >= 0 ? *parseNextChar++ : pReadBuffer())
 

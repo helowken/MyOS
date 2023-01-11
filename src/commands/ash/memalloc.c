@@ -157,3 +157,9 @@ void ungrabStackStr(char *s, char *p) {
 	stackNext = s;
 	stackStrNumLeft = stackNumLeft - (p - s);
 }
+
+void stackUnalloc(pointer p) {
+	stackNumLeft += stackNext - (char *) p;
+	stackNext = p;
+}
+

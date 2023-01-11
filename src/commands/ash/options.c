@@ -165,13 +165,11 @@ void procArgs(int argc, char **argv) {
 
 /* The set command builtin. */
 int setCmd(int argc, char **argv) {
-	printf("=== setCmd\n");//TODO
 	if (argc == 1)
 	  return showVarsCmd(argc, argv);
 	INTOFF;
 	options(0);
 	setInteractive(iflag);
-	//setJobCtl(jflag);	TODO
 	if (*argPtr != NULL)
 	  setParam(argPtr);
 	INTON;

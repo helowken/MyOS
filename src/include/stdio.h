@@ -1,6 +1,8 @@
 #ifndef _STDIO_H
 #define _STDIO_H
 
+#include "stdarg.h"
+
 typedef struct __iobuf {
 	int	_count;
 	int	_fd;
@@ -68,20 +70,20 @@ int fflush(FILE *stream);
 FILE *fopen(const char *path, const char *mode);
 FILE *freopn(const char *path, const char *mode, FILE *stream);
 void setbuf(FILE *stream, char *buf);
-void setvbuf(FILE *stream, char *buf, int mode, size_t size);
+int setvbuf(FILE *stream, char *buf, int mode, size_t size);
 int fprintf(FILE * stream, const char *format, ...);
 int printf(const char *format, ...);
 int sprintf(char *s, const char *format, ...);
-int vfprintf(FILE *stream, const char *format, char *ap);
-int vprintf(const char *format, char *ap);
-int vsprintf(char *s, const char *format, char *ap);
+int vfprintf(FILE *stream, const char *format, va_list ap);
+int vprintf(const char *format, va_list ap);
+int vsprintf(char *s, const char *format, va_list ap);
 int fscanf(FILE *stream, const char *format, ...);
 int scanf(const char *format, ...);
 int sscanf(const char *s, const char *format, ...);
 #define vfscanf	_doScan
-int vfscanf(FILE *stream, const char *format, char *ap);
-int vscanf(const char *format, char *ap);
-int vsscanf(const char *s, const char *format, char *ap);
+int vfscanf(FILE *stream, const char *format, va_list ap);
+int vscanf(const char *format, va_list ap);
+int vsscanf(const char *s, const char *format, va_list ap);
 int fgetc(FILE *stream);
 char *fgets(char *s, int size, FILE *stream);
 int fputc(int c, FILE *stream);
@@ -118,19 +120,19 @@ int __flushBuf(int c, FILE *stream);
 
 #define feof(p)		(((p)->_flags & _IOEOF) != 0)
 #define ferror(p)	(((p)->_flags & _IOERR) != 0)
-#define clearerr(p)	((p)->flags &= ~(_IOERR | _IOEOF))
+#define clearerr(p)	((p)->_flags &= ~(_IOERR | _IOEOF))
 
 #ifdef _POSIX_SOURCE
 int fileno(FILE *stream);
-FILE *fdopen(int fildes, const char *types);
+FILE *fdopen(int fd, const char *mode);
 #define fileno(stream)	((stream)->_fd)
 #define L_ctermid	255		/* Required by POSIX */
 #define L_cuserid	255		/* Required by POSIX */
 #endif
 
 #ifdef _MINIX
-int snprintf(char *str, size_t size, const char *format, ...);
-int vsnprintf(char *str, size_t size, const char *format, char *ap);
+int snprintf(char *s, size_t size, const char *format, ...);
+int vsnprintf(char *s, size_t size, const char *format, va_list ap);
 #endif
 
 #endif

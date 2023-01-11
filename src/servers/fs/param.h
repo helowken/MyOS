@@ -55,3 +55,5 @@
 /* The following names are synonums for the variables in the output message. */
 #define m_reply_type	m_type
 #define m_reply_l1		m2_l1
+#define m_reply_i1		m1_i1
+#define m_reply_i2		m1_i2

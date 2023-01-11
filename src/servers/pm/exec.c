@@ -149,8 +149,8 @@ static int newMem(MProc *shareMp, vir_bytes textBytes, vir_bytes dataBytes,
 		freeMemory(rmp->mp_memmap[T].physAddr, rmp->mp_memmap[T].len);
 	}
 	/* Free the data and stack segments. */
-	freeMemory(rmp->mp_memmap[D].physAddr + offsetClicks, 
-				rmp->mp_memmap[D].len - offsetClicks);
+	freeMemory(rmp->mp_memmap[D].physAddr + rmp->mp_memmap[D].offset, 
+				rmp->mp_memmap[D].len - rmp->mp_memmap[D].offset);
 
 	/* We have now passed the point of no return. The old core image has been
 	 * forever lost, memory for a new core image has been allocated. Set up
