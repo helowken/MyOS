@@ -56,7 +56,8 @@ static FileInfo devFiles[] = {
 static FileInfo binFiles[] = {
 	{ "sh",       I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "bin/sh.bin" },
 	{ "loadkeys", I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "bin/loadkeys.bin" },
-	{ "testProc", I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "bin/testProc.bin" },
+	{ "sysenv",   I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "bin/sysenv.bin" },
+	//{ "testAAA",  I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "bin/testAAA.bin" },
 	{ NULL }
 };
 

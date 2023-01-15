@@ -37,7 +37,7 @@ crtso:
 	.globl	_penviron
 	.type	_penviron, @object
 _penviron:
-	.value	_penvp		# Pointer to environ, or hidden pointer
+	.long	_penvp		# Pointer to environ, or hidden pointer
 
 
 	.section	.bss

@@ -1,14 +1,12 @@
 MY_HOME = ../..
 include $(MY_HOME)/common.mk
-LIBS = -L$(MY_HOME)/lib \
-	   -lmysys -lmysysutil -lmytimers -lmyc 
 
 DRIVER_DIR = ../libdriver
 
 OBJS = $(ENTRY) log.o diag.o kputc.o
 LIB_DRIVER = $(DRIVER_DIR)/driver.o 
 DRIVER = log.bin
-STACK_SIZE = 4096
+STACK_SIZE = 4kb
 
 all: $(DRIVER)
 

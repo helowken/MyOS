@@ -18,7 +18,7 @@ static unsigned long string2Long(register const char *nptr, char ** const endptr
 	  *endptr = (char *) nptr;
 
 	/* Skip space */
-	while (isSpace(*nptr)) {
+	while (isspace(*nptr)) {
 		++nptr;
 	}
 	c = *nptr;

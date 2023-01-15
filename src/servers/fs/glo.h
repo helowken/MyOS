@@ -6,6 +6,8 @@
 /* File System global variables */
 EXTERN struct FProc *currFp;	/* Pointer to caller's FProc */
 EXTERN int superUser;			/* 1 if caller is superUser, else 0 */
+EXTERN int suspendedCount;		/* Number of procs suspended on pipe */
+EXTERN int numLocks;			/* Number of locks currently in place */
 EXTERN int reviving;			/* Number of pipe processes to be revived */
 EXTERN off_t readAheadPos;		/* Position to read ahead */
 EXTERN Inode *readAheadInode;	/* Pointer to inode to read ahead */
@@ -29,7 +31,7 @@ EXTERN SuperBlock superBlocks[NR_SUPERS];
 EXTERN Inode inodes[NR_INODES];
 
 EXTERN Buf bufs[NR_BUFS];
-EXTERN Buf *bufHashTable[NR_BUF_HASH];		/* The buffer hash table */
+EXTERN Buf *bufHashTable[NR_BUF_HASH];	/* The buffer hash table */
 EXTERN Buf *frontBp;			/* Points to least recently used free block */
 EXTERN Buf *rearBp;				/* Points to most recently used free block */
 EXTERN int bufsInUse;			/* # bufs currenly in use (not on free list) */
@@ -38,5 +40,5 @@ EXTERN Filp filpTable[NR_FILPS];
 
 /* Data initialized elsewhere */
 extern int (*callVec[])();		/* Sys call table */
-extern char dot1[2];	/* dot1 (&dot1[0]) and dot2 (&dot2[0]) have a special */
-extern char dot2[3];	/* meaning to searchDir: no access permission check. */
+extern char dot1[2];			/* dot1 (&dot1[0]) and dot2 (&dot2[0]) have a special */
+extern char dot2[3];			/* meaning to searchDir: no access permission check. */

@@ -1,5 +1,6 @@
 MODULES = ash \
-		  ibm
+		  ibm \
+		  simple
 
 
 include ../modules.mk

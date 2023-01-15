@@ -272,7 +272,6 @@ static char *commandText(Node *n) {
  */
 int forkShell(Job *jp, Node *n, int mode) {
 	int pid;
-	int pgrp;
 
 	INTOFF;
 	pid = fork();
@@ -315,12 +314,6 @@ int forkShell(Job *jp, Node *n, int mode) {
 	}
 
 	printf("=== forkShell parent\n");
-	if (rootShell && mode != FORK_NO_JOB && jflag) {
-		if (jp == NULL || jp->numProcs == 0)
-		  pgrp = pid;
-		else
-		  pgrp = jp->ps[0].pid;
-	}
 	if (mode == FORK_BG)
 	  backgndPid = pid;		/* Set $! */
 	if (jp) {
@@ -347,11 +340,12 @@ static int doWait(int block, Job *job) {
 	Job *jp, *thisJob;
 	int done;
 	int stopped;
-	int core;
+	int sig;
 
 	do {
 		pid = waitProc(block, &status);
 	} while (pid == -1 && errno == EINTR);
+
 	if (pid <= 0)
 	  return pid;
 
@@ -383,19 +377,21 @@ static int doWait(int block, Job *job) {
 	INTON;
 
 	if (! rootShell || ! iflag || (job && thisJob == job)) {
-		core = status & 0x80;
-		status = WTERMSIG(status);
-		if (status != 0 && status != SIGINT && status != SIGPIPE) {
-			if (thisJob != job) 
-			  outFormat(out2, "%d: ", pid);
-			if (status <= MAX_SIG && sigMsg[status])
-			  out2Str(sigMsg[status]);
-			else
-			  outFormat(out2, "Signal %d", status);
-			if (core)
-			  out2Str(" - core dumped");
-			flushOut(&errOut);
-		} 
+		if (WIFSIGNALED(status)) {
+			sig = WTERMSIG(status);
+			if (sig != 0 && sig != SIGINT && sig != SIGPIPE) {
+				if (thisJob != job) 
+				  outFormat(out2, "%d: ", pid);
+				if (sig <= MAX_SIG && sigMsg[sig])
+				  out2Str(sigMsg[sig]);
+				else
+				  outFormat(out2, "Signal %d", sig);
+
+				if (WCOREDUMP(status))
+				  out2Str(" - core dumped");
+				flushOut(&errOut);
+			}
+		}
 	} else {
 		if (thisJob)
 		  thisJob->changed = 1;
@@ -428,17 +424,19 @@ int waitForJob(Job *jp) {
 	}
 	status = jp->ps[jp->numProcs - 1].status;
 	/* Convert to 8 bits */
-	if ((status & 0xFF) == 0)
-	  st = (status >> 8) & 0xFF;
+	if (WIFEXITED(status))
+	  st = WEXITSTATUS(status);
 	else
 	  st = (status & 0x7F) + 128;
 
 	if (jp->state == JOB_DONE)
 	  freeJob(jp);
+
 	CLEAR_PENDING_INT;
-	if ((status & 0x7F) == SIGINT)
+	if (WTERMSIG(status) == SIGINT)
 	  kill(getpid(), SIGINT);
 	INTON;
+
 	return st;
 }
 

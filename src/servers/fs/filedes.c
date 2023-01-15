@@ -11,7 +11,7 @@ Filp *getFilp(int fd) {
 
 int getFd(int start, mode_t bits, int *fdPtr, Filp **fpp) {
 /* Look for a free file descriptor and a free filp slot. */
-	register Filp *fp;
+	register Filp *filp;
 	register int i;
 
 	*fdPtr = -1;	/* We need a way to tell if file desc found */
@@ -32,19 +32,39 @@ int getFd(int start, mode_t bits, int *fdPtr, Filp **fpp) {
 	  return OK;
 
 	/* Now that a file descriptor has been found, look for a free filp slot. */
-	for (fp = &filpTable[0]; fp < &filpTable[NR_FILPS]; ++fp) {
-		if (fp->filp_count == 0) {
-			fp->filp_mode = bits;
-			fp->filp_pos = 0L;
-			fp->filp_selectors = 0;
-			fp->filp_select_ops = 0;
-			fp->filp_pipe_select_ops = 0;
-			fp->filp_flags = 0;
-			*fpp = fp;
+	for (filp = &filpTable[0]; filp < &filpTable[NR_FILPS]; ++filp) {
+		if (filp->filp_count == 0) {
+			filp->filp_mode = bits;
+			filp->filp_pos = 0L;
+			filp->filp_selectors = 0;
+			filp->filp_select_ops = 0;
+			filp->filp_pipe_select_ops = 0;
+			filp->filp_flags = 0;
+			*fpp = filp;
 			return OK;
 		}
 	}
 
 	/* If control passes here, the filp table must be full. Report that back. */
 	return ENFILE;
+}
+
+Filp *findFilp(register Inode *ip, mode_t bits) {
+/* Find a filp slot that refers to the inode 'ip' in a way as described
+ * by the mode bit 'bits'. Used for determining whether somebody is still
+ * interested in either end of a pipe. Also used when opening a FIFO to
+ * find partners to share a filp field with (to shared the file position).
+ * Like 'getFd' it performs its job by linear search through the filp table.
+ */
+	register Filp *filp;
+
+	for (filp = &filpTable[0]; filp < &filpTable[NR_FILPS]; ++filp) {
+		if (filp->filp_count != 0 && 
+				filp->filp_inode == ip &&
+				(filp->filp_mode & bits)) 
+		  return filp;
+	}
+
+	/* If control passes here, the filp wasn't there. Report that back. */
+	return NIL_FILP;
 }

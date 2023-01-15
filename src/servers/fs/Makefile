@@ -3,5 +3,5 @@ OBJS = main.o open.o read.o write.o pipe.o dmap.o \
 	   cache.o filedes.o stadir.o protect.o \
 	   misc.o utility.o select.o timers.o table.o
 NAME = fs
-STACK_SIZE = 2048
+STACK_SIZE = 512w
 include ../server.mk

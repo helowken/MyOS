@@ -44,16 +44,14 @@ void pmExit(register MProc *rmp, int exitStatus) {
  */
 	register int pNum;
 	bool parentWaiting, rightChild;
-	pid_t waitingPid, procGrp;
+	pid_t waitingPid, pgrp;
 	MProc *parentMp, *initMp;
 	clock_t t[3];
-
-	printf("====== pm exit....\n");	//TODO
 
 	pNum = (int) (rmp - mprocTable);	/* Get process slot number */
 
 	/* Remember a session leader's process group. */
-	procGrp = (rmp->mp_pid == rmp->mp_proc_grp) ? rmp->mp_proc_grp : 0;
+	pgrp = (rmp->mp_pid == rmp->mp_proc_grp) ? rmp->mp_proc_grp : 0;
 
 	/* If the exited process has a timer pending, kill it. */
 	if (rmp->mp_flags & ALARM_ON)
@@ -110,8 +108,8 @@ void pmExit(register MProc *rmp, int exitStatus) {
 	}
 
 	/* Send a hangup to the process' process group if it was a session leader. */
-	if (procGrp != 0)
-	  checkSig(-procGrp, SIGHUP);
+	if (pgrp != 0)
+	  checkSig(-pgrp, SIGHUP);
 }
 
 int doWaitPid() {
@@ -150,7 +148,7 @@ int doWaitPid() {
 			if (rmp->mp_flags & ZOMBIE) {
 				/* This child meets the pid test and has exited. */
 				cleanup(rmp);	
-				return SUSPEND;
+				return SUSPEND;	/* cleanup() has set the reply to parent. */
 			} 
 			if ((rmp->mp_flags & STOPPED) && rmp->mp_sig_status) {
 				/* This child meets the pid test and is being traced. */

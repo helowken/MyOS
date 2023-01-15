@@ -22,6 +22,13 @@ void initSelect() {
 }
 
 int selectNotified(int major, int minor, int ops) {
+	printf("=== TODO fs selectNotified\n");
+//TODO
+	return 0;
+}	
+
+int selectCallback(Filp *filp, int ops) {
+	printf("=== TODO fs selectCallback\n");
 //TODO
 	return 0;
 }

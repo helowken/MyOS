@@ -37,6 +37,7 @@ int doWrite(void);
 void buildDMap(void);
 
 /* filedes.c */
+Filp *findFilp(Inode *ip, mode_t bits);
 int getFd(int start, mode_t bits, int *k, Filp **fpp);
 Filp *getFilp(int fd);
 
@@ -54,6 +55,10 @@ void freeBit(SuperBlock *sp, int map, bit_t bitReturned);
 
 /* pipe.c */
 int doPipe(void);
+int doUnpause(void);
+int pipeCheck(Inode *ip, int rwFlag, int oFlags, int bytes, 
+			off_t position, int *canWrite, int noTouch);
+void release(Inode *ip, int callNum, int count);
 void suspend(int task);
 void revive(int proc, int bytes);
 
@@ -83,6 +88,7 @@ void rwScattered(dev_t dev, Buf **bufQueue, int queueSize, int rwFlag);
 void invalidate(dev_t dev);
 
 /* misc.c */
+int doExit(void);
 int doSync(void);
 int doFsync(void);
 int doFcntl(void);
@@ -120,6 +126,7 @@ void truncate(Inode *ip);
 
 /* select.c */
 void initSelect(void);
+int selectCallback(Filp *, int ops);
 int selectNotified(int major, int minor, int ops);
 
 /* timers.c */

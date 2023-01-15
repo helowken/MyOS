@@ -7,13 +7,18 @@ INC_HEADERS = *.h \
 			  $(INC)/ibm/*.h \
 			  $(INC)/minix/*.h 
 
-CFLAGS = -g -c -m32 -ffreestanding -nostdinc -nostartfiles -nodefaultlibs \
-		 -fno-asynchronous-unwind-tables -I$(INC) #-Wall -Werror 
+CFLAGS = -g -c -m32 \
+		 -ffreestanding -nostdinc -nostartfiles -nodefaultlibs \
+		 -fno-asynchronous-unwind-tables -I$(INC) \
+		 -Wall -Werror 
 		 
 C_SOURCE = $(wildcard *.c)
 HEADERS = $(wildcard $(INC_HEADERS))
+COMMON_LIBS = -L$(MY_HOME)/lib -lmysys -lmysysutil -lmyc
+LIBS = $(COMMON_LIBS)
 DEBUG = debug.bin
 ENTRY = $(MY_HOME)/entry/entry.o
+CRT_ENTRY = $(MY_HOME)/entry/crtso.o
 LINKER_SCRIPT = $(MY_HOME)/linkerScript.lds
 SETSTACK = $(MY_HOME)/tools/setstack.bin
 RES_DIR = $(MY_HOME)/tools/resources
@@ -57,6 +62,6 @@ endef
 
 
 define copyTo
-	mkdir -p $(2)
+	@mkdir -p $(2)
 	cp $(1) $(2)
 endef

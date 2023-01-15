@@ -1,13 +1,12 @@
 MY_HOME = ../..
 include $(MY_HOME)/common.mk
-LIBS = -L$(MY_HOME)/lib \
-	   -lmysys -lmysysutil -lmytimers -lmyc 
+LIBS += -lmytimers
 
 OBJS = $(ENTRY) tty.o console.o vidcopy.o keyboard.o rs232.o pty.o
 DRIVER = tty.bin
-STACK_SIZE = 1024
+STACK_SIZE = 256w
 
-all: $(DRIVER) install_keymaps
+all: install_keymaps $(DRIVER)
 
 $(DRIVER): $(OBJS) 
 	$(call link,$^,$(LIBS),$@) 

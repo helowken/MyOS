@@ -59,10 +59,191 @@ int doPipe() {
 	return OK;
 }
 
-void suspend(int task) {
-//TODO
+int doUnpause() {
+	printf("=== TODO fs doUnpause\n");
+	//TODO
+	return 0;
 }
 
-void revive(int proc, int bytes) {
-//TODO
+void suspend(
+	int task	/* Who is proc waiting for? (PIPE = pipe) */
+) {
+/* Take measures to suspend the processing of the present system call.
+ * Store the parameters to be used upon resuming in the process table.
+ * (Actually they are not used when a process is waiting for an I/O device,
+ * but they are needed for pipes, and it is not worth making the distinction.)
+ * The SUSPEND pseudo error should be returned after calling suspend().
+ */
+	if (task == XPIPE || task == XPOPEN)
+	  ++suspendedCount;		/* # procs suspended on pipe */
+	currFp->fp_suspended = SUSPENDED;
+	currFp->fp_fd = inMsg.m_fd << 8 | callNum;
+	currFp->fp_task = -task;
+	if (task == XLOCK) {
+		currFp->fp_buffer = (char *) inMsg.m_name1;	/* Third arg to fcntl() */
+		currFp->fp_nbytes = inMsg.m_request;	/* Second arg to fcntl() */
+	} else {
+		currFp->fp_buffer = inMsg.m_buffer;		/* For reads and writes */
+		currFp->fp_nbytes = inMsg.m_nbytes;
+	}
 }
+
+void revive(
+	int pNum,	/* Process to revive */
+	int bytes	/* If hanging on task, how many bytes read */
+) {
+/* Revive a previously blocked process, When a process hangs on tty, this
+ * is the way it is eventually released.
+ */
+	register FProc *rfp;
+	register int task;
+
+	if (pNum < 0 || pNum >= NR_PROCS)
+	  panic(__FILE__, "revive err", pNum);
+
+	rfp = &fprocTable[pNum];
+	if (rfp->fp_suspended == NOT_SUSPENDED || rfp->fp_revived == REVIVING)
+	  return;
+
+	/* The 'reviving' flag only applies to pipes. Processes waiting for TTY get
+	 * a message right away. The revival process is different for TTY and pipes.
+	 * For select and TTY revival, the work is already done, for pipes it is not:
+	 *  the proc must be restarted so it can try again.
+	 */
+	task = -rfp->fp_task;
+	if (task == XPIPE || task == XLOCK) {
+		/* Revive a process suspended on a pipe or lock. */
+		rfp->fp_revived = REVIVING;
+		++reviving;		/* Process was waiting on pipe or lock. */
+	} else {
+		printf("=== TODO fs revive\n");
+	}
+}
+
+int pipeCheck(
+	register Inode *ip,	/* The inode of the pipe */
+	int rwFlag,			/* READING or WRITING */
+	int oFlags,			/* Flags set by open or fcntl */
+	int bytes,			/* Bytes to be read or written (all chunks) */
+	off_t position,		/* Current file position */
+	int *canWrite,		/* Return: number of bytes we can write */
+	int noTouch			/* Check only */
+) {
+/* Pipes are a little different. If a process reads from an empty pipe for
+ * which a writer still exists, suspend the reader. If the pipe is empty
+ * and there is no writer, return 0 bytes. If a process is writing to a
+ * pipe and no one is reading from it, give a broken pipe error.
+ */
+	/* If reading, check for empty pipe. */
+	if (rwFlag == READING) {
+		if (position >= ip->i_size) {
+			/* Process is reading from an empty pipe. */
+			int r = 0;
+			if (findFilp(ip, W_BIT) != NIL_FILP) {
+				/* Writer exists */
+				if (oFlags & O_NONBLOCK) {
+					r = EAGAIN;
+				} else {
+					if (! noTouch)
+					  suspend(XPIPE);	/* Block reader */
+					r = SUSPEND;
+				}
+				/* If need be, activate sleeping writers. */
+				if (suspendedCount > 0 && ! noTouch) 
+				  release(ip, WRITE, suspendedCount);
+			}
+			return r;
+		}
+	} else {
+		/* Process is writing to a pipe. */
+		if (findFilp(ip, R_BIT) == NIL_FILP) {
+			/* Tell kernel to generate a SIGPIPE signal. */
+			if (! noTouch)
+			  sysKill((int) (currFp - fprocTable), SIGPIPE);
+			return EPIPE;
+		}
+
+		size_t pipeSize = PIPE_SIZE(ip->i_sp->s_block_size);
+		if (position + bytes > pipeSize) {
+			if ((oFlags & O_NONBLOCK) && bytes < pipeSize) { 
+				return EAGAIN;
+			} else if ((oFlags & O_NONBLOCK) && bytes > pipeSize) {
+				if ((*canWrite = pipeSize - position) > 0) {
+					/* Do a partial write. Need to wakeup reader. */
+					if (! noTouch)
+					  release(ip, READ, suspendedCount);
+					return 1;
+				} else {
+					return EAGAIN;
+				}
+			}
+			if (bytes > pipeSize) {
+				if ((*canWrite = pipeSize - position) > 0) {
+					/* Do a partial write. Need to wakeup reader
+					 * since we'll suspend ourself in readWrite().
+					 */
+					release(ip, READ, suspendedCount);
+					return 1;
+				}
+			}
+			if (! noTouch) 
+			  suspend(XPIPE);	/* Stop writer -- pipe full */
+			return SUSPEND;
+		}
+
+		/* Writing to an empty pipe. Search for suspended reader. */
+		if (position == 0 && ! noTouch) 
+		  release(ip, READ, suspendedCount);
+	}
+
+	*canWrite = 0;
+	return 1;
+}
+
+void release(
+	register Inode *ip,	/* Inode of pipe */
+	int callNum,		/* READ, WRITE, OPEN or CREAT */
+	int count			/* Max number of processes to release */
+) {
+/* Check to see if any process is hanging on the pipe whose inode is in 'ip'.
+ * If one is, and it was trying to perform the call indicated by 'callNum',
+ * release it.
+ */
+	register FProc *rp;
+	Filp *filp;
+
+	/* Trying to perform the call also includes SELECTing on it with that
+	 * operation.
+	 */
+	if (callNum == READ || callNum == WRITE) {
+		int op;
+		if (callNum == READ)
+		  op = SEL_RD;
+		else 
+		  op = SEL_WR;
+
+		for (filp = &filpTable[0]; filp < &filpTable[NR_FILPS]; ++filp) {
+			if (filp->filp_count < 1 ||
+					! (filp->filp_pipe_select_ops & op) ||
+					filp->filp_inode != ip)
+			  continue;
+
+			selectCallback(filp, op);
+			filp->filp_pipe_select_ops &= ~op;
+		}
+	}
+
+	/* Search the proc table. */
+	for (rp = &fprocTable[0]; rp < &fprocTable[NR_PROCS]; ++rp) {
+		if (rp->fp_suspended == SUSPENDED &&
+				rp->fp_revived == NOT_REVIVING &&
+				(rp->fp_fd & BYTE) == callNum &&
+				rp->fp_filp[rp->fp_fd >> 8]->filp_inode == ip) {
+			revive((int) (rp - fprocTable), 0);
+			--suspendedCount;	/* Keep track of who is suspended */
+			if (--count == 0)
+			  return;
+		}
+	}
+}
+

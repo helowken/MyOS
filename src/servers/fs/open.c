@@ -68,14 +68,15 @@ static int commonOpen(register int oFlags, mode_t oMode) {
 /* Common code from doCreat and doOpen. */
 	register Inode *ip;
 	mode_t bits;
-	Filp *fp;
-	int r, checkOpen = false;
+	dev_t dev;
+	Filp *filp;
+	int r, exist = true;
 
 	/* Remap the bottom two bits of oFlags. */
 	bits = (mode_t) modeMap[oFlags & O_ACCMODE];
 
 	/* See if file descriptor and filp slots are available. */
-	if ((r = getFd(0, bits, &inMsg.m_fd, &fp)) != OK)
+	if ((r = getFd(0, bits, &inMsg.m_fd, &filp)) != OK)
 	  return r;
 
 	/* If O_CREAT is set, try to make the file. */
@@ -85,12 +86,14 @@ static int commonOpen(register int oFlags, mode_t oMode) {
 		ip = newNode(userPath, oMode, NO_ZONE);
 		r = errCode;
 		if (r == OK)
-		  checkOpen = false;	/* We just created the file */
+		  exist = false;	/* We just created the file */
 		else if (r != EEXIST)
 		  return r;		/* Other error */
 		else {
-			/* File exists, if the O_EXCL flag is set this is an error */
-			checkOpen = !(oFlags & O_EXCL);
+			/* File exists, if the O_EXCL flag is set this is 
+			 * an error and no need to do the following check.
+			 */
+			exist = !(oFlags & O_EXCL);
 		}
 	} else {
 		/* Scan path name. */
@@ -99,13 +102,13 @@ static int commonOpen(register int oFlags, mode_t oMode) {
 	}
 
 	/* Claim the file descriptor and filp slot and fill them in. */
-	currFp->fp_filp[inMsg.m_fd] = fp;
-	fp->filp_count = 1;
-	fp->filp_inode = ip;
-	fp->filp_flags = oFlags;
+	currFp->fp_filp[inMsg.m_fd] = filp;
+	filp->filp_count = 1;
+	filp->filp_inode = ip;
+	filp->filp_flags = oFlags;
 
 	/* Only do the normal open code if we didn't just create the file. */
-	if (checkOpen) {
+	if (exist) {
 		/* Check protections. */
 		if ((r = checkForbidden(ip, bits)) == OK) {
 			/* Opening regular files, directories and special files differ. */
@@ -128,8 +131,15 @@ static int commonOpen(register int oFlags, mode_t oMode) {
 					/* Directories may be read but not written. */
 					r = bits & W_BIT ? EISDIR : OK;
 					break;
+				case I_CHAR_SPECIAL:
+				case I_BLOCK_SPECIAL:
+					/* Invoke the driver for special processing. */
+					printf("=== fs char or block dev commonOpen\n");
+					dev = (dev_t) ip->i_zone[0];
+					r = devOpen(dev, who, bits | (oFlags & ~O_ACCMODE));
+					break;
 				case I_NAMED_PIPE:
-					//TODO
+					printf("=== TODO fs pipe commonOpen\n");
 					break;
 			}
 		}
@@ -138,9 +148,9 @@ static int commonOpen(register int oFlags, mode_t oMode) {
 	/* If error, release inode. */
 	if (r != OK) {
 		if (r == SUSPEND)
-		  return r;		//* Oops, just suspended */
+		  return r;		/* Oops, just suspended */
 		currFp->fp_filp[inMsg.m_fd] = NIL_FILP;
-		fp->filp_count = 0;
+		filp->filp_count = 0;
 		putInode(ip);
 		return r;
 	}
@@ -224,17 +234,17 @@ int doMkdir() {
 
 int doClose() {
 /* Perform the close(fd) system call. */
-	register Filp *fp;
+	register Filp *filp;
 	register Inode *ip;
-	int mode;
+	int rw, mode;
 	dev_t dev;
 
 	/* First locate the inode that belongs to the file descriptor. */
-	if ((fp = getFilp(inMsg.m_fd)) == NIL_FILP)
+	if ((filp = getFilp(inMsg.m_fd)) == NIL_FILP)
 	  return errCode;
-	ip = fp->filp_inode;	
+	ip = filp->filp_inode;	
 
-	if (fp->filp_count - 1 == 0 && fp->filp_mode != FILP_CLOSED) {
+	if (filp->filp_count - 1 == 0 && filp->filp_mode != FILP_CLOSED) {
 		/* Check to see if the file is special. */
 		mode = ip->i_mode & I_TYPE;
 		if (mode == I_CHAR_SPECIAL || mode == I_BLOCK_SPECIAL) {
@@ -243,6 +253,7 @@ int doClose() {
 				/* Invalidate cache entries unless special is mounted
 				 * or ROOT
 				 */
+				printf("=== fs TODO doClose 111\n");
 				//TODO
 			}
 			/* Do any special processing on device close. */
@@ -251,15 +262,34 @@ int doClose() {
 	}
 
 	/* If the inode being closed is a pipe, release everyone hanging on it. */
-	//TODO
+	if (ip->i_pipe == I_PIPE) {
+		rw = (filp->filp_mode & R_BIT) ? WRITE : READ;
+		release(ip, rw, NR_PROCS);
+	}
 	
 	/* If a write has been done, the inode is already marked as DIRTY. */
-	//TODO
+	if (--filp->filp_count == 0) {
+		if (ip->i_pipe == I_PIPE && ip->i_count > 1) {
+			/* Save the file position in the i-node in case needed later.
+			 * The read and write positions are saved separately. The
+			 * last 3 zones in the i-node are not used for (named) pipes.
+			 */
+			if (filp->filp_mode == R_BIT) 
+			  ip->i_zone[NR_DIRECT_ZONES] = (zone_t) filp->filp_pos;
+			else
+			  ip->i_zone[NR_DIRECT_ZONES + 1] = (zone_t) filp->filp_pos;
+		}
+		putInode(ip);
+	}
 
 	currFp->fp_cloexec &= ~(1L << inMsg.m_fd);	/* Turn off close-on-exec bit */
 	currFp->fp_filp[inMsg.m_fd] = NIL_FILP;
 
 	/* Check to see if the file is locked. If so, release all locks. */
+	if (numLocks == 0)
+	  return OK;
+
+	printf("=== fs TODO doClose 444\n");
 	//TODO
 	
 	return OK;
@@ -269,15 +299,15 @@ int doClose() {
 int doLseek() {
 /* Perform the lseek(fd, offset, whence) system call. */
 
-	register Filp *fp;
+	register Filp *filp;
 	register off_t pos;
 
 	/* Check to see if the file descriptor is valid. */
-	if ((fp = getFilp(inMsg.m_ls_fd)) == NIL_FILP)
+	if ((filp = getFilp(inMsg.m_ls_fd)) == NIL_FILP)
 	  return errCode;
 
 	/* No lseek on pipes. */
-	if (fp->filp_inode->i_pipe == I_PIPE)
+	if (filp->filp_inode->i_pipe == I_PIPE)
 	  return ESPIPE;
 
 	/* The value if 'whence' determines the start position to use. */
@@ -286,10 +316,10 @@ int doLseek() {
 			pos = 0;
 			break;
 		case 1:		/* SEEK_CUR */
-			pos = fp->filp_pos;
+			pos = filp->filp_pos;
 			break;
 		case 2:		/* SEEK_END */
-			pos = fp->filp_inode->i_size;
+			pos = filp->filp_inode->i_size;
 			break;
 		default:
 			return EINVAL;
@@ -302,9 +332,9 @@ int doLseek() {
 	  return EINVAL;
 	pos += inMsg.m_offset;
 
-	if (pos != fp->filp_pos)
-	  fp->filp_inode->i_seek = I_SEEK;	/* Inhibit read ahead */
-	fp->filp_pos = pos;
+	if (pos != filp->filp_pos)
+	  filp->filp_inode->i_seek = I_SEEK;	/* Inhibit read ahead */
+	filp->filp_pos = pos;
 	outMsg.m_reply_l1 = pos;	
 
 	return OK;

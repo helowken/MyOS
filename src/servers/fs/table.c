@@ -17,6 +17,7 @@ void initSysCalls() {
 		callVec[i] = noSys;
 	}
 
+	map(EXIT, doExit);		/* 1 = exit */
 	map(FORK, doFork);		/* 2 = fork */
 	map(READ, doRead);		/* 3 = read */
 	map(WRITE, doWrite);	/* 4 = write */

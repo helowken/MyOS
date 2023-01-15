@@ -50,5 +50,5 @@ start)
 	echo -n "Multiuser startup in progress ...:"
 
 	# National keyboard?
-	test -f /etc/keymap && loadKeys /etc/keymap
+	test -f /etc/keymap && loadkeys /etc/keymap
 esac

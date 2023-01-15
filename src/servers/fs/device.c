@@ -9,6 +9,7 @@ int noDev(int op, dev_t dev, int proc, int flags) {
 }
 
 int cloneOpCl(int op, dev_t dev, int proc, int flags) {
+	printf("=== fs TODO cloneOpCl\n");
 //TODO
 	return 0;
 }
@@ -245,20 +246,20 @@ void devStatus(Message *msg) {
 
 int doIoctl() {
 /* Perform the ioctl(fd, request, argx) system call. */
-	Filp *fp;
+	Filp *filp;
 	register Inode *rip;
 	dev_t dev;
 
-	if ((fp = getFilp(inMsg.m_ls_fd)) == NIL_FILP)
+	if ((filp = getFilp(inMsg.m_ls_fd)) == NIL_FILP)
 	  return errCode;
-	rip = fp->filp_inode;	/* Get inode pointer */
+	rip = filp->filp_inode;	/* Get inode pointer */
 	if ((rip->i_mode & I_TYPE) != I_CHAR_SPECIAL &&
 		(rip->i_mode & I_TYPE) != I_BLOCK_SPECIAL)
 	  return ENOTTY;
 	dev = (dev_t) rip->i_zone[0];
 
 	return devIO(DEV_IOCTL, dev, who, inMsg.ADDRESS, 0L,
-				inMsg.REQUEST, fp->filp_flags);
+				inMsg.REQUEST, filp->filp_flags);
 }
 
 

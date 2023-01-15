@@ -1,13 +1,10 @@
 MY_HOME = ../..
 include $(MY_HOME)/common.mk
 CFLAGS += -DSHELL -D_MINIX -D_POSIX_SOURCE 
-LIBS = -L$(MY_HOME)/lib \
-	   -lmysys -lmysysutil -lmytimers -lmyc -le
+LIBS += -le
 DST_DIR = $(RES_DIR)/bin
 PB_DIR = prebuild
 BLTIN_DIR = bltin
-
-START_FILE = $(MY_HOME)/entry/crtso.o
 
 SRCS = builtins.c cd.c error.c eval.c exec.c expand.c input.c \
 	   jobs.c mail.c main.c memalloc.c miscbltin.c mystring.c nodes.c \
@@ -24,7 +21,7 @@ CLEAN_FILES = builtins.c builtins.h init.c signames.c signames.h \
 			  syntax.c syntax.h token.h nodes.c nodes.h \
 			  $(BLTIN_DIR)/operators.h $(BLTIN_DIR)/operators.c
 
-STACK_SIZE = 102400
+STACK_SIZE = 100k
 BIN = sh.bin
 
 all: compile $(BIN)
@@ -36,7 +33,7 @@ init:
 
 compile: init token.h $(BLTIN_DIR)/operators.h
 
-$(BIN): $(START_FILE) $(OBJS)
+$(BIN): $(CRT_ENTRY) $(OBJS)
 	$(call link,$^,$(LIBS),$@) 
 	$(call createDebug,$@,$(DEBUG))
 	$(call setStack,$(STACK_SIZE),$@)

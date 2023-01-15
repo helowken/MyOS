@@ -163,7 +163,7 @@ int doUnlink() {
 	}
 
 	/* Do not remove a mount point. */
-	if (rip->i_num = ROOT_INODE) {
+	if (rip->i_num == ROOT_INODE) {
 		putInode(rLastDirp);
 		putInode(rip);
 		return EBUSY;

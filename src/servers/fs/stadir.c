@@ -3,7 +3,7 @@
 #include "minix/com.h"
 #include "param.h"
 
-static int statInode(Inode *ip, Filp *fp, char *userAddr) {
+static int statInode(Inode *ip, Filp *filp, char *userAddr) {
 /* Common code for stat and fstat system calls. */
 	struct stat sb;
 	mode_t mode;
@@ -29,8 +29,8 @@ static int statInode(Inode *ip, Filp *fp, char *userAddr) {
 
 	if (ip->i_pipe == I_PIPE) {
 		sb.st_mode &= ~I_REGULAR;	/* Wipe out I_REGULAR bit for pipes */
-		if (fp != NIL_FILP && fp->filp_mode & R_BIT)
-		  sb.st_size -= fp->filp_pos;
+		if (filp != NIL_FILP && filp->filp_mode & R_BIT)
+		  sb.st_size -= filp->filp_pos;
 	}
 
 	sb.st_atime = ip->i_atime;
@@ -45,13 +45,13 @@ static int statInode(Inode *ip, Filp *fp, char *userAddr) {
 
 int doFstat() {
 /* Perform the fstat(fd, buf) system call. */
-	register Filp *fp;
+	register Filp *filp;
 
 	/* Is the file descriptor valid? */
-	if ((fp = getFilp(inMsg.m_fd)) == NIL_FILP)
+	if ((filp = getFilp(inMsg.m_fd)) == NIL_FILP)
 	  return errCode;
 
-	return statInode(fp->filp_inode, fp, inMsg.m_buffer);
+	return statInode(filp->filp_inode, filp, inMsg.m_buffer);
 }
 
 static int changeIntoDir(Inode **iip, Inode *rip) {

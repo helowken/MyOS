@@ -21,15 +21,16 @@
 #endif
 
 #define	_LOW(v)		( (v) & 0377 )
-#define _HIGH(v)	( ((V) >> 8) & 0377)
+#define _HIGH(v)	( ((v) >> 8) & 0377)
 
 #define WNOHANG		1	/* Do not wait for child to exit */
 #define WUNTRACED	2	/* For job control; not implemented */
 
 #define WIFEXITED(s)	(_LOW(s) == 0)		/* Normal exit */
 #define WEXITSTATUS(s)	(_HIGH(s))			/* Exit status */
-#define WIFSIGNALED(s)	(((unsigned int)(s) - 1 & 0xFFFF) < 0xFF)	/* Signaled */
+#define WIFSIGNALED(s)	((((unsigned int)(s) - 1) & 0xFFFF) < 0xFF)	/* Signaled */
 #define WTERMSIG(s)		(_LOW(s) & 0177)	/* Sig value */
+#define WCOREDUMP(s)	(_LOW(s) & 0200)	/* Core dumped */
 #define WIFSTOPPED(s)	(_LOW(s) == 0177)	/* Stopped */
 #define WSTOPSIG(s)		(_HIGH(s) & 0377)	/* Stop signal */
 

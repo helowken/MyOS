@@ -8,7 +8,8 @@ MODULES = \
 		sysutil \
 		timers \
 		rts \
-		stdio
+		stdio \
+		fphook
 
 
 include ../modules.mk

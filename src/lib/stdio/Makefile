@@ -39,7 +39,8 @@ OBJS_M32 = \
 		fsetpos.o \
 		ftell.o \
 		rewind.o \
-		perror.o 
+		perror.o \
+		doprnt.o
 
 
 all: build

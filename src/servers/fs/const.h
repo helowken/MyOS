@@ -44,6 +44,11 @@
 #define NO_READ					1		/* Prevents getBlock() from doing disk read */
 #define PREFETCH				2		/* Tells getBlock() not to read or mark dev */
 
+#define XPIPE		(-NR_TASKS - 1)		/* Used in fp_task when suspended on pipe */
+#define XLOCK		(-NR_TASKS - 2)		/* Used in fp_task when suspended on lock */
+#define XPOPEN		(-NR_TASKS - 3)		/* Used in fp_task when suspended on pipe open */
+#define XSELECT		(-NR_TASKS - 4)		/* Used in fp_task when suspended on select */
+
 #define NO_BIT			((bit_t) 0)		/* Returned by allocBit() to signal failure */
 
 #define LOOK_UP					0		/* Tells searchDir to lookup string */

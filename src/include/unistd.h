@@ -55,6 +55,7 @@ pid_t getppid();
 pid_t getpgrp();
 pid_t setsid();
 int setuid(uid_t uid);
+unsigned int sleep(unsigned seconds);
 int setgid(gid_t gid);
 off_t lseek(int fd, off_t offset, int whence);
 int pause();

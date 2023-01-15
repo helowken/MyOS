@@ -164,6 +164,8 @@ static int newMem(MProc *shareMp, vir_bytes textBytes, vir_bytes dataBytes,
 		rmp->mp_memmap[T].virAddr = 0;
 		rmp->mp_memmap[T].len = textClicks;
 	}
+	printf("==== pm text: %x\n", rmp->mp_memmap[T].physAddr);//TODO
+	printf("==== pm debug 111\n");//TODO
 	rmp->mp_memmap[D].physAddr = newBase + textClicks - offsetClicks;
 	rmp->mp_memmap[D].virAddr = 0;
 	rmp->mp_memmap[D].len = dataClicks;

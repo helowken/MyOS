@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
 	if ((fd = open(KBD_DEVICE, O_WRONLY)) < 0)
 	  fatal(KBD_DEVICE);
 
-	if (fcntl(fd, KIOC_SET_MAP, keyMap) < 0)
+	if (ioctl(fd, KIOC_SET_MAP, keyMap) < 0)
 	  fatal(KBD_DEVICE);
 
 	return 0;

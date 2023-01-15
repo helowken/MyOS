@@ -327,7 +327,7 @@ static void expBackquote(Node *cmd, int quoted, int full) {
 		}
 		lastChar = *p++;
 		if (lastChar != '\0') {
-			if (full && syntax[lastChar] == CCTL)
+			if (full && syntax[(int) lastChar] == CCTL)
 			  ST_PUTC(CTL_ESC, dest);
 			ST_PUTC(lastChar, dest);
 		}
@@ -338,7 +338,8 @@ static void expBackquote(Node *cmd, int quoted, int full) {
 	  close(in.fd);
 	if (in.buf)
 	  ckFree(in.buf);
-	//TODO if (in.jp)
+	if (in.jp) 
+	  exitStatus = waitForJob(in.jp);
 	if (quoted == 0)
 	  recordRegion(startLoc, dest - stackBlock(), 0);
 	expDest = dest;
@@ -442,7 +443,7 @@ static void expandMeta(StrList *str) {
 		if (fflag)
 		  goto noMeta;
 		p = str->text;
-#if TLIDE
+#if TILDE
 		if (p[0] == '~')
 		  str->text = p = expUDir(p);
 #endif

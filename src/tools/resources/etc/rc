@@ -1,2 +1,2 @@
 # /etc/rc System startup script run by init before going multiuser.
-testProc 1 "ss" true 2.2
+echo "`sysenv label`"

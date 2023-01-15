@@ -18,6 +18,7 @@ typedef struct FProc {
 	int fp_cum_io_partial;	/* Partial byte ount if rd/wr can't finish */
 	char fp_suspended;		/* Set to indicate process hanging */
 	char fp_revived;		/* Set to indicate process being revived */
+	char fp_task;			/* Which task is proc suspended on */
 	char fp_session_leader;	/* true if proc is a session leader */
 	pid_t fp_pid;			/* Process id */
 	long fp_cloexec;		/* Bit map for POSIX Table 6-2 FD_CLOEXEC */

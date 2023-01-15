@@ -6,6 +6,81 @@
 #include "sys/svrctl.h"
 #include "param.h"
 
+int doExit() {
+/* Perform the file system portion of the exit(status) system call. */
+	register int i, exitee, task;
+	register FProc *rfp;
+	register Filp *rfilp;
+	register Inode *rip;
+	dev_t dev;
+
+	/* Only PM may do the EXIT call directly. */
+	if (who != PM_PROC_NR)
+	  return EGENERIC;
+
+	/* Nevertheless, pretend that the call came from the user. */
+	exitee = inMsg.m_slot1;
+	currFp = &fprocTable[exitee];	/* getFilp() needs 'currFp' */
+
+	if (currFp->fp_suspended == SUSPENDED) {
+		task = -currFp->fp_task;
+		if (task == XPIPE || task == XPOPEN)
+		  --suspendedCount;
+		inMsg.m_pro = exitee;
+		doUnpause();	/* This always succeeds for MM */
+		currFp->fp_suspended = NOT_SUSPENDED;
+	}
+
+	/* Loop on file descriptors, closing any that are open. */
+	for (i = 0; i < OPEN_MAX; ++i) {
+		inMsg.m_fd = i;
+		doClose();
+	}
+
+	/* Release root and working directories. */
+	putInode(currFp->fp_root_dir);
+	putInode(currFp->fp_work_dir);
+	currFp->fp_root_dir = NIL_INODE;
+	currFp->fp_work_dir = NIL_INODE;
+
+	/* If a session leader exits then revoke access to its controlling 
+	 * tty from all other processes using it.
+	 */
+	if (! currFp->fp_session_leader) {
+		currFp->fp_pid = PID_FREE;
+		return OK;		/* Not a session leader. */
+	}
+	currFp->fp_session_leader = FALSE;
+	if (currFp->fp_tty == 0) {
+		currFp->fp_pid = PID_FREE;
+		return OK;		/* No controlling tty */
+	}
+	dev = currFp->fp_tty;
+
+	for (rfp = &fprocTable[0]; rfp < &fprocTable[NR_PROCS]; ++rfp) {
+		if (rfp->fp_tty == dev)
+		  rfp->fp_tty = 0;
+
+		for (i = 0; i < OPEN_MAX; ++i) {
+			if ((rfilp = rfp->fp_filp[i]) == NIL_FILP ||
+				rfilp->filp_mode == FILP_CLOSED)
+			  continue;
+
+			rip = rfilp->filp_inode;
+			if ((rip->i_mode & I_TYPE) != I_CHAR_SPECIAL ||
+				(dev_t) rip->i_zone[0] != dev)
+			  continue;
+
+			devClose(dev);
+			rfilp->filp_mode = FILP_CLOSED;
+		}
+	}
+
+	/* Mark slot as free. */
+	currFp->fp_pid = PID_FREE;
+	return OK;
+}
+
 int doSync() {
 /* Perform the sync() system call. Flush all the tables.
  * The order in which the various tables are flushed is critical. The
@@ -39,13 +114,13 @@ int doFsync() {
 int doFcntl() {
 /* Perform the fcntl(fd, request, ...) system call. */
 	
-	register Filp *fp;
+	register Filp *filp;
 	int r, newFd, flags;
 	long cloexecMask;	/* Bit map for the FD_CLOEXEC flag */
 	long cloexecValue;	/* FD_CLOEXEC flag in proper position */
 
 	/* Is the file descriptor valid? */
-	if ((fp = getFilp(inMsg.m_fd)) == NIL_FILP)
+	if ((filp = getFilp(inMsg.m_fd)) == NIL_FILP)
 	  return errCode;
 	
 	switch (inMsg.m_request) {
@@ -54,8 +129,8 @@ int doFcntl() {
 			  return EINVAL;
 			if ((r = getFd(inMsg.m_addr, 0, &newFd, NULL)) != OK)
 			  return r;
-			++fp->filp_count;
-			currFp->fp_filp[newFd] = fp;
+			++filp->filp_count;
+			currFp->fp_filp[newFd] = filp;
 			return newFd;
 
 		case F_GETFD:
@@ -71,18 +146,19 @@ int doFcntl() {
 		
 		case F_GETFL:
 		/* Get file status flags (O_NONBLOCK and O_APPEND). */
-			flags = fp->filp_flags & (O_NONBLOCK | O_APPEND | O_ACCMODE);
+			flags = filp->filp_flags & (O_NONBLOCK | O_APPEND | O_ACCMODE);
 			return flags;
 
 		case F_SETFL:
 		/* Set file status flags (O_NONBLOCK and O_APPEND). */
 			flags = O_NONBLOCK | O_APPEND;
-			fp->filp_flags = (fp->filp_flags & ~flags) | (inMsg.m_addr & flags);
+			filp->filp_flags = (filp->filp_flags & ~flags) | (inMsg.m_addr & flags);
 			return OK;
 
 		case F_GETLK:
 		case F_SETLK:
 		case F_SETLKW:
+			printf("=== fs TODO doFnctl\n");
 			//TODO
 		default:
 			return EINVAL;

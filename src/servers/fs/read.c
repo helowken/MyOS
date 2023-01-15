@@ -97,12 +97,13 @@ int readWrite(int rwFlag) {
 /* Perform read(fd, buf, count) or write(fd, buf, count) call. */
 
 	Inode *ip;
-	Filp *fp;
+	Filp *filp;
 	off_t position, fileSize, bytesLeft;
 	unsigned int off, cumIO;
 	mode_t mode;
-	int regular;
+	int regular, partialPipe = 0, partialCount = 0;
 	int blockSize;
+	Filp *wFilp;
 	int r, usr, seg, chunk, op, oFlags, blockSpec = 0, charSpec = 0;
 	int completed, r2 = OK;
 	phys_bytes p;
@@ -123,10 +124,10 @@ int readWrite(int rwFlag) {
 	/* If the file descriptor is valid, get the inode, size and mode. */
 	if (inMsg.m_nbytes < 0)
 	  return EINVAL;
-	if ((fp = getFilp(inMsg.m_fd)) == NIL_FILP)
+	if ((filp = getFilp(inMsg.m_fd)) == NIL_FILP)
 	  return errCode;
-	if ((fp->filp_mode && (rwFlag == READING ? R_BIT : W_BIT)) == 0)
-	  return fp->filp_mode == FILP_CLOSED ? EIO : EBADF;
+	if ((filp->filp_mode & (rwFlag == READING ? R_BIT : W_BIT)) == 0)
+	  return filp->filp_mode == FILP_CLOSED ? EIO : EBADF;
 
 	if (inMsg.m_nbytes == 0)
 	  return 0;		/* So char special files need not check for 0 */
@@ -139,26 +140,29 @@ int readWrite(int rwFlag) {
 						inMsg.m_nbytes, &p)) != OK)
 	  return r;
 
-	position = fp->filp_pos;
-	oFlags = fp->filp_flags;
-	ip = fp->filp_inode;
+	position = filp->filp_pos;
+	oFlags = filp->filp_flags;
+	ip = filp->filp_inode;
 	fileSize = ip->i_size;
 	r = OK;
 	if (ip->i_pipe == I_PIPE) {
-		//TODO;
+		/* currFp->fp_cum_io_partial is only nonzero when doing partial writes. */
+		cumIO = currFp->fp_cum_io_partial;
 	} else {
 		cumIO = 0;
 	}
-	op = (rwFlag == READING ? DEV_READ : DEV_WRITE);
+	op = (rwFlag == READING) ? DEV_READ : DEV_WRITE;
 	mode = ip->i_mode & I_TYPE;
 	regular = mode == I_REGULAR || mode == I_NAMED_PIPE;
 
-	if ((charSpec = (mode == I_CHAR_SPECIAL))) {
+	charSpec = (mode == I_CHAR_SPECIAL);
+	blockSpec = (mode == I_BLOCK_SPECIAL);
+	if (charSpec) {
 		if (ip->i_zone[0] == NO_DEV)
 		  panic(__FILE__, "readWrite tries to read from "
 					  "character device NO_DEV", NO_NUM);
 		blockSize = getBlockSize(ip->i_zone[0]);
-	} else if ((blockSpec = (mode == I_BLOCK_SPECIAL))) {
+	} else if (blockSpec) {
 		fileSize = ULONG_MAX;
 		if (ip->i_zone[0] == NO_DEV)
 		  panic(__FILE__, "readWrite tries to read from "
@@ -172,8 +176,7 @@ int readWrite(int rwFlag) {
 
 	/* Check for character special files. */
 	if (charSpec) {
-		dev_t dev;
-		dev = (dev_t) ip->i_zone[0];
+		dev_t dev = (dev_t) ip->i_zone[0];
 		r = devIO(op, dev, usr, inMsg.m_buffer, position, 
 					inMsg.m_nbytes, oFlags);
 		if (r >= 0) {
@@ -201,17 +204,23 @@ int readWrite(int rwFlag) {
 
 		/* Pipes are a little different. Check. */
 		if (ip->i_pipe == I_PIPE) {
-			//TODO
+			r = pipeCheck(ip, rwFlag, oFlags, 
+					inMsg.m_nbytes, position, &partialCount, 0);
+			if (r <= 0)
+			  return r;
+			r = OK;	/* Need to reset r after pipeCheck. */
 		}
 
-		// TODO if partial
+		if (partialCount > 0)
+		  partialPipe = 1;
 
 		/* Split the transfer into chunks that don't span two blocks. */
 		while (inMsg.m_nbytes) {
 			off = (unsigned int) (position % blockSize);	/* offset in block */
-			// if partial pipe
-			// else
-			chunk = MIN(inMsg.m_nbytes, blockSize - off);
+			if (partialPipe)	/* Pipes only */
+			  chunk = MIN(partialCount, blockSize - off);
+			else 
+			  chunk = MIN(inMsg.m_nbytes, blockSize - off);
 			if (chunk < 0)
 			  chunk = blockSize - off;
 
@@ -228,6 +237,8 @@ int readWrite(int rwFlag) {
 					rwFlag, inMsg.m_buffer, seg, usr, blockSize, &completed);
 			if (r2 != OK)
 			  break;	/* EOF reached */
+			if (rdwtErr < 0)
+			  break;
 
 			/* Update counters and pointers. */
 			inMsg.m_buffer += chunk;	/* User buffer address */
@@ -235,7 +246,11 @@ int readWrite(int rwFlag) {
 			cumIO += chunk;		/* Bytes r/w so far */
 			position += chunk;	/* Position within the file */
 
-			//TODO if partial pipe
+			if (partialPipe) {
+				partialCount -= chunk;
+				if (partialCount <= 0)
+				  break;
+			}
 		}
 	}
 
@@ -246,9 +261,18 @@ int readWrite(int rwFlag) {
 			  ip->i_size = position;
 		}
 	} else {
-		// TODO if I_PIPE
+		if (ip->i_pipe == I_PIPE) {
+			if (position >= ip->i_size) {
+				/* Reset pipe pointers. */
+				ip->i_size = 0;		/* No data left */
+				position = 0;		/* Reset reader(s) */
+				wFilp = findFilp(ip, W_BIT);
+				if (wFilp != NIL_FILP)
+				  wFilp->filp_pos = 0;
+			}
+		}
 	}
-	fp->filp_pos = position;
+	filp->filp_pos = position;
 
 	/* Check to see if read ahead is called for, and if so, set it up. */
 	if (rwFlag == READING && 
@@ -274,7 +298,15 @@ int readWrite(int rwFlag) {
 		else if (rwFlag == WRITING)
 		  ip->i_update |= CTIME | MTIME;
 		ip->i_dirty = DIRTY;	/* Inode is thus now dirty */
-		// TODO if partial pipe
+		if (partialPipe) {
+			partialPipe = 0;
+			/* Partial write on pipe with O_NONBLOCK, return write count */
+			if (! (oFlags & O_NONBLOCK)) {
+				currFp->fp_cum_io_partial = cumIO;
+				suspend(XPIPE);		/* Partial write on pipe with */
+				return SUSPEND;		/* nbytes > PIPE_SIZE - non-atomic */
+			}
+		}
 		currFp->fp_cum_io_partial = 0;
 		return cumIO;
 	}
@@ -448,7 +480,6 @@ Buf *doReadAhead(
 	  blocksAhead = blocksLeft;
 
 	queueSize = 0;
-	blocksAhead = 1;//TODO
 
 	/* Acquire block buffers. */
 	while (true) {

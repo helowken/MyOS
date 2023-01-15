@@ -1,9 +1,9 @@
-MK = $(MAKE) -f bin.mk
+MK = $(MAKE) -f ../bin.mk
+MAKEFLAGS += --no-print-directory
 
 all: 
-	$(MK) NAME=loadkeys STACK_SIZE=$(shell expr 4096 '*' 32)
-	$(MK) NAME=testProc STACK_SIZE=1024
+	$(MK) NAME=loadkeys STACK_SIZE=4kw
 
 clean: 
 	$(MK) NAME=loadkeys clean
-	$(MK) NAME=testProc clean
+

@@ -27,7 +27,9 @@ OBJS_M32 = \
 		sigmisc.o \
 		malloc.o \
 		strerror.o \
-		errlist.o
+		errlist.o \
+		toupper.o \
+		tolower.o
 
 		
 OBJS_M16 = \

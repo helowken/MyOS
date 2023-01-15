@@ -215,15 +215,16 @@ static void evalCommand(Node *cmd, int flags, BackCmd *backCmd) {
 		if (flags & EV_BACKCMD) {
 			printf("==== fork no job with pipe\n");
 			mode = FORK_NO_JOB;
-			if (pipe(pip) < 0)
+			if (pipe(pip) < 0) 
 			  error("Pipe call failed");
+			printf("===pipe: %d, %d\n", pip[0], pip[1]);
 		}
 		if (forkShell(jp, cmd, mode) != 0)
 		  goto parent;		/* At end of routine */
 		if (flags & EV_BACKCMD) {
 			FORCE_INTON;
-			close(pip[0]);
-			if (pip[1] != 1) {
+			close(pip[0]);	/* Child proc close the read point */
+			if (pip[1] != 1) {	/* Child proc copy the write point to stdout. */
 				close(1);
 				copyFd(pip[1], 1);
 				close(pip[1]);
@@ -238,6 +239,7 @@ static void evalCommand(Node *cmd, int flags, BackCmd *backCmd) {
 		printf("=== cmd is function\n");
 		//TODO
 	} else if (cmdEntry.cmdType == CMD_BUILTIN) {
+		printf("=== cmd is builtin\n");
 		mode = (cmdEntry.u.index == EXECCMD) ? 0 : REDIR_PUSH;
 		if (flags == EV_BACKCMD) {
 			memOut.numLeft = 0;
@@ -288,6 +290,7 @@ cmdDone:
 			memOut.buf = NULL;
 		}
 	} else {
+		printf("=== cmd is normal\n");
 		clearRedir();
 		redirect(cmd->nCmd.redirect, 0);
 		if (varList.list) {
@@ -532,7 +535,7 @@ int evalCmd(int argc, char **argv) {
  * Should be called with interrupts off.
  */
 void evalBackCmd(union Node *n, BackCmd *result) {
-	int pip[2];
+	//int pip[2];
 	//Job *jp;
 	StackMark stackMark;
 
@@ -543,9 +546,10 @@ void evalBackCmd(union Node *n, BackCmd *result) {
 	//result->jp = NULL;
 	if (n == NULL) {
 		/* For: `` */
-	} else if (n->type = NCMD) {
+	} else if (n->type == NCMD) {
 		evalCommand(n, EV_BACKCMD, result);
 	} else {
+		printf("=== TODO init evalBackCmd 111\n");
 		//TODO
 	}
 	popStackMark(&stackMark);
