@@ -1,7 +1,7 @@
 MY_HOME = ../..
 include $(MY_HOME)/common.mk
 CFLAGS += -DSHELL -D_MINIX -D_POSIX_SOURCE 
-LIBS += -le
+LIBS = -L$(MY_HOME)/lib -lmyc -le
 DST_DIR = $(RES_DIR)/bin
 PB_DIR = prebuild
 BLTIN_DIR = bltin
@@ -24,19 +24,20 @@ CLEAN_FILES = builtins.c builtins.h init.c signames.c signames.h \
 STACK_SIZE = 100k
 BIN = sh.bin
 
-all: compile $(BIN)
+all: compile $(BIN) mkbltin
 
 $(OBJS): init.h syntax.h signames.h nodes.h $(BLTIN_DIR)/*.h
 
 init:
 	cd $(PB_DIR) && $(MAKE)
 
+mkbltin:
+	cd $(BLTIN_DIR) && $(MAKE)
+
 compile: init token.h $(BLTIN_DIR)/operators.h
 
 $(BIN): $(CRT_ENTRY) $(OBJS)
-	$(call link,$^,$(LIBS),$@) 
-	$(call createDebug,$@,$(DEBUG))
-	$(call setStack,$(STACK_SIZE),$@)
+	$(call mkSysBin,$^,$@,$(STACK_SIZE))
 	$(call copyTo,$@,$(DST_DIR))
 
 init.c: $(PB_DIR)/mkinit.bin $(SRCS)

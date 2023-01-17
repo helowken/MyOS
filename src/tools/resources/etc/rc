@@ -1,2 +1,4 @@
 # /etc/rc System startup script run by init before going multiuser.
-echo "`sysenv label`"
+sysenv
+service
+

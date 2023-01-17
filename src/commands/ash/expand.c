@@ -415,7 +415,7 @@ static char *expUDir(char *path) {
  */
 static void expMeta(char *endDir, char *name) {
 	//TODO
-	printf("=== expMeta\n");
+	printf("=== TODO expMeta\n");
 }
 
 /* Sort the results of file name expansion. It calculates the number of
@@ -424,7 +424,7 @@ static void expMeta(char *endDir, char *name) {
  */
 static StrList *expSort(StrList *str) {
 	//TODO
-	printf("=== expSort\n");
+	printf("=== TODO expSort\n");
 	return NULL;
 }
 

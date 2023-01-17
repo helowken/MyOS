@@ -15,6 +15,7 @@ typedef struct FileInfo {
 	Dev_t rdev;
 	struct FileInfo *files;
 	char *path;
+	char *linkNames;
 } FileInfo;
 
 static FileInfo devFiles[] = {
@@ -50,6 +51,14 @@ static FileInfo devFiles[] = {
 
 	/* LOG */
 	{ "klog",    I_CHAR_SPECIAL  | 0600,  SU, ROOT_GRP,  RDEV(LOG_MAJOR, 0x00) },
+
+	/* CMOS */
+	{ "cmos",    I_CHAR_SPECIAL  | 0600,  SU, ROOT_GRP,  RDEV(0x11, 0x00) },
+	{ NULL }
+};
+
+static FileInfo sbinFiles[] = {
+	{ "cmos",       I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "sbin/cmos.bin" },
 	{ NULL }
 };
 
@@ -57,7 +66,9 @@ static FileInfo binFiles[] = {
 	{ "sh",       I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "bin/sh.bin" },
 	{ "loadkeys", I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "bin/loadkeys.bin" },
 	{ "sysenv",   I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "bin/sysenv.bin" },
-	//{ "testAAA",  I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "bin/testAAA.bin" },
+	{ "expr",	  I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "bin/expr.bin",	   "test,[" },
+	{ "service",  I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "bin/service.bin" },
+	{ "testAAA",  I_REGULAR | 0755, BIN, ROOT_GRP, 0, NULL, "bin/testAAA.bin" },
 	{ NULL }
 };
 
@@ -69,7 +80,7 @@ static FileInfo etcFiles[] = {
 
 static FileInfo dirs[] = {
 	{ "dev",     I_DIRECTORY | 0755, SU,  ROOT_GRP, 0, devFiles },
-	{ "sbin",    I_DIRECTORY | 0755, BIN, ROOT_GRP, 0           },
+	{ "sbin",    I_DIRECTORY | 0755, BIN, ROOT_GRP, 0, sbinFiles },
 	{ "bin",     I_DIRECTORY | 0755, BIN, ROOT_GRP, 0, binFiles },
 	{ "etc",     I_DIRECTORY | 0755, SU,  ROOT_GRP, 0, etcFiles },
 	{ NULL }

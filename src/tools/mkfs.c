@@ -608,10 +608,30 @@ static Ino_t doMkdir(Ino_t pINum, FileInfo *fi) {
 
 static Ino_t mkFile(Ino_t pINum, FileInfo *fi) {
 	Ino_t iNum;
+	char name[100];
+	char *s1, *s2;
+#define SEP	','
 
 	iNum = allocInode(fi);
 	increaseLink(iNum);
 	enterDir(pINum, fi->name, iNum);
+
+	if (fi->linkNames) {
+		if (strlen(fi->linkNames) > 100)
+		  fatal("linkNames is too large: %s", fi->linkNames);
+		strcpy(name, fi->linkNames);
+
+		s1 = name;
+		while (*s1) {
+			s2 = strchr(s1, SEP);
+			if (s2 != NULL)
+			  *s2 = '\0';
+			enterDir(pINum, s1, iNum);
+			if (s2 == NULL)
+			  break;
+			s1 = s2 + 1;
+		}
+	}
 
 	return iNum;
 }

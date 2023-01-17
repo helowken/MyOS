@@ -20,7 +20,6 @@ int umaskCmd(int argc, char **argv) {
 	char *p;
 	int i;
 
-	printf("=== umaskCmd\n");//TODO
 	if ((p = argv[1]) == NULL) {
 		INTOFF;
 		mask = umask(0);

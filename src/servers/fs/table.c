@@ -40,6 +40,7 @@ void initSysCalls() {
 	map(FCNTL, doFcntl);	/* 55 = fcntl */
 	map(EXEC, doExec);		/* 59 = execve */
 	map(UMASK, doUmask);	/* 60 = umask */
+	map(DEVCTL, doDevCtl);	/* 81 = devctl */
 }
 
 

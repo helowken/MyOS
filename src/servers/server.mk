@@ -1,14 +1,11 @@
 MY_HOME = ../..
 include $(MY_HOME)/common.mk
-LIBS += -lmytimers
 
 SERVER = $(NAME).bin
-all: $(SERVER)
+build: $(SERVER)
 
 $(SERVER): $(ENTRY) $(OBJS) 
-	$(call link,$^,$(LIBS),$@) 
-	$(call createDebug,$@,$(DEBUG))
-	$(call setStack,$(STACK_SIZE),$@)
+	$(call mkSysBin,$^,$@,$(STACK_SIZE))
 
 clean:
 	$(call cleanCommon)

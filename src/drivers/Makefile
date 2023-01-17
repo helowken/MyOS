@@ -1,10 +1,10 @@
-MODULES = \
-		libpci \
-		libdriver \
-		at_wini \
-		memory \
-		log \
-		tty	
+MODULES = libpci \
+		  libdriver \
+		  at_wini \
+		  memory \
+		  log \
+		  tty \
+		  cmos
 
 
 include ../modules.mk

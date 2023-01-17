@@ -313,7 +313,7 @@ int forkShell(Job *jp, Node *n, int mode) {
 		return pid;
 	}
 
-	printf("=== forkShell parent\n");
+	printf("=== forkShell parent, child pid: %d\n", pid);
 	if (mode == FORK_BG)
 	  backgndPid = pid;		/* Set $! */
 	if (jp) {

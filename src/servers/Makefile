@@ -1,7 +1,7 @@
-MODULES = \
-		pm \
-		fs \
-		init
+MODULES = pm \
+		  fs \
+		  rs \
+		  init
 
 
 include ../modules.mk

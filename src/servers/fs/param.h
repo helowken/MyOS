@@ -30,10 +30,10 @@
 #define m_path_name		m3_ca1
 #define m_pid			m1_i3
 #define m_pro			m1_i1
-
-
-
-
+#define m_ctl_req		m4_l1
+#define m_driver_num	m4_l2
+#define m_dev_num		m4_l3
+#define m_dev_style		m4_l4
 
 #define m_ruid			m1_i2
 #define m_request		m1_i2

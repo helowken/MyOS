@@ -642,6 +642,17 @@ tsemi:		case TSEMI:
 #define PARSE_BACKQUOTE_OLD()	{oldStyle = 1; goto parseBackq; parseBackqOldReturn:;}
 #define PARSE_BACKQUOTE_NEW()	{oldStyle = 0; goto parseBackq; parseBackqNewReturn:;}
 
+static void debug(char *fmt, ...) {
+	va_list ap;
+	int print = 0;
+
+	if (print) {
+		va_start(ap, fmt);
+		vprintf(fmt, ap);
+		va_end(ap);
+	}
+}
+
 static int readToken1(int firstChar, char const *syntax, 
 			char *eofMark, int stripTabs) {
 	register int c = firstChar;
@@ -666,10 +677,10 @@ static int readToken1(int firstChar, char const *syntax,
 		  CHECK_END();	/* Set c to PEOF if at end of here document */
 		  for (;;) {	/* Until end of line or end of word */
 			CHECK_STR_SPACE(3, out);	/* Permit 3 calls to UST_PUTC */
-			printf("'%c'", c);
+			debug("'%c'", c);
 			switch (syntax[c]) {
 				case CNL:	/* '\n' */
-					printf("1 ");
+					debug("1 ");
 					if (syntax == BASE_SYNTAX)
 					  goto endWord;		/* Exit outer loop */
 					UST_PUTC(c, out);
@@ -679,52 +690,52 @@ static int readToken1(int firstChar, char const *syntax,
 					c = pGetChar();
 					goto loop;		/* Continue outer loop */
 				case CWORD:
-					printf("2 ");
+					debug("2 ");
 					UST_PUTC(c, out);
 					break;
 				case CCTL:
-					printf("3 ");
+					debug("3 ");
 					if (eofMark == NULL || dblquote)
 					  UST_PUTC(CTL_ESC, out);
 					UST_PUTC(c, out);
 					break;
 				case CBACK:	/* Backslash */
-					printf("4");
+					debug("4");
 					c = pGetChar();
 					if (c == PEOF) {
-						printf("1 ");
+						debug("1 ");
 						UST_PUTC('\\', out);
 						pUngetChar();
 					} else if (c == '\n') {
-						printf("2 ");
+						debug("2 ");
 						if (doPrompt)
 						  putPrompt(ps2Val());
 					} else {
 						if (dblquote && c != '\\' && c != '`' && c != '$' &&
 									(c != '"' || eofMark != NULL)) {
-							printf("3");
+							debug("3");
 						  UST_PUTC('\\', out);
 						}
 						if (SQ_SYNTAX[c] == CCTL) {
-							printf("4");
+							debug("4");
 						  UST_PUTC(CTL_ESC, out);
 						}
-						printf("5 ");
+						debug("5 ");
 						UST_PUTC(c, out);
 						++quoteF;
 					}
 					break;
 				case CS_QUOTE:
-					printf("5 ");
+					debug("5 ");
 					syntax = SQ_SYNTAX;
 					break;
 				case CD_QUOTE:
-					printf("6 ");
+					debug("6 ");
 					syntax = DQ_SYNTAX;
 					dblquote = 1;
 					break;
 				case CEND_QUOTE:
-					printf("7 ");
+					debug("7 ");
 					if (eofMark) {
 						UST_PUTC(c, out);
 					} else {
@@ -734,11 +745,11 @@ static int readToken1(int firstChar, char const *syntax,
 					}
 					break;
 				case CVAR:	/* '$' */
-					printf("8 ");
+					debug("8 ");
 					PARSE_SUB();	/* Parse substitution */
 					break;
 				case CEND_VAR:	/* '}' */
-					printf("9 ");
+					debug("9 ");
 					if (varNest > 0) {
 						--varNest;
 						UST_PUTC(CTL_END_VAR, out);
@@ -747,14 +758,14 @@ static int readToken1(int firstChar, char const *syntax,
 					}
 					break;
 				case CB_QUOTE:	/* '`' */
-					printf("0 ");
+					debug("0 ");
 					PARSE_BACKQUOTE_OLD();
 					break;
 				case CEOF:
-					printf("+ ");
+					debug("+ ");
 					goto endWord;	/* Exit outer loop */
 				default:
-					printf("- ");
+					debug("- ");
 					if (varNest == 0)
 					  goto endWord;		/* Exit outer loop */
 					UST_PUTC(c, out);
@@ -763,7 +774,7 @@ static int readToken1(int firstChar, char const *syntax,
 		  }
 	}
 endWord:
-		  printf("\n");
+		  debug("\n");
 	if (syntax != BASE_SYNTAX && ! parseBackquote && eofMark == NULL) 
 	  syntaxError("Unterminated quoted string");
 	if (varNest != 0) {
@@ -890,9 +901,6 @@ parseSub: {
 	char *p;
 
 	c = pGetChar();
-	if (c == '1') {
-		printf("=== test: %d, %d\n", isName(c), isSpecial(c));
-	}
 	if (c != '(' && c != '{' && !isName(c) && !isSpecial(c)) {
 		UST_PUTC('$', out);
 		pUngetChar();

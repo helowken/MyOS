@@ -76,6 +76,14 @@ int getProcNum();
 int findProc(char *procName, int *pNum);
 int close(int fd);
 int allocMem(phys_bytes size, phys_bytes *base);
+#define DEV_MAP		1
+#define DEV_UNMAP	2
+#define mapDriver(driver, device, style) \
+			devCtl(DEV_MAP, driver, device, style)
+#define unmapDriver(device)	\
+			devCtl(DEV_UNMAP, 0, device, 0)
+int devCtl(int ctlReq, int driver, int device, int style);
+
 #endif
 
 #endif

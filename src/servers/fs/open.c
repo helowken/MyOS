@@ -134,7 +134,6 @@ static int commonOpen(register int oFlags, mode_t oMode) {
 				case I_CHAR_SPECIAL:
 				case I_BLOCK_SPECIAL:
 					/* Invoke the driver for special processing. */
-					printf("=== fs char or block dev commonOpen\n");
 					dev = (dev_t) ip->i_zone[0];
 					r = devOpen(dev, who, bits | (oFlags & ~O_ACCMODE));
 					break;

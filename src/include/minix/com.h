@@ -36,7 +36,7 @@
 #define INIT_PROC_NR	7	/* Init -- goes multiuser */
 
 /* Number of processes contained in the system image. */
-#define NR_BOOT_PROCS	11	// TODO (NR_TASKS + INIT_PROC_NR + 1)
+#define NR_BOOT_PROCS	12	// TODO (NR_TASKS + INIT_PROC_NR + 1)
 
 /*=====================================================================*
  *			Kernel notification types			*
@@ -280,6 +280,23 @@
 #define SEG_PHYS_ADDR	m4_l3	/* Physical address of segment */
 #define SEG_SIZE		m4_l4	/* Segment size */
 #define SEG_INDEX		m4_l5	/* Segment index in remote map */
+
+/*=====================================================================*
+ *			Messages for system management server   	  *
+ *=====================================================================*/
+#define SRV_REQ_BASE	0x700
+
+#define SRV_UP			(SRV_REQ_BASE + 0)	/* Start system service */
+#define SRV_DOWN		(SRV_REQ_BASE + 1)	/* Stop system servie */
+#define SRV_STATUS		(SRV_REQ_BASE + 2)	/* Get services status */
+
+#  define SRV_PATH_ADDR		m1_p1	/* Path of binary */
+#  define SRV_PATH_LEN		m1_i1	/* Length of binary */
+#  define SRV_ARGS_ADDR		m1_p2	/* Arguments to be passed */
+#  define SRV_ARGS_LEN		m1_i2	/* Length of arguments */
+#  define SRV_DEV_MAJOR		m1_i3	/* Major device number */
+#  define SRV_PRIV_ADDR		m1_p3	/* Privileges string */
+#  define SRV_PRIV_LEN		m1_i3	/* Length of privileges */
 
 /*=====================================================================*
  *			Miscellaneous messages used by TTY			*

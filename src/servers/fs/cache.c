@@ -200,7 +200,7 @@ void rwBlock(register Buf *bp, int rwFlag) {
 			  r = END_OF_FILE;
 			if (r != END_OF_FILE) 
 			  printf("Unrecoverable disk error on device %d/%d, block %d\n",
-						majorDev(dev), minorDev(dev), bp->b_block_num);
+						MAJOR_DEV(dev), MINOR_DEV(dev), bp->b_block_num);
 			bp->b_dev = NO_DEV;		/* Invalidate block */
 			
 			/* Report read errors to interested parties. */
@@ -326,7 +326,7 @@ void rwScattered(dev_t dev, Buf **bufQueue, int queueSize, int rwFlag) {
 				/* Transfer failed. An error? Do we care? */
 				if (r != OK && i == 0) {	
 					printf("FS: I/O error on device %d/%d, block %d\n",
-						majorDev(dev), minorDev(dev), bp->b_block_num);
+						MAJOR_DEV(dev), MINOR_DEV(dev), bp->b_block_num);
 					bp->b_dev = NO_DEV;		/* Invalidate block */
 				}
 				break;
@@ -417,7 +417,7 @@ zone_t allocZone(
 	if (b == NO_BIT) {
 		errCode = ENOSPC;
 		printf("No space on %sdevice %d/%d\n", 
-			sp->s_dev == rootDev ? "root " : "", majorDev(dev), minorDev(dev));
+			sp->s_dev == rootDev ? "root " : "", MAJOR_DEV(dev), MINOR_DEV(dev));
 		return NO_ZONE;
 	}
 	if (z == sp->s_first_data_zone)

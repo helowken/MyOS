@@ -71,6 +71,7 @@ char *lookupVar(char *);
 char **environment();
 int showVarsCmd(int, char **);
 void mkLocal(char *);
+void popLocalVars(void);
 
 
 

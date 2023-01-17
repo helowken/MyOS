@@ -80,7 +80,6 @@ void cmdLoop(int top) {
 				currCmd = copyFunc(n);
 				INTON;
 			}
-			printf("------------------------\n");
 			evalTree(n, 0);
 		}
 		popStackMark(&stackMark);

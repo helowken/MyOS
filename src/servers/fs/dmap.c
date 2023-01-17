@@ -50,7 +50,7 @@ DMap initDMap[] = {
 
 DMap dmapTable[NR_DEVICES];
 
-static int mapDriver(int major, int pNum, int style) {
+static int doMapDriver(int major, int pNum, int style) {
 /* Set a new device driver mapping in the dmap table. Given that correct
  * arguments are given, this only works if the entry is mutable and the
  * current driver is not busy.
@@ -58,7 +58,7 @@ static int mapDriver(int major, int pNum, int style) {
  * a system call that tries to dynamically install a new driver.
  */
 	DMap *dp;
-	
+
 	if (major >= NR_DEVICES)
 	  return ENODEV;
 	dp = &dmapTable[major];
@@ -139,9 +139,28 @@ void buildDMap() {
 	}
 
 	/* Now try to set the actual mapping and report to the user. */
-	if ((s = mapDriver(major, DRVR_PROC_NR, STYLE_DEV)) != OK)
-	  panic(__FILE__, "mapDriver failed", s);
+	if ((s = doMapDriver(major, DRVR_PROC_NR, STYLE_DEV)) != OK)
+	  panic(__FILE__, "doMapDriver failed", s);
 
 	printf("Boot medium driver: %s driver mapped onto controller %s.\n", 
 				driver, controller);
 }
+
+int doDevCtl() {
+	int result;
+
+	switch(inMsg.m_ctl_req) {
+		case DEV_MAP:
+			/* Try to update device mapping. */
+			result = doMapDriver(inMsg.m_dev_num, inMsg.m_driver_num, 
+								inMsg.m_dev_style);
+			break;
+		case DEV_UNMAP:
+			result = ENOSYS;
+			break;
+		default:
+			result = EINVAL;
+	}
+	return result;
+}
+

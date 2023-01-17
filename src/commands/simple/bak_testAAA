@@ -1,8 +1,17 @@
+//TODO start
+#include "sys/types.h"
 #include "ctype.h"
-#include "stdio.h"
 #include "stdarg.h"
-#include "string.h"
-#include "loc_incl.h"
+#include "string.h" 
+#include "minix/sysutil.h"
+#include "../../lib/stdio/loc_incl.h"
+#include "limits.h"
+
+static char testBuf[128];
+static char *tb = testBuf;
+
+#define testPutc(c, stream)	(*tb++ = c, 1)
+//TODO end
 
 /* getNum() is used to get the width and precision fields of a format. */
 static const char *getNum(register const char *fmt, int *ip, 
@@ -118,7 +127,7 @@ int _doPrint(register const char *fmt, va_list ap, FILE *stream) {
 
 	while ((c = *fmt++)) {
 		if (c != '%') {
-			if (putc(c, stream) == EOF)
+			if (testPutc(c, stream) == EOF)
 			  return numChars ? -numChars : -1;
 			++numChars;
 			continue;
@@ -225,7 +234,7 @@ int _doPrint(register const char *fmt, va_list ap, FILE *stream) {
 
 		switch ((c = *fmt++)) {
 			default:
-				if (putc(c, stream) == EOF)
+				if (testPutc(c, stream) == EOF)
 				  return numChars ? -numChars : -1;
 				++numChars;
 				continue;
@@ -335,18 +344,18 @@ int _doPrint(register const char *fmt, va_list ap, FILE *stream) {
 					if (flags & FL_SIGNED_CONV) {
 						--j;
 						++numChars;
-						if (putc(*s1++, stream) == EOF) 
+						if (testPutc(*s1++, stream) == EOF) 
 						  return numChars ? -numChars : -1;
 					} else {
 						j -= 2;
 						numChars += 2;
-						if (putc(*s1++, stream) == EOF ||
-								putc(*s1++, stream) == EOF)
+						if (testPutc(*s1++, stream) == EOF ||
+								testPutc(*s1++, stream) == EOF)
 						  return numChars ? -numChars : -1;
 					}
 				}
 				do {
-					if (putc(zeroFill, stream) == EOF)
+					if (testPutc(zeroFill, stream) == EOF)
 					  return numChars ? -numChars : -1;
 				} while (--i);
 			}
@@ -354,16 +363,47 @@ int _doPrint(register const char *fmt, va_list ap, FILE *stream) {
 
 		numChars += j;
 		while (--j >= 0) {
-			if (putc(*s1++, stream) == EOF) 
+			if (testPutc(*s1++, stream) == EOF) 
 			  return numChars ? -numChars : -1;
 		}
 
 		if (i > 0)
 		  numChars += i;
 		while (--i >= 0) {
-			if (putc(zeroFill, stream) == EOF) 
+			if (testPutc(zeroFill, stream) == EOF) 
 			  return numChars ? -numChars : -1;
 		}
 	}
 	return numChars;
+}
+
+static int testPrint(const char *fmt, ...) {
+	va_list ap;
+
+	tb = testBuf;
+	va_start(ap, fmt);
+	int n = _doPrint(fmt, ap, NULL);	
+	va_end(ap);
+	*tb = '\0';
+	printf("%s", testBuf);
+	return n;
+}
+
+int main(int argc, char **argv) {
+	testPrint("1=== %s, 3_h=%hi, 4_i=%i, 5000000_l=%li, p=%p\n", "abc", USHRT_MAX + 2, 4, 5000000, tb);
+	testPrint("2=== 6_b=%b, 7_o=%o, 8_u=%u, 128_x=%x, 129_X=%X\n", 6, 7, 8, 255, 254);
+	testPrint("3=== 7=%#o, 71=%#x, 81=%#X\n", 0747, 0xAF4, 0xbe1);
+
+	short s;
+	int i;
+	long l;
+	testPrint("4===%hn %n %3ln", &s, &i, &l);
+	testPrint("1=%hd, 2=%d, 3=%li\n", s, i, l);
+
+	testPrint("5===%+d, %+d\n", -333, 444);
+	testPrint("5===% d, % d\n", -333, 444);
+	testPrint("5===%06d, %06d, %06o, %06x\n", -333, 444, 0555, 0xABC);
+	testPrint("6===%-8d, %8d, %*d,\n", 666, 777, -8, 888);
+	testPrint("7===%.4s\n", "aaaaaa");
+	return 0;
 }

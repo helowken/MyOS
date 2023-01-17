@@ -31,6 +31,7 @@ ENV_MODULES_FILE=$(MY_HOME)/env_modules
 PROGRAMS = ../kernel/kernel.bin \
 		   ../servers/pm/pm.bin \
 		   ../servers/fs/fs.bin \
+		   ../servers/rs/rs.bin \
 		   ../drivers/tty/tty.bin \
 		   ../drivers/memory/memory.bin \
 		   ../drivers/log/log.bin \

@@ -34,6 +34,7 @@ void clearZone(Inode *ip, off_t pos, int flag);
 int doWrite(void);
 
 /* dmap.c */
+int doDevCtl(void);
 void buildDMap(void);
 
 /* filedes.c */

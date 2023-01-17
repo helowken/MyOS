@@ -231,7 +231,6 @@ static void outFunc(FILE *cFile, int calcSize) {
 		for (i = 0; i < numTypes; ++i) {
 			if (nodeSPs[i] == sp) { 
 				fprintf(cFile, "        case %s:\n", nodeName[i]);
-				break;
 			}
 		}
 		strcpy(tag, sp->tag);

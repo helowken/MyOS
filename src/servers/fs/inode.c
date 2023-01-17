@@ -201,8 +201,8 @@ Inode *allocInode(dev_t dev, mode_t bits) {
 	b = allocBit(sp, IMAP, sp->s_inode_search);	
 	if (b == NO_BIT) {
 		errCode = ENFILE;
-		major = majorDev(sp->s_dev);
-		minor = minorDev(sp->s_dev);
+		major = MAJOR_DEV(sp->s_dev);
+		minor = MINOR_DEV(sp->s_dev);
 		printf("Out of i-nodes on %sdevice %d/%d\n",
 			sp->s_dev == rootDev ? "root " : "", major, minor);
 		return NIL_INODE;

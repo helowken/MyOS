@@ -3,7 +3,8 @@ include $(MY_HOME)/common.mk
 DIR_SYSTEM = system
 SYSTEM = mysystem
 LIB_SYSTEM = lib$(SYSTEM).a
-LIBS = -L. -l$(SYSTEM) $(COMMON_LIBS) -lmytimers
+LIBS = -L. -l$(SYSTEM) $(SYS_LIBS)
+STACK_SIZE = 0
 
 OBJS = mpx.o start.o protect.o klib386.o table.o main.o proc.o \
 	   i8259.o exception.o system.o clock.o utility.o
@@ -15,9 +16,7 @@ $(LIB_SYSTEM): $(DIR_SYSTEM)/*.o
 	cd $(DIR_SYSTEM) && $(MAKE)
 
 $(BIN): $(OBJS) $(LIB_SYSTEM)
-	$(call link,$(OBJS),$(LIBS),$@) 
-	$(call createDebug,$@,$(DEBUG))
-	$(call setStack,0,$@)
+	$(call mkSysBin,$(OBJS),$@,$(STACK_SIZE))
 
 clean: 
 	cd $(DIR_SYSTEM) && $(MAKE) clean

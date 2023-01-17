@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
 	  usageErr("%s stackSize program\n", progName);	
 
 	size = parseSize(argv[1]);
-	printf("Set stack size to: %d bytes\n", size);
+	printf("Set stack size to %s: %s (%d bytes)\n", argv[2], argv[1], size);
 	setStackSize(size, argv[2]);
 	return EXIT_SUCCESS;
 }

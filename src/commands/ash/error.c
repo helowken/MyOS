@@ -68,8 +68,9 @@ void error(char *msg, ...) {
 		out2Char('\n');
 	}
 	va_end(ap);
+	fprintf(stderr, "TODO rase error\n");
 	flushAll();
-	exRaise(EX_ERROR);
+	//TODO exRaise(EX_ERROR);
 }
 
 void error2(char *a, char *b) {

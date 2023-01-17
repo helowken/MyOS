@@ -113,7 +113,8 @@ static void evalCommand(Node *cmd, int flags, BackCmd *backCmd) {
 	JmpLoc jmpLoc;
 	JmpLoc *volatile saveHandler;
 	char *volatile saveCmdName;
-	//volatile ShellParam saveParam;
+	volatile ShellParam saveParam;
+	LocalVar *volatile saveLocalVars;
 	volatile int e;
 	char *lastArg;
 
@@ -178,7 +179,6 @@ static void evalCommand(Node *cmd, int flags, BackCmd *backCmd) {
 	} else {
 		findCommand(argv[0], &cmdEntry, 1);
 		if (cmdEntry.cmdType == CMD_UNKNOWN) {	/* Command not found */
-			printf("=== cmd is unknown.\n");
 			exitStatus = 2;
 			flushOut(&errOut);
 			popStackMark(&stackMark);
@@ -236,10 +236,51 @@ static void evalCommand(Node *cmd, int flags, BackCmd *backCmd) {
 	/* This is the child process if a fork occurred. */
 	/* Execute the command. */
 	if (cmdEntry.cmdType == CMD_FUNCTION) {
-		printf("=== cmd is function\n");
-		//TODO
+		redirect(cmd->nCmd.redirect, REDIR_PUSH);
+		saveParam = shellParam;
+		shellParam.malloc = 0;
+		shellParam.numParam = argc - 1;
+		shellParam.params = argv + 1;
+		shellParam.optNext = NULL;
+		INTOFF;
+		saveLocalVars = localVars;
+		localVars = NULL;
+		INTON;
+		if (setjmp(jmpLoc.loc)) {
+			if (exception == EX_SHELL_PROC)
+			  freeParam((ShellParam *) &saveParam);
+			else {
+				freeParam(&shellParam);
+				shellParam = saveParam;
+			}
+			popLocalVars();
+			localVars = saveLocalVars;
+			handler = saveHandler;
+			longjmp(handler->loc, 1);
+		}
+		saveHandler = handler;
+		handler = &jmpLoc;
+		for (sp = varList.list; sp; sp = sp->next) {
+			mkLocal(sp->text);
+		}
+		++funcNest;
+		evalTree(cmdEntry.u.func, 0);
+		--funcNest;
+		INTOFF;
+		popLocalVars();
+		localVars = saveLocalVars;
+		freeParam(&shellParam);
+		shellParam = saveParam;
+		handler = saveHandler;
+		popRedir();
+		INTON;
+		if (evalSkip == SKIP_FUNC) {
+			evalSkip = 0;
+			skipCount = 0;
+		}
+		if (flags & EV_EXIT)
+		  exitShell(exitStatus);
 	} else if (cmdEntry.cmdType == CMD_BUILTIN) {
-		printf("=== cmd is builtin\n");
 		mode = (cmdEntry.u.index == EXECCMD) ? 0 : REDIR_PUSH;
 		if (flags == EV_BACKCMD) {
 			memOut.numLeft = 0;
@@ -290,7 +331,6 @@ cmdDone:
 			memOut.buf = NULL;
 		}
 	} else {
-		printf("=== cmd is normal\n");
 		clearRedir();
 		redirect(cmd->nCmd.redirect, 0);
 		if (varList.list) {
@@ -411,11 +451,35 @@ void evalTree(Node *n, int flags) {
 			evalTree(n->nRedir.n, flags);
 			popRedir();
 			break;
+		case NSUBSHELL:
+			printf("=== TODO evalTree subshell\n");
+			break;
+		case NBACKGND:
+			printf("=== TODO evalTree backgnd\n");
+			break;
+		case NIF: {
+			int status = 0;
+			evalTree(n->nIf.test, EV_TESTED);
+			if (evalSkip)
+			  goto out;
+			if (exitStatus == 0) {
+				evalTree(n->nIf.ifPart, flags);
+				status = exitStatus;
+			} else if (n->nIf.elsePart) {
+				evalTree(n->nIf.elsePart, flags);
+				status = exitStatus;
+			}
+			exitStatus = status;
+			break;
+		}
 		case NWHILE:
 		case NUNTIL:
 			evalLoop(n);
 			break;
-		//TODO
+		case NFOR:
+			printf("=== TODO evalTree for\n");
+			//TODO evalFor(n);
+			break;
 		case NCASE:
 			evalCase(n, flags);
 			break;
@@ -423,6 +487,9 @@ void evalTree(Node *n, int flags) {
 			defineFunc(n->nArg.text, n->nArg.next);
 			exitStatus = 0;
 			break;
+		case NPIPE:
+			printf("=== TODO evalTree pipe\n");
+			//TODO evalPipe(n);
 		case NCMD:
 			evalCommand(n, flags, (BackCmd *) NULL);
 			break;
@@ -543,7 +610,8 @@ void evalBackCmd(union Node *n, BackCmd *result) {
 	result->fd = -1;
 	result->buf = NULL;
 	result->numLeft = 0;
-	//result->jp = NULL;
+	result->jp = NULL;
+
 	if (n == NULL) {
 		/* For: `` */
 	} else if (n->type == NCMD) {

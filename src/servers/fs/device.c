@@ -19,10 +19,10 @@ int genOpCl(int op, dev_t dev, int proc, int flags) {
 	Message msg;
 
 	/* Determine task dmap. */
-	dp = &dmapTable[majorDev(dev)];
+	dp = &dmapTable[MAJOR_DEV(dev)];
 
 	msg.m_type = op;
-	msg.DEVICE = minorDev(dev);
+	msg.DEVICE = MINOR_DEV(dev);
 	msg.PROC_NR = proc;
 	msg.COUNT = flags;
 
@@ -142,8 +142,8 @@ void cttyIO(int taskNum, Message *msg) {
 		msg->REP_STATUS = EIO;
 	} else {
 		/* Substitute the controlling terminal device. */
-		dp = &dmapTable[majorDev(currFp->fp_tty)];
-		msg->DEVICE = minorDev(currFp->fp_tty);
+		dp = &dmapTable[MAJOR_DEV(currFp->fp_tty)];
+		msg->DEVICE = MINOR_DEV(currFp->fp_tty);
 		(*dp->dmap_io)(dp->dmap_driver, msg);
 	}
 }
@@ -157,7 +157,7 @@ int devOpen(dev_t dev, int proc, int flags) {
 	int major, r;
 	DMap *dp;
 
-	major = majorDev(dev);
+	major = MAJOR_DEV(dev);
 	if (major >= NR_DEVICES)
 	  major = 0;
 	dp = &dmapTable[major];
@@ -167,7 +167,7 @@ int devOpen(dev_t dev, int proc, int flags) {
 }
 
 void devClose(dev_t dev) {
-	(*dmapTable[majorDev(dev)].dmap_opcl)(DEV_CLOSE, dev, 0, 0);
+	(*dmapTable[MAJOR_DEV(dev)].dmap_opcl)(DEV_CLOSE, dev, 0, 0);
 }
 
 int devIO(int op, dev_t dev, int proc, void *buf, 
@@ -177,11 +177,11 @@ int devIO(int op, dev_t dev, int proc, void *buf,
 	Message msg;
 
 	/* Determine task dmap. */
-	dp = &dmapTable[majorDev(dev)];
+	dp = &dmapTable[MAJOR_DEV(dev)];
 
 	/* Set up the message passed to task. */
 	msg.m_type = op;
-	msg.DEVICE = minorDev(dev);
+	msg.DEVICE = MINOR_DEV(dev);
 	msg.POSITION = pos;
 	msg.PROC_NR = proc;
 	msg.ADDRESS = buf;
@@ -197,7 +197,7 @@ int devIO(int op, dev_t dev, int proc, void *buf,
 			/* Not supposed to block. */
 			msg.m_type = CANCEL;
 			msg.PROC_NR = proc;
-			msg.DEVICE = minorDev(dev);
+			msg.DEVICE = MINOR_DEV(dev);
 			(*dp->dmap_io)(dp->dmap_driver, &msg);
 			if (msg.REP_STATUS == EINTR)
 			  msg.REP_STATUS = EAGAIN;

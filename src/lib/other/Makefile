@@ -13,7 +13,8 @@ OBJS_M32 = \
 		_svrctl.o \
 		_brk.o \
 		environ.o \
-		fdopen.o
+		fdopen.o \
+		_devctl.o
 
 
 OBJS_M16 = \

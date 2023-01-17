@@ -1,26 +1,4 @@
-MY_HOME = ../..
-include $(MY_HOME)/common.mk
-
-DRIVER_DIR = ../libdriver
-
-OBJS = $(ENTRY) memory.o 
-LIB_DRIVER = $(DRIVER_DIR)/driver.o 
-DRIVER = memory.bin
+NAME = memory
+OBJS = $(NAME).o
 STACK_SIZE = 1024w
-
-all: $(DRIVER)
-
-$(DRIVER): $(OBJS) $(LIB_DRIVER)
-	$(call link,$^,$(LIBS),$@) 
-	$(call createDebug,$@,$(DEBUG))
-	$(call setStack,$(STACK_SIZE),$@)
-
-$(LIB_DRIVER):
-	cd $(DRIVER_DIR) && $(MAKE)
-
-clean:
-	$(call cleanCommon)
-
-disasm: $(DEBUG)
-	$(call disasmCode,$<,32)
-
+include ../driver.mk

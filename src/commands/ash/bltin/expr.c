@@ -263,7 +263,7 @@ int main(int argc, char **argv) {
 	if (c == 't')
 	  print = 0;
 	else if (c == '[') {
-		if (! equal(argv[argc - c], "]"))
+		if (! equal(argv[argc - 1], "]")) 
 		  error("missing ]");
 		argv[argc - 1] = NULL;
 		print = 0;
@@ -408,6 +408,6 @@ done:
 		else if (valStack[0].u.num != 0)
 		  printf("true\n");
 	}
-	return exprIsFalse(&valStack[0]);
+	return exprIsFalse(&valStack[0]); 
 }
 

@@ -373,7 +373,64 @@ int localCmd(int argc, char **argv) {
  * "-" as a special case.
  */
 void mkLocal(char *name) {
-	//TODO
+	LocalVar *lvp;
+	Var **vpp;
+	Var *vp;
+
+	INTOFF;
+	lvp = ckMalloc(sizeof(LocalVar));
+	if (name[0] == '-' && name[1] == '\0') {
+		lvp->text = ckMalloc(sizeof(optVal));
+		bcopy(optVal, lvp->text, sizeof(optVal));	
+		vp = NULL;
+	} else {
+		vpp = hashVar(name);
+		for (vp = *vpp; vp && ! varEqual(vp->text, name); vp = vp->next) {
+		}
+		if (vp == NULL) {
+			if (strchr(name, '='))
+			  setVarEq(saveStr(name), V_STR_FIXED);
+			else
+			  setVar(name, NULL, V_STR_FIXED);
+			vp = *vpp;	/* The new variable */
+			lvp->text = NULL;
+			lvp->flags = V_UNSET;
+		} else {
+			lvp->text = vp->text;
+			lvp->flags = vp->flags;
+			vp->flags |= V_STR_FIXED | V_TEXT_FIXED;
+			if (strchr(name, '='))
+			  setVarEq(saveStr(name), 0);
+		}
+	}
+	lvp->vp = vp;
+	lvp->next = localVars;
+	localVars = lvp;
+	INTON;
+}
+
+/* Called after a function returns.
+ */
+void popLocalVars() {
+	LocalVar *lvp;
+	Var *vp;
+
+	while ((lvp = localVars) != NULL) {
+		localVars = lvp->next;
+		vp = lvp->vp;
+		if (vp == NULL) {	/* $- saved */
+			bcopy(lvp->text, optVal, sizeof(optVal));
+			ckFree(lvp->text);
+		} else if ((lvp->flags & (V_UNSET | V_STR_FIXED)) == V_UNSET) {
+			unsetVar(vp->text);
+		} else {
+			if ((vp->flags & V_TEXT_FIXED) == 0)
+			  ckFree(vp->text);
+			vp->flags = lvp->flags;
+			vp->text = lvp->text;
+		}
+		ckFree(lvp);
+	}
 }
 
 

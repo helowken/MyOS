@@ -153,9 +153,8 @@ void clearTraps() {
 }
 
 void exitShell(int status) {
-	//TODO
-	
-	_exit(status);
+	printf("=== TODO exitShell\n");	
+	//_exit(status);
 }
 
 /* Ignore a signal. */
@@ -168,7 +167,7 @@ void ignoreSig(int sigNum) {
 }
 
 int trapCmd(int argc, char **argv) {
-	printf("=== trapCmd\n");//TODO
+	printf("=== TODO trapCmd\n");//TODO
 	return 0;
 }
 
