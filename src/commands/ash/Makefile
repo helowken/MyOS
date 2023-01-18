@@ -37,8 +37,7 @@ mkbltin:
 compile: init token.h $(BLTIN_DIR)/operators.h
 
 $(BIN): $(CRT_ENTRY) $(OBJS)
-	$(call mkSysBin,$^,$@,$(STACK_SIZE))
-	$(call copyTo,$@,$(DST_DIR))
+	$(call mkbin,$^,$@,$(STACK_SIZE),$(DEBUG),$(DST_DIR))
 
 init.c: $(PB_DIR)/mkinit.bin $(SRCS)
 	cd $(PB_DIR) && $(MAKE) mkinit ARGS="$(SRCS)"

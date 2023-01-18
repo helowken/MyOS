@@ -70,50 +70,41 @@ static int readExec(int fd, Exec *prog) {
 	return OK;
 }
 
-static int readHeader(int fd, Exec *prog, vir_bytes *textBytes, 
-			vir_bytes *dataBytes, vir_bytes *bssBytes, phys_bytes *totalBytes, 
-			vir_clicks stackClicks, vir_clicks *offsetClicks, vir_bytes *pc) {
+static int readHeader(int fd, Exec *prog, vir_bytes *textBytes, vir_bytes *dataBytes,
+			vir_bytes *bssBytes, vir_bytes *stackBytes, vir_bytes *dataVirAddr, 
+			vir_bytes *pc) {
 /* Read the header and extract the text, data, bss and total sizes from it. */
-	
-	vir_clicks dataClicks, dataVirAddr, stackVirAddr;
-	phys_clicks totalClicks;
-	int m;
 
-	if ((m = readExec(fd, prog)) != OK)
-	  return m;
+	phys_bytes totalBytes;
+	int r;
+
+	if ((r = readExec(fd, prog)) != OK)
+	  return r;
 
 	/* Get text and data sizes */
 	*textBytes = prog->codeHdr.p_memsz;
 	*dataBytes = prog->dataHdr.p_filesz;
 	*bssBytes = prog->dataHdr.p_memsz - prog->dataHdr.p_filesz;
-	*totalBytes = prog->dataHdr.p_vaddr + prog->dataHdr.p_memsz + prog->stackHdr.p_memsz;
-	if (*totalBytes == 0)
+	*stackBytes = prog->stackHdr.p_memsz;
+	*dataVirAddr = prog->dataHdr.p_vaddr;
+	totalBytes = *dataVirAddr + *dataBytes + *bssBytes + *stackBytes;
+	if (totalBytes <= 0)
 	  return ENOEXEC;
 	*pc = prog->ehdr.e_entry;
-
-	dataClicks = (*dataBytes + *bssBytes + CLICK_SIZE - 1) >> CLICK_SHIFT;
-	totalClicks = (*totalBytes + CLICK_SIZE - 1) >> CLICK_SHIFT;
-	if (dataClicks >= totalClicks)
-	  return ENOEXEC;
-
-	*offsetClicks = prog->dataHdr.p_vaddr >> CLICK_SHIFT;
-
-	dataVirAddr = 0;
-	stackVirAddr = dataVirAddr + (totalClicks - stackClicks);
-	m = dataVirAddr + dataClicks > stackVirAddr ? ENOMEM : OK;
-	return m;
+	return OK;
 }
 
 static int newMem(MProc *shareMp, vir_bytes textBytes, vir_bytes dataBytes, 
-		vir_bytes bssBytes, vir_bytes stackFrameBytes, phys_bytes totalBytes,
-		vir_clicks offsetClicks) {
+		vir_bytes bssBytes, vir_bytes stackBytes, vir_bytes dataVirAddr, 
+		vir_bytes stackFrameBytes) {
 /* Allocate new memory and release the old memory. Change the map and report
  * the new map to the kernel. Zero the new core image's bss, gap and stack.
  */
 
 	register MProc *rmp = currMp;
-	vir_clicks textClicks, dataClicks, gapClicks, stackClicks, totalClicks;
-	phys_clicks newBase;
+	vir_bytes skipBytes;
+	vir_clicks textClicks, dataClicks, pureDataClicks, stackFrameClicks, totalClicks;
+	phys_clicks newBase, offsetClicks;
 	phys_bytes bytes, base;
 	int s;
 
@@ -130,12 +121,13 @@ static int newMem(MProc *shareMp, vir_bytes textBytes, vir_bytes dataBytes,
 	 * and stack occupies an integral number of clicks, starting at click
 	 * boundary. The data and bass parts are run together with no space.
 	 */
-	textClicks = ((unsigned long) textBytes + CLICK_SIZE - 1) >> CLICK_SHIFT;
-	dataClicks = (dataBytes + bssBytes + CLICK_SIZE - 1) >> CLICK_SHIFT;
-	stackClicks = (stackFrameBytes + CLICK_SIZE - 1) >> CLICK_SHIFT;
-	totalClicks = (totalBytes + CLICK_SIZE - 1) >> CLICK_SHIFT;
-	gapClicks = totalClicks - dataClicks - stackClicks;
-	if ((int) gapClicks < 0)
+	textClicks = SIZE_TO_CLICKS((unsigned long) textBytes);
+	dataClicks = SIZE_TO_CLICKS(dataVirAddr + dataBytes + bssBytes + stackBytes);
+	pureDataClicks = SIZE_TO_CLICKS(dataVirAddr + dataBytes + bssBytes);	/* Without stack*/
+	stackFrameClicks = SIZE_TO_CLICKS(stackFrameBytes);
+	offsetClicks = dataVirAddr >> CLICK_SHIFT;
+	totalClicks = dataClicks + stackFrameClicks;
+	if ((int) (totalClicks - pureDataClicks - stackFrameClicks) < 0)	/* Check if no stack */
 	  return ENOMEM;
 
 	/* Try to allocate memory for the new process. */
@@ -149,8 +141,7 @@ static int newMem(MProc *shareMp, vir_bytes textBytes, vir_bytes dataBytes,
 		freeMemory(rmp->mp_memmap[T].physAddr, rmp->mp_memmap[T].len);
 	}
 	/* Free the data and stack segments. */
-	freeMemory(rmp->mp_memmap[D].physAddr + rmp->mp_memmap[D].offset, 
-				rmp->mp_memmap[D].len - rmp->mp_memmap[D].offset);
+	freeMemory(PM_ACT_DATA_PADDR(rmp), PM_ACT_DATA_CLICKS(rmp));
 
 	/* We have now passed the point of no return. The old core image has been
 	 * forever lost, memory for a new core image has been allocated. Set up
@@ -164,15 +155,14 @@ static int newMem(MProc *shareMp, vir_bytes textBytes, vir_bytes dataBytes,
 		rmp->mp_memmap[T].virAddr = 0;
 		rmp->mp_memmap[T].len = textClicks;
 	}
-	printf("==== pm text: %x\n", rmp->mp_memmap[T].physAddr << CLICK_SHIFT);//TODO
-	printf("==== pm debug 111\n");//TODO
 	rmp->mp_memmap[D].physAddr = newBase + textClicks - offsetClicks;
 	rmp->mp_memmap[D].virAddr = 0;
-	rmp->mp_memmap[D].len = dataClicks;
+	rmp->mp_memmap[D].len = totalClicks;
 	rmp->mp_memmap[D].offset = offsetClicks;
-	rmp->mp_memmap[S].physAddr = rmp->mp_memmap[D].physAddr + dataClicks + gapClicks;
-	rmp->mp_memmap[S].virAddr = rmp->mp_memmap[D].virAddr + dataClicks + gapClicks;
-	rmp->mp_memmap[S].len = stackClicks;
+	rmp->mp_memmap[S].physAddr = rmp->mp_memmap[D].physAddr + dataClicks;
+	rmp->mp_memmap[S].virAddr = rmp->mp_memmap[D].virAddr + dataClicks;
+	rmp->mp_memmap[S].len = stackFrameClicks;
+	printf("=== pm exec text addr: %x\n", rmp->mp_memmap[T].physAddr << CLICK_SHIFT);
 
 	sysNewMap(who, rmp->mp_memmap);		/* Report new map to the kernel */
 
@@ -180,10 +170,11 @@ static int newMem(MProc *shareMp, vir_bytes textBytes, vir_bytes dataBytes,
 	rmp->mp_flags &= ~(WAITING | ONSWAP | SWAPIN);
 
 	/* Zero the bss, gap, and stack segment. */
-	bytes = (phys_bytes) (dataClicks - offsetClicks + gapClicks + stackClicks) << CLICK_SHIFT;
-	base = (phys_bytes) (rmp->mp_memmap[D].physAddr + offsetClicks) << CLICK_SHIFT;
-	base += dataBytes;
-	bytes -= dataBytes;
+	bytes = (phys_bytes) CLICKS_TO_SIZE(totalClicks - offsetClicks);
+	base = (phys_bytes) CLICKS_TO_SIZE(rmp->mp_memmap[D].physAddr + offsetClicks);
+	skipBytes = dataVirAddr - CLICKS_TO_SIZE(offsetClicks) + dataBytes;
+	base += skipBytes;
+	bytes -= skipBytes;
 
 	if ((s = sysMemset(0, base, bytes)) != OK) 
 	  panic(__FILE__, "newMem can't zero", s);
@@ -226,12 +217,10 @@ int doExec() {
 	static char mBuf[ARG_MAX];		/* Buffer for stack and zeroes */
 	static char nameBuf[PATH_MAX];	/* The name of the file to exec */
 	vir_bytes src, dst, stackFrameBytes, textBytes, dataBytes, bssBytes,
-			  virStackBase;
-	phys_bytes totalBytes;
+			  stackBytes, dataVirAddr, virStackBase;
 	char *newSp, *name, *baseName;
 	int m, r, fd, sn;
 	struct stat stBuf[2], *stp;
-	vir_clicks stackClicks, offsetClicks;
 	vir_bytes pc;
 	Exec prog;
 
@@ -254,7 +243,7 @@ int doExec() {
 	src = (vir_bytes) inMsg.m_stack_ptr;
 	dst = (vir_bytes) mBuf;
 	if ((r = sysDataCopy(who, src, 
-				PM_PROC_NR, dst, (phys_bytes) stackFrameBytes)) != OK)
+				PM_PROC_NR, dst, (phys_bytes) stackFrameBytes)) != OK) 
 	  return EACCES;		/* Can't fetch stack (e.g. bad virtual addr) */
 
 	r = 0;	/* r = 0 (frist attemp), or 1 (interpreted script) */
@@ -263,14 +252,12 @@ int doExec() {
 		stp = &stBuf[r];
 		tellFS(CHDIR, who, false, 0);	/* Switch to the user's FS environ */
 		fd = checkAllowed(name, stp, X_BIT);	/* Is file executable? */
-		if (fd < 0)
+		if (fd < 0) 
 		  return fd;	/* File was not executable */
 		
 		/* Read the file header and extract the segment sizes. */
-		stackClicks = (stackFrameBytes + CLICK_SIZE - 1) >> CLICK_SHIFT;
-
-		m = readHeader(fd, &prog, &textBytes, &dataBytes, &bssBytes, 
-					&totalBytes, stackClicks, &offsetClicks, &pc);
+		m = readHeader(fd, &prog, &textBytes, &dataBytes, &bssBytes, &stackBytes, 
+					&dataVirAddr, &pc);
 		if (m != ESCRIPT || ++r > 1)
 		  break;
 	} while (false); //TODO
@@ -284,8 +271,8 @@ int doExec() {
 	shareMp = findShare(rmp, stp->st_ino, stp->st_dev, stp->st_ctime);
 
 	/* Allocate new memory and release old memory. Fix map and tell kernel. */
-	r = newMem(shareMp, textBytes, dataBytes, bssBytes, stackFrameBytes, 
-				totalBytes, offsetClicks);
+	r = newMem(shareMp, textBytes, dataBytes, bssBytes, stackBytes, 
+				dataVirAddr, stackFrameBytes);
 	if (r != OK) {
 		close(fd);	/* Insufficient core or program too big */
 		return r;
@@ -314,7 +301,7 @@ int doExec() {
 	}
 	if (dataBytes > 0) {
 		lseek(fd, prog.dataHdr.p_offset, SEEK_SET);
-		rwSeg(0, fd, who, D, prog.dataHdr.p_vaddr, dataBytes);
+		rwSeg(0, fd, who, D, dataVirAddr, dataBytes);
 	}
 	close(fd);		/* Don't need exec file any more */
 

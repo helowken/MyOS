@@ -9,3 +9,5 @@ clean:
 	$(MK) NAME=sysenv clean
 	$(MK) NAME=testAAA clean
 
+disasm: 
+	$(MK) NAME=$(NAME) disasm

@@ -1,5 +1,6 @@
 #include "timers.h"
 #include "signal.h"
+#include "minix/type.h"
 
 typedef struct MProc MProc;
 
@@ -63,3 +64,11 @@ EXTERN struct MProc {
 #define SWAPIN			0x800	/* Set if on the "swap this in" queue */
 #define DONT_SWAP		0x1000	/* Never swap out this process */
 #define	PRIV_PROC		0x2000	/* System process, special privileges */
+
+
+#define PM_DATA_CLICKS(p)			DATA_CLICKS((p)->mp_memmap)
+#define PM_ACT_DATA_CLICKS(p)		ACT_DATA_CLICKS((p)->mp_memmap)
+#define PM_ACT_DATA_PADDR(p)		ACT_DATA_PADDR((p)->mp_memmap)
+
+
+

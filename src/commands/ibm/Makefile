@@ -7,3 +7,5 @@ all:
 clean: 
 	$(MK) NAME=loadkeys clean
 
+disasm: 
+	$(MK) NAME=$(NAME) disasm

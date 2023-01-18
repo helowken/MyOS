@@ -90,11 +90,13 @@ void main() {
 
 		rp->p_memmap[T].physAddr = textBase;
 		rp->p_memmap[T].len = textClicks;
+		/* [D].virAddr is always 0. */
 		rp->p_memmap[D].physAddr = dataBase;	/* data virAddr = 0 */
 		rp->p_memmap[D].len = dataClicks;
 		rp->p_memmap[D].offset = offsetClicks;
-		rp->p_memmap[S].physAddr = dataBase + dataClicks;
-		rp->p_memmap[S].virAddr = dataClicks;	/* empty(len = 0) - stack is in data */
+		/* [S].len is empty(len = 0) since stack is in data */
+		rp->p_memmap[S].physAddr = rp->p_memmap[D].physAddr + dataClicks;
+		rp->p_memmap[S].virAddr = rp->p_memmap[D].virAddr + dataClicks;	
 
 		/* Set initial register values. The Proessor status word for tasks
 		 * is different from that of other processes because tasks can

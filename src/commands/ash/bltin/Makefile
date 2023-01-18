@@ -18,7 +18,10 @@ operators.c operators.h: mkexpr.sh unary_op binary_op
 sys_expr.o: operators.h
 
 expr.bin: $(CRT_ENTRY) sys_expr.o operators.o stalloc.o error.o
-	$(call mkbin,$^,$@,$(STACK_SIZE),$(DST_DIR))
+	$(call mkbin,$^,$@,$(STACK_SIZE),debug_expr.bin,$(DST_DIR))
+
+disasm: 
+	$(call disasmCode,debug_$(NAME).bin,32)
 
 clean: 
 	$(call cleanCommon)

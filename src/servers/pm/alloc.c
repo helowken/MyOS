@@ -196,6 +196,17 @@ phys_clicks allocMemory2(phys_clicks base, phys_clicks clicks) {
  */
 	register Hole *hp, *prevHp;
 	phys_clicks oldBase;
+
+	/* TODO start */
+	if (0) {
+		hp = holeHead;
+		while (hp != NIL_HOLE && hp->h_base < swapBase) {
+			printf("==== pm free mem: %x - %x\n", hp->h_base << CLICK_SHIFT,
+						(hp->h_base + hp->h_len) << CLICK_SHIFT);
+			hp = hp->h_next;
+		}
+	}
+	/* TODO end */
 	
 	do {
 		prevHp = NIL_HOLE;

@@ -76,8 +76,7 @@ void pmExit(register MProc *rmp, int exitStatus) {
 		freeMemory(rmp->mp_memmap[T].physAddr, rmp->mp_memmap[T].len);
 	}
 	/* Free the data and stack segments. */
-	freeMemory(rmp->mp_memmap[D].physAddr + rmp->mp_memmap[D].offset, 
-				rmp->mp_memmap[D].len - rmp->mp_memmap[D].offset);
+	freeMemory(PM_ACT_DATA_PADDR(rmp), PM_ACT_DATA_CLICKS(rmp));
 
 	/* The process slot can only be freed if the parent has done a WAIT. */
 	rmp->mp_exit_status = (char) exitStatus;
@@ -178,8 +177,8 @@ int doFork() {
 	register MProc *parentMp;
 	register MProc *childMp;
 	int s, childNum;
-	phys_clicks progClicks, childBase, offsetClicks;
-	phys_bytes progBytes, parentAbs, childAbs;
+	phys_clicks dataClicks, copyClicks, childBase, offsetClicks;
+	phys_bytes copyBytes, parentAbs, childAbs;
 	pid_t newPid;
 
 	/* If tables might fill up during FORK, don't even start since recovery half
@@ -196,16 +195,19 @@ int doFork() {
 	 * be copied, because the text segment is either shared or of zero length.
 	 */
 	offsetClicks = parentMp->mp_memmap[D].offset;
-	progClicks = (phys_clicks) parentMp->mp_memmap[S].virAddr 
-					- parentMp->mp_memmap[D].virAddr;
-	if ((childBase = allocMemory2(offsetClicks, progClicks)) == NO_MEM)
+	/* Since brk will change [D].len, [S].virAddr and [S].len
+	 * dataClicks = [S].virAddr - [D].virAddr + [S].len
+	 */
+	dataClicks = PM_DATA_CLICKS(parentMp);
+	copyClicks = PM_ACT_DATA_CLICKS(parentMp);
+	if ((childBase = allocMemory2(offsetClicks, copyClicks)) == NO_MEM)
 	  return ENOMEM;
 
 	/* Create a copy of the parent's core image for the child. */
 	childAbs = (phys_bytes) childBase << CLICK_SHIFT;
-	parentAbs = (phys_bytes) (parentMp->mp_memmap[D].physAddr + offsetClicks) << CLICK_SHIFT;
-	progBytes = (phys_bytes) progClicks << CLICK_SHIFT;
-	if ((s = sysAbsCopy(parentAbs, childAbs, progBytes)) < 0)
+	parentAbs = (phys_bytes) PM_ACT_DATA_PADDR(parentMp) << CLICK_SHIFT;
+	copyBytes = (phys_bytes) copyClicks << CLICK_SHIFT;
+	if ((s = sysAbsCopy(parentAbs, childAbs, copyBytes)) < 0)
 	  panic(__FILE__, "doFork can't copy", s);
 
 	/* Find a slot in 'mprocTable' for the child process. A slot must exist. */
@@ -228,8 +230,7 @@ int doFork() {
 	 * refer to the new copy. 
 	 */
 	childMp->mp_memmap[D].physAddr = childBase - offsetClicks;
-	childMp->mp_memmap[S].physAddr = childMp->mp_memmap[D].physAddr + 
-				(parentMp->mp_memmap[S].virAddr - parentMp->mp_memmap[D].virAddr);
+	childMp->mp_memmap[S].physAddr = childMp->mp_memmap[D].physAddr + dataClicks;
 	childMp->mp_exit_status = 0;
 	childMp->mp_sig_status = 0;
 

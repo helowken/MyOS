@@ -102,10 +102,11 @@ void main(int argc, char **argv) {
 
 
 	//===TODO start
-	printf("===sh, argc: %d\n", argc);
+	printf("===sh, argc: %d, ", argc);
 	for (int i = 0; i < argc; ++i) {
-		printf("%d: %s\n", i, argv[i]);
+		printf("%d=%s, ", i, argv[i]);
 	}
+	printf("\n");
 	//===TODO end
 
 	state = 0;

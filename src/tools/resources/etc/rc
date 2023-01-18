@@ -1,4 +1,74 @@
 # /etc/rc System startup script run by init before going multiuser.
-sysenv
-service
 
+umask 022
+TERM="${TERM-minix}"
+PATH=/usr/local/bin:/bin:/usr/bin:/usr/sbin
+RC_TZ=/etc/rc.timezone
+export TERM PATH
+
+usage()
+{
+	echo >&2 "Usage: $0 [-saf] start|stop|down"
+	exec intr sh
+}
+
+up()
+{
+	service=$1
+	args=$2
+	device=$3
+
+	# Function to dynamically start a system service
+	command="/sbin/$service"
+	if [ ! -z "$args" ]; then command="$command -args \"$args\""; fi
+	if [ ! -z "$device" ]; then command="$command -dev \"$device\""; fi
+
+	echo -n " $service"
+	eval service up $command
+}
+
+while getopts 'saf' opt
+do
+	case $opt in
+	s)	sflag=t ;;	# Single user
+	a)	aflag=t	;;	# Ask for /usr
+	f)	fflag=t	;;	# Force a full file system check
+	*)	usage
+	esac
+done
+shift `expr $OPTIND - 1`
+
+case "$#:$1" in
+1:start|1:stop|1:down)
+	action=$1
+	;;
+*)	usage
+esac
+
+case $action in
+start)
+	echo ""
+	echo -n "Multiuser startup in progress ...:"
+
+	# National keyboard?
+	test -f /etc/keymap && loadkeys /etc/keymap
+
+	# Start crucial system services. The floppy driver *must* be loaded
+	# first, as it needs memory below 16MB in order to do ISA DMA.
+	if [ ! "`sysenv label`" = "FLOPPY" ]
+	then echo "up floppy" #TODO up floppy "" /dev/fd0
+	else echo "up at_wini" #TODO up at_wini "" /dev/c0d0
+	fi
+#TODO up is ""
+	up cmos "" /dev/cmos
+	echo .	
+
+	# Set timezone.
+	export TZ=GMT0
+	if [ -f "$RC_TZ" ]
+	then . "$RC_TZ"
+	fi
+
+	# Try to read the hardware real-time clock, otherwise do it manually.
+	readclock
+esac

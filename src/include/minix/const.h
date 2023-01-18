@@ -53,6 +53,8 @@
 
 #define CLICK_SIZE		1024	/* Unit in which memory is allocated */
 #define CLICK_SHIFT		10		/* log2 of CLICK_SIZE */
+#define SIZE_TO_CLICKS(s)	(((s) + CLICK_SIZE - 1) >> CLICK_SHIFT)
+#define CLICKS_TO_SIZE(s)	((s) << CLICK_SHIFT)
 
 /* Click to byte conversions (and vice versa). */
 #define HCLICK_SHIFT	4		/* log2 of HCLICK_SIZE */

@@ -17,6 +17,11 @@ typedef unsigned int phys_clicks;	/* Physical addr/length in clicks */
 typedef unsigned int vir_bytes;		/* Virtual addr/length in bytes */
 typedef unsigned int vir_clicks;	/* Virtual addr/length in clicks */
 
+/* Brk() will change [D].len, [S].virAddr and [S].len */
+#define DATA_CLICKS(mm)			((mm)[S].virAddr - (mm)[D].virAddr + (mm)[S].len)
+#define ACT_DATA_CLICKS(mm)		(DATA_CLICKS(mm) - (mm)[D].offset)
+#define ACT_DATA_PADDR(mm)		((mm)[D].physAddr + (mm)[D].offset)
+
 typedef struct {
 	phys_clicks physAddr;			/* Physical address */
 	vir_clicks virAddr;				/* Virtual address */

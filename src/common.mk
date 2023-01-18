@@ -81,10 +81,11 @@ define mkSysBin
 endef
 
 
-# mkbin(srcs, bin, stackSize, dstDir)
+# mkbin(srcs, bin, stackSize, debugBin, dstDir)
 define mkbin 
 	$(call link,$(1),$(LIBS),$(2)) 
+	$(call createDebug,$(2),$(4))
 	@$(call setStack,$(3),$(2))
-	$(call copyTo,$(2),$(4))
+	$(call copyTo,$(2),$(5))
 endef
 
