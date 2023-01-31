@@ -29,7 +29,17 @@ OBJS_M32 = \
 		strerror.o \
 		errlist.o \
 		toupper.o \
-		tolower.o
+		tolower.o \
+		clock.o \
+		difftime.o \
+		mktime.o \
+		misc.o \
+		asctime.o \
+		ctime.o \
+		gmtime.o \
+		localtime.o \
+		strftime.o \
+		tzset.o
 
 		
 OBJS_M16 = \

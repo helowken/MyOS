@@ -5,7 +5,8 @@ DST_DIR = $(RES_DIR)/bin
 STACK_SIZE = 32kw
 HEADERS += ../shell.h
 CLEAN_FILES = operators.h operators.c
-BINS = expr.bin
+BINS = expr.bin \
+	   echo.bin
 
 all: $(BINS)
 
@@ -19,6 +20,9 @@ sys_expr.o: operators.h
 
 expr.bin: $(CRT_ENTRY) sys_expr.o operators.o stalloc.o error.o
 	$(call mkbin,$^,$@,$(STACK_SIZE),debug_expr.bin,$(DST_DIR))
+
+echo.bin: $(CRT_ENTRY) sys_echo.o 
+	$(call mkbin,$^,$@,$(STACK_SIZE),debug_echo.bin,$(DST_DIR))
 
 disasm: 
 	$(call disasmCode,debug_$(NAME).bin,32)

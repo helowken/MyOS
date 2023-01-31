@@ -5,7 +5,7 @@
 #include "sys/types.h"
 #endif
 
-/* Values used by access(). */
+/* Values used by access(void). */
 #define F_OK			0	/* Test if file exists */
 #define X_OK			1	/* Test if file is executable */
 #define W_OK			2	/* Test if file is writable */
@@ -30,7 +30,7 @@
 #define RBT_RESET		4	/* Hard reset the system */
 #endif
 
-/* What system info to retrieve with sysGetInfo(). */
+/* What system info to retrieve with sysGetInfo(void). */
 #define SI_KINFO		0	/* Get kernle info via PM. */
 #define SI_PROC_ADDR	1	/* Address of process table */
 #define SI_PROC_TAB		2	/* Copy of entire process table */
@@ -42,27 +42,55 @@
 
 void _exit(int status);
 int access(const char *path, int mode);
+unsigned int alarm(unsigned int seconds);
+int chdir(const char *path);
+int fchdir(int fd);
+int chown(const char *path, uid_t owner, gid_t group);
+int close(int fd);
 int dup(int fd);
-int execve(const char *path, char *const argv[], char *const envp[]);
-pid_t fork();
-gid_t getegid();
-uid_t geteuid();
-gid_t getgid();
-uid_t getuid();
+int dup2(int fd, int fd2);
+int execl(const char *path, const char *arg, ...);
+int execle(const char *path, const char *arg, ...);
+int execlp(const char *file, const char *arg, ...);
+int execv(const char *path, char * const argv[]);
+int execve(const char *path, char * const argv[], char * const envp[]);
+int execvp(const char *file, char * const argv[]);
+pid_t fork(void);
+long fpathconf(int fd, int name);
+char *getcwd(char *buf, size_t size);
+gid_t getegid(void);
+uid_t geteuid(void);
+gid_t getgid(void);
+int getgroups(int size, gid_t list[]);
+char *getlogin(void);
+pid_t getpgrp(void);
+pid_t getpid(void);
+pid_t getppid(void);
+uid_t getuid(void);
 int isatty(int fd);
-pid_t getpid();
-pid_t getppid();
-pid_t getpgrp();
-pid_t setsid();
-int setuid(uid_t uid);
-unsigned int sleep(unsigned seconds);
-int setgid(gid_t gid);
+int link(const char *oldpath, const char *newpath);
 off_t lseek(int fd, off_t offset, int whence);
-int pause();
+long pathconf(const char *path, int name);
+int pause(void);
 int pipe(int fds[2]);
 ssize_t read(int fd, void *buf, size_t n);
+int rmdir(const char *path);
+int setgid(gid_t gid);
+int setpgid(pid_t pid, pid_t pgid);
+pid_t setsid(void);
+int setuid(uid_t uid);
+unsigned int sleep(unsigned seconds);
+long sysconf(int name);
 int unlink(const char *path);
 ssize_t write(int fd, const void *buf, size_t count);
+
+/* Open Group Base Specifications Issue 6 (not complete) */
+int symlink(const char *target, const char *linkpath);
+int readlink(const char *path, char *buf, size_t bufsiz);
+int getopt(int argc, char * const argv[], const char *optstring);
+extern char *optarg;
+extern int optind, opterr, optopt;
+int usleep(useconds_t useconds);
 
 
 #ifdef _MINIX
@@ -71,10 +99,16 @@ ssize_t write(int fd, const void *buf, size_t count);
 #endif
 
 int brk(char *addr);
+int chroot(const char *path);
+int mknod(const char *path, mode_t mode, dev_t dev);
+int mknod4(const char *path, mode_t mode, dev_t dev, long size);
+char *mktemp(char *template);
+int mount(char *special, char *name, int flag);
 char *sbrk(int incr);
-int getProcNum();
+int umount(const char *name);
+int reboot(int how, ...);
+int getProcNum(void);
 int findProc(char *procName, int *pNum);
-int close(int fd);
 int allocMem(phys_bytes size, phys_bytes *base);
 #define DEV_MAP		1
 #define DEV_UNMAP	2

@@ -213,11 +213,9 @@ static void evalCommand(Node *cmd, int flags, BackCmd *backCmd) {
 		jp = makeJob(cmd, 1);
 		mode = cmd->nCmd.backgnd;
 		if (flags & EV_BACKCMD) {
-			printf("==== fork no job with pipe\n");
 			mode = FORK_NO_JOB;
 			if (pipe(pip) < 0) 
 			  error("Pipe call failed");
-			printf("===pipe: %d, %d\n", pip[0], pip[1]);
 		}
 		if (forkShell(jp, cmd, mode) != 0)
 		  goto parent;		/* At end of routine */
@@ -225,8 +223,8 @@ static void evalCommand(Node *cmd, int flags, BackCmd *backCmd) {
 			FORCE_INTON;
 			close(pip[0]);	/* Child proc close the read point */
 			if (pip[1] != 1) {	/* Child proc copy the write point to stdout. */
-				close(1);
-				copyFd(pip[1], 1);
+				close(STDOUT_FILENO);
+				copyFd(pip[1], STDOUT_FILENO);
 				close(pip[1]);
 			}
 		}
@@ -419,6 +417,83 @@ out:
 	popStackMark(&stackMark);
 }
 
+/* Search for a command. This is called before we fork so that the
+ * location of the command will be available in the parent as well as
+ * the child. The check for "goodName" is an overly conservative
+ * check that the name will not be subject to expansion.
+ */
+static void preHash(Node *n) {
+	CmdEntry entry;
+
+	if (n->type == NCMD && goodName(n->nCmd.args->nArg.text)) 
+	  findCommand(n->nCmd.args->nArg.text, &entry, 0);
+}
+
+/* Evaluate a pipeline. All the processes in the pipeline are children
+ * of the process creating the pipeline. (This differs from some versions
+ * of the shell, which make the last process in a pipeline the parent
+ * of all the rest.)
+ */
+static void evalPipe(Node *n) {
+	Job *jp;
+	NodeList *lp;
+	int pipeLen;
+	int prevFd;
+	int pip[2];
+
+	pipeLen = 0;
+	for (lp = n->nPipe.cmdList; lp; lp = lp->next) {
+		++pipeLen;
+	}
+	INTOFF;
+	jp = makeJob(n, pipeLen);
+	prevFd = -1;
+	for (lp = n->nPipe.cmdList; lp; lp = lp->next) {
+		preHash(lp->node);
+		pip[1] = -1;
+		if (lp->next) {		/* Not the last cmd */
+			if (pipe(pip) < 0) {
+				if (prevFd != -1) 
+				  close(prevFd);
+				error("Pipe call failed");
+			}
+		}
+		if (forkShell(jp, lp->node, n->nPipe.backgnd) == 0) {	/* Child */
+			INTON;
+			if (prevFd > 0) {	/* Not the first child */
+				/* set stdin to the previous pip[0] */
+				close(STDIN_FILENO);
+				copyFd(prevFd, STDIN_FILENO);
+				close(prevFd);
+			}
+			if (pip[1] >= 0) {	/* Not the last child */
+				/* Close pip[0], since:
+				 *  If it is the first cmd, pipe reading is not needed.
+				 *  If it is the middle cmd, then prevFd > 0, stdin has been set.
+				 */
+				close(pip[0]);
+				if (pip[1] != STDOUT_FILENO) {	
+					/* Set stdout to pip[1] */
+					close(STDOUT_FILENO);
+					copyFd(pip[1], STDOUT_FILENO);
+					close(pip[1]);
+				}
+			}
+			evalTree(lp->node, EV_EXIT);	/* Child run and exit */
+		}
+		if (prevFd >= 0)  
+		  close(prevFd);  /* Close the previous pip[0] */
+		prevFd = pip[0];  /* Mark the current pip[0], then pass it to the next child. */
+		close(pip[1]);	/* Shell doesn't need to write pipe */
+	}
+	INTON;
+	if (n->nPipe.backgnd == 0) {
+		INTOFF;
+		exitStatus = waitForJob(jp);
+		INTON;
+	}
+}
+
 /* Evaluate a parse tree. The value is left in the global variable
  * existStatus.
  */
@@ -446,6 +521,7 @@ void evalTree(Node *n, int flags) {
 			evalTree(n->nBinary.ch2, flags);
 			break;
 		case NREDIR:
+			printf("=== eval redir\n");
 			expRedir(n->nRedir.redirect);
 			redirect(n->nRedir.redirect, REDIR_PUSH);
 			evalTree(n->nRedir.n, flags);
@@ -488,8 +564,8 @@ void evalTree(Node *n, int flags) {
 			exitStatus = 0;
 			break;
 		case NPIPE:
-			printf("=== TODO evalTree pipe\n");
-			//TODO evalPipe(n);
+			evalPipe(n);
+			break;
 		case NCMD:
 			evalCommand(n, flags, (BackCmd *) NULL);
 			break;

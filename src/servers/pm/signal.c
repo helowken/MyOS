@@ -73,7 +73,7 @@ void signalProc(register MProc *rmp, int sigNum) {
 	if (sigismember(&rmp->mp_sig_ignore, sigNum)) {
 		return;
 	}
-	if (sigismember(&rmp->mp_sig_catch, sigNum)) {
+	if (sigismember(&rmp->mp_sig_mask, sigNum)) {
 		/* Signal should be blocked. */
 		sigaddset(&rmp->mp_sig_pending, sigNum);
 		return;
@@ -99,7 +99,12 @@ void signalProc(register MProc *rmp, int sigNum) {
 		  panic(__FILE__, "couldn't get new stack pointer", s);
 		sm.sm_stack_ptr = newSp;
 
-		// TODO make rootm for newSp and adjust it
+		/* Make room for the sigcontext and sigframe struct. */
+		/* TODO what's the computation? */
+		newSp -= sizeof(struct sigcontext) + 3 *sizeof(char *) + 
+							2 * sizeof(int);
+		if (adjust(rmp, rmp->mp_seg[D].len, newSp) != OK)
+		  goto doTerminate;
 		
 		rmp->mp_sig_mask |= sa->sa_mask;
 		if (sigFlags & SA_NODEFER)
@@ -112,7 +117,7 @@ void signalProc(register MProc *rmp, int sigNum) {
 			sa->sa_handler = SIG_DFL;
 		}
 
-		if ((s == sysSigSend(slot, &sm)) == OK) {
+		if ((s = sysSigSend(slot, &sm)) == OK) {
 			sigdelset(&rmp->mp_sig_pending, sigNum);
 			/* If process is hanging on PAUSE, WAIT, SIGSUSPEND, tty,
 			 * pipe, etc., release it.
@@ -127,7 +132,7 @@ void signalProc(register MProc *rmp, int sigNum) {
 		return;
 	}
 
-//doTerminate:
+doTerminate:
 	/* Signal should not or cannot be caught. Take default action. */
 	if (sigismember(&ignoreSigSet, sigNum))
 	  return;
@@ -282,16 +287,16 @@ int doSigAction() {
 	int r;
 	int sigNum;
 	struct sigaction sa;
-	struct sigaction *oldSa;
+	struct sigaction *currSa;
 
 	sigNum = inMsg.m_sig_num;
-	if (inMsg.m_sig_num == SIGKILL)
+	if (sigNum == SIGKILL)
 	  return OK;
-	if (inMsg.m_sig_num < 1 || inMsg.m_sig_num > NSIG)
+	if (sigNum < 1 || sigNum > NSIG)
 	  return EINVAL;
-	oldSa = &currMp->mp_sig_actions[sigNum]; 
+	currSa = &currMp->mp_sig_actions[sigNum]; 
 	if ((struct sigaction *) inMsg.m_sig_old_sa != (struct sigaction *) NULL) {
-		r = sysDataCopy(PM_PROC_NR, (vir_bytes) oldSa, 
+		r = sysDataCopy(PM_PROC_NR, (vir_bytes) currSa, 
 				who, (vir_bytes) inMsg.m_sig_old_sa, (phys_bytes) sizeof(sa));
 		if (r != OK)
 		  return r;
@@ -326,10 +331,10 @@ int doSigAction() {
 		sigaddset(&currMp->mp_sig_catch, sigNum);
 		sigdelset(&currMp->mp_sig_to_msg, sigNum);
 	}
-	oldSa->sa_handler = sa.sa_handler;
+	currSa->sa_handler = sa.sa_handler;
 	sigdelset(&sa.sa_mask, SIGKILL);
-	oldSa->sa_mask = sa.sa_mask;
-	oldSa->sa_flags = sa.sa_flags;
+	currSa->sa_mask = sa.sa_mask;
+	currSa->sa_flags = sa.sa_flags;
 	currMp->mp_sig_return = (vir_bytes) inMsg.m_sig_return;
 	return OK;
 }
@@ -349,7 +354,7 @@ void checkPending(register MProc *rmp) {
 
 	for (i = 1; i < NSIG; ++i) {
 		if (sigismember(&rmp->mp_sig_pending, i) &&
-			! sigismember(&rmp->mp_sig_mask, i)) {
+				! sigismember(&rmp->mp_sig_mask, i)) {
 			sigdelset(&rmp->mp_sig_pending, i);
 			signalProc(rmp, i);
 			break;

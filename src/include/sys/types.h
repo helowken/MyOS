@@ -26,7 +26,8 @@ typedef unsigned long	sigset_t;
 typedef long time_t;				/* Time in sec since 1 Jan 1970 0000 GMT */
 #endif
 
-typedef long	suseconds_t;		/* Time in microseconds */
+/* Open Group Base Specifications Issue 6 (not complete) */
+typedef long useconds_t;			/* Time in microseconds */
 
 /* Types used in disk, inode, etc. data structures. */
 typedef short			dev_t;		/* Holds (major|minor) device pair */
@@ -70,5 +71,12 @@ typedef gid_t			Gid_t;
 
 /* Signal handler type, e.g. SIG_IGN */
 typedef void (*sighandler_t)(int);
+
+/* Compatibility with other systems */
+typedef unsigned char	u_char;
+typedef unsigned short	u_short;
+typedef unsigned int	u_int;
+typedef unsigned long	u_long;
+typedef	char *			caddr_t;
 
 #endif

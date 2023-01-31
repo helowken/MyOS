@@ -33,3 +33,9 @@ typedef struct FProc {
 
 /* Check is process number is acceptable - includes system processes. */
 #define isOkProcNum(n)		((unsigned) ((n) + NR_TASKS) < NR_PROCS + NR_TASKS)
+
+#define TO_SUSP(fd, cn)		((fd) << 8 | (cn))
+#define FD_FROM_SUSP(fd)	((fd) >> 8 & BYTE)
+#define CALL_FROM_SUSP(fd)	((fd) & BYTE)
+
+

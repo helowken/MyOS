@@ -1,13 +1,26 @@
 MK = $(MAKE) -f ../bin.mk
 MAKEFLAGS += --no-print-directory
+4kw_bins = sysenv \
+		   sleep \
+		   intr \
+		   date \
+		   printroot \
+		   cat \
+		   mount \
+		   umount \
+		   cp \
+		   stat \
+		   testAAA 
+
+all_bins = $(4kw_bins)
+include ../../funcs.mk
 
 all: 
-	$(MK) NAME=sysenv STACK_SIZE=4kw
-	$(MK) NAME=testAAA STACK_SIZE=4kw
+	$(call mkBins,$(4kw_bins),4kw)
 
 clean: 
-	$(MK) NAME=sysenv clean
-	$(MK) NAME=testAAA clean
+	$(call cleanBins,$(all_bins))
 
 disasm: 
 	$(MK) NAME=$(NAME) disasm
+

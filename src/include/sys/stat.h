@@ -55,7 +55,9 @@ struct stat {
 #define S_ISFIFO(m)	(((m) & S_IFMT) == S_IFIFO)	/* Is a pipe/FIFO */
 #define S_ISLNK(m)	(((m) & S_IFMT) == S_IFLNK)	/* Is a symbol link */
 
+int chmod(const char *path, mode_t mode);
 int fstat(int fd, struct stat *buf);
+int mkdir(const char *path, mode_t mode);
 int stat(const char *path, struct stat *buf);
 mode_t umask(mode_t mask);
 

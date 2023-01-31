@@ -309,8 +309,7 @@ static void enterDir(Ino_t parent, char *name, Ino_t child) {
 			for (i = 0; i < NR_DIR_ENTRIES(blockSize); ++i) {
 				if (dirs[i].d_ino == 0) {
 					dirs[i].d_ino = child;
-					memcpy(dirs[i].d_name, name, 
-							min(strlen(name), DIR_SIZE));
+					memcpy(dirs[i].d_name, name, min(strlen(name), DIRSIZ));
 					putBlock(b, (char *) inodes);
 					putBlock(zoneBlocks + l, (char *) dirs);
 					free(dirs);

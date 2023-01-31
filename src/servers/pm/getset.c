@@ -48,10 +48,11 @@ int doGetSet() {
 			r = OK;
 			break;
 		case SETSID:
-			if (rmp->mp_proc_grp != rmp->mp_pid)
+			if (rmp->mp_proc_grp == rmp->mp_pid)
 			  return EPERM;
 			rmp->mp_proc_grp = rmp->mp_pid;
 			tellFS(SETSID, who, 0, 0);
+			/* Fall through */
 		case GETPGRP:
 			r = rmp->mp_proc_grp;
 			break;

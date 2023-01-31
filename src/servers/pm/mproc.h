@@ -5,7 +5,7 @@
 typedef struct MProc MProc;
 
 EXTERN struct MProc {
-	MemMap mp_memmap[NR_LOCAL_SEGS];	/* Points to text, data, stack */
+	MemMap mp_seg[NR_LOCAL_SEGS];	/* Points to text, data, stack */
 	char mp_exit_status;	/* Storage for status when process exits */
 	char mp_sig_status;		/* Storage for status # for killed procs */
 	pid_t mp_pid;			/* Process id */
@@ -66,9 +66,8 @@ EXTERN struct MProc {
 #define	PRIV_PROC		0x2000	/* System process, special privileges */
 
 
-#define PM_DATA_CLICKS(p)			DATA_CLICKS((p)->mp_memmap)
-#define PM_ACT_DATA_CLICKS(p)		ACT_DATA_CLICKS((p)->mp_memmap)
-#define PM_ACT_DATA_PADDR(p)		ACT_DATA_PADDR((p)->mp_memmap)
-
+#define PM_DATA_CLICKS(p)			DATA_CLICKS((p)->mp_seg)
+#define PM_ACT_DATA_CLICKS(p)		ACT_DATA_CLICKS((p)->mp_seg)
+#define PM_ACT_DATA_PADDR(p)		ACT_DATA_PADDR((p)->mp_seg)
 
 

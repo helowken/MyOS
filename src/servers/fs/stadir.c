@@ -121,6 +121,16 @@ int doChdir() {
 	return changeDir(&currFp->fp_work_dir, inMsg.m_name, inMsg.m_name_length);
 }
 
+int doFChdir() {
+/* Change directory on already-opened fd. */
+	Filp *filp;
+
+	/* Is the file description valid? */
+	if ((filp = getFilp(inMsg.m_fd)) == NIL_FILP)
+	  return errCode;
+	return changeIntoDir(&currFp->fp_work_dir, filp->filp_inode);
+}
+
 int doStat() {
 /* Perform the stat(name, buf) system call. */
 	register Inode *rip;

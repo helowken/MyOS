@@ -37,19 +37,19 @@ void initSysCalls() {
 	map(SETSID, doGetSet);		/* 62 = setsid */
 	map(GETPGRP, doGetSet);		/* 63 = getpgrp */
 
-	map(SIGACTION, doSigAction);	/* 71 = sigaction */
-	map(SIGSUSPEND, doSigSuspend);	/* 72 = sigsuspend */
-	map(SIGPENDING, doSigPending);	/* 73 = sigpending */
+	map(SIGACTION, doSigAction);		/* 71 = sigaction */
+	map(SIGSUSPEND, doSigSuspend);		/* 72 = sigsuspend */
+	map(SIGPENDING, doSigPending);		/* 73 = sigpending */
 	map(SIGPROCMASK, doSigProcMask);	/* 74 = sigprocmask */
-	map(SIGRETURN, doSigReturn);	/* 75 = sigreturn */
-	//TODO map(REBOOT, doReboot);	/* 76 = reboot */
-	map(SVRCTL, doSvrCtl);	/* 77 = svrctl */
+	map(SIGRETURN, doSigReturn);		/* 75 = sigreturn */
+	map(REBOOT, doReboot);				/* 76 = reboot */
+	map(SVRCTL, doSvrCtl);				/* 77 = svrctl */
 
-	map(GETSYSINFO, doGetSysInfo);	/* 79 = getsysinfo */
-	map(GETPROCNR, doGetProcNum);	/* 80 = getprocnr */
-	map(ALLOCMEM, doAllocMem);		/* 83 = memalloc */
-	//TODO map(FREEMEM, doFreeMem);	/* 84 = memfree */
+	map(GETSYSINFO, doGetSysInfo);		/* 79 = getsysinfo */
+	map(GETPROCNR, doGetProcNum);		/* 80 = getprocnr */
+	map(ALLOCMEM, doAllocMem);			/* 83 = memalloc */
+	//TODO map(FREEMEM, doFreeMem);		/* 84 = memfree */
 	map(GETPRIORITY, doGetSetPriority);	/* 88 = getpriority */
 	map(SETPRIORITY, doGetSetPriority);	/* 89 = setpriority */
-	map(GETTIMEOFDAY, doTime);		/* 90 = gettimeofday */
+	map(GETTIMEOFDAY, doTime);			/* 90 = gettimeofday */
 }

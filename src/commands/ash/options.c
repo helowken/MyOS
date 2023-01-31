@@ -16,6 +16,7 @@
 char *arg0;			/* Value of $0 */
 ShellParam shellParam;	/* Current positional parameters */
 char **argPtr;		/* Argument list for builtin commands */
+char *optArg;		/* Set by nextOpt (like getopt) */
 char *optPtr;		/* Used by nextOpt */
 int editable;		/* isatty(0) && isatty(1) */
 char *minusC;		/* Argument to -c option */
@@ -108,6 +109,39 @@ void freeParam(ShellParam *param) {
 	}
 }
 
+/* Standard option processing (a la getopt) for builtin routines. The
+ * only argument that is passed to nextOpt is the option string; the
+ * other arguments are unnecessary. It return the character, or '\0' on
+ * end of input.
+ */
+int nextOpt(char *optString) {
+	register char *p, *q;
+	char c;
+
+	if ((p = optPtr) == NULL || *p == '\0') {
+		p = *argPtr;
+		if (p == NULL || *p != '-' || *++p == '\0') 
+		  return '\0';
+		++argPtr;
+		if (p[0] == '-' && p[1] == '\0')	/* Check for "--" */
+		  return '\0';
+	}
+	c = *p++;
+	for (q = optString; *q != c; ) {
+		if (*q == '\0')
+		  error("Illegal option -%c", c);
+		if (*++q == ':') 
+		  ++q;
+	}
+	if (*++q == ':') {	/* For -c100 or -c 100, e.g. */
+		if (*p == '\0' && (p = *argPtr) == NULL)
+		  error("No arg for -%c option", c);
+		optArg = p;
+		p = NULL;
+	}
+	optPtr = p;
+	return c;
+}
 
 /* Process the shell command line arguments.
  */

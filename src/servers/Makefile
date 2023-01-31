@@ -1,9 +1,11 @@
-MODULES = pm \
-		  fs \
-		  rs \
-		  init
+DIRS = pm \
+	   fs \
+	   rs \
+	   init
+include ../funcs.mk
 
+all:
+	$(call mkDirs,$(DIRS))
 
-include ../modules.mk
-
-clean: mk_clean
+clean: 
+	$(call cleanDirs,$(DIRS))

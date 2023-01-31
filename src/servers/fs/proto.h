@@ -20,6 +20,11 @@ void genIO(int taskNum, Message *msg);
 void cttyIO(int taskNum, Message *msg);
 void devStatus(Message *msg);
 int doIoctl(void);
+int doSetSid(void);
+
+/* time.c */
+int doSTime(void);
+int doUTime(void);
 
 /* utility.c */
 void panic(char *who, char *msg, int num);
@@ -44,6 +49,7 @@ Filp *getFilp(int fd);
 
 /* stadir.c */
 int doChdir(void);
+int doFChdir(void);
 int doFstat(void);
 int doStat(void);
 
@@ -53,6 +59,7 @@ int readSuper(SuperBlock *sp);
 SuperBlock *getSuper(dev_t dev);
 int getBlockSize(dev_t dev);
 void freeBit(SuperBlock *sp, int map, bit_t bitReturned);
+int mounted(Inode *ip);
 
 /* pipe.c */
 int doPipe(void);
@@ -65,6 +72,8 @@ void revive(int proc, int bytes);
 
 /* protect.c */
 int doAccess(void);
+int doChown(void);
+int doChmod(void);
 int doUmask(void);
 int checkReadOnly(Inode *ip);
 int checkForbidden(Inode *ip, mode_t accessDesired);
@@ -96,6 +105,11 @@ int doFcntl(void);
 int doFork(void);
 int doSet(void);
 int doExec(void);
+
+/* mount.c */
+int doMount(void);
+int doUmount(void);
+int unmount(dev_t dev);
 
 /* open.c */
 int doOpen(void);

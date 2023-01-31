@@ -7,7 +7,7 @@ int doSigReturn(Message *msg) {
 /* POSIX style signals require sysSigReturn() to put things in order before
  * the signalled process can resume execution
  */
-	SigContext sc;
+	struct sigcontext sc;
 	register Proc *rp;
 	phys_bytes srcPhys;
 	int pNum;
@@ -19,12 +19,12 @@ int doSigReturn(Message *msg) {
 	  return EPERM;
 	rp = procAddr(pNum);
 
-	/* Copy in the SigContext structure */
+	/* Copy in the sigcontext structure */
 	srcPhys = umapLocal(rp, D, (vir_bytes) msg->SIG_CTXT_PTR,
-				(vir_bytes) sizeof(SigContext));
+				(vir_bytes) sizeof(struct sigcontext));
 	if (srcPhys == 0)
 	  return EFAULT;
-	physCopy(srcPhys, vir2Phys(&sc), (phys_bytes) sizeof(SigContext));
+	physCopy(srcPhys, vir2Phys(&sc), (phys_bytes) sizeof(struct sigcontext));
 
 	/* Make sure that this is not just a jump buffer. */
 	if ((sc.sc_flags & SC_SIGCONTEXT) == 0)
@@ -40,6 +40,6 @@ int doSigReturn(Message *msg) {
 	sc.sc_gs = rp->p_reg.gs;
 
 	/* Restore the registers. */
-	memcpy(&rp->p_reg, &sc.sc_regs, sizeof(SigRegs));
+	memcpy(&rp->p_reg, &sc.sc_regs, sizeof(struct sigregs));
 	return OK;
 }

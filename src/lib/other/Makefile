@@ -14,7 +14,13 @@ OBJS_M32 = \
 		_brk.o \
 		environ.o \
 		fdopen.o \
-		_devctl.o
+		_devctl.o \
+		funcs.o \
+		_seekdir.o \
+		telldir.o \
+		fsversion.o \
+		mtab.o \
+		_reboot.o
 
 
 OBJS_M16 = \
@@ -24,6 +30,7 @@ OBJS_M16 = \
 all: build
 
 include ../commonlib.mk
+CFLAGS += -I../../servers
 
 build: $(LIB_M16) $(LIB_M32)
 

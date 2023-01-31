@@ -5,17 +5,9 @@
 #include "unistd.h"
 #include "errno.h"
 #include "string.h"
+#include "minix/minlib.h"
 
-static void tell(int fd, ...) {
-	va_list ap;
-	char *s;
-
-	va_start(ap, fd);
-	while ((s = va_arg(ap, char *)) != NULL) {
-		write(fd, s, strlen(s));
-	}
-	va_end(ap);
-}
+static char *prog;
 
 int main(int argc, char **argv) {
 	SysGetEnv sysGetEnv;
@@ -25,16 +17,15 @@ int main(int argc, char **argv) {
 	char val[1024];
 	char *opt;
 
+	prog = argv[0];
 	i = 1;
 	while (i < argc && argv[i][0] == '-') {
 		opt = argv[i++] + 1;
 		if (opt[0] == '-' && opt[1] == 0)	/* -- */
 		  break;
 
-		if (*opt != 0) {
-			tell(STDERR_FILENO, "Usage: sysenv [name ...]\n", NULL);
-			exit(1);
-		}
+		if (*opt != 0) 
+		  usage(prog, "[name ...]");
 	}
 
 	do {
@@ -53,7 +44,7 @@ int main(int argc, char **argv) {
 				ex |= 2;
 			} else {
 				ex |= 1;
-				tell(STDERR_FILENO, "sysenv: ", strerror(errno), "\n", NULL);
+				report(prog, NULL);
 			}
 			continue;
 		}
@@ -67,7 +58,7 @@ int main(int argc, char **argv) {
 
 		if (write(STDOUT_FILENO, sysGetEnv.val, e - sysGetEnv.val) < 0) {
 			ex |= 1;
-			tell(STDERR_FILENO, "sysenv: ", strerror(errno), "\n", NULL);
+			report(prog, NULL);
 		}
 	} while (++i < argc);
 

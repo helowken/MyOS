@@ -3,7 +3,7 @@
 #include "sys/sigcontext.h"
 #include "signal.h"
 
-int sigReturn(register SigContext *sigCtx) {
+int sigreturn(register struct sigcontext *sigCtx) {
 	sigset_t set;
 
 	/* The message can't be on the stack, because the stack will vanish out

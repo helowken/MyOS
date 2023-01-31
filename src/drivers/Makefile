@@ -1,12 +1,15 @@
-MODULES = libpci \
-		  libdriver \
-		  at_wini \
-		  memory \
-		  log \
-		  tty \
-		  cmos
+DIRS = libpci \
+	   libdriver \
+	   at_wini \
+	   memory \
+	   log \
+	   tty \
+	   cmos
 
+include ../funcs.mk
 
-include ../modules.mk
+all:
+	$(call mkDirs,$(DIRS))
 
-clean: mk_clean
+clean: 
+	$(call cleanDirs,$(DIRS))

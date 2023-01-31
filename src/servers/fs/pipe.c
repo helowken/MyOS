@@ -77,7 +77,7 @@ void suspend(
 	if (task == XPIPE || task == XPOPEN)
 	  ++suspendedCount;		/* # procs suspended on pipe */
 	currFp->fp_suspended = SUSPENDED;
-	currFp->fp_fd = inMsg.m_fd << 8 | callNum;
+	currFp->fp_fd = TO_SUSP(inMsg.m_fd, callNum);
 	currFp->fp_task = -task;
 	if (task == XLOCK) {
 		currFp->fp_buffer = (char *) inMsg.m_name1;	/* Third arg to fcntl() */
@@ -90,7 +90,7 @@ void suspend(
 
 void revive(
 	int pNum,	/* Process to revive */
-	int bytes	/* If hanging on task, how many bytes read */
+	int retVal	/* If hanging on task, how many bytes read */
 ) {
 /* Revive a previously blocked process, When a process hangs on tty, this
  * is the way it is eventually released.
@@ -116,7 +116,16 @@ void revive(
 		rfp->fp_revived = REVIVING;
 		++reviving;		/* Process was waiting on pipe or lock. */
 	} else {
-		printf("=== TODO fs revive\n");
+		rfp->fp_suspended = NOT_SUSPENDED;
+		if (task == XPOPEN)	/* Process blocked in open or create */
+		  reply(pNum, FD_FROM_SUSP(rfp->fp_fd));
+		else if (task == XSELECT)
+		  reply(pNum, retVal);
+		else {
+			/* Revive a process suspended on TTY or other device. */
+			rfp->fp_nbytes = retVal;	/* Pretend it wants only what there is */
+			reply(pNum, retVal);
+		}
 	}
 }
 
@@ -238,7 +247,7 @@ void release(
 		if (rp->fp_suspended == SUSPENDED &&
 				rp->fp_revived == NOT_REVIVING &&
 				(rp->fp_fd & BYTE) == callNum &&
-				rp->fp_filp[rp->fp_fd >> 8]->filp_inode == ip) {
+				rp->fp_filp[FD_FROM_SUSP(rp->fp_fd)]->filp_inode == ip) {
 			revive((int) (rp - fprocTable), 0);
 			--suspendedCount;	/* Keep track of who is suspended */
 			if (--count == 0)

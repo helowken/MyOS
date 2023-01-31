@@ -1,14 +1,18 @@
-MODULES = \
-		tools \
-		lib \
-		kernel \
-		servers \
-		drivers \
-		boot \
-		commands
+DIRS = tools \
+	   lib \
+	   kernel \
+	   servers \
+	   drivers \
+	   boot \
+	   commands
 
+DIR_ENTRY = entry
 
-include modules.mk
+include funcs.mk
 
-clean: mk_clean
-	rm -f entry/*.o
+all:
+	$(call mkDirs,$(DIRS))
+
+clean: 
+	$(call cleanDirs,$(DIRS))
+	rm -f $(DIR_ENTRY)/*.o

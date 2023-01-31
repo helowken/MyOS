@@ -222,7 +222,6 @@ void readCmdFile(char *name) {
  * search for the file, but a path search doesn't make any sense.
  */
 int dotCmd(int argc, char **argv) {
-	printf("=== dotCmd\n");//TODO
 	exitStatus = 0;
 	if (argc >= 2) {	/* That's what SVR2 does */
 		setInputFile(argv[1], 1);

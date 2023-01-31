@@ -7,7 +7,7 @@
  * by the kernel's context switching code. Floating point registers should
  * be added in a different struct.
  */
-typedef struct {
+struct sigregs {
 	int sr_gs;
 	int sr_fs;
 	int sr_es;
@@ -27,23 +27,23 @@ typedef struct {
 	int sr_psw;
 	int sr_esp;
 	int sr_ss;
-} SigRegs;
+};
 
-typedef struct {
-	int sc_flags;		/* Sigstack state to restore */
-	long sc_mask;		/* Signal mask to restore */
-	SigRegs sc_regs;	/* Register set to restore */
-} SigContext;
+struct sigcontext {
+	int sc_flags;			/* Sigstack state to restore */
+	long sc_mask;			/* Signal mask to restore */
+	struct sigregs sc_regs;	/* Register set to restore */
+};
 
-typedef struct {
+struct sigframe {
 	void (*sf_ret_addr)();
 	int sf_sig_num;
 	int sf_code;
-	SigContext *sf_ctx;
+	struct sigcontext *sf_ctx;
 	int sf_bp;
 	void (*sf_ret_addr2)();
-	SigContext *sf_ctx_copy;
-} SigFrame;
+	struct sigcontext *sf_ctx_copy;
+};
 
 
 #define sc_gs		sc_regs.sr_gs
@@ -70,6 +70,6 @@ typedef struct {
 /* Values for sc_flags. */
 #define SC_SIGCONTEXT	2	/* Nonzero when signal context is included */
 
-int sigReturn(SigContext *sigCtx);
+int sigreturn(struct sigcontext *sigCtx);
 
 #endif

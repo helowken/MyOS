@@ -18,9 +18,10 @@ typedef unsigned int vir_bytes;		/* Virtual addr/length in bytes */
 typedef unsigned int vir_clicks;	/* Virtual addr/length in clicks */
 
 /* Brk() will change [D].len, [S].virAddr and [S].len */
-#define DATA_CLICKS(mm)			((mm)[S].virAddr - (mm)[D].virAddr + (mm)[S].len)
+#define DATA_CLICKS(mm)			((mm)[S].virAddr + (mm)[S].len - (mm)[D].virAddr)
 #define ACT_DATA_CLICKS(mm)		(DATA_CLICKS(mm) - (mm)[D].offset)
 #define ACT_DATA_PADDR(mm)		((mm)[D].physAddr + (mm)[D].offset)
+#define TOTAL_CLICKS(mm)		((mm)[S].physAddr + (mm)[S].len - (mm)[T].physAddr)
 
 typedef struct {
 	phys_clicks physAddr;			/* Physical address */
@@ -76,7 +77,7 @@ typedef struct {
 	int sm_sig_num;		/* Signal number being caught */
 	unsigned long sm_mask;		/* Mask to restore when handler returns */
 	vir_bytes sm_sig_handler;	/* Address of handler */
-	vir_bytes sm_sig_return;	/* Address of _sigReturn in C library */
+	vir_bytes sm_sig_return;	/* Address of _sigreturn in C library */
 	vir_bytes sm_stack_ptr;		/* User stack pointer */
 } SigMsg;
 

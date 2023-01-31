@@ -144,8 +144,12 @@ int main(int argc, char **argv) {
 		case SRV_UP:
 			msg.SRV_PATH_ADDR = reqPath;
 			msg.SRV_PATH_LEN = strlen(reqPath);
-			msg.SRV_ARGS_ADDR = reqArgs;
-			msg.SRV_ARGS_LEN = strlen(reqArgs);
+			if (reqArgs != NULL) {
+				msg.SRV_ARGS_ADDR = reqArgs;
+				msg.SRV_ARGS_LEN = strlen(reqArgs);
+			} else {
+				msg.SRV_ARGS_LEN = 0;
+			}
 			msg.SRV_DEV_MAJOR = reqMajor;
 			if ((s = taskCall(RS_PROC_NR, SRV_UP, &msg)) != OK)
 			  panic(argv[ARG_NAME], "sendRec to manager server failed", s);

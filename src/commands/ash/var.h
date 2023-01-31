@@ -68,6 +68,7 @@ void setVarEq(char *, int);
 struct StrList;
 void listSetVar(struct StrList *);
 char *lookupVar(char *);
+char *bltinLookup(char *, int);
 char **environment();
 int showVarsCmd(int, char **);
 void mkLocal(char *);

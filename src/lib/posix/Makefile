@@ -30,7 +30,12 @@ OBJS_M32 = \
 		_dup.o \
 		_fcntl.o \
 		_fork.o \
+		_execl.o \
+		_execle.o \
+		_execlp.o \
+		_execv.o \
 		_execve.o \
+		_execvp.o \
 		_access.o \
 		_close.o \
 		__exit.o \
@@ -45,7 +50,23 @@ OBJS_M32 = \
 		_creat.o \
 		_unlink.o \
 		_rename.o \
-		_pipe.o
+		_pipe.o \
+		_sleep.o \
+		_alarm.o \
+		_dup2.o \
+		_chdir.o \
+		_opendir.o \
+		_closedir.o \
+		_readdir.o \
+		_rewinddir.o \
+		_mount.o \
+		_umount.o \
+		_mkdir.o \
+		_rmdir.o \
+		_chown.o \
+		_chmod.o \
+		_utime.o \
+		readlink.o
 
 
 all: build

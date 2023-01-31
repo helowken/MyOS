@@ -19,11 +19,11 @@ int doBrk() {
 	rmp = currMp;
 	v = (vir_bytes) inMsg.m_addr;
 	newClicks = (vir_clicks) (((long) v + CLICK_SIZE - 1) >> CLICK_SHIFT);
-	if (newClicks < rmp->mp_memmap[D].virAddr) {
+	if (newClicks < rmp->mp_seg[D].virAddr) {
 		rmp->mp_reply.m_reply_ptr = (char *) -1;
 		return ENOMEM;
 	}
-	newClicks -= rmp->mp_memmap[D].virAddr;
+	newClicks -= rmp->mp_seg[D].virAddr;
 	if ((r = getStackPtr(who, &newSp)) != OK)	/* Ask kernel for sp value */
 	  panic(__FILE__, "couldn't get stack pointer", r);
 	r = adjust(rmp, newClicks, newSp);
@@ -47,8 +47,8 @@ int adjust(
 	long baseOfStack, delta;
 	int r;
 
-	memDp = &rmp->mp_memmap[D];	/* Pointer to data segment map */
-	memSp = &rmp->mp_memmap[S];	/* Pointer to stack segment map */
+	memDp = &rmp->mp_seg[D];	/* Pointer to data segment map */
+	memSp = &rmp->mp_seg[S];	/* Pointer to stack segment map */
 	changed = 0;		/* Set when either segment changed */
 
 	if (memSp->len == 0)
@@ -57,7 +57,7 @@ int adjust(
 	/* See if stack size has gone negative (i.e., sp too close to 0xFFFF...) */
 	baseOfStack = (long) memSp->virAddr + (long) memSp->len;	/* len = stack frame size */
 	spClick = sp >> CLICK_SHIFT;	/* Click containing sp */
-	if (spClick >= baseOfStack)
+	if (spClick >= baseOfStack) 
 	  return ENOMEM;	/* Sp too high */
 
 	/* Compute size of gap between stack and data segments. */
@@ -68,7 +68,7 @@ int adjust(
 #define SAFETY_BYTES	(384 * sizeof(char *))
 #define SAFETY_CLICKS	((SAFETY_BYTES + CLICK_SIZE - 1) / CLICK_SIZE)
 	gapBase = memDp->virAddr + dataClicks + SAFETY_CLICKS;
-	if (lower < gapBase)
+	if (lower < gapBase) 
 	  return ENOMEM;	/* Data and stack collided */
 
 	/* Update data length (but not data origin) on behalf of brk() system call. */
@@ -90,7 +90,7 @@ int adjust(
 	r = (memDp->virAddr + memDp->len > memSp->virAddr) ? ENOMEM : OK;
 	if (r == OK) {
 		if (changed)
-		  sysNewMap((int) (rmp - mprocTable), rmp->mp_memmap);
+		  sysNewMap((int) (rmp - mprocTable), rmp->mp_seg);
 		return OK;
 	}
 

@@ -1,8 +1,11 @@
-MODULES = ash \
-		  ibm \
-		  simple
+DIRS = ash \
+	   ibm \
+	   simple
 
+include ../funcs.mk
 
-include ../modules.mk
+all:
+	$(call mkDirs,$(DIRS))
 
-clean: mk_clean
+clean: 
+	$(call cleanDirs,$(DIRS))

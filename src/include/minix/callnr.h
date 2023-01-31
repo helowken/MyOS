@@ -21,7 +21,7 @@
 #define LSEEK			19
 #define	GETPID			20
 #define MOUNT			21
-#define UNMOUNT			22
+#define UMOUNT			22
 #define SETUID			23
 #define GETUID			24
 #define STIME			25

@@ -138,14 +138,16 @@ Inode *advance(Inode *dirIp, char string[NAME_MAX]) {
 		if (dirIp->i_num == ROOT_INODE) {
 			if (string[1] == '.') {
 				for (sp = &superBlocks[1]; sp < &superBlocks[NR_SUPERS]; ++sp) {
-					/* Release the root inode. Replace by the inode mounted on. */
-					putInode(ip);
-					mntDev = sp->s_inode_mount->i_dev;
-					iNum = sp->s_inode_mount->i_num;
-					ip2 = getInode(mntDev, iNum);
-					ip = advance(ip2, string);
-					putInode(ip2);
-					break;
+					if (sp->s_dev == ip->i_dev) {
+						/* Release the root inode. Replace by the inode mounted on. */
+						putInode(ip);
+						mntDev = sp->s_inode_mount->i_dev;
+						iNum = sp->s_inode_mount->i_num;
+						ip2 = getInode(mntDev, iNum);
+						ip = advance(ip2, string);
+						putInode(ip2);
+						break;
+					}
 				}
 			}
 		}

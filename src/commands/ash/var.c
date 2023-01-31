@@ -193,6 +193,29 @@ void shProcVar() {
 	//TODO
 }
 
+/* Search the environment of a builtin command. If the second argument
+ * is nonzero, return the value of variable even if it hasn't been
+ * exported.
+ */
+char *bltinLookup(char *name, int doAll) {
+	StrList *sp;
+	Var *v;
+
+	for (sp = cmdEnviron; sp; sp = sp->next) {
+		if (varEqual(sp->text, name))
+		  return strchr(sp->text, '=') + 1;
+	}
+	for (v = *hashVar(name); v; v = v->next) {
+		if (varEqual(v->text, name)) {
+			if (v->flags & V_UNSET ||
+					(! doAll && (v->flags & V_EXPORT) == 0))
+			  return NULL;
+			return strchr(v->text, '=') + 1;
+		}
+	}
+	return NULL;
+}
+
 /* Find the value of a variable. Returns NULL if not set.
  */
 char *lookupVar(char *name) {
@@ -326,10 +349,10 @@ int exportCmd(int argc, char **argv) {
 	listSetVar(cmdEnviron);
 	if (argc > 1) {
 		while ((name = *argPtr++) != NULL) {
-			if ((p = strchr(name, '=')) != NULL) {
+			if ((p = strchr(name, '=')) != NULL) {	/* var=xxx */
 				++p;
-			} else {
-				vpp = hashVar(name);
+			} else {	/* value is null */
+				vpp = hashVar(name);	
 				for (vp = *vpp; vp; vp = vp->next) {
 					if (varEqual(vp->text, name)) {
 						vp->flags |= flag;

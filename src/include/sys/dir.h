@@ -5,13 +5,13 @@
 
 #define DIR_BLOCK_SIZE	512		// size of directory block
 
-#ifndef DIR_SIZE
-#define DIR_SIZE		60
+#ifndef DIRSIZ 
+#define DIRSIZ	60
 #endif
 
 typedef struct {
 	ino_t d_ino;
-	char d_name[DIR_SIZE];
+	char d_name[DIRSIZ];
 } DirEntry;
 
 #endif

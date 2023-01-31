@@ -77,7 +77,7 @@ static int unlinkFile(
 		errCode = searchDir(dirp, fileName, &num, LOOK_UP);
 		if (errCode == OK)
 		  rip = getInode(dirp->i_dev, (int) num);
-		else if (rip == NIL_INODE)
+		if (errCode != OK || rip == NIL_INODE)
 		  return errCode;
 	} else {
 		dupInode(rip);	/* Inode will be returned with putInode */

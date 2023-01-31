@@ -13,10 +13,15 @@
 #include "stdlib.h"
 #include "unistd.h"
 #include "utmp.h"
+#include "minix/minlib.h"
 
 #include "minix/ipc.h" //TODO delete
 #include "stdio.h"	//TODO delete
 #include "string.h" //TODO delete
+
+static int gotHup = 0;		/* Flag, showing signal 1 was received */
+static int gotAbrt = 1;		/* Flag, showing signal 6 was received */
+static int spawn = 1;		/* Flag, spawn processes only when set */
 
 static int execute(char **cmd) {
 /* Execute a command with a path search along /sbin:/bin:/usr/sbin:/usr/bin. */
@@ -43,8 +48,25 @@ static int execute(char **cmd) {
 		if (errno != ENOENT)
 		  break;
 	}
-	printf("==== errno: %d\n", errno);
+	printf("==== init errno: %d\n", errno);
 	return -1;
+}
+
+static void onHup(int sig) {
+	gotHup = 1;
+	spawn = 1;
+}
+
+static void onTerm(int sig) {
+	spawn = 0;
+}
+
+static void onAbrt(int sig) {
+	static int count;
+
+	if (++count == 2)
+	  reboot(RBT_HALT);
+	gotAbrt = 1;
 }
 
 void main() {
@@ -64,24 +86,26 @@ void main() {
 	sa.sa_flags = 0;
 
 	/* Hangup: Reexamine /etc/ttytab for newly enabled terminal lines. */
-	//TODO sa.sa_handler = onHup;
+	sa.sa_handler = onHup;
 	sigaction(SIGHUP, &sa, NULL);
 
 	/* Terminate: Stop spawning login processes, shutdown is near. */
-	//TODO sa.sa_handler = onTerm;
+	sa.sa_handler = onTerm;
 	sigaction(SIGTERM, &sa, NULL);
 
 	/* Abort: Sent by the kernel on CTRL-ALT-DEL; shut the system down. */
-	//TODO sa.sa_handler = onAbort;
+	sa.sa_handler = onAbrt;
 	sigaction(SIGABRT, &sa, NULL);
 
 	printf("====== init start =====\n"); //TODO
-
+	/* Execute the /etc/rc file. */
 	if ((pid = fork()) != 0) {
 		/* Parent just waits. TODO*/
-		printf("========== I'm parent\n");
+		while (wait(NULL) != pid) {
+			if (gotAbrt)
+			  reboot(RBT_HALT);
+		}
 	} else {
-		printf("========== I'm child\n");
 		SysGetEnv sysGetEnv;
 		char bootOpts[16];
 		static char *rcCommand[] = { "sh", "/etc/rc", NULL, NULL, NULL }; 
@@ -97,9 +121,11 @@ void main() {
 		*rcp = "start";
 
 		execute(rcCommand);
-		//TODO
-
+		report("sh /etc/rc", NULL);
+		_exit(1);	/* Impossible, we hope */
 	}
+
+	//TODO
 	
 	// TODO start
 	printf("====== init end =====\n");

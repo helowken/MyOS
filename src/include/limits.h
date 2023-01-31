@@ -22,7 +22,7 @@
 
 #include "sys/dir.h"
 
-#define NAME_MAX	DIR_SIZE	/* # chars in a file name */
+#define NAME_MAX	DIRSIZ		/* # chars in a file name */
 #define PATH_MAX	255			/* # chars in a path name */
 
 #define OPEN_MAX	20			/* # open files a process may have */

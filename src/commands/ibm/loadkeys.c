@@ -1,6 +1,7 @@
 #include "sys/types.h"
 #include "sys/ioctl.h"
 #include "minix/keymap.h"
+#include "minix/minlib.h"
 #include "fcntl.h"
 #include "unistd.h"
 #include "stdlib.h"
@@ -9,48 +10,27 @@
 
 #define KBD_DEVICE	"/dev/console"
 
-u16_t keyMap[NR_SCAN_CODES * MAP_COLS];
-u8_t compressMap[4 + NR_SCAN_CODES * MAP_COLS * 9/8 * 2 + 1];
-
-static void tell(const char *s) {
-	write(STDERR_FILENO, s, strlen(s));
-}
-
-static void fatal(const char *s) {
-	int savedErrno = errno;
-	tell("loadkeys: ");
-	if (s != NULL) {
-		tell(s);
-		tell(": ");
-	}
-	tell(strerror(savedErrno));
-	tell("\n");
-	exit(1);
-}
-
-static void usage(void) {
-	tell("Usage: loadkeys mapfile\n");
-	exit(1);
-}
+static u16_t keyMap[NR_SCAN_CODES * MAP_COLS];
+static u8_t compressMap[4 + NR_SCAN_CODES * MAP_COLS * 9/8 * 2 + 1];
+static char *prog;
 
 int main(int argc, char *argv[]) {
 	u8_t *cm;
 	u16_t *km;
 	int fd, n, fb;
 
+	prog = argv[0];
 	if (argc != 2) 
-	  usage();
+	  usage(prog, "mapfile");
 
-	if ((fd = open(argv[1], O_RDONLY)) < 0)
-	  fatal(argv[1]);
-
-	if (read(fd, compressMap, sizeof(compressMap)) < 0)
-	  fatal(argv[1]);
+	if ((fd = open(argv[1], O_RDONLY)) < 0 || 
+			read(fd, compressMap, sizeof(compressMap)) < 0)
+	  fatal(prog, argv[1]);
 
 	if (memcmp(compressMap, KEY_MAGIC, 4) != 0) {
-		tell("loadkeys: ");
-		tell(argv[1]);
-		tell(": not a keymap file\n");
+		stdErr("loadkeys: ");
+		stdErr(argv[1]);
+		stdErr(": not a keymap file\n");
 		exit(1);
 	}
 	close(fd);
@@ -72,10 +52,10 @@ int main(int argc, char *argv[]) {
 	}
 
 	if ((fd = open(KBD_DEVICE, O_WRONLY)) < 0)
-	  fatal(KBD_DEVICE);
+	  fatal(prog, KBD_DEVICE);
 
 	if (ioctl(fd, KIOC_SET_MAP, keyMap) < 0)
-	  fatal(KBD_DEVICE);
+	  fatal(prog, KBD_DEVICE);
 
 	return 0;
 }

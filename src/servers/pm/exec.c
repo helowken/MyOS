@@ -103,7 +103,7 @@ static int newMem(MProc *shareMp, vir_bytes textBytes, vir_bytes dataBytes,
 
 	register MProc *rmp = currMp;
 	vir_bytes skipBytes;
-	vir_clicks textClicks, dataClicks, pureDataClicks, stackFrameClicks, totalClicks;
+	vir_clicks textClicks, dataClicks, gapClicks, stackFrameClicks, totalClicks;
 	phys_clicks newBase, offsetClicks;
 	phys_bytes bytes, base;
 	int s;
@@ -122,12 +122,13 @@ static int newMem(MProc *shareMp, vir_bytes textBytes, vir_bytes dataBytes,
 	 * boundary. The data and bass parts are run together with no space.
 	 */
 	textClicks = SIZE_TO_CLICKS((unsigned long) textBytes);
-	dataClicks = SIZE_TO_CLICKS(dataVirAddr + dataBytes + bssBytes + stackBytes);
-	pureDataClicks = SIZE_TO_CLICKS(dataVirAddr + dataBytes + bssBytes);	/* Without stack*/
+	dataClicks = SIZE_TO_CLICKS(dataVirAddr + dataBytes + bssBytes);
+	totalClicks = SIZE_TO_CLICKS(dataVirAddr + dataBytes + bssBytes + 
+								stackBytes + stackFrameBytes);
 	stackFrameClicks = SIZE_TO_CLICKS(stackFrameBytes);
 	offsetClicks = dataVirAddr >> CLICK_SHIFT;
-	totalClicks = dataClicks + stackFrameClicks;
-	if ((int) (totalClicks - pureDataClicks - stackFrameClicks) < 0)	/* Check if no stack */
+	gapClicks = totalClicks - dataClicks - stackFrameClicks;
+	if ((int) gapClicks < 0)	/* Check if no stack */
 	  return ENOMEM;
 
 	/* Try to allocate memory for the new process. */
@@ -138,7 +139,7 @@ static int newMem(MProc *shareMp, vir_bytes textBytes, vir_bytes dataBytes,
 	/* We're got memory for the new core image. Release the old one. */
 	if (findShare(rmp, rmp->mp_ino, rmp->mp_dev, rmp->mp_ctime) == NULL) {
 		/* No other process shares the text segment, so free it. */
-		freeMemory(rmp->mp_memmap[T].physAddr, rmp->mp_memmap[T].len);
+		freeMemory(rmp->mp_seg[T].physAddr, rmp->mp_seg[T].len);
 	}
 	/* Free the data and stack segments. */
 	freeMemory(PM_ACT_DATA_PADDR(rmp), PM_ACT_DATA_CLICKS(rmp));
@@ -149,29 +150,29 @@ static int newMem(MProc *shareMp, vir_bytes textBytes, vir_bytes dataBytes,
 	 */
 	if (shareMp != NULL) {
 		/* Share the text segment. */
-		rmp->mp_memmap[T] = shareMp->mp_memmap[T];
+		rmp->mp_seg[T] = shareMp->mp_seg[T];
 	} else {
-		rmp->mp_memmap[T].physAddr = newBase;
-		rmp->mp_memmap[T].virAddr = 0;
-		rmp->mp_memmap[T].len = textClicks;
+		rmp->mp_seg[T].physAddr = newBase;
+		rmp->mp_seg[T].virAddr = 0;
+		rmp->mp_seg[T].len = textClicks;
 	}
-	rmp->mp_memmap[D].physAddr = newBase + textClicks - offsetClicks;
-	rmp->mp_memmap[D].virAddr = 0;
-	rmp->mp_memmap[D].len = totalClicks;
-	rmp->mp_memmap[D].offset = offsetClicks;
-	rmp->mp_memmap[S].physAddr = rmp->mp_memmap[D].physAddr + dataClicks;
-	rmp->mp_memmap[S].virAddr = rmp->mp_memmap[D].virAddr + dataClicks;
-	rmp->mp_memmap[S].len = stackFrameClicks;
-	printf("=== pm exec text addr: %x\n", rmp->mp_memmap[T].physAddr << CLICK_SHIFT);
+	rmp->mp_seg[D].physAddr = newBase + textClicks - offsetClicks;
+	rmp->mp_seg[D].virAddr = 0;
+	rmp->mp_seg[D].len = dataClicks;
+	rmp->mp_seg[D].offset = offsetClicks;
+	rmp->mp_seg[S].physAddr = rmp->mp_seg[D].physAddr + dataClicks + gapClicks;
+	rmp->mp_seg[S].virAddr = rmp->mp_seg[D].virAddr + dataClicks + gapClicks;
+	rmp->mp_seg[S].len = stackFrameClicks;
+	//TODO printf("=== pm exec text addr: %x\n", rmp->mp_seg[T].physAddr << CLICK_SHIFT);
 
-	sysNewMap(who, rmp->mp_memmap);		/* Report new map to the kernel */
+	sysNewMap(who, rmp->mp_seg);		/* Report new map to the kernel */
 
 	/* The old memory may have been swapped out, but the new memory is real. */
 	rmp->mp_flags &= ~(WAITING | ONSWAP | SWAPIN);
 
 	/* Zero the bss, gap, and stack segment. */
 	bytes = (phys_bytes) CLICKS_TO_SIZE(totalClicks - offsetClicks);
-	base = (phys_bytes) CLICKS_TO_SIZE(rmp->mp_memmap[D].physAddr + offsetClicks);
+	base = (phys_bytes) CLICKS_TO_SIZE(rmp->mp_seg[D].physAddr + offsetClicks);
 	skipBytes = dataVirAddr - CLICKS_TO_SIZE(offsetClicks) + dataBytes;
 	base += skipBytes;
 	bytes -= skipBytes;
@@ -284,8 +285,8 @@ int doExec() {
 	rmp->mp_ctime = stp->st_ctime;
 
 	/* Patch up stack and copy it from PM to new core image. */
-	virStackBase = (vir_bytes) rmp->mp_memmap[S].virAddr << CLICK_SHIFT;
-	virStackBase += (vir_bytes) rmp->mp_memmap[S].len << CLICK_SHIFT;
+	virStackBase = (vir_bytes) rmp->mp_seg[S].virAddr << CLICK_SHIFT;
+	virStackBase += (vir_bytes) rmp->mp_seg[S].len << CLICK_SHIFT;
 	virStackBase -= stackFrameBytes;
 	patchStack(mBuf, virStackBase);
 	src = (vir_bytes) mBuf;
@@ -377,7 +378,7 @@ void rwSeg(
  */
 	int newFd, bytes, r;
 	char *buf;
-	MemMap *sp = &currMp[pNum].mp_memmap[seg];
+	MemMap *sp = &currMp[pNum].mp_seg[seg];
 	phys_bytes segBytes = len;
 
 	newFd = (pNum << 7) | (seg << 5) | fd;

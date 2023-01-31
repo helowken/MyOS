@@ -40,12 +40,12 @@ static void patchMemChunks(Memory *memChunks, MemMap *memMap) {
 	Memory *memp;
 	vir_clicks size;
 
+	size = TOTAL_CLICKS(memMap);
 	for (memp = memChunks; memp < &memChunks[NR_MEMS]; ++memp) {
 		if (memp->base == memMap[T].physAddr) {
-			//size = memMap[T].len + memMap[D].len - memMap[D].offset;
-			size = memMap[S].physAddr + memMap[S].len - memMap[T].physAddr;
 			memp->base += size;	
 			memp->size -= size;
+			break;
 		}
 	}
 }
@@ -161,7 +161,7 @@ static void pmInit() {
 	/* Get the memory map of the kernel to see how much memory it uses. */
 	if ((s = getMemMap(SYSTASK, memMap)) != OK)
 	  panic(__FILE__, "couldn't get memory map of SYSTASK", s);
-	minixClicks = memMap[S].physAddr + memMap[S].len - memMap[T].physAddr;
+	minixClicks = TOTAL_CLICKS(memMap);
 	patchMemChunks(memChunks, memMap);
 
 	/* Initialize PM's process table. Request a copy of the system image table
@@ -195,11 +195,10 @@ static void pmInit() {
 			sigemptyset(&rmp->mp_sig_to_msg);
 
 			/* Get memory map for this process from the kernel. */
-			if ((s = getMemMap(ip->pNum, rmp->mp_memmap)) != OK)
+			if ((s = getMemMap(ip->pNum, rmp->mp_seg)) != OK)
 			  panic(__FILE__, "couldn't get process entry", s);
-			minixClicks += rmp->mp_memmap[S].physAddr - rmp->mp_memmap[S].len
-							- rmp->mp_memmap[T].physAddr;
-			patchMemChunks(memChunks, rmp->mp_memmap);
+			minixClicks += TOTAL_CLICKS(rmp->mp_seg);
+			patchMemChunks(memChunks, rmp->mp_seg);
 
 			/* Tell FS about this system process. */
 			msg.PR_PROC_NR = ip->pNum;

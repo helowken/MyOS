@@ -36,6 +36,7 @@ extern char optVal[NUM_OPTS + 1];
 extern char *minusC;	/* Argument to -c option: the shell executes the specified shell command */
 extern char *arg0;		/* $0 */
 extern char **argPtr;	/* Argument list for builtin commands */
+extern char *optArg;	/* Set by nextOpt */
 extern char *optPtr;	/* Used by nextOpt */
 extern ShellParam shellParam;	/* $@ */
 extern int editable;	/* isatty(0) && isatty(1) */
@@ -45,3 +46,5 @@ extern int isatty(int fd);
 void procArgs(int, char **);
 void setParam(char **);
 void freeParam(ShellParam *);
+int nextOpt(char *);
+

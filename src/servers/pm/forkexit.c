@@ -73,7 +73,7 @@ void pmExit(register MProc *rmp, int exitStatus) {
 	/* Release the memory ocuupied by the child. */
 	if (findShare(rmp, rmp->mp_ino, rmp->mp_dev, rmp->mp_ctime) == NULL) {
 		/* No other process shares the text segment, so free it. */
-		freeMemory(rmp->mp_memmap[T].physAddr, rmp->mp_memmap[T].len);
+		freeMemory(rmp->mp_seg[T].physAddr, rmp->mp_seg[T].len);
 	}
 	/* Free the data and stack segments. */
 	freeMemory(PM_ACT_DATA_PADDR(rmp), PM_ACT_DATA_CLICKS(rmp));
@@ -194,7 +194,7 @@ int doFork() {
 	/* Determine how much memory to allocate. Only the data and stack need to
 	 * be copied, because the text segment is either shared or of zero length.
 	 */
-	offsetClicks = parentMp->mp_memmap[D].offset;
+	offsetClicks = parentMp->mp_seg[D].offset;
 	/* Since brk will change [D].len, [S].virAddr and [S].len
 	 * dataClicks = [S].virAddr - [D].virAddr + [S].len
 	 */
@@ -229,8 +229,8 @@ int doFork() {
 	/* Child keeps the parents text segment. The data and stack segments must 
 	 * refer to the new copy. 
 	 */
-	childMp->mp_memmap[D].physAddr = childBase - offsetClicks;
-	childMp->mp_memmap[S].physAddr = childMp->mp_memmap[D].physAddr + dataClicks;
+	childMp->mp_seg[D].physAddr = childBase - offsetClicks;
+	childMp->mp_seg[S].physAddr = childMp->mp_seg[D].physAddr + dataClicks;
 	childMp->mp_exit_status = 0;
 	childMp->mp_sig_status = 0;
 
@@ -243,7 +243,7 @@ int doFork() {
 	tellFS(FORK, who, childNum, childMp->mp_pid);
 
 	/* Report child's memory map to kernel. */
-	sysNewMap(childNum, childMp->mp_memmap);
+	sysNewMap(childNum, childMp->mp_seg);
 
 	/* Reply to child to wake it up. */
 	setReply(childNum, 0);		/* Only parent gets details */

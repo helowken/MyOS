@@ -401,6 +401,21 @@ void defineFunc(char *name, union Node *func) {
 	INTON;
 }
 
+/* Called when a cd is done. Marks all commands so the next time they
+ * are executed they will be rehashed.
+ */
+void hashCd() {
+	TableEntry **pp, *cmdp;
+	
+	for (pp = cmdTable; pp < &cmdTable[CMD_TABLE_SIZE]; ++pp) {
+		for (cmdp = *pp; cmdp; cmdp = cmdp->next) {
+			if (cmdp->cmdType == CMD_NORMAL ||
+					(cmdp->cmdType == CMD_BUILTIN && builtinLoc >= 0))
+			  cmdp->rehash = 1;
+		}
+	}
+}
+
 
 #ifdef mkinit
 MKINIT void deleteFuncs();

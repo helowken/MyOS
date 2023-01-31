@@ -30,14 +30,15 @@ MKINIT pid_t backgndPid = -1;
 Job *makeJob(union Node *node, int numProcs) {
 	int i;
 	Job *jp;
+#define BATCH_SIZE	4
 
 	for (i = numJobs, jp = jobTable; ; ++jp) {
 		if (--i < 0) {
 			INTOFF;
 			if (numJobs == 0) {
-				jobTable = ckMalloc(4 * sizeof(jobTable[0]));
+				jobTable = ckMalloc(BATCH_SIZE * sizeof(jobTable[0]));
 			} else {
-				jp = ckMalloc((numJobs + 4) * sizeof(jobTable[0]));
+				jp = ckMalloc((numJobs + BATCH_SIZE) * sizeof(jobTable[0]));
 				bcopy(jobTable, jp, numJobs * sizeof(jp[0]));
 				for (i = 0; i < numJobs; ++i) {
 					if (jobTable[i].ps == &jobTable[i].ps0)
@@ -47,7 +48,7 @@ Job *makeJob(union Node *node, int numProcs) {
 				jobTable = jp;
 			}
 			jp = jobTable + numJobs;
-			for (i = 4; --i >= 0; ) {
+			for (i = BATCH_SIZE; --i >= 0; ) {
 				jobTable[numJobs++].used = 0;
 			}
 			INTON;
@@ -284,7 +285,6 @@ int forkShell(Job *jp, Node *n, int mode) {
 		int wasRoot;
 		int i;
 
-		printf("=== forkShell new child, rootShell: %d, mode: %d\n", rootShell, mode);
 		wasRoot = rootShell;
 		rootShell = 0;
 		for (i = numJobs, p = jobTable; --i >= 0; ++p) {
@@ -300,7 +300,7 @@ int forkShell(Job *jp, Node *n, int mode) {
 			ignoreSig(SIGQUIT);
 			if ((jp == NULL || jp->numProcs == 0) &&
 					! isFd0Redirected()) {
-				close(0);
+				close(STDIN_FILENO);
 				if (open("/dev/null", O_RDONLY) != 0)
 				  error("Can't open /dev/null");
 			}
@@ -313,7 +313,6 @@ int forkShell(Job *jp, Node *n, int mode) {
 		return pid;
 	}
 
-	printf("=== forkShell parent, child pid: %d\n", pid);
 	if (mode == FORK_BG)
 	  backgndPid = pid;		/* Set $! */
 	if (jp) {

@@ -39,6 +39,7 @@ int doStart(Message *mp) {
 		args[1] = &argBuf[0];
 		args[2] = NULL;
 	} else {
+		argBuf[0] = '\0';
 		args[1] = NULL;
 	}
 

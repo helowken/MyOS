@@ -229,3 +229,10 @@ int doSvrCtl() {
 			return EINVAL;
 	}
 }
+
+#define REBOOT_CODE		"delay; boot"
+int doReboot() {
+	printf("===TODO pm reboot\n");
+	return 0;
+}
+

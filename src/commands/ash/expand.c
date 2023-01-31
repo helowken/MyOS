@@ -208,7 +208,7 @@ again:	/* Jump here after setting a variable with ${var=text} */
 		val = NULL;
 	} else {
 		val = lookupVar(var);
-		if (val == NULL || ((flags & VS_NUL) && val[0] == '\0')) {	//TODO
+		if (val == NULL || ((flags & VS_NUL) && val[0] == '\0')) {
 			val = NULL;
 			set = 0;
 		} else { 
@@ -231,8 +231,7 @@ again:	/* Jump here after setting a variable with ${var=text} */
 	}
 	if (subType == VS_PLUS)
 	  set = ! set;
-	if (((flags & VS_QUOTE) == 0 || 
-			(*var == '@' && shellParam.numParam != 1)) &&
+	if (((flags & VS_QUOTE) == 0 || (*var == '@' && shellParam.numParam != 1)) &&
 			(set || subType == VS_NORMAL))
 	  recordRegion(startLoc, expDest - stackBlock(), flags & VS_QUOTE);
 	if (! set && subType != VS_NORMAL) {
@@ -384,19 +383,54 @@ breakLoop:;
  * searched for IFS characters have been stored by recordRegion.
  */
 static void ifsBreakup(char *string, ArgList *argList) {
-	char *start;
+	IFSRegion *irPtr;
 	StrList *sp;
+	char *start;
+	register char *p;
+	char *q;
+	char *ifs;
 
 	start = string;
 	if (ifsLastPtr != NULL) {
-		//TODO
-		//
-		//if () {
+		irPtr = &ifsFirst;
+		do {
+			p = string + irPtr->beginOff;
+			ifs = irPtr->nulOnly ? nullStr : ifsVal();
+			while (p < string + irPtr->endOff) {
+				q = p;
+				if (*p == CTL_ESC)
+				  ++p;
+				if (strchr(ifs, *p++)) {
+					if (q > start || *ifs != ' ') {
+						*q = '\0';
+						sp = (StrList *) stackAlloc(sizeof(*sp));
+						sp->text = start;
+						*argList->last = sp;
+						argList->last = &sp->next;
+					}
+					if (*ifs == ' ') {	/* Eat the following ifs. */
+						for (;;) {
+							if (p >= string + irPtr->endOff)
+							  break;
+							q = p;
+							if (*p == CTL_ESC)
+							  ++p;
+							if (strchr(ifs, *p++) == NULL) {
+								p = q;
+								break;
+							}
+						}
+					}
+					start = p;
+				}
+			}
+		} while ((irPtr = irPtr->next) != NULL);
+		if (*start || (*ifs != ' ' && start > string)) {
 			sp = (StrList *) stackAlloc(sizeof(*sp));
 			sp->text = start;
 			*argList->last = sp;
 			argList->last = &sp->next;
-		//}
+		}
 	} else {
 		sp = (StrList *) stackAlloc(sizeof(*sp));
 		sp->text = start;

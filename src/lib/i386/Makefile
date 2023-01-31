@@ -1,9 +1,11 @@
-MODULES = \
-		int64 \
-		misc \
-		rts \
-		em
+DIRS = int64 \
+	   misc \
+	   rts \
+	   em
+include ../../funcs.mk
 
-include ../../modules.mk
+all:
+	$(call mkDirs,$(DIRS))
 
-clean: mk_clean
+clean:
+	$(call cleanDirs,$(DIRS))

@@ -1,6 +1,6 @@
 	.text
-	.globl	_sigReturn
-	.type	_sigReturn, @function
-_sigReturn:
+	.globl	_sigreturn
+	.type	_sigreturn, @function
+_sigreturn:
 	addl	$16, %esp
-	jmp	sigReturn
+	jmp	sigreturn

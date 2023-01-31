@@ -167,7 +167,7 @@ int doOpen() {
 		createMode = inMsg.m_c_mode;
 		r = fetchName(inMsg.m_c_name, inMsg.m_name1_length, M1);
 	} else {
-		r = fetchName(inMsg.m_c_name, inMsg.m_name_length, M3);
+		r = fetchName(inMsg.m_name, inMsg.m_name_length, M3);
 	}
 
 	if (r != OK)
@@ -252,8 +252,10 @@ int doClose() {
 				/* Invalidate cache entries unless special is mounted
 				 * or ROOT
 				 */
-				printf("=== fs TODO doClose 111\n");
-				//TODO
+				if (! mounted(ip)) {
+					doSync();	/* Purge cache */
+					invalidate(dev);
+				}
 			}
 			/* Do any special processing on device close. */
 			devClose(dev);

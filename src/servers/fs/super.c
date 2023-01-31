@@ -202,6 +202,21 @@ bit_t allocBit(SuperBlock *sp, int map, bit_t origin) {
 	return NO_BIT;		/* No bit could be allocated */
 }
 
+int mounted(Inode *ip) {
+/* Report on whether the given inode is on a mounted (or ROOT) file system. */
+	register SuperBlock *sp;
+	register dev_t dev;
+
+	dev = (dev_t) ip->i_zone[0];
+	if (dev == rootDev)
+	  return TRUE;	/* Inode is on root file system. */
+
+	for (sp = &superBlocks[0]; sp < &superBlocks[NR_SUPERS]; ++sp) {
+		if (sp->s_dev == dev)
+		  return TRUE;
+	}
+	return FALSE;
+}
 
 
 

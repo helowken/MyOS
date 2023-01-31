@@ -24,7 +24,7 @@ jobIdCmd	jobid
 jobsCmd		jobs
 localCmd	local
 pwdCmd		pwd
-readCmd		raed
+readCmd		read
 returnCmd	return
 setCmd		set
 setVarCmd	setvar

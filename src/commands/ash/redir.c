@@ -19,12 +19,13 @@
 
 #define EMPTY		-2		/* Marks an unused slot in RedirTable */
 #define PIPE_SIZE	4096	/* Amount of buffering in a pipe */
+#define RENAME_SIZE	10
 
 
 MKINIT
 typedef struct RedirTable {
 	struct RedirTable *next;
-	short renamed[10];
+	short renamed[RENAME_SIZE];
 } RedirTable;
 
 MKINIT RedirTable *redirList;
@@ -54,7 +55,7 @@ void popRedir() {
 	register RedirTable *rp = redirList;
 	int i;
 
-	for (i = 0; i < 10; ++i) {
+	for (i = 0; i < RENAME_SIZE; ++i) {
 		if (rp->renamed[i] != EMPTY) {
 			if (i == 0)
 			  --fd0Redirected;
@@ -78,7 +79,7 @@ void clearRedir() {
 	int i;
 
 	for (rp = redirList; rp; rp = rp->next) {
-		for (i = 0; i < 10; ++i) {
+		for (i = 0; i < RENAME_SIZE; ++i) {
 			if (rp->renamed[i] >= 0) 
 			  close(rp->renamed[i]);
 			rp->renamed[i] = EMPTY;
@@ -86,7 +87,7 @@ void clearRedir() {
 	}
 }
 
-static void openRedirect(Node *redir, char memory[10]) {
+static void openRedirect(Node *redir, char memory[RENAME_SIZE]) {
 	int fd = redir->nFile.fd;
 	char *fileName;
 	int f;
@@ -151,15 +152,15 @@ void redirect(union Node *redir, int flags) {
 	RedirTable *sv;
 	int i;
 	int fd;
-	char memory[10];	/* File descriptors to write to memory */
+	char memory[RENAME_SIZE];	/* File descriptors to write to memory */
 
-	for (i = 10; --i >= 0; ) {
+	for (i = RENAME_SIZE; --i >= 0; ) {
 		memory[i] = 0;
 	}
 	memory[1] = flags & REDIR_BACK_Q;
 	if (flags & REDIR_PUSH) {
 		sv = ckMalloc(sizeof(RedirTable));
-		for (i = 0; i < 10; ++i) {
+		for (i = 0; i < RENAME_SIZE; ++i) {
 			sv->renamed[i] = EMPTY;
 		}
 		sv->next = redirList;
@@ -169,13 +170,14 @@ void redirect(union Node *redir, int flags) {
 		fd = n->nFile.fd;
 		if ((flags & REDIR_PUSH) && sv->renamed[fd] == EMPTY) {
 			INTOFF;
-			if ((i = copyFd(fd, 10)) != EMPTY) {
+			/* Dup fd, start from RENAME_SIZE, then mark the mapping */
+			if ((i = copyFd(fd, RENAME_SIZE)) != EMPTY) {
 				sv->renamed[fd] = i;
 				close(fd);
 			}
 			INTON;
-			if (i == EMPTY)
-			  error("OUt of file descriptors");
+			if (i == EMPTY) 
+			  error("Out of file descriptors");
 		} else {
 			close(fd);
 		}

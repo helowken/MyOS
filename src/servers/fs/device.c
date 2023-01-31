@@ -262,6 +262,22 @@ int doIoctl() {
 				inMsg.REQUEST, filp->filp_flags);
 }
 
+int doSetSid(void) {
+/* Perform the FS side of the SETSID call, i.e. get rid of the controlling
+ * terminal of process, and make the process a session leader.
+ */
+	register FProc *rfp;
+
+	/* Only MM may do the SETSID call directly. */
+	if (who != PM_PROC_NR)
+	  return ENOSYS;
+
+	/* Make the process a session leader with no controlling tty. */
+	rfp = &fprocTable[inMsg.m_slot1];
+	rfp->fp_session_leader = TRUE;
+	rfp->fp_tty = 0;
+	return OK;
+}
 
 
 

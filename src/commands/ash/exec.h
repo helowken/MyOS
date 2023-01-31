@@ -23,4 +23,5 @@ void changePath(char *);
 void defineFunc(char *, union Node *);
 void findCommand(char *, CmdEntry *, int);
 int findBuiltin(char *);
+void hashCd(void);
 void unsetFunc(char *);
