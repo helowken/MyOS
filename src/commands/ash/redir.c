@@ -196,6 +196,22 @@ int isFd0Redirected() {
 	return fd0Redirected != 0;
 }
 
+void copyToStdout(int fd) {
+	if (fd != STDOUT_FILENO) {
+		close(STDOUT_FILENO);
+		copyFd(fd, STDOUT_FILENO);
+		close(fd);
+	}
+}
+
+void copyToStdin(int fd) {
+	if (fd > 0) {	
+		close(STDIN_FILENO);
+		copyFd(fd, STDIN_FILENO);
+		close(fd);
+	}
+}
+
 /* Undo all redirections. Called on error or interrupt.
  */
 #ifdef mkinit

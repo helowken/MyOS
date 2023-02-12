@@ -20,7 +20,12 @@ OBJS_M32 = \
 		telldir.o \
 		fsversion.o \
 		mtab.o \
-		_reboot.o
+		_reboot.o \
+		getpwent.o \
+		getgrent.o \
+		getopt.o \
+		bzero.o \
+		itoa.o
 
 
 OBJS_M16 = \

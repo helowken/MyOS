@@ -135,6 +135,78 @@ static int removeDir(
 	return OK;
 }
 
+int doLink() {
+/* Perform the link(name1, name2) system call. */
+	register Inode *dirIp, *rip;
+	register int r;
+	char string[NAME_MAX];
+	Inode *newIp;
+
+	/* See if 'name' (file to be linekd) exists. */
+	if (fetchName(inMsg.m_name1, inMsg.m_name1_length, M1) != OK)
+	  return errCode;
+	if ((rip = eatPath(userPath)) == NIL_INODE)
+	  return errCode;
+
+	/* Check to see if the file has maximum number of links already. */
+	r = OK;
+	if (rip->i_nlinks >= SHRT_MAX)
+	  r = EMLINK;
+
+	/* Only superUser may link to directories. */
+	if (r == OK) {
+		if ((rip->i_mode & I_TYPE) == I_DIRECTORY && ! superUser)
+		  r = EPERM;
+	}
+	
+	if (r != OK) {
+		putInode(rip);
+		return r;
+	}
+
+	/* Does the final directory of 'name2' exist? */
+	if (fetchName(inMsg.m_name2, inMsg.m_name2_length, M1) != OK) {
+		putInode(rip);
+		return errCode;
+	}
+	if ((dirIp = lastDir(userPath, string)) == NIL_INODE) 
+	  r = errCode;
+
+	/* If 'name2' exists in full (even if no space) set 'r' to error. */
+	if (r == OK) {
+		if ((newIp = advance(dirIp, string)) == NIL_INODE) {
+			r = errCode;
+			if (r == ENOENT)
+			  r = OK;
+		} else {
+			putInode(newIp);
+			r = EEXIST;
+		}
+	}
+
+	/* Check for links across devices. */
+	if (r == OK) {
+		if (rip->i_dev != dirIp->i_dev)
+		  r = EXDEV;
+	}
+
+	/* Try to link. */
+	if (r == OK) 
+	  r = searchDir(dirIp, string, &rip->i_num, ENTER);
+	
+	/* If success, register the linking. */
+	if (r == OK) {
+		++rip->i_nlinks;
+		rip->i_update |= CTIME;
+		rip->i_dirty = DIRTY;
+	}
+	
+	/* Done. Release both inodes. */
+	putInode(rip);
+	putInode(dirIp);
+	return r;
+}
+
 int doUnlink() {
 /* Perform he unlink(name) or rmdir(name0 system call. The code for these two
  * is almost the same. They differ only in some condition testing. Unlink()

@@ -108,7 +108,6 @@ Inode *advance(Inode *dirIp, char string[NAME_MAX]) {
 	Inode *ip2;
 	int r;
 	ino_t iNum;
-	dev_t mntDev;
 
 	/* Check for NIL_INODE */
 	if (dirIp == NIL_INODE)
@@ -127,39 +126,35 @@ Inode *advance(Inode *dirIp, char string[NAME_MAX]) {
 	/* Don't go beyond the current root directory, unless the string is dot2. */
 	if (dirIp == currFp->fp_root_dir && 
 				strcmp(string, "..") == 0 && 
-				string != dot2) 
+				string != dot2)  
 	  return getInode(dirIp->i_dev, dirIp->i_num);
 
 	/* The component has been found in the directory. Get inode. */
-	if ((ip = getInode(dirIp->i_dev, iNum)) == NIL_INODE)
+	if ((ip = getInode(dirIp->i_dev, iNum)) == NIL_INODE) 
 	  return NIL_INODE;
 
-	if (ip->i_num == ROOT_INODE) {
-		if (dirIp->i_num == ROOT_INODE) {
-			if (string[1] == '.') {
-				for (sp = &superBlocks[1]; sp < &superBlocks[NR_SUPERS]; ++sp) {
-					if (sp->s_dev == ip->i_dev) {
-						/* Release the root inode. Replace by the inode mounted on. */
-						putInode(ip);
-						mntDev = sp->s_inode_mount->i_dev;
-						iNum = sp->s_inode_mount->i_num;
-						ip2 = getInode(mntDev, iNum);
-						ip = advance(ip2, string);
-						putInode(ip2);
-						break;
-					}
-				}
+	/* See if we are going o to the parent dir of the mount dir. */
+	if (ip->i_num == ROOT_INODE && 
+			dirIp->i_num == ROOT_INODE &&
+			string[1] == '.') {
+		for (sp = &superBlocks[1]; sp < &superBlocks[NR_SUPERS]; ++sp) {
+			if (sp->s_dev == ip->i_dev) {
+				/* Release the root inode. Replace by the inode mounted on. */
+				putInode(ip);
+				ip2 = sp->s_inode_mount;
+				dupInode(ip2);
+				ip = advance(ip2, string);
+				putInode(ip2);
+				return ip;
 			}
 		}
 	}
-	if (ip == NIL_INODE)
-	  return NIL_INODE;
 
 	/* See if the inode is mounted on. If so, switch to root directory of the
 	 * mounted file system. The super block provides the linkage between the
 	 * inode mounted on and the root directory of the mounted file system.
 	 */
-	while (ip != NIL_INODE && ip->i_mount == I_MOUNT) {
+	while (ip->i_mount == I_MOUNT) {
 		/* The inode is indeed mounted on. */
 		for (sp = &superBlocks[0]; sp < &superBlocks[NR_SUPERS]; ++sp) {
 			if (sp->s_inode_mount == ip) {
@@ -167,7 +162,8 @@ Inode *advance(Inode *dirIp, char string[NAME_MAX]) {
 				 * root inode of the mounted device.
 				 */
 				putInode(ip);
-				ip = getInode(sp->s_dev, ROOT_INODE);
+				ip = sp->s_inode_super;
+				dupInode(ip);
 				break;
 			}
 		}

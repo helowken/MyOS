@@ -45,7 +45,7 @@ static void list() {
 			tell(special);
 			tell(" is swapspace\n");
 		} else {
-			printMount(special, mountedOn, strcmp(rwFlag, "rw") == 0);
+			printMount(special, mountedOn, strcmp(rwFlag, "rw") != 0);
 		}
 	}
 	exit(0);

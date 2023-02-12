@@ -12,3 +12,5 @@ void popRedir();
 int copyFd(int, int);
 void clearRedir();
 int isFd0Redirected();
+void copyToStdin(int fd);
+void copyToStdout(int fd);

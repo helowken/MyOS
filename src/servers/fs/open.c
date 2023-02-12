@@ -195,7 +195,7 @@ int doMkdir() {
 	}
 
 	/* Next make the inode. If that fails, return error code. */
-	bits = I_DIRECTORY | (inMsg.m_c_mode & RWX_MODES & currFp->fp_umask);
+	bits = I_DIRECTORY | (inMsg.m_mk_mode & RWX_MODES & currFp->fp_umask);
 	ip = newNode(userPath, bits, (zone_t) 0);
 	if (ip == NIL_INODE || errCode == EEXIST) {
 		putInode(ip);		
@@ -351,6 +351,22 @@ int doCreat() {
 	return r;
 }
 
+int doMknod() {
+/* Perform the mknod(name, mode, addr) system call. */
+	register mode_t bits, modeBits;
+	Inode *ip;
+
+	/* Only the superUser may make nodes other than files. */
+	modeBits = (mode_t) inMsg.m_mk_mode;
+	if (! superUser && (modeBits & I_TYPE) != I_NAMED_PIPE)
+	  return EPERM;
+	if (fetchName(inMsg.m_name1, inMsg.m_name1_length, M1) != OK)
+	  return errCode;
+	bits = (modeBits & I_TYPE) | (modeBits & ALL_MODES & currFp->fp_umask);
+	ip = newNode(userPath, bits, (zone_t) inMsg.m_mk_z0);
+	putInode(ip);
+	return errCode;
+}
 
 
 

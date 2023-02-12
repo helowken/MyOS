@@ -24,6 +24,7 @@ void initSysCalls() {
 	map(OPEN, doOpen);		/* 5 = open */
 	map(CLOSE, doClose);	/* 6 = close */
 	map(CREAT, doCreat);	/* 8 = creat */
+	map(LINK, doLink);		/* 9 = link */
 	map(UNLINK, doUnlink);	/* 10 = unlink */
 	map(CHDIR, doChdir);	/* 12 = chdir */
 	map(CHMOD, doChmod);	/* 15 = chmod */

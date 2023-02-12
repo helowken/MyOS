@@ -3,7 +3,6 @@ INC_HEADERS = *.h
 HEADERS = $(wildcard $(INC_HEADERS))
 CFLAGS = -g -c -m32 -Wall -Werror -DOTHER_OS
 COMMON_OBJS = util.o error_functions.o
-RES_DIR = resources
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) $< -o $@

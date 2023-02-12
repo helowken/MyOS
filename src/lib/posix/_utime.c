@@ -2,7 +2,7 @@
 #include "string.h"
 #include "utime.h"
 
-int utime(const char *path, const struct utimebuf *times) {
+int utime(const char *path, const struct utimbuf *times) {
 	Message msg;
 
 	if (times == NULL) {

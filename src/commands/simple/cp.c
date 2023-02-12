@@ -13,7 +13,7 @@
 #include "errno.h"
 #include "sys/dir.h"
 #include "limits.h"
-#include "minix/minlib.h"
+#include "minix/const.h"
 
 #define CHUNK	(1024 << (sizeof(int) + sizeof(char *)))
 
@@ -72,27 +72,32 @@ static dev_t topSrcDev;
 
 static void do1(PathName *src, PathName *dst, int depth);
 
-static void reportErr(const char *label) {
+static void report(const char *label) {
 	if (action == REMOVE && fflag)
 	  return;
-	report(prog, label);
+	fprintf(stderr, "%s: %s: %s\n", prog, label, strerror(errno));
 	exitCode = 1;
 }
 
-static void reportErr2(const char *src, const char *dst) {
+static void report2(const char *src, const char *dst) {
 	fprintf(stderr, "%s %s %s: %s\n", prog, src, dst, strerror(errno));
 	exitCode = 1;
 }
 
+static void fatal(const char *label) {
+	report(label);
+	exit(1);
+}
+
 static void *allocate(void *mem, size_t size) {
 /* Like realloc, but with checking of the return value. */
-	if ((mem = (mem == nil ? malloc(size) : realloc(mem, size))) == nil)
-	  fatal(prog, "malloc()");
+	if ((mem = mem == nil ? malloc(size) : realloc(mem, size)) == nil)
+	  fatal("mallocate()");
 	return mem;
 }
 
 static void deallocate(void *mem) {
-	if (mem != nil) 
+	if (mem != nil)
 	  free(mem);
 }
 
@@ -185,38 +190,6 @@ static int writable(const struct stat *stp) {
 	return stp->st_mode & S_IWOTH;
 }
 
- char *linkIsLink(struct stat *stp, const char *file) {//TODO
-/* Tell if a file, which stat(2) information in '*stp', has been seen
- * earlier by this function under a different name. If not return a
- * null pointer with errno set to ENOENT, otherwise return the name of
- * the link. Return a null pointer with an error code in errno for any
- * error, using E2BIG for a too long file name.
- *
- * Use linkIsLink(nil, nil) to reset all bookkeeping.
- *
- * Call for a file twice to delete it from the store.
- */
-
-	typedef struct Link {	/* In-memory link store. */
-		struct Link *next;	/* Hash chain on inode number. */
-		ino_t ino;			/* File's inode number. */
-		off_t off;			/* Offset to more info in temp file. */
-	} Link;
-
-	typedef struct DiskLink {	/* On-disk link store. */
-		dev_t dev;				/* Device number. */
-		char file[PATH_MAX];	/* Name of earlier seen link. */
-	} DiskLink;
-
-	//TODO
-	if (false) {
-		static Link a;
-		static DiskLink b;
-		printf("%d, %d\n", a.ino, b.dev);
-	}
-	return NULL;
-}
-
 static void usageErr() {
 	char *flags1, *flags2;
 	
@@ -230,7 +203,8 @@ static void usageErr() {
 			flags2 = "ifsvx";
 			break;
 		case RM:
-			usage("rm", "-ifrRvx] file ...");
+			fprintf(stderr, "Usage: rm -ifrRvx] file ...\n");
+			exit(1);
 		case LN:
 			flags1 = "ifsSmrRvx";
 			flags1 = "ifsSrRvx";
@@ -293,7 +267,7 @@ static void dropDList(EntryList *dlp) {
 static int checkExistsOrNot(char *path, struct stat *stp, int mustExist) {
 	if ((expand ? stat : lstat)(path, stp) < 0) {
 		if (mustExist || errno != ENOENT) {
-			reportErr(path);
+			report(path);
 			return 0;
 		}
 	}
@@ -305,12 +279,12 @@ static int checkRecurseDir(char *path, EntryList **dlpp) {
 	/* Recursively copy/move/remove/link a directory if -r or -R. */
 	if (! rflag) {
 		errno = EISDIR;
-		reportErr(path);
+		report(path);
 		return 0;
 	}
 	/* Gather the names in the directory. */
 	if (! eatDir(path, dlpp)) {
-		reportErr(path);
+		report(path);
 		return 0;
 	}
 	return 1;
@@ -321,7 +295,7 @@ static int checkReplaceFile(char *path, struct stat *stp, EntryList *dlp,
 	if (! isDir(stp)) {
 		if (chkForce && ! fflag) {
 			errno = ENOTDIR;
-			reportErr(path);
+			report(path);
 			return 0;
 		}
 		if (iflag) {
@@ -332,7 +306,7 @@ static int checkReplaceFile(char *path, struct stat *stp, EntryList *dlp,
 			}
 		}
 		if (unlink(path) < 0) {
-			reportErr(path);
+			report(path);
 			dropDList(dlp);
 			return 0;
 		}
@@ -348,7 +322,7 @@ static int checkMkdir(char *dstPath, struct stat *srcStp, struct stat *dstStp,
 		  srcStp->st_mode &= fcMask;
 		if (mkdir(dstPath, srcStp->st_mode | S_IRWXU) < 0 ||
 				stat(dstPath, dstStp) < 0) {
-			reportErr(dstPath);
+			report(dstPath);
 			dropDList(dlp);
 			return 0;
 		}
@@ -357,7 +331,7 @@ static int checkMkdir(char *dstPath, struct stat *srcStp, struct stat *dstStp,
 	} else {
 		if (chkMerge && ! mflag) {
 			errno = EEXIST;
-			reportErr(dstPath);
+			report(dstPath);
 			dropDList(dlp);
 			return 0;
 		}
@@ -407,7 +381,7 @@ static int checkRmdir(char *srcPath, int prompt) {
 	}
 	if (rmdir(srcPath) < 0) {
 		if (errno != ENOTEMPTY)
-		  reportErr(srcPath);
+		  report(srcPath);
 		return 0;
 	}
 	if (vflag)
@@ -441,7 +415,7 @@ static int checkInit(char *srcPath, char *dstPath, struct stat *srcStp,
 
 static void setDirAttrs(char *dstPath, struct stat *srcStp, struct stat *dstStp) {
 	/* Set the attributes of a new directory. */
-	struct utimebuf ut;
+	struct utimbuf ut;
 
 	/* Copy the ownership. */
 	if ((pflag || ! conforming) && 
@@ -449,7 +423,7 @@ static void setDirAttrs(char *dstPath, struct stat *srcStp, struct stat *dstStp)
 			 dstStp->st_gid != srcStp->st_gid)) {
 		if (chown(dstPath, srcStp->st_uid, srcStp->st_gid) < 0) {
 			if (errno != EPERM) {
-				reportErr(dstPath);
+				report(dstPath);
 				return;
 			}
 		}
@@ -458,7 +432,7 @@ static void setDirAttrs(char *dstPath, struct stat *srcStp, struct stat *dstStp)
 	/* Copy the mode. */
 	if (dstStp->st_mode != srcStp->st_mode) {
 		if (chmod(dstPath, srcStp->st_mode) < 0) {
-			reportErr(dstPath);
+			report(dstPath);
 			return;
 		}
 	}
@@ -469,7 +443,7 @@ static void setDirAttrs(char *dstPath, struct stat *srcStp, struct stat *dstStp)
 		ut.modtime = srcStp->st_mtime;
 		if (utime(dstPath, &ut) < 0) {
 			if (errno != EPERM) {
-				reportErr(dstPath);
+				report(dstPath);
 				return;
 			}
 			fprintf(stderr,
@@ -501,6 +475,7 @@ static int checkConfirm(const char *path, struct stat *stp, char *s) {
 }
 #define confirmReplace(path, stp)	checkConfirm((path), (stp), "Replace")
 #define confirmRemove(path, stp)	checkConfirm((path), (stp), "Remove")
+#define confirmOverwrite(path, stp)	checkConfirm((path), (stp), "Overwrite")
 
 static int checkRename(char *srcPath, char *dstPath) {
 	if (rename(srcPath, dstPath) == 0) {
@@ -512,7 +487,7 @@ static int checkRename(char *srcPath, char *dstPath) {
 	if (errno == EXDEV) {
 		xDev = 1;
 	} else {
-		reportErr2(srcPath, dstPath);
+		report2(srcPath, dstPath);
 		return 0;
 	}
 	return 1;
@@ -527,26 +502,588 @@ static int checkRemoveContents(char *path) {
 	return 1;
 }
 
-static void copy1(const char *srcPath, const char *dstPath, 
-			struct stat *srcStp, struct stat *dstStp) {
+static char *linkIsLink(struct stat *stp, const char *file) {
+	/* Tell if a file, which stat(2) information in '*stp', has been seen
+	 * earlier by this function under a different name. If not return a 
+	 * null pointer with errno set to ENOENT, otherwise return the name of
+	 * the link. Return a null pointer with an error code in errno for any
+	 * error, using E2BIG for a too long file name.
+	 *
+	 * Use linkIsLink(nil, nil) to reset all bookkeeping.
+	 *
+	 * Call for a file twice to delete it from the store.
+	 */
 
+	typedef struct Link {	/* In-memory link store. */
+		struct Link *next;	/* Hash chain on inode number. */
+		ino_t ino;			/* File's inode number. */
+		off_t off;			/* Offset to more info in temp file. */
+	} Link;
+
+	typedef struct DiskLink {	/* On-disk link store. */
+		dev_t dev;				/* Device number. */
+		char file[PATH_MAX];	/* Name of earlier seen link. */
+	} DiskLink;
+
+	static Link *links[256];	/* Hash list of known links. */
+	static int tfd = -1;		/* Temp file for file name storage. */
+	static DiskLink diskLink;
+	Link *lp, **plp;
+	size_t len;
+	off_t off;
+
+	if (file == nil) {
+		/* Reset everything. */
+		for (plp = links; plp < arrayLimit(links); ++plp) {
+			while ((lp = *plp) != nil) {
+				*plp = lp->next;
+				free(lp);
+			}
+		}
+		if (tfd != -1)
+		  close(tfd);
+		tfd = -1;
+		return nil;
+	}
+
+	/* The file must be a non-directory with more than one link. */
+	if (isDir(stp) || stp->st_nlink <= 1) {
+		errno = ENOENT;
+		return nil;
+	}
+
+	plp = &links[stp->st_ino % arraySize(links)];
+
+	while ((lp = *plp) != nil) {
+		if (lp->ino == stp->st_ino) {
+			/* May have seen this link before. Get it and check. */
+			if (lseek(tfd, lp->off, SEEK_SET) == -1)
+			  return nil;
+			if (read(tfd, &diskLink, sizeof(diskLink)) < 0)
+			  return nil;
+
+			/* Only need to check the device number. */
+			if (diskLink.dev == stp->st_dev) {
+				if (strcmp(file, diskLink.file) == 0) {
+					/* Called twice. Forget about this link. */
+					*plp = lp->next;
+					free(lp);
+					errno = ENOENT;
+					return nil;
+				}
+
+				/* Return the name of the earlier link. */
+				return diskLink.file;
+			}
+		}
+		plp = &lp->next;
+	}
+
+	/* First time I see this link. Add it to the store. */
+	if (tfd == -1) {
+		for (;;) {
+			char *tmp;
+
+			tmp = tmpnam(nil);
+			tfd = open(tmp, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+			if (tfd < 0) {
+				if (errno != EEXIST)
+				  return nil;
+			} else {
+				unlink(tmp);
+				break;
+			}
+		}
+	}
+	if ((len = strlen(file) >= PATH_MAX)) {
+		errno = E2BIG;
+		return nil;
+	}
+
+	diskLink.dev = stp->st_dev;
+	strcpy(diskLink.file, file);
+	len += offsetof(DiskLink, file) + 1;
+	if ((off = lseek(tfd, 0, SEEK_END)) == -1)
+	  return nil;
+	if (write(tfd, &diskLink, len) != len)
+	  return nil;
+
+	if ((lp = malloc(sizeof(*lp))) == nil)
+	  return nil;
+	lp->next = nil;
+	lp->ino = stp->st_ino;
+	lp->off = off;
+	*plp = lp;
+	errno = ENOENT;
+	return nil;
 }
 
-static void remove1(const char *path, struct stat *stp) {
+static int tryLink(const char *srcPath, const char *dstPath, struct stat *srcStp, 
+					struct stat *dstStp) {
+	char *oldDst;
+	int linked;
+
+	if (action == COPY && expand)
+	  return 0;
+
+	if ((oldDst = linkIsLink(srcStp, dstPath)) == nil) 
+	  return 0;
+
+	/* Try to link the file copied earlier to the new file. */
+	if (dstStp->st_ino != 0)
+	  unlink(dstPath);
+
+	linked = (link(oldDst, dstPath) == 0);
+	if (linked && vflag)
+	  printf("ln %s ..\n", oldDst);
+
+	return linked;
+}
+
+static int copyModTime(const char *dstPath, struct stat *srcStp, struct stat *dstStp, 
+						int condition) {
+	if ((pflag || ! conforming) && condition) {
+		struct utimbuf ut;
+
+		ut.actime = (action == MOVE ? srcStp->st_atime : time(nil));
+		ut.modtime = srcStp->st_mtime;
+		if (utime(dstPath, &ut) < 0) {
+			if (errno != EPERM) {
+				report(dstPath);
+				return 0;
+			}
+			if (pflag) 
+			  fprintf(stderr, "%s: Can't set the time of %s\n",
+						  prog, dstPath);
+		}
+	}
+	return 1;
+}
+
+static int copyFile(const char *srcPath, const char *dstPath, struct stat *srcStp,
+			struct stat *dstStp) {
+/* Copy one file to another and copy (some of) the attributes. */
+	char buf[CHUNK];
+	int srcFd, dstFd;
+	ssize_t n;
+
+	if (! exists(dstStp)) {
+		/* The file doesn't exist yet. */
+		if (! S_ISREG(srcStp->st_mode)) {
+			/* Making a new mode 666 regular file. */
+			srcStp->st_mode = (S_IFREG | 0666) & fcMask;
+		} else if (! pflag && conforming) {
+			/* Making a new file copying mode with umask applied. */
+			srcStp->st_mode &= fcMask;
+		}
+	} else {
+		/* File exists, ask if ok to overwrite if '-i'. */
+		if (iflag || (action == MOVE && ! fflag && ! writable(dstStp))) {
+			if (! confirmOverwrite(dstPath, dstStp))
+			  return 0;
+		}
+
+		if (action == MOVE) {
+			/* Don't overwrite, remove first. */
+			if (unlink(dstPath) < 0 && errno != ENOENT) {
+				report(dstPath);
+				return 0;
+			}
+		} else {
+			/* Overwrite. */
+			if (! pflag) {
+				/* Keep the existing mode and ownership. */
+				srcStp->st_mode = dstStp->st_mode;
+				srcStp->st_uid = dstStp->st_uid;
+				srcStp->st_gid = dstStp->st_gid;
+			}
+		}
+	}
+
+	/* Keep the link structure if possible. */
+	if (tryLink(srcPath, dstPath, srcStp, dstStp))
+	  return 1;
+
+	if ((srcFd = open(srcPath, O_RDONLY)) < 0) {
+		report(srcPath);
+		return 0;
+	}
+
+	dstFd = open(dstPath, O_WRONLY | O_CREAT | O_TRUNC, srcStp->st_mode & 0777);
+	if (dstFd < 0 && fflag && errno == EACCES) {
+		/* Retry adding a "w" bit. */
+		chmod(dstPath, dstStp->st_mode | S_IWUSR);
+		dstFd = open(dstPath, O_WRONLY | O_CREAT | O_TRUNC, 0);
+	}
+	if (dstFd < 0 && fflag && errno == EACCES) {
+		/* Retry after trying to delete. */
+		unlink(dstPath);
+		dstFd = open(dstPath, O_WRONLY | O_CREAT | O_TRUNC, 0);
+	}
+	if (dstFd < 0) {
+		report(dstPath);
+		close(srcFd);
+		return 0;
+	}
+
+	/* Get current parameters. */
+	if (fstat(dstFd, dstStp) < 0) {
+		report(dstPath);
+		close(srcFd);
+		close(dstFd);
+		return 0;
+	}
+
+	/* Copy the little bytes themselves. */
+	while ((n = read(srcFd, buf, sizeof(buf))) > 0) {
+		char *bp = buf;
+		ssize_t r;
+
+		while (n > 0 && (r = write(dstFd, bp, n)) > 0) {
+			bp += r;
+			n -= r;
+		}
+		if (r <= 0) {
+			if (r == 0) {
+				fprintf(stderr, "%s: Warning: EOF writing to %s\n",
+							prog, dstPath);
+				break;
+			}
+			fatal(dstPath);
+		}
+	}
+
+	if (n < 0) {
+		report(srcPath);
+		close(srcFd);
+		close(dstFd);
+		return 0;
+	}
+
+	close(srcFd);
+	close(dstFd);
+
+	/* Copy the ownership. */
+	if ((pflag || ! conforming) &&
+			S_ISREG(dstStp->st_mode) &&
+			(dstStp->st_uid != srcStp->st_uid ||
+				dstStp->st_gid != srcStp->st_gid)) {
+		if (chmod(dstPath, 0) == 0)
+		  dstStp->st_mode &= ~07777;
+		if (chown(dstPath, srcStp->st_uid, srcStp->st_gid) < 0) {
+			if (errno != EPERM) {
+				report(dstPath);
+				return 0;
+			}
+		} else {
+			dstStp->st_uid = srcStp->st_uid;
+			dstStp->st_gid = srcStp->st_gid;
+		}
+	}
+
+	if (conforming && 
+			S_ISREG(dstStp->st_mode) &&
+			(dstStp->st_uid != srcStp->st_uid || 
+				dstStp->st_gid != srcStp->st_gid)) {
+		/* Suid bits must be cleared in the holy name of 
+		 * security (and the assumed user stupidity).
+		 */
+		srcStp->st_mode &= ~(S_ISUID | S_ISGID);
+	}
+
+	/* Copy the mode. */
+	if (S_ISREG(dstStp->st_mode) && dstStp->st_mode != srcStp->st_mode) {
+		if (chmod(dstPath, srcStp->st_mode) < 0) {
+			if (errno != EPERM) {
+				report(dstPath);
+				return 0;
+			}
+			fprintf(stderr, "%s: Can't change the mode of %s\n",
+						prog, dstPath);
+		}
+	}
+
+	/* Copy the file modification time. */
+	if (! copyModTime(dstPath, srcStp, dstStp, S_ISREG(dstStp->st_mode)))
+	  return 0;
+
+	if (vflag) 
+	  printf("%s %s ..\n", (action == COPY ? "cp" : "mv"), srcPath);
+	return 1;
+}
+
+static void doCopy(const char *srcPath, const char *dstPath, 
+			struct stat *srcStp, struct stat *dstStp) {
+/* Inspect the source file and then copy it. Treatment of symlinks and
+ * special files is a bit complicated. The filetype and link-structure are
+ * ignored if (expand && !rflag), symlinks and link-structure are ignored
+ * if (expand && rflag), everything is copied precisely if !expand.
+ */
+	int r, linked;
+
+	if (srcStp->st_ino == dstStp->st_ino && 
+				srcStp->st_dev == dstStp->st_dev) {
+		fprintf(stderr, "%s: can't copy %s onto itself\n", prog, srcPath);
+		exitCode = 1;
+		return;
+	}
+
+	/* You can forget it if the destination is a directory. */
+	if (dstStp->st_ino != 0 && S_ISDIR(dstStp->st_mode)) {
+		errno = EISDIR;
+		report(dstPath);
+		return;
+	}
+
+	if (S_ISREG(srcStp->st_mode) || (expand && ! rflag)) {
+		if (! copyFile(srcPath, dstPath, srcStp, dstStp))
+		  return;
+
+		if (action == MOVE && unlink(srcPath) < 0) {
+			report(srcPath);
+			return;
+		}
+		return;
+	}
+
+	if (dstStp->st_ino != 0) {
+		if (iflag || (action == MOVE && ! fflag && ! writable(dstStp))) {
+			if (! confirmReplace(dstPath, dstStp))
+			  return;
+		}
+		if (unlink(dstPath) < 0) {
+			report(dstPath);
+			return;
+		}
+		dstStp->st_ino = 0;
+	}
+
+	/* Apply the file creation mask if so required. */
+	if (! pflag && conforming)
+	  srcStp->st_mode &= fcMask;
+
+	linked = 0;
+
+	if (S_ISLNK(srcStp->st_mode)) {
+		char buf[1024 + 1];
+
+		if ((r = readlink(srcPath, buf, sizeof(buf) - 1)) < 0) {
+			report(srcPath);
+			return;
+		}
+		buf[r] = 0;
+		r = symlink(buf, dstPath);
+		if (vflag && r == 0)
+		  printf("ln -s %s %s\n", buf, dstPath);
+	} else if (tryLink(srcPath, dstPath, srcStp, dstStp)) {
+		linked = 1;
+		r = 0;
+	} else if (S_ISFIFO(srcStp->st_mode)) {
+		//TODO r = mkfifo(dstPath, srcStp->st_mode);
+		printf("==== TODO mkfifo\n");
+		r = -1;
+		if (vflag && r == 0)
+		  printf("mkfifo %s\n", dstPath);
+	} else if (S_ISBLK(srcStp->st_mode) || S_ISCHR(srcStp->st_mode)) {
+		r = mknod(dstPath, srcStp->st_mode, srcStp->st_rdev);
+		if (vflag && r == 0) {
+			printf("mknod %s %c %d %d\n", 
+				dstPath, 
+				S_ISBLK(srcStp->st_mode) ? 'b' : 'c',
+				MAJOR_DEV(srcStp->st_rdev),
+				MINOR_DEV(srcStp->st_rdev));
+		}
+	} else {
+		fprintf(stderr, "%s: %s: odd fileType %5o (not copied)\n",
+				prog, srcPath, srcStp->st_mode);
+		exitCode = 1;
+		return;
+	}
+
+	if (r < 0 || lstat(dstPath, dstStp) < 0) {
+		report(dstPath);
+		return;
+	}
+
+	if (action == MOVE && unlink(srcPath) < 0) {
+		report(srcPath);
+		unlink(dstPath);	/* Don't want it twice. */
+		return;
+	}
+
+	if (linked)
+	  return;
+
+	if (S_ISLNK(srcStp->st_mode))
+	  return;
+
+	/* Copy the ownership. */
+	if ((pflag || ! conforming) &&
+			(dstStp->st_uid != srcStp->st_uid ||
+			 dstStp->st_gid != srcStp->st_gid)) {
+		if (chown(dstPath, srcStp->st_uid, srcStp->st_gid) < 0) {
+			if (errno != EPERM) {
+				report(dstPath);
+				return;
+			}
+		}
+	}
+
+	/* Copy the file modification time. */
+	if (! copyModTime(dstPath, srcStp, dstStp, 1))
+	  return;
+}
+
+static void doRemove(const char *path, struct stat *stp) {
 	if (confirmRemove(path, stp)) {
 		if (unlink(path) < 0) 
-		  reportErr(path);
+		  report(path);
 		else if (vflag) 
 		  printf("rm %s\n", path);
 	}
 }
 
-static void link1(const char *srcPath, const char *dstPath, 
+static void doLink(const char *srcPath, const char *dstPath, 
 			struct stat *srcStp, struct stat *dstStp) {
+	PathName sym;
+	const char *p;
 
+	if (exists(dstStp) && (iflag || fflag)) {
+		if (srcStp->st_ino == dstStp->st_ino) {
+			if (fflag)
+			  return;
+			fprintf(stderr, "%s: Can't link %s onto itself\n",
+						prog, srcPath);
+			exitCode = 1;
+			return;
+		}
+		if (iflag) {
+			fprintf(stderr, "Remove %s?", dstPath);
+			if (! affirmative())
+			  return;
+		}
+		errno = EISDIR;
+		if (S_ISDIR(dstStp->st_mode) || unlink(dstPath) < 0) {
+			report(dstPath);
+			return;
+		}
+	}
+
+	if (! sflag && 
+			! (rflag && S_ISLNK(srcStp->st_mode)) && 
+			! (Sflag && xDev)) {
+		/* A normal link. */
+		if (link(srcPath, dstPath) < 0) {
+			if (! Sflag || errno != EXDEV) {
+				report2(srcPath, dstPath);
+				return;
+			}
+			/* Can't do a cross-device link, we have to symlink. */
+			xDev = 1;
+		} else {
+			if (vflag)
+			  printf("ln %s..\n", srcPath);
+			return;
+		}
+	}
+
+	/* Do a symlink. */
+	if (! rflag && ! Sflag) {
+		/* We can get away with a "don't care if it works" symlink. */
+		if (symlink(srcPath, dstPath) < 0) {
+			report(dstPath);
+			return;
+		}
+		if (vflag)
+		  printf("ln -s %s %s\n", srcPath, dstPath);
+		return;
+	}
+
+	/* If the source is a symlink then it is simply copied. */
+	if (S_ISLNK(srcStp->st_mode)) {
+		int r;
+		char buf[1024 + 1];
+
+		if ((r = readlink(srcPath, buf, sizeof(buf) - 1)) < 0) {
+			report(srcPath);
+			return;
+		}
+		buf[r] = 0;
+		if (symlink(buf, dstPath) < 0) {
+			report(dstPath);
+			return;
+		}
+		if (vflag)
+		  printf("ln -s %s %s\n", buf, dstPath);
+		return;
+	}
+
+	/* Make a symlink that has to work, i.e. we must be able to access the
+	 * source now, and the link must work. 
+	 */
+	if (dstPath[0] == '/' && srcPath[0] != '/') {
+		fprintf(stderr,
+			"%s: Symlinking %s to %s is too difficult for me to figure out\n",
+			prog, srcPath, dstPath);
+		exit(1);
+	}
+
+	/* Count the number of subdirectories in the destination file and
+	 * add one '..' for each.
+	 */
+	pathInit(&sym);
+	if (srcPath[0] != '/') {
+		p = dstPath;
+		while (*p != 0) {
+			if (p[0] == '.') {
+				if (p[1] == '/' || p[1] == 0) {
+					/* A "." component; skip. */
+					do {
+						++p;
+					} while (*p == '/');
+					continue;
+				} else if (p[1] == '.' && (p[2] == '/' || p[2] == 0)) {
+					/* A ".." component; oops. */
+					switch (PATH_LENGTH(&sym)) {
+						case 0:
+							fprintf(stderr,
+								"%s: Symlinking %s to %s is too difficult for me to figure out\n",
+								prog, srcPath, dstPath);
+							exit(1);
+						case 2:
+							pathTrunc(&sym, 0);
+							break;
+						default:
+							pathTrunc(&sym, PATH_LENGTH(&sym) - 3);
+					}
+					++p;
+					do {
+						++p;
+					} while (*p == '/');
+					continue;
+				}
+			}
+			while (*p != 0 && *p != '/') {
+				++p;
+			}
+			while (*p == '/') {
+				++p;
+			}
+			if (*p == 0)
+			  break;
+			pathAdd(&sym, "..");
+		}
+	}
+	pathAdd(&sym, srcPath);
+	
+	if (symlink(PATH_NAME(&sym), dstPath) < 0) 
+	  report(dstPath);
+	else if (vflag)
+	  printf("ln -s %s %s\n", PATH_NAME(&sym), dstPath);
+	PATH_DROP(&sym);
 }
 
-static void traverse(PathName *src, PathName *dst, EntryList **dlpp, 
+static void recurseDir(PathName *src, PathName *dst, EntryList **dlpp, 
 			int depth) {
 	size_t slashSrc, slashDst;
 
@@ -566,131 +1103,132 @@ static void traverse(PathName *src, PathName *dst, EntryList **dlpp,
 	}
 }
 
-static void doCopy(PathName *src, PathName *dst, int depth) {
-	struct stat srcSt, dstSt;
+static void copyAction(PathName *src, PathName *dst, struct stat *srcStp, 
+					struct stat *dstStp, int depth) {
 	EntryList *dlp;
 	char *srcPath = PATH_NAME(src);
 	char *dstPath = PATH_NAME(dst);
 
-	if (! checkInit(srcPath, dstPath, &srcSt, &dstSt, depth, 1, 1))
+	if (! checkInit(srcPath, dstPath, srcStp, dstStp, depth, 1, 1))
 	  return;
-	if (! isDir(&srcSt)) {	
-		copy1(srcPath, dstPath, &srcSt, &dstSt);
+	if (! isDir(srcStp)) {	
+		doCopy(srcPath, dstPath, srcStp, dstStp);
 	} else {	
 		if (! checkRecurseDir(srcPath, &dlp) ||
-			! checkReplaceFile(dstPath, &dstSt, dlp, 1) ||
-			! checkMkdir(dstPath, &srcSt, &dstSt, dlp, 0) ||
-			! checkPathValid(srcPath, dstPath, &srcSt, &dstSt, dlp))
+			! checkReplaceFile(dstPath, dstStp, dlp, 1) ||
+			! checkMkdir(dstPath, srcStp, dstStp, dlp, 0) ||
+			! checkPathValid(srcPath, dstPath, srcStp, dstStp, dlp))
 		  return;
 
-		traverse(src, dst, &dlp, depth);
-		setDirAttrs(dstPath, &srcSt, &dstSt);
+		recurseDir(src, dst, &dlp, depth);
+		setDirAttrs(dstPath, srcStp, dstStp);
 	}
 }
 
-static void doMove(PathName *src, PathName *dst, int depth) {
-	struct stat srcSt, dstSt;
+static void moveAction(PathName *src, PathName *dst, struct stat *srcStp, 
+					struct stat *dstStp, int depth) {
 	EntryList *dlp;
 	char *srcPath = PATH_NAME(src);
 	char *dstPath = PATH_NAME(dst);
 
-	if (! checkInit(srcPath, dstPath, &srcSt, &dstSt, depth, 1, 1))
+	if (! checkInit(srcPath, dstPath, srcStp, dstStp, depth, 1, 1))
 	  return;
 	if (! xDev) {
-		if (dstSt.st_ino != 0 && srcSt.st_dev != dstSt.st_dev) {
+		if (dstStp->st_ino != 0 && srcStp->st_dev != dstStp->st_dev) {
 			/* It's a cross-device rename, i.e. copy and remove. */
 			xDev = 1;
-		} else if (! mflag || ! exists(&dstSt) || ! isDir(&dstSt)) {
+		} else if (! mflag || ! exists(dstStp) || ! isDir(dstStp)) {
 			/* Try to simply rename the file (not merging trees). */
-			if (! checkMoveToItself(srcPath, &srcSt, &dstSt))
+			if (! checkMoveToItself(srcPath, srcStp, dstStp))
 			  return;
-			if (exists(&dstSt)) {
-				if (! confirmReplace(dstPath, &dstSt))
+			if (exists(dstStp)) {
+				if (! confirmReplace(dstPath, dstStp))
 				  return;
-				if (! isDir(&dstSt))
+				if (! isDir(dstStp))
 				  unlink(dstPath);
 				if (! checkRename(srcPath, dstPath))
 				  return;
 			}
 		}
 	} 
-	if (! isDir(&srcSt)) {
-		copy1(srcPath, dstPath, &srcSt, &dstSt);
+	if (! isDir(srcStp)) {
+		doCopy(srcPath, dstPath, srcStp, dstStp);
 	} else {
 		if (! checkRecurseDir(srcPath, &dlp) ||
-			! checkReplaceFile(dstPath, &dstSt, dlp, 0) ||
-			! checkMkdir(dstPath, &srcSt, &dstSt, dlp, 1) ||
-			! checkPathValid(srcPath, dstPath, &srcSt, &dstSt, dlp)) 
+			! checkReplaceFile(dstPath, dstStp, dlp, 0) ||
+			! checkMkdir(dstPath, srcStp, dstStp, dlp, 1) ||
+			! checkPathValid(srcPath, dstPath, srcStp, dstStp, dlp)) 
 		  return;
 
-		traverse(src, dst, &dlp, depth);
+		recurseDir(src, dst, &dlp, depth);
 		if (! checkRmdir(srcPath, 0))
 		  return;
-		setDirAttrs(dstPath, &srcSt, &dstSt);
+		setDirAttrs(dstPath, srcStp, dstStp);
 	}
 }
 
-static void doRemove(PathName *src, int depth) {
-	struct stat srcSt;
+static void removeAction(PathName *src, struct stat *srcStp, int depth) {
 	EntryList *dlp;
 	char *srcPath = PATH_NAME(src);
 
-	if (! checkInit(srcPath, NULL, &srcSt, NULL, depth, 1, 0))
+	if (! checkInit(srcPath, NULL, srcStp, NULL, depth, 1, 0))
 	  return;
-	if (! isDir(&srcSt)) {
-		remove1(srcPath, &srcSt);
+	if (! isDir(srcStp)) {
+		doRemove(srcPath, srcStp);
 	} else {
 		if (! checkRecurseDir(srcPath, &dlp))
 		  return;
 		/* Don't recurse past a mount point. */
-		if (xflag && topSrcDev != srcSt.st_dev) 
+		if (xflag && topSrcDev != srcStp->st_dev) 
 		  return;
 		if (! checkRemoveContents(srcPath))
 		  return;
-		traverse(src, NULL, &dlp, depth);
+		recurseDir(src, NULL, &dlp, depth);
 		if (! checkRmdir(srcPath, iflag))
 		  return;
 	}
 }
 
-static void doLink(PathName *src, PathName *dst, int depth) {
-	struct stat srcSt, dstSt;
+static void linkAction(PathName *src, PathName *dst, struct stat *srcStp, 
+					struct stat *dstStp, int depth) {
 	EntryList *dlp;
 	char *srcPath = PATH_NAME(src);
 	char *dstPath = PATH_NAME(dst);
 	int chkSrc = ! sflag || rflag;
 
-	if (! checkInit(srcPath, dstPath, &srcSt, &dstSt, depth, chkSrc, 1))
+	if (! checkInit(srcPath, dstPath, srcStp, dstStp, depth, chkSrc, 1))
 	  return;
-	if (srcSt.st_ino == 0 || ! isDir(&srcSt)) {
-		link1(srcPath, dstPath, &srcSt, &dstSt);
+	if (srcStp->st_ino == 0 || ! isDir(srcStp)) {
+		doLink(srcPath, dstPath, srcStp, dstStp);
 	} else {
 		if (! checkRecurseDir(srcPath, &dlp) ||
-			! checkReplaceFile(dstPath, &dstSt, dlp, 1) ||
-			! checkMkdir(dstPath, &srcSt, &dstSt, dlp, 0) ||
-			! checkPathValid(srcPath, dstPath, &srcSt, &dstSt, dlp))
+			! checkReplaceFile(dstPath, dstStp, dlp, 1) ||
+			! checkMkdir(dstPath, srcStp, dstStp, dlp, 0) ||
+			! checkPathValid(srcPath, dstPath, srcStp, dstStp, dlp))
 		  return;
 
-		traverse(src, dst, &dlp, depth);
-		setDirAttrs(dstPath, &srcSt, &dstSt);
+		recurseDir(src, dst, &dlp, depth);
+		setDirAttrs(dstPath, srcStp, dstStp);
 	}
 }
 
 
 static void do1(PathName *src, PathName *dst, int depth) {
 /* Perform the appropriate action ona source and destination file. */
+	struct stat srcSt, dstSt;
+
 	switch (action) {
 		case COPY:
-			doCopy(src, dst, depth);
+			copyAction(src, dst, &srcSt, &dstSt, depth);
 			break;
 		case MOVE:
-			doMove(src, dst, depth);
+			moveAction(src, dst, &srcSt, &dstSt, depth);
 			break;
 		case REMOVE:
-			doRemove(src, depth);
+			removeAction(src, &srcSt, depth);
 			break;
 		case LINK:
-			doLink(src, dst, depth);
+			linkAction(src, dst, &srcSt, &dstSt, depth);
 			break;
 	}
 }

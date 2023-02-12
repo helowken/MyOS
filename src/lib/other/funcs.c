@@ -3,12 +3,12 @@
 #include "string.h"
 #include "stdlib.h"
 
-void stdErr(const char *s) {
-	write(STDERR_FILENO, s, strlen(s));
+ssize_t stdErr(const char *s) {
+	return write(STDERR_FILENO, s, strlen(s));
 }
 
-void tell(const char *s) {
-	write(STDOUT_FILENO, s, strlen(s));
+ssize_t tell(const char *s) {
+	return write(STDOUT_FILENO, s, strlen(s));
 }
 
 void report(const char *prog, const char *s) {
@@ -37,3 +37,4 @@ void usage(const char *prog, const char *s) {
 	stdErr("\n");
 	exit(1);
 }
+

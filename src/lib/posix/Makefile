@@ -66,7 +66,11 @@ OBJS_M32 = \
 		_chown.o \
 		_chmod.o \
 		_utime.o \
-		readlink.o
+		readlink.o \
+		_getcwd.o \
+		_link.o \
+		symlink.o \
+		_mknod.o
 
 
 all: build

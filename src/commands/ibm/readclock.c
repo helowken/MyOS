@@ -6,17 +6,23 @@
 #include "time.h"
 #include "errno.h"
 #include "sys/ioc_cmos.h"
-#include "minix/minlib.h"
 
 #define MAX_RETRIES		1
 #define CMOS_DEV		"/dev/cmos"
 
 static int nFlag = 0;	/* Tell what, but don't do it. */
 static int y2kFlag = 0;	/* Interpret 1980 as 2000 for clock with Y2K bug. */
-static char *prog;
 
 static void usageErr() { 
-	usage(prog, "[-n2]");
+	fprintf(stderr, "Usage: settime [-n2]\n");
+	exit(1);
+}
+
+static void errMsg(char *s) {
+	static char *prompt = "readclock: ";
+	
+	fprintf(stderr, "%s%s\n", prompt, s);
+	prompt = "";
 }
 
 int main(int argc, char **argv) {
@@ -27,7 +33,6 @@ int main(int argc, char **argv) {
 	time_t rtc;
 	char date[64];
 
-	prog = argv[0];
 	/* Process options. */
 	while (argc > 1) {
 		char *p = *++argv;
@@ -90,8 +95,10 @@ int main(int argc, char **argv) {
 	if (nFlag) {
 		printf("stime(%lu)\n", (unsigned long) rtc);
 	} else {
-		if (stime(&rtc) < 0) 
-		  fatal(prog, "Not allowed to set time.");
+		if (stime(&rtc) < 0)  {
+			errMsg("Not allowed to set time.");
+			exit(1);
+		}
 	}
 	tmNow = *localtime(&rtc);
 	if (strftime(date, sizeof(date), 

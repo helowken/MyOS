@@ -1,6 +1,7 @@
 DIRS = ash \
 	   ibm \
-	   simple
+	   simple \
+	   reboot
 
 include ../funcs.mk
 

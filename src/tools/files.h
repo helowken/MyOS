@@ -23,12 +23,37 @@ typedef struct FileInfo {
 	int uid;
 	int gid;
 	Dev_t rdev;
-	struct FileInfo *files;
 	char *path;
 	char *linkNames;
+	struct FileInfo *files[10];		/* We assume 10 is the max size. */
 } FileInfo;
 
-static FileInfo devFiles[] = {
+typedef struct {
+	char *fs_type;
+	FileInfo *fs_info;
+} FS;
+
+
+/* /bin and /usr/bin share the same bin files */
+static FileInfo commonBinFiles[] = {
+	{ "sh",           I_R | 0755, BIN,  GOP,   0, "commands/ash/sh.bin" },
+	{ "expr",	      I_R | 0755, BIN,  GOP,   0, "commands/ash/bltin/expr.bin", "test,[" },
+	{ "echo",	      I_R | 0755, BIN,  GOP,   0, "commands/ash/bltin/echo.bin" },
+	{ "loadkeys",     I_R | 0755, BIN,  GOP,   0, "commands/ibm/loadkeys.bin" },
+	{ "readclock",    I_R | 0755, BIN,  GOP,   0, "commands/ibm/readclock.bin" },
+	{ "sysenv",       I_R | 0755, BIN,  GOP,   0, "commands/simple/sysenv.bin" },
+	{ "intr",         I_R | 0755, BIN,  GOP,   0, "commands/simple/intr.bin" },
+	{ "date",         I_R | 0755, BIN,  GOP,   0, "commands/simple/date.bin" },
+	{ "cat",          I_R | 0755, BIN,  GOP,   0, "commands/simple/cat.bin" },
+	{ "printroot",    I_R | 0755, BIN,  GOP,   0, "commands/simple/printroot.bin" },
+	{ "mount",        I_R | 0755, BIN,  GOP,   0, "commands/simple/mount.bin" },
+	{ "umount",       I_R | 0755, BIN,  GOP,   0, "commands/simple/umount.bin" },
+	{ "pwd",		  I_R | 0755, BIN,  GOP,   0, "commands/simple/pwd.bin" },
+	{ NULL }
+};
+
+/* ---- /root dir and files ---- */
+static FileInfo rootDevFiles[] = {
 	/* c[0-3]d[0-7]p[0-3]s[0-3] */
 	{ "c0d0p0s0",     I_B | 0600, ROOT, GOP,   RDEV(3, 0x80) },
 	{ "c0d0p0s1",     I_B | 0600, ROOT, GOP,   RDEV(3, 0x81) },
@@ -72,54 +97,68 @@ static FileInfo devFiles[] = {
 	{ NULL }
 };
 
-static FileInfo sbinFiles[] = {
-	{ "cmos",         I_R | 0755, BIN,  GOP,   0, NULL, "sbin/cmos.bin" },
+static FileInfo rootSbinFiles[] = {
+	{ "cmos",         I_R | 0755, BIN,  GOP,   0, "drivers/cmos/cmos.bin" },
 	{ NULL }
 };
 
-static FileInfo binFiles[] = {
-	{ "sh",           I_R | 0755, BIN,  GOP,   0, NULL, "bin/sh.bin" },
-	{ "loadkeys",     I_R | 0755, BIN,  GOP,   0, NULL, "bin/loadkeys.bin" },
-	{ "sysenv",       I_R | 0755, BIN,  GOP,   0, NULL, "bin/sysenv.bin" },
-	{ "expr",	      I_R | 0755, BIN,  GOP,   0, NULL, "bin/expr.bin", "test,[" },
-	{ "echo",	      I_R | 0755, BIN,  GOP,   0, NULL, "bin/echo.bin" },
-	{ "service",      I_R | 0755, BIN,  GOP,   0, NULL, "bin/service.bin" },
-	{ "testAAA",      I_R | 0755, BIN,  GOP,   0, NULL, "bin/testAAA.bin" },//TODO
-	{ "readclock",    I_R | 0755, BIN,  GOP,   0, NULL, "bin/readclock.bin" },
-	{ "intr",         I_R | 0755, BIN,  GOP,   0, NULL, "bin/intr.bin" },
-	{ "date",         I_R | 0755, BIN,  GOP,   0, NULL, "bin/date.bin" },
-	{ "cat",          I_R | 0755, BIN,  GOP,   0, NULL, "bin/cat.bin" },
-	{ "printroot",    I_R | 0755, BIN,  GOP,   0, NULL, "bin/printroot.bin" },
-	{ "mount",        I_R | 0755, BIN,  GOP,   0, NULL, "bin/mount.bin" },
-	{ "umount",       I_R | 0755, BIN,  GOP,   0, NULL, "bin/umount.bin" },
-	//{ "pwd",		  I_R | 0755, BIN,  GOP,   0, NULL, "bin/pwd.bin" },
-	
-	/* TODO below are in /usr/bin/ */
-	{ "sleep",        I_R | 0755, BIN,  GOP,   0, NULL, "bin/sleep.bin" },
-	{ "stat",         I_R | 0755, BIN,  GOP,   0, NULL, "bin/stat.bin" },
+static FileInfo rootBinFiles[] = {
+	{ "service",      I_R | 0755, BIN,  GOP,   0, "servers/rs/service.bin" },
+	{ "testAAA",      I_R | 0755, BIN,  GOP,   0, "commands/simple/testAAA.bin" },//TODO
+	{ "cp",		      I_R | 0755, BIN,  GOP,   0, "commands/simple/cp.bin", "mv,ln,rm" },
 	{ NULL }
 };
 
-static FileInfo etcFiles[] = {
-	{ "rc",           I_R | 0755, ROOT, GOP,   0, NULL, "etc/rc" },
-	{ "fstab",        I_R | 0755, ROOT, GOP,   0, NULL, "etc/fstab" },
-	{ "keymap",       I_R | 0644, BIN,  GOP,   0, NULL, "etc/us-std.map" },
+static FileInfo rootEtcFiles[] = {
+	{ "rc",           I_R | 0755, ROOT, GOP,   0, "tools/res/root/etc/rc" },
+	{ "fstab",        I_R | 0755, ROOT, GOP,   0, "tools/res/root/etc/fstab" },
+	{ "passwd",       I_R | 0755, ROOT, GOP,   0, "tools/res/root/etc/passwd" },
+	{ "group",        I_R | 0755, ROOT, GOP,   0, "tools/res/root/etc/group" },
+	{ "keymap",       I_R | 0644, BIN,  GOP,   0, "drivers/tty/keymaps/us-std.map" },
 	{ NULL }
 };
 
-static FileInfo dirs[] = {
-	{ "dev",          I_D | 0755, ROOT, GOP,   0, devFiles },
-	{ "sbin",         I_D | 0755, BIN,  GOP,   0, sbinFiles },
-	{ "bin",          I_D | 0755, BIN,  GOP,   0, binFiles },
-	{ "etc",          I_D | 0755, ROOT, GOP,   0, etcFiles },
+static FileInfo rootDirs[] = {
+	{ "dev",          I_D | 0755, ROOT, GOP,   0, NULL, NULL, { rootDevFiles, NULL } },
+	{ "sbin",         I_D | 0755, BIN,  GOP,   0, NULL, NULL, { rootSbinFiles, NULL } },
+	{ "bin",          I_D | 0755, BIN,  GOP,   0, NULL, NULL, { commonBinFiles, rootBinFiles,  NULL } },
+	{ "etc",          I_D | 0755, ROOT, GOP,   0, NULL, NULL, { rootEtcFiles, NULL } },
 	{ "tmp",          I_D | 0777, ROOT, GOP,   0 },
-	{ "usr",          I_D | 0777, BIN,  GBIN,  0 },
-	{ "home",         I_D | 0777, BIN,  GBIN,  0 },
+	{ "usr",          I_D | 0755, ROOT, GOP,   0 },
+	{ "home",         I_D | 0755, ROOT, GOP,   0 },
 	{ NULL }
 };
 
-static FileInfo rootDir =
-    { NULL,           I_D | 0755, ROOT, GOP,   0, dirs };
+/* ---- /usr dir and files ---- */
+static FileInfo usrBinFiles[] = {
+	{ "sleep",        I_R | 0755, BIN,  GOP,   0, "commands/simple/sleep.bin" },
+	{ "stat",         I_R | 0755, BIN,  GOP,   0, "commands/simple/stat.bin" },
+	{ "ls",           I_R | 0755, BIN,  GOP,   0, "commands/simple/ls.bin" },
+	{ "mkdir",        I_R | 0755, BIN,  GOP,   0, "commands/simple/mkdir.bin" },
+	{ "chmod",        I_R | 0755, BIN,  GOP,   0, "commands/simple/chmod.bin" },
+	{ "cp",		      I_R | 0755, BIN,  GOP,   0, "commands/simple/cp.bin", "clone,cpdir,mv,ln,rm" },
+	{ NULL }
+};
+
+static FileInfo usrDirs[] = {
+	{ "bin",          I_D | 0755, BIN,  GOP,   0, NULL, NULL, { commonBinFiles, usrBinFiles, NULL } },
+	{ NULL }
+};
 
 
+/* ---- 1st level dirs ---- */
+static FileInfo rootInfo =
+    { NULL,           I_D | 0755, ROOT, GOP,   0, NULL, NULL, { rootDirs, NULL } };
+static FileInfo homeInfo =
+    { NULL,           I_D | 0777, ROOT, GOP,   0 };
+static FileInfo usrInfo =
+    { NULL,           I_D | 0777, ROOT, GOP,   0, NULL, NULL, { usrDirs, NULL } };
+
+
+static FS fsList[] = {
+	{ "ROOT", &rootInfo },
+	{ "HOME", &homeInfo },
+	{ "USR",  &usrInfo },
+	{ NULL }
+};
 

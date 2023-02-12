@@ -16,7 +16,6 @@
 #define MAX_MAX_SIZE	((unsigned long) 0xffffffff)
 #define ZONE_SHIFT		0
 
-static bool init;
 static uint32_t reservedSectors = 0;
 static uint32_t sectorCount;
 static long currentTime;
@@ -34,13 +33,13 @@ static int nextZone, nextInode, zoneOffset, blocksPerZone;
 static Zone_t zoneMap;
 static char modeString[11] = {0};
 static char timeBuf[26];
-static char *resDir = NULL;
+static char homeDir[PATH_MAX + 1];
 
 static char *progName;
 static char *units[] = {"bytes", "KB", "MB", "GB"};
 
 static void usage() {
-	usageErr("%s [-b blocks] [-i inodes] [-B blocksize] device\n", progName);
+	usageErr("%s [-b blocks] [-i inodes] [-B blocksize] device fs\n", progName);
 }
 
 static char *allocBlock() {
@@ -626,6 +625,7 @@ static Ino_t mkFile(Ino_t pINum, FileInfo *fi) {
 			if (s2 != NULL)
 			  *s2 = '\0';
 			enterDir(pINum, s1, iNum);
+			increaseLink(iNum);
 			if (s2 == NULL)
 			  break;
 			s1 = s2 + 1;
@@ -667,23 +667,27 @@ static void addZone(DiskInode *dip, Zone_t z) {
 	fatal("File has grown beyond single indirect");
 }
 
-static char *getResDir() {
+static char *getHomeDir() {
 	char *lastSlash;
 
-	if (resDir == NULL) {
-		resDir = Malloc(strlen(progName));
-		strcpy(resDir, progName);
-		lastSlash = strrchr(resDir, '/');
-		if (lastSlash != NULL)
-		  *lastSlash = 0;
+	if (homeDir[0] == 0) {
+		strcpy(homeDir, progName);
+		lastSlash = strrchr(homeDir, '/');
+		if (lastSlash != NULL) {
+			*++lastSlash = '.';
+			*++lastSlash = '.';
+			*++lastSlash = 0;
+		} else 
+		  strcpy(homeDir, "..");
 	}
-	return resDir;
+	return homeDir;
 }
 
 static char *getPath(char *path) {
 	static char fullPath[PATH_MAX + 1];
 
-	snprintf(fullPath, PATH_MAX, "%s/resources/%s", getResDir(), path);
+	printf("=== homeDir: %s\n", getHomeDir());
+	snprintf(fullPath, PATH_MAX, "%s/%s", getHomeDir(), path);
 	return fullPath;
 }
 
@@ -700,7 +704,7 @@ static void installFile(Ino_t pINum, FileInfo *fi) {
 	DiskInode *dip;		
 
 	iNum = mkFile(pINum, fi);
-	if (!fi->path)
+	if (! fi->path)
 	  return;
 	
 	path = getPath(fi->path);
@@ -735,21 +739,34 @@ static void installFile(Ino_t pINum, FileInfo *fi) {
 	free(inodes);
 }
 
-static void doMk(Ino_t pINum, FileInfo *fi, bool recursive) {
+static void doMk(Ino_t pINum, FileInfo *fi) {
 	Ino_t iNum;
 	Mode_t fileType;
+	FileInfo **cff;
 	FileInfo *cf;
 
 	fileType = fi->mode & I_TYPE;
 	if (fileType == I_DIRECTORY) { 
 		iNum = doMkdir(pINum, fi);
-		if (recursive && fi->files) {
-			for (cf = fi->files; cf->name; ++cf) {
-				doMk(iNum, cf, recursive);
+		if (fi->files) {
+			for (cff = fi->files; *cff; ++cff) {
+				for (cf = *cff; cf->name; ++cf) {
+					doMk(iNum, cf);
+				}
 			}
 		}
 	} else 
 	  installFile(pINum, fi);
+}
+
+static FileInfo *getFsInfo(char *type) {
+	FS *fsp;
+
+	for (fsp = fsList; fsp->fs_type; ++fsp) {
+		if (strcmp(fsp->fs_type, type) == 0)
+		  return fsp->fs_info;
+	}
+	return NULL;
 }
 
 int main(int argc, char *argv[]) {
@@ -758,6 +775,7 @@ int main(int argc, char *argv[]) {
 	Block_t blocks;
 	Ino_t inodes;
 	int ch;
+	FileInfo *fsInfo;
 
 	progName = argv[0];
 	blocks = 0;
@@ -776,17 +794,17 @@ int main(int argc, char *argv[]) {
 			case 'r':
 				reservedSectors = atoi(optarg);
 				break;
-			case 'c':
-				init = true;
-				break;	
 			default:
 				usage();
 		}
 	}
-	if (argc - optind < 1)
+	if (argc - optind < 2)
 	  usage();
 
-	device = parseDevice(argv[optind], NULL, &pe);
+	device = parseDevice(argv[optind++], NULL, &pe);
+	fsInfo = getFsInfo(argv[optind]);
+	if (fsInfo == NULL)
+	  fatal("invalid fs type: %s", argv[optind]);
 	lowSector = pe.lowSector;
 	sectorCount = pe.sectorCount;
 	deviceFd = RWOpen(device);
@@ -806,7 +824,7 @@ int main(int argc, char *argv[]) {
 	zones = numBlocks >> ZONE_SHIFT;
 	initSuperBlock(zones, numInodes);
 
-	doMk(0, &rootDir, init);
+	doMk(0, fsInfo);
 
 	printFS();
 	free(zero);

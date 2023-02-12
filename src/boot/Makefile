@@ -14,9 +14,12 @@ PART_TYPE=81
 
 # Make FS
 PRIMARY = p0
-FS_ROOT = $(PRIMARY)s0
-FS_HOME = $(PRIMARY)s1
-FS_USR = $(PRIMARY)s2
+DEV_ROOT = $(PRIMARY)s0
+DEV_HOME = $(PRIMARY)s1
+DEV_USR = $(PRIMARY)s2
+FS_ROOT = ROOT
+FS_HOME = HOME
+FS_USR = USR
 
 # Program
 LIBS = -L$(MY_HOME)/lib/m16 -lmyc -lmysysutil
@@ -86,11 +89,11 @@ partition: $(DISK_IMAGE)
 
 mkfs: partition
 	@echo --------------------------------------------
-	$(MKFS) -r$(BOOT_IMG_SECTORS) -c $(FS_ROOT):$(DISK_IMAGE)
+	$(MKFS) -r$(BOOT_IMG_SECTORS) $(DEV_ROOT):$(DISK_IMAGE) $(FS_ROOT)
 	@echo --------------------------------------------
-	$(MKFS) $(FS_HOME):$(DISK_IMAGE)
+	$(MKFS) $(DEV_HOME):$(DISK_IMAGE) $(FS_HOME)
 	@echo --------------------------------------------
-	$(MKFS) $(FS_USR):$(DISK_IMAGE)
+	$(MKFS) $(DEV_USR):$(DISK_IMAGE) $(FS_USR)
 	@echo --------------------------------------------
 
 install_masterboot: $(MASTER_BOOT) mkfs
@@ -98,7 +101,7 @@ install_masterboot: $(MASTER_BOOT) mkfs
 	$(INSTALL) -m $(PRIMARY):$(DISK_IMAGE) $<
 
 install_device: $(BOOT_BLOCK) $(BOOT) mkfs
-	$(INSTALL) -d $(FS_ROOT):$(DISK_IMAGE) $(BOOT_BLOCK) $(BOOT) \
+	$(INSTALL) -d $(DEV_ROOT):$(DISK_IMAGE) $(BOOT_BLOCK) $(BOOT) \
 		$(BOOT_IMG_SECTORS) $(ENV_MODULES_FILE) $(PROGRAMS)
 
 disasm: $(DEBUG)

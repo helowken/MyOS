@@ -27,7 +27,7 @@ MKINIT pid_t backgndPid = -1;
 
 /* Returns a new job structure.
  */
-Job *makeJob(union Node *node, int numProcs) {
+Job *makeJob(int numProcs) {
 	int i;
 	Job *jp;
 #define BATCH_SIZE	4

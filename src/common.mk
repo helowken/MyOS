@@ -21,7 +21,6 @@ ENTRY = $(MY_HOME)/entry/entry.o
 CRT_ENTRY = $(MY_HOME)/entry/crtso.o
 LINKER_SCRIPT = $(MY_HOME)/linkerScript.lds
 SETSTACK = $(MY_HOME)/tools/setstack.bin
-RES_DIR = $(MY_HOME)/tools/resources
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) $< -o $@
@@ -66,13 +65,6 @@ define cleanCommon
 endef
 
 
-# copyTo(src, dst)
-define copyTo
-	@mkdir -p $(2)
-	cp $(1) $(2)
-endef
-
-
 # mkSysBin(srcs, bin, stackSize)
 define mkSysBin 
 	$(call link,$(1),$(LIBS),$(2)) 
@@ -81,11 +73,10 @@ define mkSysBin
 endef
 
 
-# mkbin(srcs, bin, stackSize, debugBin, dstDir)
+# mkbin(srcs, bin, stackSize, debugBin)
 define mkbin 
 	$(call link,$(1),$(LIBS),$(2)) 
 	$(call createDebug,$(2),$(4))
 	@$(call setStack,$(3),$(2))
-	$(call copyTo,$(2),$(5))
 endef
 

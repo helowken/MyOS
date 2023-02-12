@@ -210,7 +210,7 @@ static void evalCommand(Node *cmd, int flags, BackCmd *backCmd) {
 				(cmdEntry.cmdType != CMD_BUILTIN ||
 					cmdEntry.u.index == DOTCMD ||
 					cmdEntry.u.index == EVALCMD))) {
-		jp = makeJob(cmd, 1);
+		jp = makeJob(1);
 		mode = cmd->nCmd.backgnd;
 		if (flags & EV_BACKCMD) {
 			mode = FORK_NO_JOB;
@@ -222,11 +222,7 @@ static void evalCommand(Node *cmd, int flags, BackCmd *backCmd) {
 		if (flags & EV_BACKCMD) {
 			FORCE_INTON;
 			close(pip[0]);	/* Child proc close the read point */
-			if (pip[1] != 1) {	/* Child proc copy the write point to stdout. */
-				close(STDOUT_FILENO);
-				copyFd(pip[1], STDOUT_FILENO);
-				close(pip[1]);
-			}
+			copyToStdout(pip[1]);	/* Child proc copy the write point to stdout. */
 		}
 		flags |= EV_EXIT;
 	}
@@ -446,7 +442,7 @@ static void evalPipe(Node *n) {
 		++pipeLen;
 	}
 	INTOFF;
-	jp = makeJob(n, pipeLen);
+	jp = makeJob(pipeLen);
 	prevFd = -1;
 	for (lp = n->nPipe.cmdList; lp; lp = lp->next) {
 		preHash(lp->node);
@@ -460,24 +456,14 @@ static void evalPipe(Node *n) {
 		}
 		if (forkShell(jp, lp->node, n->nPipe.backgnd) == 0) {	/* Child */
 			INTON;
-			if (prevFd > 0) {	/* Not the first child */
-				/* set stdin to the previous pip[0] */
-				close(STDIN_FILENO);
-				copyFd(prevFd, STDIN_FILENO);
-				close(prevFd);
-			}
+			copyToStdin(prevFd);	/* set stdin to the previous pip[0] */
 			if (pip[1] >= 0) {	/* Not the last child */
 				/* Close pip[0], since:
 				 *  If it is the first cmd, pipe reading is not needed.
 				 *  If it is the middle cmd, then prevFd > 0, stdin has been set.
 				 */
 				close(pip[0]);
-				if (pip[1] != STDOUT_FILENO) {	
-					/* Set stdout to pip[1] */
-					close(STDOUT_FILENO);
-					copyFd(pip[1], STDOUT_FILENO);
-					close(pip[1]);
-				}
+				copyToStdout(pip[1]); 
 			}
 			evalTree(lp->node, EV_EXIT);	/* Child run and exit */
 		}

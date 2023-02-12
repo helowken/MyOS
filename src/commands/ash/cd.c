@@ -4,6 +4,7 @@
 #include "jobs.h"
 #include "options.h"
 #include "output.h"
+#include "redir.h"
 #include "memalloc.h"
 #include "exec.h"
 #include "error.h"
@@ -84,7 +85,6 @@ static void updatePwd(char *dir) {
 	if (currDir)
 	  ckFree(currDir);
 	currDir = saveStr(stackBlock());
-
 }
 
 /* Actually do the chdir. If the name refers to symbolic links, we
@@ -182,6 +182,55 @@ top:
 	return 0;
 }
 
+/* Run /bin/pwd to find out what the current directory is. We suppress
+ * interrupts throughout most of this, but the user can still break out
+ * of it by killing the pwd program. If we already know the current
+ * directory, this routine returns immediately.
+ */
+
+#define MAX_PWD	256
+
+static void getPwd() {
+	char buf[MAX_PWD];
+	char *p;
+	int i;
+	int status;
+	Job *jp;
+	int pip[2];
+
+	if (currDir) 
+	  return;
+	INTOFF;
+	if (pipe(pip) < 0)
+	  error("Pipe call failed");
+	jp = makeJob(1);
+	if (forkShell(jp, (Node *) NULL, FORK_NO_JOB) == 0) {	/* Child */
+		close(pip[0]);
+		copyToStdout(pip[1]);
+		execl("/bin/pwd", "pwd", NULL);
+		error("Cannot exec /bin/pwd");
+	}
+	/* Parent */
+	close(pip[1]);
+	pip[1] = -1;
+	p = buf;
+	while ((i = read(pip[0], p, buf + MAX_PWD - p)) > 0 ||
+		   (i == -1 && errno == EINTR)) {
+		if (i > 0)
+		  p += i;
+	}
+	close(pip[0]);
+	pip[0] = -1;
+	status = waitForJob(jp);
+	if (status != 0)
+	  error(NULL);
+	if (i < 0 || p == buf || p[-1] != '\n')
+	  error("pwd command failed");
+	p[-1] = '\0';
+	currDir = saveStr(buf);
+	INTON;
+}
+
 int cdCmd(int argc, char **argv) {
 	char *dest;
 	char *path;
@@ -208,6 +257,8 @@ int cdCmd(int argc, char **argv) {
 }
 
 int pwdCmd(int argc, char **argv) {
-	printf("=== pwdCmd\n");//TODO
+	getPwd();
+	out1Str(currDir);
+	out1Char('\n');
 	return 0;
 }

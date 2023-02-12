@@ -1,10 +1,12 @@
 # /etc/rc System startup script run by init before going multiuser.
 
+umask 022
 printroot >/etc/mtab	# /etc/mtab keeps track of mounts
->/etc/utmp				# /etc/utmp keeps track of logins
 
+# /etc/fstab lists the root, tmp and usr devices
 . /etc/fstab
-mount  $usr /usr
-mount
 
-stat /home
+mount $usr /usr
+
+
+stat -M

@@ -20,7 +20,6 @@
 #include "string.h"
 #include "time.h"
 #include "sys/stat.h"
-#include "minix/minlib.h"
 
 #define addr(x)		((void *) &sb.x)
 #define size(x)		sizeof(sb.x)
@@ -59,7 +58,9 @@ static Field fields[] = {
 };
 
 static void usageErr() {
-	usage(prog, "[-] [-fd] [-all] [-s] [-field ...] [file1 ...]\n");
+	fprintf(stderr,
+		"Usage: %s [-] [-fd] [-all] [-s] [-field ...] [file1 ...]\n", prog);
+	exit(1);
 }
 
 static void rwx(mode_t mode, char *bit) {

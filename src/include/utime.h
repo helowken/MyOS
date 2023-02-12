@@ -5,11 +5,11 @@
 #include "sys/types.h"
 #endif
 
-struct utimebuf {
+struct utimbuf {
 	time_t actime;		/* Access time */
 	time_t modtime;		/* Modification time */
 };
 
-int utime(const char *path, const struct utimebuf *times);
+int utime(const char *path, const struct utimbuf *times);
 
 #endif

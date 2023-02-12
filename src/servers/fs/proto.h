@@ -117,6 +117,7 @@ int doCreat(void);
 int doClose(void);
 int doMkdir(void);
 int doLseek(void);
+int doMknod(void);
 
 /* path.c */
 Inode *lastDir(char *path, char string[NAME_MAX]);
@@ -135,6 +136,7 @@ void freeInode(dev_t dev, ino_t num);
 void wipeInode(Inode *ip);
 
 /* link.c */
+int doLink(void);
 int doUnlink(void);
 int doRename(void);
 void truncate(Inode *ip);

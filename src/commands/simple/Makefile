@@ -10,13 +10,19 @@ MAKEFLAGS += --no-print-directory
 		   umount \
 		   cp \
 		   stat \
+		   pwd \
+		   mkdir \
+		   chmod \
 		   testAAA 
 
-all_bins = $(4kw_bins)
+20kw_bins = ls
+
+all_bins = $(4kw_bins) $(20kw_bins)
 include ../../funcs.mk
 
 all: 
 	$(call mkBins,$(4kw_bins),4kw)
+	$(call mkBins,$(20kw_bins),20kw)
 
 clean: 
 	$(call cleanBins,$(all_bins))

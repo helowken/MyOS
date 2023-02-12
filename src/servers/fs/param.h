@@ -13,8 +13,8 @@
 #define m_group			m1_i3
 #define m_rgid			m1_i2
 #define m_ls_fd			m2_i1
-
-
+#define m_mk_mode		m1_i2
+#define m_mk_z0			m1_i3
 #define m_mode			m3_i2
 #define m_c_mode		m1_i3
 #define m_c_name		m1_p1

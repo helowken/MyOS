@@ -16,5 +16,6 @@ char *strncpy(char *ret, const char *s2, size_t n);
 size_t strlen(const char *s);
 char *strrchr(const char *s, int c);
 char *strstr(const char *s, const char *wanted);
+void bzero(void *s, size_t n);
 
 #endif

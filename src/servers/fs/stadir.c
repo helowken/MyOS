@@ -93,7 +93,7 @@ int doChdir() {
  * gids, and the umask.
  */
 	register FProc *rfp;
-	
+
 	if (who == PM_PROC_NR) {
 		rfp = &fprocTable[inMsg.m_slot1];
 		putInode(currFp->fp_root_dir);

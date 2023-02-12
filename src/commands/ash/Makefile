@@ -2,7 +2,6 @@ MY_HOME = ../..
 include $(MY_HOME)/common.mk
 CFLAGS += -DSHELL -D_MINIX -D_POSIX_SOURCE 
 LIBS = -L$(MY_HOME)/lib -lmyc -le
-DST_DIR = $(RES_DIR)/bin
 PB_DIR = prebuild
 BLTIN_DIR = bltin
 
@@ -37,7 +36,7 @@ mkbltin:
 compile: init token.h $(BLTIN_DIR)/operators.h
 
 $(BIN): $(CRT_ENTRY) $(OBJS)
-	$(call mkbin,$^,$@,$(STACK_SIZE),$(DEBUG),$(DST_DIR))
+	$(call mkbin,$^,$@,$(STACK_SIZE),$(DEBUG))
 
 init.c: $(PB_DIR)/mkinit.bin $(SRCS)
 	cd $(PB_DIR) && $(MAKE) mkinit ARGS="$(SRCS)"
@@ -68,7 +67,6 @@ clean:
 	cd $(PB_DIR) && $(MAKE) clean
 	cd $(BLTIN_DIR) && $(MAKE) clean
 	rm -f $(CLEAN_FILES)
-	rm -f $(DST_DIR)/$(BIN)
 	$(call cleanCommon)
 
 disasm: $(DEBUG)

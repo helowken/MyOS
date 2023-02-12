@@ -96,7 +96,7 @@ Inode *getInode(dev_t dev, ino_t num) {
 		if (ip->i_count > 0) {	/* Only check used slots for (dev, num) */
 			if (ip->i_dev == dev && ip->i_num == num) {
 				/* This is the inode that we are looking for. */
-				++ip->i_count;
+				dupInode(ip);
 				return ip;	
 			}
 		} else {

@@ -1,0 +1,6 @@
+operator:*:0:
+daemon:*:1:
+bin:*:2:
+other:*:3:
+tty:*:4:
+nogroup:*:99:
