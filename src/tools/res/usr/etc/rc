@@ -1,0 +1,119 @@
+# /usr/etc/rc - continued system initialization
+
+RANDOM_FILE=/usr/adm/random.dat
+LOCAL_FILE=/usr/etc/rc.local
+
+case "$#:$1" in
+1:start|1:stop|1:down)
+	action=$1
+	;;
+*)	echo >&2 "Usage: $0 start|stop|down"
+	exit 1
+esac
+
+if [ -f "$LOCAL_FILE" ]
+then	. "$LOCAL_FILE" $1
+fi
+
+disabled()
+{
+	ifs="$IFS"; IFS=,
+	for skip in `sysenv disable`
+	do
+		if [ "$skip" = "$1" ]
+		then
+			IFS="$ifs"; unset ifs
+			return 0
+		fi
+	done
+	IFS="$ifs"; unset ifs
+	return 1
+}
+
+daemonize() 
+{
+	# Function to start a daemon, if it exists.
+	local IFS=':'
+	local name="$1"
+	test "$1" = tcpd && name="$2"
+
+	for dir in $PATH
+	do
+		if [ -f "$dir/$1" ]
+		then
+			# Check if this service is disabled at the boot monitor.
+			if disabled $name; then return; fi
+			echo -n " $name"
+			"$@" &
+			return
+		fi
+	done
+}
+
+up()
+{
+	service=$1
+	args=$2
+	device=$3
+
+	# Function to dynamically start a system service
+
+	# First check if this service is disabled at the boot monitor.
+	if disabled $service; then return; fi
+	
+	# Service is not disabled. Try to bring it up.
+	command="/usr/sbin/$service"
+	if [ ! -z "$args" ]; then command="$command -args \"$args\""; fi
+	if [ ! -z "$device" ]; then command="$command -dev \"$device\""; fi
+
+	echo -n " $service"
+	eval service up $command
+}
+
+case $action in
+start)
+	# Select console font.
+	test -f /etc/font && loadfont /etc/font </dev/console
+
+	# Cleanup.
+	rm -rf /tmp/. /usr/run/. /usr/spool/lpd/. /usr/spool/locks/.
+
+	# Start servers and drivers set at the boot monitor.
+	echo -n "Starting services:"
+	up random "" /dev/random
+
+	# TODO load random number generator
+	
+	# TODO start only network drivers that are in use
+	echo .
+
+	# TODO Network initialization.
+
+	echo -n "Starting daemons:"
+	daemonize update
+	rotate /usr/log/messages 7
+	daemonize usyslogd
+
+	# Ugly error message when starting cron from CD.
+	# (and cron unnecessary then so..)
+	if [ ! -f /CD ]
+	then	daemonize cron
+	else	. /etc/rc.cd
+	fi
+	echo .
+
+
+#	echo "echo aaa" > test.sh
+#	chmod +x test.sh
+#at 1200 test.sh
+
+
+
+#echo "1 1 1 * * * echo aaa" > /usr/spool/crontabs/root
+#echo --------------
+#crontab -l
+;;
+stop|down)
+	# Save random data.
+esac
+

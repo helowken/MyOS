@@ -80,7 +80,10 @@ void rwInode(register Inode *ip, int rwFlag) {
 	/* Copy the inode from the disk block to the in-core table or vice versa. */
 	copyInode(ip, dip, rwFlag);
 
-	putBlock(bp, INODE_BLOCK);	// TODO INODE_BLOCK doesn't with WRITE_IMMED
+	/* sync() will be called every 30s (by update.c) flushing data to disk,
+	 * so WRITE_IMMED is not present here.
+	 */
+	putBlock(bp, INODE_BLOCK);	
 	ip->i_dirty = CLEAN;
 }
 

@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
 	u16_t *km;
 	int fd, n, fb;
 
-	prog = argv[0];
+	prog = getProg(argv);
 	if (argc != 2) 
 	  usage(prog, "mapfile");
 

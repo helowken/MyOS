@@ -168,7 +168,7 @@ int unmount(dev_t dev) {
 	devClose(dev);
 
 	/* Finish off the unmount. */
-	sp->s_inode_mount = NO_MOUNT;	/* Inode returns to normal */
+	sp->s_inode_mount->i_mount = NO_MOUNT;	/* Inode returns to normal */
 	putInode(sp->s_inode_mount);	/* Release the inode mounted on */
 	putInode(sp->s_inode_super);	/* Release the root inode of the mounted fs */
 	sp->s_inode_mount = NIL_INODE;

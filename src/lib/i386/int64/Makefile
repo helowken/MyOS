@@ -7,7 +7,9 @@ OBJS_M32 = \
 		div64u.o \
 		cv64u.o \
 		add64u.o \
-		cvu64.o 
+		cvu64.o \
+		ex64.o \
+		make64.o
 
 
 all: build

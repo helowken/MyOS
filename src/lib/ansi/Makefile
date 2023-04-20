@@ -3,8 +3,11 @@ LIB_NAME = myc
 NEED_16 = 1
 
 OBJS_M32 = \
+		memchr.o \
 		memcmp.o \
 		memcpy.o \
+		memset.o \
+		memmove.o \
 		strcat.o \
 		strcpy.o \
 		strncpy.o \
@@ -14,8 +17,10 @@ OBJS_M32 = \
 		strchr.o \
 		strstr.o \
 		strrchr.o \
+		strspn.o \
 		strtol.o \
-		memset.o \
+		strpbrk.o \
+		strtok.o \
 		chartab.o \
 		atoi.o \
 		atol.o \
@@ -39,7 +44,9 @@ OBJS_M32 = \
 		gmtime.o \
 		localtime.o \
 		strftime.o \
-		tzset.o
+		tzset.o \
+		assert.o \
+		rand.o
 
 		
 OBJS_M16 = \

@@ -44,7 +44,7 @@ static void updateMTab(char *devName) {
 int main(int argc, char **argv) {
 	int sflag = 0;	
 
-	prog = argv[0];
+	prog = getProg(argv);
 	while (argc > 1 && argv[1][0] == '-') {
 		char *opt = argv[1] + 1;
 		while (*opt) {

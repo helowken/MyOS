@@ -24,7 +24,7 @@ int open(const char *path, int flags);
 int creat(const char *path, mode_t mode);
 int close(int fd);
 
-FILE *freopn(const char *path, const char *mode, FILE *stream) {
+FILE *freopen(const char *path, const char *mode, FILE *stream) {
 	register int i;
 	struct stat st;
 	int rwMode = 0, rwFlags = 0;

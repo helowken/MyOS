@@ -3,8 +3,8 @@
 
 typedef struct {
 	int __flags;	
-	long __mask;		/* Must have size >= sizeof(sigset_t) */
-	void *__regs[16];	
+	long __mask;	/* Must have size >= sizeof(sigset_t) */
+	void *__regs[16];
 } jmp_buf[1];
 
 int __setjmp(jmp_buf _env, int _saveMask);

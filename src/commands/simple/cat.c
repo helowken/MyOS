@@ -4,6 +4,7 @@
 #include "string.h"
 #include "unistd.h"
 #include "stdlib.h"
+#include "sys/stat.h"
 #include "minix/minlib.h"
 #include "stdio.h"
 
@@ -70,8 +71,9 @@ static void copyOut(char *file, int fd) {
 
 int main(int argc, char **argv) {
 	int i, fd;
+	struct stat st;
 
-	prog = argv[0];
+	prog = getProg(argv);
 	i = 1;
 	while (i < argc && argv[i][0] == '-') {
 		char *opt = argv[i] + 1;
@@ -107,7 +109,19 @@ int main(int argc, char **argv) {
 					exitCode = errno;
 					report(prog, file);
 				} else {
-					copyOut(file, fd);
+					if (fstat(fd, &st) != 0) {
+						exitCode = errno;
+						report(prog, file);
+					}
+					if (S_ISREG(st.st_mode)) {
+						copyOut(file, fd);
+					} else if (S_ISDIR(st.st_mode)) {
+						stdErr(prog);
+						stdErr(": ");
+						stdErr(file);
+						stdErr(": ");
+						stdErr("Is a directory\n");
+					}
 					close(fd);
 				}
 			}

@@ -49,7 +49,7 @@ Filp *getFilp(int fd);
 
 /* stadir.c */
 int doChdir(void);
-int doFChdir(void);
+int doFchdir(void);
 int doFstat(void);
 int doStat(void);
 
@@ -142,6 +142,7 @@ int doRename(void);
 void truncate(Inode *ip);
 
 /* select.c */
+int doSelect(void);
 void initSelect(void);
 int selectCallback(Filp *, int ops);
 int selectNotified(int major, int minor, int ops);
@@ -149,6 +150,8 @@ int selectNotified(int major, int minor, int ops);
 /* timers.c */
 void fsInitTimer(Timer *tp);
 void fsExpireTimers(clock_t now);
+void fsCancelTimer(Timer *tp);
+void fsSetTimer(Timer *tp, int delta, TimerFunc watchDog, int arg);
 
 /* main.c */
 void reply(int whom, int result);

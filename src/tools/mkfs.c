@@ -480,6 +480,13 @@ static char *getModeString(Mode_t mode) {
 	++i;
 	if (mode & S_IXOTH)
 	  modeString[i] = 'x';
+
+	if (mode & S_ISUID)
+	  modeString[3] = 's';
+	if (mode & S_ISGID)
+	  modeString[6] = 's';
+	if (mode & S_ISVTX)
+	  modeString[9] = 't';
 	
 	return modeString;
 }
@@ -686,7 +693,6 @@ static char *getHomeDir() {
 static char *getPath(char *path) {
 	static char fullPath[PATH_MAX + 1];
 
-	printf("=== homeDir: %s\n", getHomeDir());
 	snprintf(fullPath, PATH_MAX, "%s/%s", getHomeDir(), path);
 	return fullPath;
 }

@@ -93,7 +93,7 @@ static int makeDir(char *dirName) {
 int main(int argc, char **argv) {
 	int error, c;
 
-	prog = argv[0];
+	prog = getProg(argv); 
 	opterr = 0;
 	pflag = 0;
 	_symbolic = nil;

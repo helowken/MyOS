@@ -182,19 +182,6 @@ void procArgs(int argc, char **argv) {
 	}
 	setInteractive(iflag);
 	//setJobCtl(jflag);		no job control support
-
-	if (0) {
-		//TODO
-		printf("%s\n", optChar);
-		for (p = optVal; p < optVal + sizeof(optVal) - 1; ++p) {	
-			printf("%d", *p);
-		}
-		printf("\n");
-		printf("command: %s\n", commandName);
-		for (int i = 0; i < shellParam.numParam; ++i) {
-			printf("%s\n", shellParam.params[i]);
-		}
-	}
 }
 
 /* The set command builtin. */

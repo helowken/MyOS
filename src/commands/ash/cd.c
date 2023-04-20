@@ -18,7 +18,7 @@ static char *currDir;	/* Current working directory. */
 static char *cdCompPath;
 
 #if UDIR || TILDE
-extern int didUDir;
+extern int didUserDir;
 #endif
 
 /* Get the next component of the path name pointed to by cdCompPath.
@@ -99,7 +99,7 @@ static int doCd(char *dest, int print, int toHome) {
 	int first;
 	int i;
 
-	if (didUDir)
+	if (didUserDir)
 	  print = 1;
 
 top:

@@ -120,7 +120,10 @@ void freeBit(register SuperBlock *sp, int map, bit_t bitReturned) {
 	bp->b_bitmaps[word] = k;
 	bp->b_dirty = DIRTY;
 	
-	putBlock(bp, MAP_BLOCK);	/* TODO WRITE_IMMED? */
+	/* sync() will be called every 30s (by update.c) flushing data to disk,
+	 * so WRITE_IMMED is not present here.
+	 */
+	putBlock(bp, MAP_BLOCK);	
 }
 
 bit_t allocBit(SuperBlock *sp, int map, bit_t origin) {

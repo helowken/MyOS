@@ -11,9 +11,10 @@
 #include "unistd.h"
 #include "utmp.h"
 #include "errno.h"
+#include "minix/minlib.h"
 
 static char SHUT_PID[] = "/usr/run/shutdown.pid";
-static char NO_LOGIN[] = "/etc/nologin";
+static char NO_LOGIN[] = "/etc/nologin";	/* see login.c */
 
 static long waitTime = 0L;
 static char message[1024];
@@ -21,7 +22,7 @@ static char info[80];
 static char rebootFlag = 'h';	/* Default is halt */
 static char *rebootCode = "";	/* Optional monitor code */
 static int infoMin, infoHour;	
-static char *prog;
+char *prog;
 
 extern char *itoa(int n);
 extern void wall(char *when, char *extra);
@@ -288,11 +289,7 @@ void main(int argc, char **argv) {
 
 	puts(info);
 
-	prog = strrchr(argv[0], '/');
-	if (prog == (char *) 0)
-	  prog = argv[0];
-	else
-	  ++prog;
+	prog = getProg(argv);
 
 	if (! now) {
 		/* Daemonize. */
@@ -342,7 +339,7 @@ void main(int argc, char **argv) {
 	HALT[1][1] = rebootFlag;
 	if (rebootFlag == 'x')
 	  HALT[2] = rebootCode;
-	execv("usr/bin/halt", HALT);
+	execv("/usr/bin/halt", HALT);
 	if (errno != ENOENT)
 	  fprintf(stderr, "Can't execute 'halt': %s\n", strerror(errno));
 

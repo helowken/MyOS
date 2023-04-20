@@ -59,7 +59,7 @@ int doChange(char *name) {
 int main(int argc, char **argv) {
 	int exitCode = 0;
 
-	prog = argv[0];
+	prog = getProg(argv);
 	--argc;
 	++argv;
 

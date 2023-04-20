@@ -297,7 +297,7 @@ int doRename() {
 
 	/* If it is ok, check for a variety of possible errors. */
 	if (r == OK) {
-		sameParentDir = oldDirp == newDirp;
+		sameParentDir = (oldDirp == newDirp);
 
 		/* The old inode must not be a super directory of the new last dir. */
 		if (isOldDir && ! sameParentDir) {

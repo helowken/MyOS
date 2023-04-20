@@ -121,7 +121,7 @@ int doChdir() {
 	return changeDir(&currFp->fp_work_dir, inMsg.m_name, inMsg.m_name_length);
 }
 
-int doFChdir() {
+int doFchdir() {
 /* Change directory on already-opened fd. */
 	Filp *filp;
 

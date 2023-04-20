@@ -153,8 +153,7 @@ void clearTraps() {
 }
 
 void exitShell(int status) {
-	printf("=== TODO exitShell\n");	
-	//_exit(status);
+	_exit(status);
 }
 
 /* Ignore a signal. */

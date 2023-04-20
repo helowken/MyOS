@@ -26,7 +26,8 @@
 #define FLOPPY_MAJOR		2	/* Major device for floppy disks */
 #define TTY_MAJOR			4	/* Major device for ttys */
 #define CTTY_MAJOR			5	/* Major device for /dev/tty */
-
+#define INET_MAJOR			7	/* Major device for inet */
 #define LOG_MAJOR			15	/* Major device for log driver */
+#define   IS_KLOG_DEV		0	/* Minor device for /dev/klog */
 
 #endif

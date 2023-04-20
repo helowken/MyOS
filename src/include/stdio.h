@@ -68,7 +68,7 @@ char *tmpnam(char *s);
 int fclose(FILE *stream);
 int fflush(FILE *stream);
 FILE *fopen(const char *path, const char *mode);
-FILE *freopn(const char *path, const char *mode, FILE *stream);
+FILE *freopen(const char *path, const char *mode, FILE *stream);
 void setbuf(FILE *stream, char *buf);
 int setvbuf(FILE *stream, char *buf, int mode, size_t size);
 int fprintf(FILE * stream, const char *format, ...);

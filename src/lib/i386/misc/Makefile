@@ -8,7 +8,8 @@ OBJS_M32 = \
 		io_outb.o \
 		io_outw.o \
 		io_outl.o \
-		io_intr.o 
+		io_intr.o \
+		getprocessor.o
 
 
 all: build

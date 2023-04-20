@@ -20,6 +20,7 @@
 #include "string.h"
 #include "time.h"
 #include "sys/stat.h"
+#include "minix/minlib.h"
 
 #define addr(x)		((void *) &sb.x)
 #define size(x)		sizeof(sb.x)
@@ -171,10 +172,7 @@ void main(int argc, char **argv) {
 	int err;
 	u_long fd;
 
-	if ((prog = strrchr(argv[0], '/')) == NULL)
-	  prog = argv[0];
-	else
-	  ++prog;
+	prog = getProg(argv);
 	if (equal(prog, "lstat"))
 	  sym = 1;
 

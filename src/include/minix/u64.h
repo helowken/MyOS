@@ -17,5 +17,8 @@ unsigned long cv64ul(u64_t i);
 int cmp64(u64_t i, u64_t j);
 int cmp64u(u64_t i, unsigned j);
 int cmp64ul(u64_t i, unsigned long j);
+unsigned long ex64lo(u64_t i);
+unsigned long ex64hi(u64_t i);
+u64_t make64(unsigned long lo, unsigned long hi);
 
 #endif

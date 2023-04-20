@@ -1,7 +1,7 @@
 MY_HOME = ../..
 include $(MY_HOME)/common.mk
 CFLAGS += -D_MINIX -D_POSIX_SOURCE 
-LIBS = -L$(MY_HOME)/lib -lmyc
+LIBS = -L$(MY_HOME)/lib -lmyc -le
 BIN = $(NAME).bin
 DEBUG = debug_$(NAME).bin
 

@@ -7,6 +7,7 @@
 #include "parser.h"
 #include "exec.h"
 #include "var.h"
+#include "options.h"
 #include "error.h"
 #include "sys/stat.h"
 #include "fcntl.h"
@@ -102,7 +103,24 @@ void changePath(char *newVal) {
 }
 
 void deleteFuncs() {
-	//TODO
+	TableEntry **tblp;
+	TableEntry **pp;
+	TableEntry *cmdp;
+
+	INTOFF;
+	for (tblp = cmdTable; tblp < &cmdTable[CMD_TABLE_SIZE]; ++tblp) { 
+		pp = tblp;
+		while ((cmdp = *pp) != NULL) {
+			if (cmdp->cmdType == CMD_FUNCTION) {
+				*pp = cmdp->next;
+				freeFunc(cmdp->param.func);
+				ckFree(cmdp);
+			} else {
+				pp = &cmdp->next;
+			}
+		}
+	}
+	INTON;
 }
 
 /* Locate a command in the command hash table. If "add" is nonzero,
@@ -369,9 +387,70 @@ void unsetFunc(char *name) {
 	}
 }
 
-/* Command hashing ode */
+static void printEntry(TableEntry *cmdp) {
+	int index;
+	char *path;
+	char *name;
+
+	if (cmdp->cmdType == CMD_NORMAL) {
+		index = cmdp->param.index;
+		path = pathVal();
+		do {
+			name = pathAdvance(&path, cmdp->cmdName);
+			stackUnalloc(name);
+		} while (--index >= 0);
+		out1Str(name);
+	} else if (cmdp->cmdType == CMD_BUILTIN) {
+		out1Format("builtin %s", cmdp->cmdName);
+	} else if (cmdp->cmdType == CMD_FUNCTION) {
+		out1Format("function %s", cmdp->cmdName);
+	} else {
+		error("internal error: cmdtype %d", cmdp->cmdType);
+	}
+	if (cmdp->rehash)
+	  out1Char('*');
+	out1Char('\n');
+}
+
+/* Command hashing code */
 int hashCmd(int argc, char **argv) {
-	printf("=== hashCmd\n");//TODO
+	TableEntry **pp;
+	TableEntry *cmdp;
+	int c;
+	int verbose;
+	CmdEntry entry;
+	char *name;
+
+	if (argc <= 1) {
+		for (pp = cmdTable; pp < &cmdTable[CMD_TABLE_SIZE]; ++pp) {
+			for (cmdp = *pp; cmdp; cmdp = cmdp->next) {
+				printEntry(cmdp);
+			}
+		}
+		return 0;
+	}
+	verbose = 0;
+	while ((c = nextOpt("rv")) != '\0') {
+		if (c == 'r') 
+		  clearCmdEntry(0);
+		else if (c == 'v')
+		  ++verbose;
+	}
+	while ((name = *argPtr) != NULL) {
+		if ((cmdp = cmdLookup(name, 0)) != NULL &&
+				(cmdp->cmdType == CMD_NORMAL ||
+					(cmdp->cmdType == CMD_BUILTIN && builtinLoc >= 0)))
+		  deleteCmdEntry();
+		findCommand(name, &entry, 1);
+		if (verbose) {
+			if (entry.cmdType != CMD_UNKNOWN) {	/* If no error msg */
+				cmdp = cmdLookup(name, 0);
+				printEntry(cmdp);
+			}
+			flushAll();
+		}
+		++argPtr;
+	}
 	return 0;
 }
 

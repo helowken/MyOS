@@ -100,15 +100,6 @@ void main(int argc, char **argv) {
 	char *shInit, *home;
 	char *profile = NULL, *ashrc = NULL;
 
-
-	//===TODO start
-	printf("===sh, argc: %d, ", argc);
-	for (int i = 0; i < argc; ++i) {
-		printf("%d=%s, ", i, argv[i]);
-	}
-	printf("\n");
-	//===TODO end
-
 	state = 0;
 	if (setjmp(jmpLoc.loc)) {
 		/* When a shell procedure is executed, we raise the
@@ -233,7 +224,6 @@ int dotCmd(int argc, char **argv) {
 }
 
 int exitCmd(int argc, char **argv) {
-	printf("=== exitCmd\n");//TODO
 	if (argc > 1)
 	  exitStatus = number(argv[1]);
 	exitShell(exitStatus);

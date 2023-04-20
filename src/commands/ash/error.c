@@ -68,7 +68,7 @@ void error(char *msg, ...) {
 		out2Char('\n');
 	}
 	va_end(ap);
-	fprintf(stderr, "TODO rase error\n");
+	printf("=== TODO error() raise error\n");
 	flushAll();
 	//TODO exRaise(EX_ERROR);
 }

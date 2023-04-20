@@ -14,6 +14,7 @@
 #include "limits.h"
 #include "termios.h"
 #include "sys/ioctl.h"
+#include "minix/minlib.h"
 
 typedef struct File {
 	struct File *next;		
@@ -966,10 +967,7 @@ int main(int argc, char **argv) {
 	uid = geteuid();
 	gid = getegid();
 	
-	if ((prog = strrchr(argv[0], '/')) == nil)
-	  prog = argv[0];
-	else
-	  ++prog;
+	prog = getProg(argv);
 	++argv;
 
 	if (strcmp(prog, "ls") != 0) {

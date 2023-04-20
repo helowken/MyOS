@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
 	int daemonize = 0;
 	int i;
 
-	prog = argv[0];
+	prog = getProg(argv);
 	i = 1;
 	while (i < argc && argv[i][0] == '-') {
 		char *opt = argv[i++] + 1;
@@ -72,6 +72,7 @@ int main(int argc, char **argv) {
 	}
 
 	if (!daemonize) {
+
 		/* Bring to the foreground. If we already have a controlling
 		 * tty then use it. Otherwise try to allocate the console as
 		 * controlling tty and begin a process group.
@@ -84,12 +85,12 @@ int main(int argc, char **argv) {
 		}
 
 		if (fd >= 0) {
-			if (fd != 0) {
-				dup2(fd, 0);
+			if (fd != STDIN_FILENO) {
+				dup2(fd, STDIN_FILENO);
 				close(fd);
 			}
-			dup2(0, 1);
-			dup2(0, 2);
+			dup2(STDIN_FILENO, STDOUT_FILENO);
+			dup2(STDIN_FILENO, STDERR_FILENO);
 		}
 
 		/* Set the usual signals back to the default. */
@@ -108,17 +109,17 @@ int main(int argc, char **argv) {
 		}
 		if ((fd = open("/dev/null", O_RDWR)) < 0)
 		  fatal(prog, "/dev/null");
-		if (fd != 0) {
-			dup2(fd, 0);
+		if (fd != STDIN_FILENO) {
+			dup2(fd, STDIN_FILENO);
 			close(fd);
 		}
 		if ((fd = open(DEV_LOG, O_WRONLY)) < 0)
 		  fatal(prog, DEV_LOG);
-		if (fd != 1) {
-			dup2(fd, 1);
+		if (fd != STDOUT_FILENO) {
+			dup2(fd, STDOUT_FILENO);
 			close(fd);
 		}
-		dup2(1, 2);
+		dup2(STDOUT_FILENO, STDERR_FILENO);
 
 		/* Move to the root directory. */
 		chdir("/");

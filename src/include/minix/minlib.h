@@ -10,6 +10,8 @@ ssize_t tell(const char *s);
 void report(const char *prog, const char *s);
 void fatal(const char *prog, const char *s);
 void usage(const char *prog, const char *s);
+int getProcessor(void);
+char *getProg(char **argv);
 int fsVersion(char *dev, char *prog);
 int loadMTab(char *prog);
 int rewriteMTab(char *prog);

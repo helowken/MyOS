@@ -480,6 +480,64 @@ static void evalPipe(Node *n) {
 	}
 }
 
+static void evalFor(Node *n) {
+	ArgList argList;
+	Node *argp;
+	StrList *sp;
+	StackMark stackMark;
+
+	setStackMark(&stackMark);
+	argList.last = &argList.list;
+	for (argp = n->nFor.args; argp; argp = argp->nArg.next) {
+		expandArg(argp, &argList, 1);
+		if (evalSkip)
+		  goto out;
+	}
+	*argList.last = NULL;
+
+	exitStatus = 0;
+	++loopNest;
+	for (sp = argList.list; sp; sp = sp->next) {
+		setVar(n->nFor.var, sp->text, 0);
+		evalTree(n->nFor.body, 0);
+		if (evalSkip) {
+			if (evalSkip == SKIP_CONT && --skipCount <= 0) {
+				evalSkip = 0;
+				continue;
+			}
+			if (evalSkip == SKIP_BREAK && --skipCount <= 0) {
+				evalSkip = 0;
+			}
+			break;
+		}
+	}
+	--loopNest;
+
+out:
+	popStackMark(&stackMark);
+}
+
+/* Kick off a subshell to evaluate a tree.
+ */
+static void evalSubshell(Node *n, int flags) {
+	Job *jp;
+	int backgnd = (n->type == NBACKGND);
+
+	expRedir(n->nRedir.redirect);
+	jp = makeJob(1);
+	if (forkShell(jp, n, backgnd) == 0) {
+		if (backgnd)
+		  flags &= ~EV_TESTED;
+		redirect(n->nRedir.redirect, 0);
+		evalTree(n->nRedir.n, flags | EV_EXIT);	/* Never returns */
+	}
+	if (! backgnd) {
+		INTOFF;
+		exitStatus = waitForJob(jp);
+		INTON;
+	}
+}
+
 /* Evaluate a parse tree. The value is left in the global variable
  * existStatus.
  */
@@ -507,17 +565,16 @@ void evalTree(Node *n, int flags) {
 			evalTree(n->nBinary.ch2, flags);
 			break;
 		case NREDIR:
-			printf("=== eval redir\n");
 			expRedir(n->nRedir.redirect);
 			redirect(n->nRedir.redirect, REDIR_PUSH);
 			evalTree(n->nRedir.n, flags);
 			popRedir();
 			break;
 		case NSUBSHELL:
-			printf("=== TODO evalTree subshell\n");
+			evalSubshell(n, flags);
 			break;
-		case NBACKGND:
-			printf("=== TODO evalTree backgnd\n");
+		case NBACKGND:	/* e.g, (cat xxx) & */
+			evalSubshell(n, flags);
 			break;
 		case NIF: {
 			int status = 0;
@@ -539,8 +596,7 @@ void evalTree(Node *n, int flags) {
 			evalLoop(n);
 			break;
 		case NFOR:
-			printf("=== TODO evalTree for\n");
-			//TODO evalFor(n);
+			evalFor(n);
 			break;
 		case NCASE:
 			evalCase(n, flags);
@@ -664,8 +720,8 @@ int evalCmd(int argc, char **argv) {
  * Should be called with interrupts off.
  */
 void evalBackCmd(union Node *n, BackCmd *result) {
-	//int pip[2];
-	//Job *jp;
+	int pip[2];
+	Job *jp;
 	StackMark stackMark;
 
 	setStackMark(&stackMark);
@@ -679,8 +735,19 @@ void evalBackCmd(union Node *n, BackCmd *result) {
 	} else if (n->type == NCMD) {
 		evalCommand(n, EV_BACKCMD, result);
 	} else {
-		printf("=== TODO init evalBackCmd 111\n");
-		//TODO
+		if (pipe(pip) < 0) 
+		  error("Pipe call failed");
+		jp = makeJob(1);
+		if (forkShell(jp, n, FORK_NO_JOB) == 0) {	/* Child process */
+			FORCE_INTON;	
+			close(pip[0]);
+			copyToStdout(pip[1]);	
+			evalTree(n, EV_EXIT);
+		}
+		/* Parent Process */
+		close(pip[1]);	
+		result->fd = pip[0];
+		result->jp = jp;
 	}
 	popStackMark(&stackMark);
 }

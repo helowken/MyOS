@@ -70,7 +70,14 @@ OBJS_M32 = \
 		_getcwd.o \
 		_link.o \
 		symlink.o \
-		_mknod.o
+		_mknod.o \
+		_uname.o \
+		_sync.o \
+		_fsync.o \
+		_select.o \
+		_setgid.o \
+		_setuid.o \
+		_pause.o
 
 
 all: build

@@ -346,6 +346,7 @@ static Node *command() {
 				while (readToken() == TWORD) {	
 					n2 = (Node *) stackAlloc(sizeof(NArg));
 					n2->type = NARG;
+					n2->nArg.text = wordText;
 					n2->nArg.backquote = backquoteList;
 					*app = n2;
 					app = &n2->nArg.next;
@@ -567,6 +568,7 @@ static Node *list(int nlFlag) {
 				pn = &n1;
 				if (!first && n1->type == NSEMI)
 				  pn = &n1->nBinary.ch2;
+
 				if ((*pn)->type == NCMD || (*pn)->type == NPIPE) {
 					(*pn)->nCmd.backgnd = 1;
 				} else if ((*pn)->type == NREDIR) {

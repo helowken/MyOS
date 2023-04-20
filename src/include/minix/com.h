@@ -281,6 +281,13 @@
 #define SEG_SIZE		m4_l4	/* Segment size */
 #define SEG_INDEX		m4_l5	/* Segment index in remote map */
 
+/* Field names for SELECT (FS). */
+#define SEL_NFDS		m8_i1
+#define SEL_READFDS		m8_p1
+#define SEL_WRITEFDS	m8_p2
+#define SEL_ERRORFDS	m8_p3
+#define SEL_TIMEOUT		m8_p4
+
 /*=====================================================================*
  *			Messages for system management server   	  *
  *=====================================================================*/

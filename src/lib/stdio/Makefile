@@ -40,7 +40,8 @@ OBJS_M32 = \
 		ftell.o \
 		rewind.o \
 		perror.o \
-		doprnt.o
+		doprnt.o \
+		mktemp.o
 
 
 all: build

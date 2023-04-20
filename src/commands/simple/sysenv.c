@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
 	char val[1024];
 	char *opt;
 
-	prog = argv[0];
+	prog = getProg(argv);
 	i = 1;
 	while (i < argc && argv[i][0] == '-') {
 		opt = argv[i++] + 1;

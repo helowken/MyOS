@@ -8,7 +8,8 @@
 #include "param.h"
 #include "image.h"
 
-#define ESCRIPT	(-2000)		/* Returned by readHeader for a '#!' script. */
+#define ESCRIPT		(-2000)			/* Returned by readHeader for a '#!' script. */
+#define PTR_SIZE	sizeof(char *)	/* Size of pointers in argv[[ and envp[]. */
 
 MProc *findShare(MProc *rmp, ino_t ino, dev_t dev, time_t ctime) {
 /* Look for a process that is the file <ino, dev, ctime> in execute. Don't
@@ -183,7 +184,7 @@ static int newMem(MProc *shareMp, vir_bytes textBytes, vir_bytes dataBytes,
 	return OK;
 }
 
-static void patchStack(char stack[ARG_MAX], vir_bytes base) {
+static void patchPtr(char stack[ARG_MAX], vir_bytes base) {
 /* When doing an exec(name, arg, envp) call the user builds up a stack
  * image with arg and env pointers relative to the start of the stack. Now
  * these pointers must be relocated, since the stack is not positioned at
@@ -206,6 +207,121 @@ static void patchStack(char stack[ARG_MAX], vir_bytes base) {
 		  ++nullPtrCount;
 		++ap;
 	}
+}
+
+static int insertArg(
+	char stack[ARG_MAX],	/* Pointer to stack frame image within PM */
+	vir_bytes *stackFrameBytes,	/* Size of initial stack frame */
+	char *arg,				/* Argument to prepend/replace as new argv[0] */
+	int replace				
+) {
+/* Patch the stack so that arg will become argv[0]. Be careful, the stack may
+ * be filled with garbage, although it normally looks like this:
+ *	nArgs argv[0] ... argv[nArgs - 1] NULL envp[0] ... NULL
+ * followed by the strings "pointed" to by the argv[i] and the envp[i].
+ * Return true iff the operation succeeded.
+ */
+	int offset, a0, a1, oldBytes = *stackFrameBytes;
+
+	/* Prepending arg adds at least one string and a zero byte. */
+	offset = strlen(arg) + 1;
+
+	a0 = (int) ((char **) stack)[1];	/* argv[0] */
+	/* 4 is for pointers as : argc + argv nil + envp nil + a0
+	 * see execve() for more information.
+	 */
+	if (a0 < 4 * PTR_SIZE || a0 >= oldBytes)
+	  return FALSE;
+
+	a1 = a0;	/* a1 will point to the strings to be moved */
+	if (replace) {
+		/* Move a1 to the end of argv[0][] (or argv[1] if nArgs > 1).
+		 * 1. argv: argvNil		(no arg, return false)
+		 * 2. argv: xxx\0 argvNil	(move to the end of argv[0])
+		 * 3. argv: xxx\0 yyy\0 argvNil	(mvoe to argv[1])
+		 */
+		do {
+			if (a1 == oldBytes)
+			  return FALSE;
+			--offset;
+		} while (stack[a1++] != 0);
+	} else {
+		offset += PTR_SIZE;	/* New argv[0] needs new pointer in argv[] */
+		a0 += PTR_SIZE;		/* Location of new argv[0][]. */
+	}
+
+	/* Stack will grow by offset bytes (or shrink by -offset bytes) */
+	if ((*stackFrameBytes += offset) > ARG_MAX)
+	  return FALSE;
+
+	/* Reposition the strings by offset bytes. */
+	memmove(stack + a1 + offset, stack + a1, oldBytes - a1);
+
+	strcpy(stack + a0, arg);	/* Put arg in the new space. */
+
+	if (! replace) {
+		/* Make space for new argv[0].
+		 * No need to move the location of argc.
+		 */
+		memmove(stack + 2 * PTR_SIZE, stack + 1 * PTR_SIZE, a0 - 2 * PTR_SIZE);
+
+		++((char **) stack)[0];	/* ++nArgs; */
+	}
+
+	/* Now patch up argv[] and envp[] by offset. */
+	patchPtr(stack, (vir_bytes) offset);
+	((char **) stack)[1] = (char *) a0;		/* Set argv[0] correctly */
+	return TRUE;
+}
+
+static char *patchStack(
+	int fd,					/* File descriptor to open script file */
+	char stack[ARG_MAX],	/* Pointer to stack frame image within PM */
+	vir_bytes *stackFrameBytes, /* Size of initial stack frame */
+	char *script			/* Name of script to interpret */
+) {
+/* Patch the argument vector to include the path name of the script to be
+ * interpreted, and all strings on the #! line. Returns the patch name of
+ * the interpreter.
+ */
+	char *sp, *interp = NULL;
+	int n;
+	enum { INSERT = FALSE, REPLACE = TRUE };
+
+	/* Make script[] the new argv[0]. */
+	if (! insertArg(stack, stackFrameBytes, script, REPLACE))
+	  return NULL;
+
+	if (lseek(fd, 2L, 0) == -1 ||	/* Just behind the #! */
+			(n = read(fd, script, PATH_MAX)) < 0 ||	/* Read line one */
+			(sp = memchr(script, '\n', n)) == NULL)	/* Must be proper line */
+	  return NULL;
+
+	/* Move sp backwards through script[], prepending each string to stack. */
+	while (TRUE) {
+		/* Skip spaces behind argument. */
+		while (sp > script && (*--sp == ' ' || *sp == '\t')) {
+		}
+		if (sp == script)	/* No shell arguments */
+		  break;
+
+		sp[1] = 0;	/* Replace '\n' or ' ' or '\t' with 0 */
+
+		/* Move to the start of the argument */
+		while (sp > script && sp[-1] != ' ' && sp[-1] != '\t') {
+			--sp;
+		}
+		
+		interp = sp;
+		if (! insertArg(stack, stackFrameBytes, sp, INSERT))
+		  return NULL;
+	}
+
+	/* Round *stackFrameBytes up to the size of a pointer for alignment contraints. */
+	*stackFrameBytes = ((*stackFrameBytes + PTR_SIZE - 1) / PTR_SIZE) * PTR_SIZE;
+
+	close(fd);
+	return interp;
 }
 
 int doExec() {
@@ -261,7 +377,7 @@ int doExec() {
 					&dataVirAddr, &pc);
 		if (m != ESCRIPT || ++r > 1)
 		  break;
-	} while (false); //TODO
+	} while ((name = patchStack(fd, mBuf, &stackFrameBytes, nameBuf)) != NULL);
 
 	if (m < 0) {
 		close(fd);	/* Something wrong with header */
@@ -288,7 +404,7 @@ int doExec() {
 	virStackBase = (vir_bytes) rmp->mp_seg[S].virAddr << CLICK_SHIFT;
 	virStackBase += (vir_bytes) rmp->mp_seg[S].len << CLICK_SHIFT;
 	virStackBase -= stackFrameBytes;
-	patchStack(mBuf, virStackBase);
+	patchPtr(mBuf, virStackBase);
 	src = (vir_bytes) mBuf;
 	r = sysDataCopy(PM_PROC_NR, (vir_bytes) src,
 			who, (vir_bytes) virStackBase, (phys_bytes) stackFrameBytes);

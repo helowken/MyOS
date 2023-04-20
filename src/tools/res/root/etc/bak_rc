@@ -56,8 +56,8 @@ start)
 	# Start crucial system services. The floppy driver *must* be loaded
 	# first, as it needs memory below 16MB in order to do ISA DMA.
 	if [ ! "`sysenv label`" = "FLOPPY" ]
-	then echo "up floppy" #TODO up floppy "" /dev/fd0
-	else echo "up at_wini" #TODO up at_wini "" /dev/c0d0
+	then echo -n " floppy" #TODO up floppy "" /dev/fd0
+	else echo -n " at_wini" #TODO up at_wini "" /dev/c0d0
 	fi
 #TODO up is ""
 	up cmos "" /dev/cmos
@@ -70,7 +70,7 @@ start)
 	fi
 
 	# Try to read the hardware real-time clock, otherwise do it manually.
-	readclock || intr date -q	# TODO date -q 
+	readclock || intr date -q	
 
 	# Initialize  files.
 	printroot >/etc/mtab	# /etc/mtab keeps track of mounts
@@ -80,12 +80,25 @@ start)
 	. /etc/fstab
 	
 	# Any swapspace on a device?
-	#TODO match and mount:  test "$swap" : '/dev' && mount -s $swap
+	# TODO test "$swap" : '/dev' && mount -s $swap
 
 	# Are we booting from CD?
 	bootcd="`/bin/sysenv bootcd`"
 
-	#TODO bootcd
+	# If booting from CD, /usr has to be mounted readonly.
+	# Also, $usr won't be specified correctly in the
+	# fstab (the CD could be anywhere), so we decide
+	# where it is based on sysenv (set by FS when probing for CD).
+	if [ "$bootcd" = 1 ]
+	then	
+		# TODO start
+		imagedev="`/bin/sysenv cdproberoot`"
+		usrdev="`expr $imagedev + 1`"
+		usr_roflag="-r"
+		usr="`/bin/dev2name $usrdev`"
+		echo "Setting /usr to mount readonly from cd: $usrdev -> $usr"
+		# TODO end
+	fi
 
 	# Mount the /usr partition unless this is a single floppy Minix.
 	if [ ! -d /usr/bin ]
@@ -107,4 +120,58 @@ Mount $usr /usr failed -- Single user."
 		}
 		rm -f /tmp/usr
 	fi
+
+	# Check if the system crashed.
+	if shutdown -C
+	then
+		echo
+		echo "The system was not properly shut down. Checking file systems."
+		fflag=t
+	fi
+
+	if [ "$fflag" ]
+	then
+		umount $usr
+		intr fsck -r $root
+		intr fsck -r $usr
+		if [ ! -z "$home" ]
+		then	
+			intr fsck -r $home
+		fi
+		mount $usr /usr
+	fi
+
+	if [ ! -z "$home" ]
+	then
+		mount $home /home || echo "WARNING: couldn't mount $home on /home"
+	fi
+
+	# This file is necessary for above 'shutdown -C' check.
+	# (Silence stderr in case of running from cd.)
+	touch /usr/admn/wtmp 2>/dev/null
+
+	if [ "$sflag" ]
+	then
+		echo "Single user."
+		intr sh
+	fi
+
+	# Any swapspace on a file?
+	test -n "$swap" -a ! "$swap" : '/dev/' && mount -s $swap
+
+	case "`printroot -r`":$bootcd in
+	/dev/ram:)
+		# Remove boot-only things to make space
+		# unless booting from CD, in which case we need them.
+		rm -rf /boot
+		# TODO put the compiler on ram
+	esac
+
+	# Things should be alright now.
 esac
+
+# Further initialization.
+test -f /usr/etc/rc && sh /usr/etc/rc $action
+test -f /usr/local/etc/rc && sh /usr/local/etc/rc $action
+
+exit 0

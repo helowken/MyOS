@@ -133,7 +133,7 @@ Inode *advance(Inode *dirIp, char string[NAME_MAX]) {
 	if ((ip = getInode(dirIp->i_dev, iNum)) == NIL_INODE) 
 	  return NIL_INODE;
 
-	/* See if we are going o to the parent dir of the mount dir. */
+	/* See if we are going to the parent dir of the mount dir. */
 	if (ip->i_num == ROOT_INODE && 
 			dirIp->i_num == ROOT_INODE &&
 			string[1] == '.') {

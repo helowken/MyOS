@@ -14,7 +14,7 @@ struct sigregs {
 	int sr_ds;
 	int sr_edi;
 	int sr_esi;
-	int sr_ebp;
+	int sr_ebp; 
 	int sr_temp;		/* Stack top -- used in kernel */
 	int sr_ebx;
 	int sr_edx;

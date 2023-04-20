@@ -48,7 +48,7 @@ static char *paramsTpl =
 	"main() { "
 		"echo By default, MINIX 3 will automatically load in 3 seconds.; "
 		"echo Press ESC to enter the monitor for special configuration.; "
-		//"trap 3000 boot; "   Bochs may have a bug on system timer
+		"trap 3000 boot; "   
 		"menu; "
 	"};";
 

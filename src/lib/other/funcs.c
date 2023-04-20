@@ -38,3 +38,12 @@ void usage(const char *prog, const char *s) {
 	exit(1);
 }
 
+char *getProg(char **argv) {
+	char *prog;
+
+	if ((prog = strrchr(argv[0], '/')) == NULL)
+	  prog = argv[0];
+	else
+	  ++prog;
+	return prog;
+}

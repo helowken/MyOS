@@ -92,7 +92,7 @@ void revive(
 	int pNum,	/* Process to revive */
 	int retVal	/* If hanging on task, how many bytes read */
 ) {
-/* Revive a previously blocked process, When a process hangs on tty, this
+/* Revive a previously blocked process. When a process hangs on tty, this
  * is the way it is eventually released.
  */
 	register FProc *rfp;
@@ -135,7 +135,7 @@ int pipeCheck(
 	int oFlags,			/* Flags set by open or fcntl */
 	int bytes,			/* Bytes to be read or written (all chunks) */
 	off_t position,		/* Current file position */
-	int *canWrite,		/* Return: number of bytes we can write */
+	int *bytesCanWrite,	/* Return: number of bytes we can write */
 	int noTouch			/* Check only */
 ) {
 /* Pipes are a little different. If a process reads from an empty pipe for
@@ -177,7 +177,7 @@ int pipeCheck(
 			if ((oFlags & O_NONBLOCK) && bytes < pipeSize) { 
 				return EAGAIN;
 			} else if ((oFlags & O_NONBLOCK) && bytes > pipeSize) {
-				if ((*canWrite = pipeSize - position) > 0) {
+				if ((*bytesCanWrite = pipeSize - position) > 0) {
 					/* Do a partial write. Need to wakeup reader. */
 					if (! noTouch)
 					  release(ip, READ, suspendedCount);
@@ -187,7 +187,7 @@ int pipeCheck(
 				}
 			}
 			if (bytes > pipeSize) {
-				if ((*canWrite = pipeSize - position) > 0) {
+				if ((*bytesCanWrite = pipeSize - position) > 0) {
 					/* Do a partial write. Need to wakeup reader
 					 * since we'll suspend ourself in readWrite().
 					 */
@@ -205,7 +205,7 @@ int pipeCheck(
 		  release(ip, READ, suspendedCount);
 	}
 
-	*canWrite = 0;
+	*bytesCanWrite = 0;
 	return 1;
 }
 

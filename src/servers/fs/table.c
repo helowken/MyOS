@@ -38,6 +38,7 @@ void initSysCalls() {
 	map(FSTAT, doFstat);	/* 28 = fstat */
 	map(UTIME, doUTime);	/* 30 = utime */
 	map(ACCESS, doAccess);	/* 33 = access */
+	map(SYNC, doSync);		/* 36 = sync */
 	map(RENAME, doRename);	/* 38 = rename */
 	map(MKDIR, doMkdir);	/* 39 = mkdir */
 	map(RMDIR, doUnlink);	/* 40 = rmdir */
@@ -49,7 +50,9 @@ void initSysCalls() {
 	map(UMASK, doUmask);	/* 60 = umask */
 	map(SETSID, doSetSid);	/* 62 = setsid */
 	map(DEVCTL, doDevCtl);	/* 81 = devctl */
-	map(FCHDIR, doFChdir);	/* 86 = fchdir */
+	map(SELECT, doSelect);	/* 85 = select */
+	map(FCHDIR, doFchdir);	/* 86 = fchdir */
+	map(FSYNC, doFsync);	/* 87 = fsync */
 }
 
 

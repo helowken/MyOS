@@ -5,6 +5,7 @@
 #include "main.h"
 #include "nodes.h"
 #include "eval.h"
+#include "input.h"
 #include "expand.h"
 #include "syntax.h"
 #include "parser.h"
@@ -16,6 +17,10 @@
 #include "output.h"
 #include "error.h"
 #include "errno.h"
+#include "sys/types.h"
+#include "sys/stat.h"
+#include "dirent.h"
+#include "pwd.h"
 
 
 /* Structure specifying which parts of the string should be searched
@@ -39,8 +44,10 @@ ArgList expArg;				/* Holds expanded arg list */
 /* Set if the last argument processed had /u/logname or ~logname expanded.
  * This variable is read by the cd command.
  */
-int didUDir;
+int didUserDir;
 #endif
+
+static char *expDir;
 
 static void argStr(char *p, int full);
 
@@ -440,16 +447,224 @@ static void ifsBreakup(char *string, ArgList *argList) {
 }
 
 /* TILDE: Expand ~username into the home directory for the specified user. 
+ * We hope not to use the getpw stuff here, because then we would have to load
+ * in stdio and who knows what else. With networked password files there is
+ * no choice alas.
  */
-static char *expUDir(char *path) {
-	return NULL;//TODO
+#define MAX_LOG_NAME	32
+#define MAX_PW_LINE		128
+
+static char *expUserDir(char *path) {
+	register char *p, *q, *r;
+	char name[MAX_LOG_NAME];
+	int i;
+	struct passwd *pw;
+
+	r = path;	/* Result on failure */
+	p = r + 1;	/* The 1 skips "~" */
+	q = name;
+	while (*p && *p != '/') {
+		if (q >= name + MAX_LOG_NAME - 1)
+		  return r;		/* Fail, name too long */
+		*q++ = *p++;
+	}
+	*q = '\0';
+
+	if (*name == 0 && *r == '~') {
+		/* null name, use $HOME */
+		if ((q = lookupVar("HOME")) == NULL)
+		  return r;		/* Fail, home not set */
+		i = strlen(q);
+		r = stackAlloc(i + strlen(p) + 1);
+		scopy(q, r);
+		scopy(p, r + i);
+		didUserDir = 1;
+		return r;
+	}
+	
+	if ((pw = getpwnam(name)) != NULL) {
+		/* User exists */
+		q = pw->pw_dir;
+		i = strlen(q);
+		r = stackAlloc(i + strlen(p) + 1);
+		scopy(q, r);
+		scopy(p, r + i);
+		didUserDir = 1;
+	}
+	endpwent();
+	return r;
+}
+
+/* Add a file name to the list
+ */
+static void addFileName(char *name) {
+	char *p;
+	StrList *sp;
+
+	p = stackAlloc(strlen(name) + 1);
+	scopy(name, p);
+	sp = (StrList *) stackAlloc(sizeof(*sp));
+	sp->text = p;
+	*expArg.last = sp;
+	expArg.last = &sp->next;
 }
 
 /* Do metacharacter (i.e. *, ?, [...]) expansion.
  */
 static void expMeta(char *endDir, char *name) {
-	//TODO
-	printf("=== TODO expMeta\n");
+	register char *p;
+	char *q;
+	char *start;
+	char *endName;
+	int metaFlag;
+	struct stat sb;
+	DIR *dirp;
+	struct dirent *dp;
+	int atEnd;
+	int matchDot;
+
+	metaFlag = 0;
+	start = name;
+	for (p = name; ; ++p) {
+		if (*p == '*' || *p == '?') {
+			metaFlag = 1;
+		} else if (*p == '[') {
+			q = p + 1;
+			if (*q == '!')	/* Can't be [!] */
+			  ++q;
+			for (;;) {
+				if (*q == CTL_ESC)
+					++q;
+				if (*q == '/' || *q == '\0')
+				  break;
+				if (*++q == ']') {
+					metaFlag = 1;
+					break;
+				}
+			}
+		} else if (*p == '!' && 
+					p[1] == '!' &&
+					(p == name || p[-1] == '/')) {
+			metaFlag = 1;
+		} else if (*p == '\0') {
+			break;
+		} else if (*p == CTL_ESC) {
+			++p;
+		}
+		if (*p == '/') {
+			if (metaFlag)	/* [start, p) has meta: "aa?/bb" */
+			  break;
+			/* "aa/b?", [start, p) has no meta, start points to "b?" */
+			start = p + 1;	
+		}
+	}
+	if (metaFlag == 0) {	/* We've reached the end of the file name */
+		if (endDir != expDir)
+		  ++metaFlag;
+		for (p = name; ; ++p) {
+			if (*p == CTL_ESC)
+			  ++p;
+			*endDir++ = *p;
+			if (*p == '\0')
+			  break;
+		}
+		if (metaFlag == 0 || stat(expDir, &sb) >= 0)
+		  addFileName(expDir);
+		return;
+	}
+	endName = p;	/* points to the remaining part */ 
+
+	if (start != name) {	
+		/* The part of [name, start) has no meta. */
+		p = name;
+		while (p < start) {
+			if (*p == CTL_ESC)
+			  ++p;
+			*endDir++ = *p++;
+		}
+	}
+
+	if (endDir == expDir) {	/* ls ab* */
+		p = ".";
+	} else if (endDir == expDir + 1 && *expDir == '/') {	/* ls /[ab]c */
+		p = "/";
+	} else {	/* ls aa/bb? */
+		p = expDir;
+		endDir[-1] = '\0';	/* make "aa/" to "aa" */
+	}
+	if ((dirp = opendir(p)) == NULL)
+	  return;
+	if (endDir != expDir)
+	  endDir[-1] = '/';		/* make "aa" back to "aa/" */
+
+	/* If *endName is not null, it points to '/' following the meta part. */
+	if (*endName == 0) {
+		atEnd = 1;
+	} else {	
+		atEnd = 0;
+		*endName++ = '\0';
+	}
+
+	matchDot = 0;
+	if (start[0] == '.' || 
+		(start[0] == CTL_ESC && start[1] == '.'))
+	  ++matchDot;
+	while (! int_pending() && (dp = readdir(dirp)) != NULL) {
+		if (dp->d_name[0] == '.' && ! matchDot)
+		  continue;
+		if (patternMatch(start, dp->d_name)) {
+			if (atEnd) {
+				scopy(dp->d_name, endDir);
+				addFileName(expDir);
+			} else {
+				for (p = endDir, q = dp->d_name; (*p++ = *q++); ) {
+				}
+				p[-1] = '/';
+				expMeta(p, endName);
+			}
+		}
+	}
+	closedir(dirp);
+	if (! atEnd)
+	  endName[-1] = '/';	/* back to the previous level */
+}
+
+static StrList *msort(StrList *list, int len) {
+	StrList *p, *q;
+	StrList **lpp;
+	int half;
+	int n;
+
+	if (len <= 1)
+	  return list;
+	half = len >> 1;
+	p = list;
+	for (n = half; --n >= 0; ) {
+		q = p;
+		p = p->next;
+	}
+	q->next = NULL;		/* Terminate first half of list */
+	q = msort(list, half);	/* Sort first half of list */
+	p = msort(p, len - half);	/* Sort second half */
+	lpp = &list;
+	for (;;) {
+		if (strcmp(p->text, q->text) < 0) {
+			*lpp = p;
+			lpp = &p->next;
+			if ((p = *lpp) == NULL) {
+				*lpp = q;
+				break;
+			}
+		} else {
+			*lpp = q;
+			lpp = &q->next;
+			if ((q = *lpp) == NULL) {
+				*lpp = p;
+				break;
+			}
+		}
+	}
+	return list;
 }
 
 /* Sort the results of file name expansion. It calculates the number of
@@ -457,16 +672,19 @@ static void expMeta(char *endDir, char *name) {
  * work.
  */
 static StrList *expSort(StrList *str) {
-	//TODO
-	printf("=== TODO expSort\n");
-	return NULL;
+	int len;
+	StrList *sp;
+
+	len = 0;
+	for (sp = str; sp; sp = sp->next) {
+		++len;
+	}
+	return msort(str, len);
 }
 
 /* Expand shell metacharacters. At this point, the only control characters
  * should be escapes. The results are stored in the list expArg.
  */
-static char *expDir;
-
 static void expandMeta(StrList *str) {
 	char *p;
 	StrList **saveLast;
@@ -479,7 +697,7 @@ static void expandMeta(StrList *str) {
 		p = str->text;
 #if TILDE
 		if (p[0] == '~')
-		  str->text = p = expUDir(p);
+		  str->text = p = expUserDir(p);
 #endif
 		for (;;) {		/* Fast check for meta chars */
 			if ((c = *p++) == '\0') 
@@ -498,7 +716,10 @@ static void expandMeta(StrList *str) {
 		expDir = NULL;
 		INTON;
 		if (expArg.last == saveLast) {
-			if (! zflag) {
+			/* sh -cz "ls e?", if no item matches "e?", 
+			 * it is equal to: sh -cz "ls"
+			 */
+			if (! zflag) {	
 noMeta:
 				*expArg.last = str;
 				rmEscapes(str->text);
@@ -526,7 +747,7 @@ void expandArg(Node *arg, ArgList *argList, int full) {
 	char *p;
 
 #if UDIR || TILDE
-	didUDir = 0;
+	didUserDir = 0;
 #endif
 	argBackq = arg->nArg.backquote;
 	START_STACK_STR(expDest);

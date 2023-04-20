@@ -233,6 +233,7 @@ fileBit:
 			break;
 		case MATCH_PAT:
 			{
+				printf("=== expr match TODO\n");
 				//TODO
 			}
 			break;

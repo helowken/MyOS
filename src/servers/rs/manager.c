@@ -71,8 +71,9 @@ int doStart(Message *mp) {
 			/* Set privileges to let child run. */
 			if ((s = taskCall(SYSTEM, SYS_PRIVCTL, &msg)) < 0)	
 			  report("SM", "taskCall to SYSTEM failed", s);
-			printf("=== SM: started '%s %s', majorDev: %d, pid: %d, pNum: %d\n",
-					command, argBuf, majorNum, childPid, childProcNum);
+			if (0) 
+			  printf("=== SM: started '%s %s', majorDev: %d, pid: %d, pNum: %d\n",
+					command, argBuf, majorNum, childPid, childProcNum); 
 	}
 	return OK;
 }

@@ -3,4 +3,5 @@ daemon:*:1:
 bin:*:2:
 other:*:3:
 tty:*:4:
+uucp:*:5:
 nogroup:*:99:

@@ -25,7 +25,10 @@ OBJS_M32 = \
 		getgrent.o \
 		getopt.o \
 		bzero.o \
-		itoa.o
+		itoa.o \
+		ttyname.o \
+		_getsysinfo.o \
+		putenv.o
 
 
 OBJS_M16 = \

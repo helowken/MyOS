@@ -51,6 +51,7 @@ int sysStrDevIO(int req, long port, int type, int pNum, void *buffer, int count)
 #define sysGetKernelInfo(dst)	sysGetInfo(GET_KINFO, dst, 0, 0, 0)
 #define sysGetMachine(dst)		sysGetInfo(GET_MACHINE, dst, 0, 0, 0)
 #define sysGetProc(dst, num)	sysGetInfo(GET_PROC, dst, 0, 0, num)
+#define sysGetRandomness(dst)	sysGetInfo(GET_RANDOMNESS, dst, 0, 0, 0)
 #define sysGetImage(dst)		sysGetInfo(GET_IMAGE, dst, 0, 0, 0)
 int sysGetInfo(int request, void *valPtr, int valLen, void *valPtr2, int valLen2);
 
