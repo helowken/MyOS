@@ -1,0 +1,396 @@
+#include <sys/types.h>
+#include <signal.h>
+#include <string.h>
+#include <utmp.h>
+#include <time.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+#include <minix/paths.h>
+
+#define FALSE	0
+#define TRUE	1
+
+#define BUFFER_SIZE		4096	/* Room for wtmp records */
+#define MAX_WTMP_COUNT	(BUFFER_SIZE / sizeof(struct utmp))
+#define LINE_LEN		12
+
+#define min(a, b)		((a < b) ? a : b)
+#define max(a, b)		((a > b) ? a : b)
+#define eq(a, b)		(strcmp((a), (b)) == 0)
+#define eqn(a, b, n)	(strncmp((a), (b), (n)) == 0)
+
+typedef struct Logout {		/* A logout time record */
+	char line[LINE_LEN];	/* The terminal name */
+	long time;				/* The logout time */
+	struct Logout *next;	/* Next in linked list */
+} Logout;
+
+
+/* Command-line option flags */
+static char bootLimit = FALSE;	/* Stop on latest reboot */
+static char countLimit = FALSE;	/* Stop after printCount */
+static char tellUptime = FALSE;	/* Tell uptime since last reboot */
+static int printCount;
+static char *prog;				/* Name of this program */
+static int argCount;			/* Used to select specific */
+static char **args;				/* Users and ttys */
+
+/* Global variables */
+static long bootTime = 0;		/* Zero means no reboot yet */
+static char *bootDown;			/* "crash" or "down " flag */
+static Logout *firstLink = NULL;	/* List of logout times */
+static int interrupt = FALSE;	/* If sigint or sigquit occurs */
+
+static void usage() {
+	fprintf(stderr, 
+		"Usage: last [-r] [-u] [-count] [-f file] [name] [tty] ...\n");
+	exit(-1);
+}
+
+static void sigInt(int sig) {
+	interrupt = SIGINT;
+}
+
+static void sigQuit(int sig) {
+	interrupt = SIGQUIT;	
+}
+
+/* A linked list of "last logout time" is kept.
+ * Each element of the list is for one terminal.
+ */
+static void recordLogoutTime(struct utmp *wtmp) {
+	Logout *link;
+
+	/* See if the terminal is already in the list. */
+	for (link = firstLink; link != NULL; link = link->next) {
+		if (eqn(link->line, wtmp->ut_line, LINE_LEN)) {
+			link->time = wtmp->ut_time;
+			return;
+		}
+	}
+	/* Allocate a new logout record, for a tty not previously encountered. */
+	link = (Logout *) malloc(sizeof(Logout));
+	if (link == NULL) {
+		fprintf(stderr, "%s: malloc failure\n", prog);
+		exit(EXIT_FAILURE);
+	}
+	strncpy(link->line, wtmp->ut_line, LINE_LEN);
+	link->time = wtmp->ut_time;
+	link->next = firstLink;
+
+	firstLink = link;
+}
+
+/* Calculate and print the "uptime" between the last recorded boot and
+ * the current time.
+ */
+static void printUptime() {
+	char *utmpFile = _PATH_UTMP;
+	unsigned numUsers;
+	struct utmp ut;
+	FILE *uf;
+	time_t now;
+	struct tm *tm;
+	unsigned long up;
+
+	/* Count the number of active users in the utmp file. */
+	if ((uf = fopen(utmpFile, "r")) == NULL) {
+		fprintf(stderr, "%s: %s: %s\n", prog, utmpFile, strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	numUsers = 0;
+	while (fread(&ut, sizeof(ut), 1, uf) == 1) {
+		if (ut.ut_type == USER_PROCESS)
+		  ++numUsers;
+	}
+	fclose(uf);
+
+	/* Current time. */
+	now = time((time_t *) NULL);
+	tm = localtime(&now);
+
+	/* Uptime. */
+	up = now - bootTime;
+
+	printf(" %d:%02d  up", tm->tm_hour, tm->tm_min);
+	if (up >= 24 * 3600L) {
+		unsigned long days = up / (24 * 3600L);
+		printf(" %lu day%s,", days, days == 1 ? "" : "s");
+	}
+	printf(" %lu:%02lu,", (up % (24 * 3600L)) / 3600, (up % 3600) / 60);
+	printf("  %u: user%s\n", numUsers, numUsers == 1 ? "" : "s");
+}
+
+/* If the record was requested, then print out the user name, terminal,
+ * host and time.
+ */
+static int printRecord(struct utmp *wtmp) {
+	int i;
+	int printFlag = FALSE;
+
+	/* Jsut interested in the uptime? */
+	if (tellUptime)
+	  return FALSE;
+
+	/* Check if we have already printed the requested number of records. */
+	if (countLimit && printCount == 0)
+	  exit(EXIT_SUCCESS);
+
+	for (i = 0; i < argCount; ++i) {
+		if (eqn(args[i], wtmp->ut_name, sizeof(wtmp->ut_name)) ||
+				eqn(args[i], wtmp->ut_line, sizeof(wtmp->ut_line))) {
+			printFlag = TRUE;
+			break;
+		}
+	}
+	
+	if (argCount == 0 || printFlag) {
+		printf("%-8.8s  %-8.8s %-16.16s %.16s ",
+			wtmp->ut_name, wtmp->ut_line, wtmp->ut_host,
+			ctime(&wtmp->ut_time));
+		--printCount;
+		return TRUE;
+	}
+	return FALSE;
+}
+
+/* Calculate and print the days and hh:mm between the log-in and 
+ * the log-out.
+ */
+static void printDuration(long from, long to) {
+	long delta, days, hours, mins;
+
+	delta = max(to - from, 0);
+	days = delta / (24 * 3600L);
+	delta = delta % (24 * 3600L);
+	hours = delta / 3600L;
+	delta = delta % 3600L;
+	mins = delta / 60L;
+
+	if (days > 0)
+	  printf("(%ld+", days);
+	else
+	  printf(" (");
+
+	printf("%02ld:%02ld)\n", hours, mins);
+}
+
+/* A log-in record format file contains four types of records.
+ *
+ * [1] generated on a system reboot:
+ *
+ * line="~", name="reboot", host="", time=date()
+ *
+ *
+ * [2] generated after a shutdown:
+ *
+ * line="~", name="shutdown", host="", time=date()
+ *
+ * 
+ * [3] generated on a successful login(1)
+ *
+ *
+ * line=ttyname(), name=cuserid(), host=, time=date()
+ *
+ * 
+ * [4] generated by init(8) on a logout
+ *
+ * line=ttyname(), name="", host="", time=date()
+ *
+ *
+ * Note: This version of last(1) does not recognize the '|' and '}' time
+ *   change records. Last(1) pairs up line login's and logout's to
+ *   generate four types of output lines:
+ *
+ *    [1] a system reboot or shutdown
+ *
+ *     reboot	 ~		 Mon May 16 14:16
+ *     shutdown	 ~       Mon May 16 14:15
+ *
+ *    [2] a login with a matching logout
+ *
+ *     edwin	 tty1	 Thu May 26 20:05 - 20:32  (00:27)
+ *
+ *    [3] a login followed by a reboot or shutdown
+ *
+ *     root		 tty0	 Mon May 16 13:57 - crash  (00:19)
+ *     root      tty1    Mon May 16 13:45 - down   (00:19)
+ *
+ *    [4] a login not followed by a logout or reboot
+ *     
+ *     terry	 tty0    Thu May 26 21:19   still logged in
+ */
+static void process(struct utmp *wtmp) {
+	Logout *link, *nextLink;
+	int isReboot;
+
+	/* Suppress the job number on an "ftp" line */
+	if (eqn(wtmp->ut_line, "ftp", 3))
+	  strncpy(wtmp->ut_line, "ftp", LINE_LEN);
+
+	if (eq(wtmp->ut_line, "~")) {
+		/* A reboot or shutdown record */
+		if (bootLimit)
+		  exit(EXIT_SUCCESS);
+
+		if (printRecord(wtmp))
+		  putchar('\n');
+		bootTime = wtmp->ut_time;
+
+		isReboot = eq(wtmp->ut_name, "reboot");
+		if (isReboot)
+		  bootDown = "crash";
+		else
+		  bootDown = "down ";
+
+		if (tellUptime) {
+			/* Usually, there should be at least a reboot record after 
+			 * shutdown record(s). Since the order is:
+			 *   reboot -> shutdown -> reboot -> shutdown -> reboot ...
+			 */
+			if (! isReboot) {
+				fprintf(stderr, 
+			"%s: no reboot record added to wtmp file on system boot!\n",
+					prog);
+				exit(EXIT_FAILURE);
+			}
+			printUptime();
+			exit(EXIT_SUCCESS);
+		}
+
+		/* Remove any logout records. */
+		for (link = firstLink; link != NULL; link = nextLink) {
+			nextLink = link->next;
+			free(link);
+		}
+		firstLink = NULL;
+	} else if (wtmp->ut_name[0] == '\0') {
+		/* A logout record */
+		recordLogoutTime(wtmp);
+	} else {
+		/* A login record */
+		for (link = firstLink; link != NULL; link = link->next) {
+			if (eqn(link->line, wtmp->ut_line, LINE_LEN)) {
+				/* Found corresponding logout record */
+				if (printRecord(wtmp)) {
+					printf("- %.5s ", ctime(&link->time) + 11);
+					printDuration(wtmp->ut_time, link->time);
+				}
+				/* Record login time */
+				link->time = wtmp->ut_time;
+				return;
+			}
+		}
+		/* Could not find a logout record for this login tty */
+		if (printRecord(wtmp)) {
+			if (bootTime == 0) {	/* Still on */
+				printf("  still logged in\n");
+			} else {
+				printf("- %s ", bootDown);
+				printDuration(wtmp->ut_time, bootTime);
+			}
+		}
+		/* Needed in case of 2 consecutive logins */
+		recordLogoutTime(wtmp);		
+	}
+}
+
+int main(int argc, char **argv) {
+	char *wtmpFile = _PATH_WTMP;
+	FILE *f;
+	long size;		/* Number of wtmp records in the file */
+	int wtmpCount;	/* How many to read into wtmpBuffer */
+	struct utmp wtmpBuffer[MAX_WTMP_COUNT];
+
+	if ((prog = strrchr(argv[0], '/')) == NULL)
+	  prog = argv[0];
+	else
+	  ++prog;
+
+	--argc;
+	++argv;
+
+	while (argc > 0 && *argv[0] == '-') {
+		if (eq(argv[0], "-r"))
+		  bootLimit = TRUE;
+		else if (eq(argv[0], "-u"))
+		  tellUptime = TRUE;
+		else if (argc > 1 && eq(argv[0], "-f")) {
+			wtmpFile = argv[1];
+			--argc;
+			++argv;
+		} else if ((printCount = atoi(argv[0] + 1)) > 0)
+		  countLimit = TRUE;
+		else
+		  usage();
+
+		--argc;
+		++argv;
+	}
+
+	argCount = argc;
+	args = argv;
+
+	if (eq(prog, "uptime"))
+	  tellUptime = TRUE;
+
+	if ((f = fopen(wtmpFile, "r")) == NULL) {
+		perror(wtmpFile);
+		exit(EXIT_FAILURE);
+	}
+	if (fseek(f, 0L, SEEK_END) != 0 || 
+			(size = ftell(f)) % sizeof(struct utmp) != 0) {
+		fprintf(stderr, "%s: invalid wtmp file\n", prog);
+		exit(EXIT_FAILURE);
+	}
+	if (signal(SIGINT, SIG_IGN) != SIG_IGN) {
+		signal(SIGINT, sigInt);
+		signal(SIGQUIT, sigQuit);
+	}
+	size /= sizeof(struct utmp);	/* Number of records in wtmp */
+
+	if (size == 0)
+	  wtmpBuffer[0].ut_time = time((time_t *) 0);
+
+	while (size > 0) {
+		wtmpCount = min(size, MAX_WTMP_COUNT);
+		size -= wtmpCount;
+
+		fseek(f, size * sizeof(struct utmp), SEEK_SET);
+
+		if (fread(&wtmpBuffer[0], sizeof(struct utmp), 
+						(size_t) wtmpCount, f) != wtmpCount) {
+			fprintf(stderr, "%s: read error on wtmp file\n", prog);
+			exit(EXIT_FAILURE);
+		}
+		while (--wtmpCount >= 0) {
+			process(&wtmpBuffer[wtmpCount]);
+			if (interrupt) {
+				printf("\ninterrupted %.16s \n",
+						ctime(&wtmpBuffer[wtmpCount].ut_time));
+
+				if (interrupt == SIGINT)
+				  exit(2);
+
+				interrupt = FALSE;
+				signal(SIGQUIT, sigQuit);
+			}
+		}
+	}
+
+	if (tellUptime) {
+		fprintf(stderr, 
+			"%s: no reboot record in wtmp file to compute uptime from\n",
+			prog);
+		return 1;
+	}
+
+	printf("\nwtmp begins %.16s \n", ctime(&wtmpBuffer[0].ut_time));
+	return 0;
+}
+
+
+
+

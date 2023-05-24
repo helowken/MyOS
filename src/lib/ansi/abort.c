@@ -1,8 +1,8 @@
 #if defined(_POSIX_SOURCE)
-#include "sys/types.h"
+#include <sys/types.h>
 #endif
-#include "signal.h"
-#include "stdlib.h"
+#include <signal.h>
+#include <stdlib.h>
 
 extern void (*_clean)();
 

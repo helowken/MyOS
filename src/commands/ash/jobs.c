@@ -8,17 +8,18 @@
 #include "options.h"
 #include "trap.h"
 #include "signames.h"
+#include "syntax.h"
 #include "input.h"
 #include "memalloc.h"
 #include "mystring.h"
 #include "redir.h"
 #include "output.h"
 #include "error.h"
-#include "errno.h"
-#include "signal.h"
-#include "fcntl.h"
-#include "unistd.h"
-#include "sys/wait.h"
+#include <errno.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/wait.h>
 
 static Job *jobTable;		/* Array of jobs */
 static int numJobs;		/* Size of array */
@@ -203,6 +204,7 @@ until:
 			break;
 		case NARG:
 			cmdPuts(n->nArg.text);
+			break;
 		case NTO:
 			p = ">";
 			i = 1;
@@ -320,7 +322,7 @@ int forkShell(Job *jp, Node *n, int mode) {
 		ps->pid = pid;
 		ps->status = -1;
 		ps->cmd = nullStr;
-		if (iflag && rootShell && n)
+		if (iflag && rootShell && n) 
 		  ps->cmd = commandText(n);
 	}
 	INTON;
@@ -455,17 +457,158 @@ void freeJob(Job *jp) {
 	INTON;
 }
 
+void showJobs(int change) {
+	int jobNum;
+	int procNum;
+	int i, sig;
+	Job *jp;
+	ProcStat *ps;
+	int col;
+	char s[64];
+
+	while (doWait(0, (Job *) NULL) > 0) {
+	}
+	for (jobNum = 1, jp = jobTable; jobNum <= numJobs; ++jobNum, ++jp) {
+		if (! jp->used)
+		  continue;
+		if (jp->numProcs == 0) {
+			freeJob(jp);
+			continue;
+		}
+		if (change && ! jp->changed)
+		  continue;
+
+		procNum = jp->numProcs;
+		for (ps = jp->ps; ; ++ps) {	/* For each process */
+			if (ps == jp->ps)
+			  formatStr(s, 64, "[%d] %d ", jobNum, ps->pid);
+			else
+			  formatStr(s, 64, "    %d ", ps->pid);
+			out1Str(s);
+			col = strlen(s);
+
+			s[0] = '\0';
+			if (ps->status == -1) {
+				/* Don't print anything */				
+			} else if (WIFEXITED(ps->status)) {
+				formatStr(s, 64, "Exit %d", WEXITSTATUS(ps->status));
+			} else {
+				i = ps->status;
+				sig = WTERMSIG(i); 
+				if (sig <= MAX_SIG && sigMsg[sig])
+				  scopy(sigMsg[sig], s);
+				else
+				  formatStr(s, 64, "Signal %d", sig);
+				if (WCOREDUMP(i))
+				  strcat(s, " (core dumped)");
+			}
+			out1Str(s);
+			col += strlen(s);
+
+			do {
+				out1Char(' ');
+				++col;
+			} while (col < 30);
+			out1Str(ps->cmd);
+			out1Char('\n');
+
+			if (--procNum <= 0)
+			  break;
+		}
+		jp->changed = 0;
+		if (jp->state == JOB_DONE)
+		  freeJob(jp);
+	}
+}
+
+/* Convert a job name to a job structure.
+ */
+static Job *getJob(char *name) {
+	int jobNum;
+	register Job *jp;
+	int pid;
+	int i;
+
+	if (name == NULL) {
+		error("No current job");
+	} else if (name[0] == '%') {
+		if (isDigit(name[1])) {
+			jobNum = number(name + 1);
+			if (jobNum > 0 && jobNum <= numJobs && 
+					jobTable[jobNum - 1].used)
+			  return &jobTable[jobNum - 1];
+		} else {
+			register Job *found = NULL;
+			for (jp = jobTable, i = numJobs; --i >= 0; ++jp) {
+				if (jp->used && jp->numProcs > 0 && 
+						prefix(name + 1, jp->ps[0].cmd)) {
+					if (found)
+					  error("%s: ambiguous", name);
+					found = jp;
+				}
+			}
+			if (found)
+			  return found;
+		}
+	} else if (isNumber(name)) {
+		pid = number(name);
+		for (jp = jobTable, i = numJobs; --i >= 0; ++jp) {
+			if (jp->used && jp->numProcs > 0 &&
+					jp->ps[jp->numProcs - 1].pid == pid)
+			  return jp;
+		}
+	}
+	error("No such job: %s", name);
+	return NULL;
+}
+
 int waitCmd(int argc, char **argv) {
-	printf("=== waitCmd\n");//TODO
-	return 0;
+	Job *job;
+	int status;
+	Job *jp;
+
+	if (argc > 1)
+	  job = getJob(argv[1]);
+	else
+	  job = NULL;
+
+	for (;;) {	/* Loop until process terminated or stopped */
+		if (job != NULL) {
+			if (job->state) {
+				status = job->ps[job->numProcs - 1].status;
+				if (WIFEXITED(status))
+				  status = WEXITSTATUS(status);
+				else
+				  status = WTERMSIG(status) + 128;
+				if (! iflag)
+				  freeJob(job);
+				return status;
+			}
+		} else {
+			for (jp = jobTable; ; ++jp) {
+				if (jp >= jobTable + numJobs) 	/* No running procs */
+				  return 0;
+				if (jp->used && jp->state == 0)
+				  break;
+			}
+		}
+		doWait(1, NULL);
+	}
 }
 
 int jobIdCmd(int argc, char **argv) {
-	printf("=== jobIdCmd\n");//TODO
+	Job *jp;
+	int i;
+
+	jp = getJob(argv[1]);
+	for (i = 0; i < jp->numProcs; ) {
+		out1Format("%d", jp->ps[i].pid);
+		out1Char(++i < jp->numProcs ? ' ' : '\n');
+	}
 	return 0;
 }
 
 int jobsCmd(int argc, char **argv) {
-	printf("=== jobsCmd\n");//TODO
+	showJobs(0);
 	return 0;
 }

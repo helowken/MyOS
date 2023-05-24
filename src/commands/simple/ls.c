@@ -1,20 +1,20 @@
 #define nil 0
-#include "stdio.h"
-#include "string.h"
-#include "sys/types.h"
-#include "sys/stat.h"
-#include "stdlib.h"
-#include "unistd.h"
-#include "dirent.h"
-#include "time.h"
-#include "pwd.h"
-#include "grp.h"
-#include "errno.h"
-#include "fcntl.h"
-#include "limits.h"
-#include "termios.h"
-#include "sys/ioctl.h"
-#include "minix/minlib.h"
+#include <stdio.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <time.h>
+#include <pwd.h>
+#include <grp.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <termios.h>
+#include <sys/ioctl.h>
+#include <minix/minlib.h>
 
 typedef struct File {
 	struct File *next;		
@@ -537,7 +537,7 @@ static char *timestamp(File *f) {
 	static time_t now;
 	static int drift = 0;
 	static char date[] = "Jan 19 03:14:07 2038";
-	static char month[] = "JanFebMrAprMayJunJulAugSepOctNovDec";
+	static char month[] = "JanFebMarAprMayJunJulAugSepOctNovDec";
 
 	t = f->mtime;
 	if (field & L_ATIME)
@@ -1029,7 +1029,7 @@ int main(int argc, char **argv) {
 	if (present('C')) {
 		int t = istty ? STDOUT_FILENO : open("/dev/tty", O_RDONLY);
 
-		if (t >= 0 && ioctl(t, TIOC_GET_WINSZ, &ws) == 0 && ws.ws_col > 0) 
+		if (t >= 0 && ioctl(t, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0) 
 		  nCols = ws.ws_col - 1;
 
 		if (t != STDOUT_FILENO && t != -1)

@@ -1,5 +1,5 @@
-#include "lib.h"
-#include "unistd.h"
+#include <lib.h>
+#include <unistd.h>
 
 gid_t getegid() {
 	Message msg;

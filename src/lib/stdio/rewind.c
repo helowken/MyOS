@@ -1,4 +1,4 @@
-#include "stdio.h"
+#include <stdio.h>
 #include "loc_incl.h"
 
 void rewind(FILE *stream) {

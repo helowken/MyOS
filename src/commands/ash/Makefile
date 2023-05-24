@@ -1,7 +1,7 @@
 MY_HOME = ../..
 include $(MY_HOME)/common.mk
 CFLAGS += -DSHELL -D_MINIX -D_POSIX_SOURCE 
-LIBS = -L$(MY_HOME)/lib -lmyc -le
+LIBS += -le
 PB_DIR = prebuild
 BLTIN_DIR = bltin
 
@@ -14,7 +14,7 @@ OBJS = builtins.o cd.o error.o eval.o exec.o expand.o input.o \
 	   jobs.o mail.o main.o memalloc.o miscbltin.o mystring.o nodes.o \
 	   options.o parser.o redir.o signames.o syntax.o trap.o \
 	   output.o var.o init.o \
-	   $(BLTIN_DIR)/echo.o $(BLTIN_DIR)/expr.o $(BLTIN_DIR)/operators.o
+	   $(BLTIN_DIR)/echo.o $(BLTIN_DIR)/expr.o $(BLTIN_DIR)/operators.o $(BLTIN_DIR)/regexp.o
 
 CLEAN_FILES = builtins.c builtins.h init.c signames.c signames.h \
 			  syntax.c syntax.h token.h nodes.c nodes.h \

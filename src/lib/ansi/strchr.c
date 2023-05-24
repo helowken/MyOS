@@ -1,5 +1,5 @@
-#include "code.h"
-#include "string.h"
+#include <code.h>
+#include <string.h>
 
 char *strchr(register const char *s, register int c) {
 	c = (char) c;

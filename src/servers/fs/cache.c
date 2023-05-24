@@ -1,5 +1,5 @@
 #include "fs.h"
-#include "minix/com.h"
+#include <minix/com.h>
 
 /* Note:
  * 1. After init, all bufs are linked together in a LRU chain. FrontBp is
@@ -50,9 +50,9 @@
  *	  be remvoed from the hashTable and then put into again with the new 
  *	  dev and blockNum:
  *		while (prev->b_hash_next != NIL_BUF) {
- *			// remove from hashTable	
+ *			remove from hashTable	
  *		}
- *		// go step 4
+ *		go step 4
  */
 
 static void removeLRU(Buf *bp) {

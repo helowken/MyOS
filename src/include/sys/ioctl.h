@@ -7,11 +7,11 @@
  * used in each header file are shown in the comment following.
  */
 
-#include "sys/ioc_tty.h"	/* 'T' 't' 'k'	*/
+#include <sys/ioc_tty.h>	/* 'T' 't' 'k'	*/
 //#include "net/ioctl.h"		/* 'n'			*/
-#include "sys/ioc_disk.h"	/* 'd'			*/
-#include "sys/ioc_file.h"	/* 'f'			*/
-#include "sys/ioc_memory.h"	/* 'm'			*/
+#include <sys/ioc_disk.h>	/* 'd'			*/
+#include <sys/ioc_file.h>	/* 'f'			*/
+#include <sys/ioc_memory.h>	/* 'm'			*/
 //#include "sys/ioc_cmos.h"	/* 'c'			*/
 //#include "sys/ioc_tape.h"	/* 'M'			*/
 //#include "sys/ioc_scsi.h"	/* 'S'			*/

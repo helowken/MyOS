@@ -1,5 +1,5 @@
-#include "lib.h"
-#include "sys/resource.h"
+#include <lib.h>
+#include <sys/resource.h>
 
 int getpriority(int which, int who) {
 	int v;

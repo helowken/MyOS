@@ -9,6 +9,7 @@ OBJS_M32 = \
 		memset.o \
 		memmove.o \
 		strcat.o \
+		strncat.o \
 		strcpy.o \
 		strncpy.o \
 		strlen.o \
@@ -31,6 +32,7 @@ OBJS_M32 = \
 		getenv.o \
 		sigmisc.o \
 		malloc.o \
+		calloc.o \
 		strerror.o \
 		errlist.o \
 		toupper.o \

@@ -2,13 +2,13 @@
 #define _POSIX_SOURCE	1
 #endif
 
-#include "sys/types.h"
-#include "limits.h"
-#include "stdlib.h"
-#include "string.h"
-#include "unistd.h"
-#include "stdio.h"
-#include "minix/minlib.h"
+#include <sys/types.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <minix/minlib.h>
 
 static char dir[PATH_MAX + 1];
 

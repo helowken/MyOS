@@ -1,10 +1,10 @@
-#include "code.h"
-#include "errno.h"
-#include "stdlib.h"
+#include <code.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <sys/dir.h>
+#include <limits.h>
+#include <image.h>
 #include "util.h"
-#include "sys/dir.h"
-#include "limits.h"
-#include "image.h"
 #include "boot.h"
 
 #define BUFFERED_SECTORS	16
@@ -372,6 +372,9 @@ static void execImage(char *image) {
 		offsetClicks = exec->dataHdr.p_vaddr >> CLICK_SHIFT;
 		if (offsetClicks > dsClicks)
 		  offsetClicks = dsClicks;
+#ifdef _NO_COMPACT
+		offsetClicks = 0;
+#endif
 		offsetBytes = offsetClicks << CLICK_SHIFT;
 		procp->ds = dataAddr - offsetBytes;
 		dataAddr += exec->dataHdr.p_vaddr - offsetBytes;
@@ -414,9 +417,6 @@ static void execImage(char *image) {
 		return;
 	}
 	
-	// TODO check kernel magic number
-	// TODO patch size
-
 	/* Do delay if wanted. */
 	if ((delayValue = getVarValue("bootdelay")) != NULL)
 	  delay(a2l(delayValue));
@@ -434,12 +434,16 @@ static void execImage(char *image) {
 	}
 	if (false) printParams(params);
 
-	/* Set the video to the required mode. */
-	if ((console = getVarValue("console")) == NULL ||
+	/* Set the video to the required mode.
+	 * You can try to change the console or the chrome, and you
+	 * will get a interesting display. See setVideoMode() for more.
+	 */
+	if ((console = getVarValue("console")) == NULL || 
 				(mode = a2x(console)) == 0) {
-		mode = strcmp(getVarValue("chrome"), "color") == 0 ? COLOR_MODE : MONO_MODE;
-		// TODO setVideoMode(mode);
+		mode = strcmp(getVarValue("chrome"), "color") == 0 ? 
+						COLOR_MODE : MONO_MODE;
 	}
+	setVideoMode(mode);
 
 	/* Close the disk. */
 	closeDev();
@@ -448,9 +452,16 @@ static void execImage(char *image) {
 	minix(procs[KERNEL].entry, procs[KERNEL].cs, procs[KERNEL].ds, 
 				params, sizeof(params), imgHdrPos);
 
+	//TODO copy rebootCode
+	
 	parseCode(params);
 
-	while(true) {}
+	/* Return from Minix. Things may have changed, so assume nothing. */
+	fsOK = -1;
+	errno = 0;
+
+	/* Read leftover character, if any. */
+	scanKeyboard();
 }
 
 void bootMinix() {
@@ -459,9 +470,6 @@ void bootMinix() {
 	imgName = getVarValue("image");
 	if ((image = selectImage(imgName)) == NULL)
 	  return;
-
-	// TODO now just use clearScreen
-	clearScreen();	
 
 	execImage(image);
 

@@ -1,14 +1,14 @@
 #define nil	0
-#include "lib.h"
-#include "sys/types.h"
-#include "sys/stat.h"
-#include "dirent.h"
-#include "unistd.h"
-#include "stdlib.h"
-#include "fcntl.h"
-#include "limits.h"
-#include "errno.h"
-#include "string.h"
+#include <lib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <errno.h>
+#include <string.h>
 
 #define v7ent(p)		((V7Dir *) (p))
 #define V7_EXTENT		(sizeof(V7Dir) / sizeof(FlexDir) - 1)

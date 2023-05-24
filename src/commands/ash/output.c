@@ -1,14 +1,14 @@
 
 
 
-#include "stdio.h"	/* Defines BUFSIZ */
-#include "unistd.h"
+#include <stdio.h>	/* Defines BUFSIZ */
+#include <unistd.h>
 #include "shell.h"
 #include "syntax.h"
 #include "output.h"
 #include "memalloc.h"
 #include "error.h"
-#include "errno.h"
+#include <errno.h>
 #include "mystring.h"
 
 

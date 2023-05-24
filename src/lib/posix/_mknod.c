@@ -1,7 +1,7 @@
-#include "lib.h"
-#include "string.h"
-#include "stdlib.h"
-#include "unistd.h"
+#include <lib.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 int mknod(const char *path, mode_t mode, dev_t dev) {
 	Message msg;

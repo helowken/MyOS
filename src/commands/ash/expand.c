@@ -1,6 +1,6 @@
 
 
-#include "unistd.h"
+#include <unistd.h>
 #include "shell.h"
 #include "main.h"
 #include "nodes.h"
@@ -16,9 +16,9 @@
 #include "var.h"
 #include "output.h"
 #include "error.h"
-#include "errno.h"
-#include "sys/types.h"
-#include "sys/stat.h"
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "dirent.h"
 #include "pwd.h"
 

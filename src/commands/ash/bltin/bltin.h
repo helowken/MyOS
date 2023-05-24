@@ -1,7 +1,4 @@
 
-
-#define AAA	//TODO
-
 #include "../shell.h"
 #include "../mystring.h"
 #ifdef SHELL
@@ -17,7 +14,7 @@
 #define INIT_ARGS(argv)
 #else
 #undef NULL
-#include "stdio.h"
+#include <stdio.h>
 #undef main
 #define INIT_ARGS(argv)		if ((commandName = argv[0]) == NULL) {fputs("Argc is zero\n", stderr); exit(2);} else
 #endif

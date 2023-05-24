@@ -1,6 +1,6 @@
-#include "lib.h"
-#include "unistd.h"
-#include "string.h"
+#include <lib.h>
+#include <unistd.h>
+#include <string.h>
 
 int findProc(char *procName, int *pNum) {
 	Message msg;

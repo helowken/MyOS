@@ -1,12 +1,12 @@
-#include "sys/types.h"
-#include "sys/ioctl.h"
-#include "minix/keymap.h"
-#include "minix/minlib.h"
-#include "fcntl.h"
-#include "unistd.h"
-#include "stdlib.h"
-#include "string.h"
-#include "errno.h"
+#include <sys/types.h>
+#include <sys/ioctl.h>
+#include <minix/keymap.h>
+#include <minix/minlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 #define KBD_DEVICE	"/dev/console"
 
@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
 	if ((fd = open(KBD_DEVICE, O_WRONLY)) < 0)
 	  fatal(prog, KBD_DEVICE);
 
-	if (ioctl(fd, KIOC_SET_MAP, keyMap) < 0)
+	if (ioctl(fd, KIOCSMAP, keyMap) < 0)
 	  fatal(prog, KBD_DEVICE);
 
 	return 0;

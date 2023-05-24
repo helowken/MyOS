@@ -28,7 +28,11 @@ OBJS_M32 = \
 		itoa.o \
 		ttyname.o \
 		_getsysinfo.o \
-		putenv.o
+		putenv.o \
+		getttyent.o \
+		crypt.o \
+		getpass.o \
+		ttyslot.o
 
 
 OBJS_M16 = \

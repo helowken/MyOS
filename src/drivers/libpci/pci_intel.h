@@ -1,4 +1,4 @@
-#include "sys/types.h"
+#include <sys/types.h>
 
 #define PCI_CONF_ADDR		0xCF8
 #define		PCI_CODE		0x80000000

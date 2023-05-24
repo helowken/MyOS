@@ -1,6 +1,6 @@
 #include "../system.h"
-#include "signal.h"
 #include "../protect.h"
+#include <signal.h>
 
 int doFork(register Message *msg) {
 	reg_t oldLdtSel;
@@ -22,8 +22,8 @@ int doFork(register Message *msg) {
 	childProc->p_rts_flags &= ~(SIGNALED | SIG_PENDING | P_STOP);
 	sigemptyset(&childProc->p_pending);
 
-	/*TODO childProc->p_reg.eax = 0;*/		/* Child sees pid = 0 to know it is child. 
-				   (??? It should use setReply(childNum, 0) in pm/forkexit.c) */
+	childProc->p_reg.eax = 0;		/* Child sees pid = 0 to know it is child. 
+				   (It should use setReply(childNum, 0) in pm/forkexit.c) */
 	childProc->p_user_time = 0;		/* Set all accounting times to 0. */
 	childProc->p_sys_time = 0;
 

@@ -6,15 +6,15 @@
  *	/usr/bin/printroot > /etc/mtab
  */
 
-#include "sys/types.h"
-#include "sys/stat.h"
-#include "fcntl.h"
-#include "limits.h"
-#include "stdlib.h"
-#include "string.h"
-#include "unistd.h"
-#include "minix/minlib.h"
-#include "dirent.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <minix/minlib.h>
+#include <dirent.h>
 
 static char DEV_PATH[] = "/dev/";	
 static char MESSAGE[] = " / ";

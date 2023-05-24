@@ -1,5 +1,5 @@
-#include "lib.h"
-#include "time.h"
+#include <lib.h>
+#include <time.h>
 
 int stime(const time_t *t) {
 	Message msg;

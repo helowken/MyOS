@@ -1,5 +1,5 @@
 #include "../system.h"
-#include "minix/devio.h"
+#include <minix/devio.h>
 
 /* Buffer for SYS_VDEVIO to copy (port, value)-pair from/to user. */
 static char vDevIOBuf[VDEVIO_BUF_SIZE];

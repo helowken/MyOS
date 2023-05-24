@@ -1,12 +1,12 @@
-#include "sys/types.h"
-#include "sys/stat.h"
-#include "signal.h"
-#include "fcntl.h"
-#include "unistd.h"
-#include "stdlib.h"
-#include "stdio.h"
-#include "string.h"
-#include "errno.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
 
 #define EOS '\0'
 #define BOOLEAN int

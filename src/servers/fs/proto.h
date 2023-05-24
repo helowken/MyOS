@@ -98,6 +98,7 @@ void rwScattered(dev_t dev, Buf **bufQueue, int queueSize, int rwFlag);
 void invalidate(dev_t dev);
 
 /* misc.c */
+int doReboot(void);
 int doExit(void);
 int doSync(void);
 int doFsync(void);
@@ -144,6 +145,7 @@ void truncate(Inode *ip);
 /* select.c */
 int doSelect(void);
 void initSelect(void);
+void selectForget(int pNum);
 int selectCallback(Filp *, int ops);
 int selectNotified(int major, int minor, int ops);
 

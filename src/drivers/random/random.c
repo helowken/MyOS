@@ -1,6 +1,6 @@
 #include "../drivers.h"
 #include "../../kernel/const.h"
-#include "assert.h"
+#include <assert.h>
 
 #include "random.h"
 #include "sha2.h"

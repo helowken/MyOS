@@ -1,10 +1,10 @@
 #include "fs.h"
-#include "fcntl.h"
-#include "signal.h"
-#include "minix/callnr.h"
-#include "minix/com.h"
-#include "sys/select.h"
-#include "sys/time.h"
+#include <fcntl.h>
+#include <signal.h>
+#include <minix/callnr.h>
+#include <minix/com.h>
+#include <sys/select.h>
+#include <sys/time.h>
 #include "param.h"
 #include "select.h"
 
@@ -60,9 +60,54 @@ int doPipe() {
 }
 
 int doUnpause() {
-	printf("=== TODO fs doUnpause\n");
-	//TODO
-	return 0;
+/* A signal has been sent to a user who is paused on the file system.
+ * Abort the system call with the EINTR error message.
+ */
+	register FProc *rfp;
+	int pNum, task, fd;
+	Filp *filp;
+	dev_t dev;
+	Message msg;
+
+	if (who > PM_PROC_NR)
+	  return EPERM;
+	pNum = inMsg.m_pro;
+	if (pNum < 0 || pNum >= NR_PROCS)
+	  panic(__FILE__, "unpause err 1", pNum);
+	rfp = &fprocTable[pNum];
+	if (rfp->fp_suspended == NOT_SUSPENDED)
+	  return OK;
+	task = -rfp->fp_task;
+
+	switch (task) {
+		case XPIPE:		/* Process trying to read or write a pipe */
+			break;
+		case XLOCK:		/* Process trying to set a lock with FCNTL */
+			break;
+		case XSELECT:	/* Process blocking on select() */
+			selectForget(pNum);
+			break;
+		case XPOPEN:	/* Process trying to open a fifo */
+			break;
+		default:		/* Process trying to do device I/O (e.g. tty) */
+			fd = FD_FROM_SUSP(rfp->fp_fd);	/* Extract fd */
+			if (fd < 0 || fd >= OPEN_MAX)
+			  panic(__FILE__, "unpause err 2", NO_NUM);
+			filp = rfp->fp_filp[fd];
+			dev = (dev_t) filp->filp_inode->i_zone[0];	/* Device hung on */
+			msg.TTY_LINE = MINOR_DEV(dev);
+			msg.PROC_NR = pNum;
+
+			/* Tell kernel R or W. Mode is from current call, not open. */
+			msg.COUNT = CALL_FROM_SUSP(rfp->fp_fd) == READ ? R_BIT : W_BIT;
+			msg.m_type = CANCEL;
+			currFp = rfp;	/* Hack - ctty_io uses currFp */
+			(*dmapTable[MAJOR_DEV(dev)].dmap_io)(task, &msg);
+	}
+
+	rfp->fp_suspended = NOT_SUSPENDED;
+	reply(pNum, EINTR);		/* Signal interrupted call */
+	return OK;
 }
 
 void suspend(

@@ -1,8 +1,9 @@
 #include "kernel.h"
-#include "signal.h"
 #include "proc.h"
+#include <signal.h>
 
-void handleException(unsigned exVector) {
+void handleException(unsigned exVec, unsigned trapErrno, 
+			unsigned long eip, unsigned cs, unsigned eflags) {
 /* An exception or unexpected interrupt has occurred. */
 	typedef struct {
 		char *msg;
@@ -34,12 +35,21 @@ void handleException(unsigned exVector) {
 
 	/* Save currProc, because it may be changed by debug statements. */
 	savedProc = currProc;
-	ep = &exData[exVector];
+	ep = &exData[exVec];
 
-	if (exVector == 2) {	/* Spurious NMI on some machines */
+	if (exVec == 2) {	/* Spurious NMI on some machines */
 		kprintf("Got spurious NMI\n");
 		return;
 	}
+
+	kprintf("## Fatal: %s, pNum: %d, ex: %u, trap: %u, "
+			"cs: 0x%x, ip: 0x%x, eflags: 0x%x, "
+			"text: 0x%x, data: 0x%x\n",
+			savedProc->p_name, procNum(savedProc), exVec, trapErrno, 
+			cs, eip, eflags, 
+			savedProc->p_memmap[T].physAddr << CLICK_SHIFT,
+			savedProc->p_memmap[D].physAddr << CLICK_SHIFT
+	);
 	
 	/* If an exception occurs while running a process, the 
 	 * 'kernelReenter' variable will be zero. Exceptions in interrupt 
@@ -47,14 +57,13 @@ void handleException(unsigned exVector) {
 	 * than zero.
 	 */
 	if (kernelReenter == 0 && !isKernelProc(savedProc)) {
-		kprintf("No kernel proc: %s\n", savedProc->p_name);
-		//causeSig(procNum(savedProc), ep->sigNum);TODO
+		causeSig(procNum(savedProc), ep->sigNum);
 		return;
 	}
 
 	/* Exception in system code. This is not supposed to happen. */
 	if (ep->msg == NIL_PTR || machine.processor < ep->minProcessor) 
-	  kprintf("\nIntel-reserved exception %d\n", exVector);
+	  kprintf("\nIntel-reserved exception %d\n", exVec);
 	else
 	  kprintf("\n%s\n", ep->msg);
 	

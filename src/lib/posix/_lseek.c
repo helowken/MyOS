@@ -1,5 +1,5 @@
-#include "lib.h"
-#include "unistd.h"
+#include <lib.h>
+#include <unistd.h>
 
 off_t lseek(int fd, off_t offset, int whence) {
 	Message msg;

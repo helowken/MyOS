@@ -1,10 +1,10 @@
 #define nil	0
-#include "sys/types.h"
-#include "grp.h"
-#include "string.h"
-#include "stdlib.h"
-#include "unistd.h"
-#include "fcntl.h"
+#include <sys/types.h>
+#include <grp.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #define arraySize(a)	(sizeof(a) / sizeof((a)[0]))
 #define arrayLimit(a)	((a) + arraySize(a))

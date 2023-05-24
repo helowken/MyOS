@@ -40,6 +40,11 @@
 #define VDU_CRT_BASE_ADDR		0x463	/* 3B4h = mono, 3D4h = color */
 #define VDU_CRT_BASE_SIZE		2L
 
+/* Soft reset flags to control shutdown. */
+#define SOFT_RESET_FLAG_ADDR	0x472	/* Soft reset flag on Ctl-Alt-Del */
+#define SOFT_RESET_FLAG_SIZE	2L
+#define	  STOP_MEM_CHECK		0x1234	/* Bypass memory tests & CRT init */
+
 
 /* PART III --
  * The motherboard BIOS memory contains some known values that are currently

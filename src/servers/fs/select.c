@@ -1,9 +1,9 @@
 #include "fs.h"
-#include "fcntl.h"
-#include "minix/com.h"
 #include "select.h"
-#include "sys/time.h"
-#include "sys/select.h"
+#include <fcntl.h>
+#include <minix/com.h>
+#include <sys/time.h>
+#include <sys/select.h>
 
 /* Max number of simultaneously pending select() calls */
 #define MAX_SELECTS	25
@@ -514,5 +514,22 @@ int doSelect(void) {
 	return SUSPEND;
 }
 
+void selectForget(int pNum) {
+/* Something has happened (e.g. signal delivered that interrupts
+ * select()). totally forget about the select().
+ */
+	int s;
 
+	for (s = 0; s < MAX_SELECTS; ++s) {
+		if (selectTab[s].requestor &&
+			selectTab[s].reqProcNum == pNum) 
+		  break;
+	}
+
+	if (s >= MAX_SELECTS) 
+	  return;
+
+	selectCancelAll(&selectTab[s]);
+	selectTab[s].requestor = NULL;
+}
 

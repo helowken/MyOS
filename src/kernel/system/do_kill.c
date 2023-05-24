@@ -1,5 +1,5 @@
 #include "../system.h"
-#include "signal.h"
+#include <signal.h>
 
 int doKill(Message *msg) {
 /* Handle sys_kill(). Cause a signal to be sent to a process. The PM is the

@@ -1,8 +1,8 @@
 #define _TABLE
 
 #include "pm.h"
-#include "minix/callnr.h"
-#include "signal.h"
+#include <minix/callnr.h>
+#include <signal.h>
 #include "mproc.h"
 
 #define map(callNum, handler)	callVec[callNum] = (handler)

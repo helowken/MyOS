@@ -1,6 +1,6 @@
-#include "lib.h"
-#include "sys/sigcontext.h"
-#include "signal.h"
+#include <lib.h>
+#include <sys/sigcontext.h>
+#include <signal.h>
 
 int _sigreturn();
 

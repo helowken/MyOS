@@ -61,6 +61,9 @@ rm_lock:
 %.bin: %.asm
 	nasm -f bin $< -o $@
 
+%.elf: %.asm
+	nasm -f elf $< -o $@
+
 boot.elf: \
 		boothead.o \
 		util.o \
@@ -107,8 +110,16 @@ install_device: $(BOOT_BLOCK) $(BOOT) mkfs
 disasm: $(DEBUG)
 	$(call disasmCode,$<,16)
 
+disasm_mbr: masterboot.elf
+	$(call disasmCode,$<,16)
+
+disasm_bb: bootblock.elf
+	$(call disasmCode,$<,16)
+
 clean:
 	$(call cleanCommon)
 	rm -f $(DISK_IMAGE)
 	rm -f eth_null*
+
+
 

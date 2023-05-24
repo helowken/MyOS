@@ -1,4 +1,4 @@
-#include "ibm/partition.h"
+#include <ibm/partition.h>
 
 void partition(Driver *dr, int device, int style);
 

@@ -1,17 +1,17 @@
-#include "errno.h"
-#include "sys/types.h"
-#include "limits.h"
-#include "stdlib.h"
-#include "dirent.h"
-#include "string.h"
-#include "unistd.h"
-#include "fcntl.h"
-#include "minix/config.h"
-#include "minix/const.h"
-#include "minix/minlib.h"
-#include "minix/swap.h"
-#include "sys/svrctl.h"
-#include "stdio.h"
+#include <errno.h>
+#include <sys/types.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <dirent.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <minix/config.h>
+#include <minix/const.h>
+#include <minix/minlib.h>
+#include <minix/swap.h>
+#include <sys/svrctl.h>
+#include <stdio.h>
 #include "../../servers/fs/const.h"
 
 //static u8_t MAGIC[] = { SWAP_MAGIC0, SWAP_MAGIC1, SWAP_MAGIC2, SWAP_MAGIC3 };

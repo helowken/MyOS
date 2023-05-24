@@ -1,8 +1,8 @@
 #include "fs.h"
-#include "fcntl.h"
-#include "minix/callnr.h"
-#include "minix/com.h"
 #include "param.h"
+#include <fcntl.h>
+#include <minix/callnr.h>
+#include <minix/com.h>
 
 int noDev(int op, dev_t dev, int proc, int flags) {
 	return ENODEV;

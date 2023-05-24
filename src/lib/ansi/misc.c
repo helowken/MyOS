@@ -1,7 +1,7 @@
-#include "ctype.h"
-#include "time.h"
-#include "stdlib.h"
-#include "string.h"
+#include <ctype.h>
+#include <time.h>
+#include <stdlib.h>
+#include <string.h>
 #include "loc_time.h"
 
 #define RULE_LEN	120

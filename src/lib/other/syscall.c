@@ -1,4 +1,4 @@
-#include "lib.h"
+#include <lib.h>
 
 int syscall(int who, int callNum, register Message *msg) {
 	int status;

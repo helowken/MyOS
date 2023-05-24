@@ -1,10 +1,10 @@
 #include "kernel.h"
 #include "system.h"
-#include "stdlib.h"
-#include "unistd.h"
 #include "protect.h"
-#include "signal.h"
-#include "ibm/memory.h"
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <ibm/memory.h>
 
 int (*callVec[NR_SYS_CALLS])(Message *msg);
 
@@ -53,18 +53,18 @@ static void initialize() {
 	map(SYS_DEVIO, doDevIO);
 	map(SYS_SDEVIO, doStrDevIO);
 	map(SYS_VDEVIO, doVecDevIO);
-	//map(SYS_INT86, doInt86);
+	//TODO map(SYS_INT86, doInt86);
 
 	/* Memory management. */
 	map(SYS_NEWMAP, doNewMap);
 	map(SYS_SEGCTL, doSegCtl);
-	map(SYS_MEMSET, doMemset);
+	map(SYS_MEMSET, doMemSet);
 	
 	/* Copying. */
 	map(SYS_VIRCOPY, doVirCopy);
 	map(SYS_PHYSCOPY, doPhysCopy);
 	map(SYS_UMAP, doUMap);
-	/*
+	/*TODO
 	map(SYS_VIRVCOPY, doVirVecCopy);
 	map(SYS_PHYSVCOPY, doPhysVecCopy);
 	*/
@@ -74,7 +74,7 @@ static void initialize() {
 	map(SYS_SETALARM, doSetAlarm);
 
 	/* System control. */
-	//map(SYS_ABORT, doAbort);
+	map(SYS_ABORT, doAbort);
 	map(SYS_GETINFO, doGetInfo);
 }
 
@@ -217,7 +217,7 @@ void causeSig(int pNum, int sig) {
 			if (rp->p_rts_flags == 0)
 			  lockDequeue(rp);		/* Make not ready */
 			rp->p_rts_flags |= SIGNALED | SIG_PENDING;	/* Update flags */
-			sendSig(pNum, sig);
+			sendSig(PM_PROC_NR, SIGKSIG);
 		}
 	}
 }

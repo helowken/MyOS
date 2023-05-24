@@ -10,7 +10,7 @@
 
 #include "../drivers.h"
 #include "../libdriver/driver.h"
-#include "sys/ioc_memory.h"
+#include <sys/ioc_memory.h>
 #include "../../kernel/const.h"
 #include "../../kernel/config.h"
 #include "../../kernel/type.h"

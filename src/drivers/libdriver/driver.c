@@ -27,7 +27,7 @@
  */
 
 #include "../drivers.h"
-#include "sys/ioc_disk.h"
+#include <sys/ioc_disk.h>
 #include "driver.h"
 
 #define dmaBytesLeft(addr)	((unsigned) 0x10000 - (unsigned) ((addr) & 0xFFFF))

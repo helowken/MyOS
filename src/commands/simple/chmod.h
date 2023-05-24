@@ -1,13 +1,13 @@
 #define nil	0
-#include "sys/types.h"
-#include "sys/stat.h"
-#include "minix/minlib.h"
-#include "limits.h"
-#include "errno.h"
-#include "string.h"
-#include "stdlib.h"
-#include "unistd.h"
-#include "stdio.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <minix/minlib.h>
+#include <limits.h>
+#include <errno.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
 
 #define USR_MODES	(S_ISUID | S_IRWXU)
 #define GRP_MODES	(S_ISGID | S_IRWXG)

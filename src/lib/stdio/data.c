@@ -2,7 +2,7 @@
  * This is the initialization for the standard streams.
  */
 
-#include "stdio.h"
+#include <stdio.h>
 
 struct __iobuf __stdin = {
 	0, 0, _IOREAD | _IOLBF, 0,

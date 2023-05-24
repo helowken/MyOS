@@ -1,6 +1,6 @@
 #include "sysutil.h"
-#include "minix/config.h"
-#include "string.h"
+#include <minix/config.h>
+#include <string.h>
 
 static int argc = 0;
 static char **argv = NULL;

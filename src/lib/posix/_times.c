@@ -1,6 +1,6 @@
-#include "lib.h"
-#include "sys/times.h"
-#include "time.h"
+#include <lib.h>
+#include <sys/times.h>
+#include <time.h>
 
 clock_t times(struct tms *buf) {
 	Message msg;

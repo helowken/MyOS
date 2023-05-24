@@ -1,4 +1,4 @@
-#include "string.h"
+#include <string.h>
 
 char *strerror(register int errnum) {
 	extern const char *_sys_errlist[];

@@ -1,7 +1,7 @@
 #ifndef _SIGCONTEXT_H
 #define _SIGCONTEXT_H
 
-#include "minix/sys_config.h"
+#include <minix/sys_config.h>
 
 /* The following structure should match the StackFrame structure used
  * by the kernel's context switching code. Floating point registers should

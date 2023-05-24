@@ -1,7 +1,7 @@
 #ifndef IPC_H
 #define IPC_H
 
-#include "minix/com.h"
+#include <minix/com.h>
 
 /* Masks and flags for system calls. */
 #define SYSCALL_FUNC	0x0F	/* Mask for system call function */

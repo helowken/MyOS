@@ -19,8 +19,8 @@
 #include "memalloc.h"
 #include "error.h"
 #include "mystring.h"
-#include "signal.h"
-#include "unistd.h"
+#include <signal.h>
+#include <unistd.h>
 
 
 /* Flags in argument to evalTree */
@@ -573,7 +573,7 @@ void evalTree(Node *n, int flags) {
 		case NSUBSHELL:
 			evalSubshell(n, flags);
 			break;
-		case NBACKGND:	/* e.g, (cat xxx) & */
+		case NBACKGND:	/* e.g., (cat xxx) & */
 			evalSubshell(n, flags);
 			break;
 		case NIF: {

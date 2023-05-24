@@ -1,11 +1,11 @@
 #if defined(_POSIX_SOURCE)
-#include "sys/types.h"
+#include <sys/types.h>
 #endif
 
-#include "stdio.h"
-#include "stdlib.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
 #include "loc_incl.h"
-#include "sys/stat.h"
 
 #define PMODE	0666
 

@@ -1,11 +1,11 @@
-#include "stdio.h"
+#include <stdio.h>
 
 #if (SEEK_CUR != 1) || (SEEK_END != 2) || (SEEK_SET != 0)
 #error SEEK_* values are wrong
 #endif
 
 #include "loc_incl.h"
-#include "sys/types.h"
+#include <sys/types.h>
 
 off_t lseek(int fd, off_t offset, int whence);
 

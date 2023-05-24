@@ -1,5 +1,5 @@
-#include "lib.h"
-#include "unistd.h"
+#include <lib.h>
+#include <unistd.h>
 
 void _exit(int status) {
 	Message msg;

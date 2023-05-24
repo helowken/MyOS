@@ -1,11 +1,11 @@
-#include "sys/types.h"
-#include "sys/svrctl.h"
-#include "stdarg.h"
-#include "stdlib.h"
-#include "unistd.h"
-#include "errno.h"
-#include "string.h"
-#include "minix/minlib.h"
+#include <sys/types.h>
+#include <sys/svrctl.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <minix/minlib.h>
 
 static char *prog;
 
@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
 				ex |= 2;
 			} else {
 				ex |= 1;
-				report(prog, NULL);
+				reportStdErr(prog, NULL);
 			}
 			continue;
 		}
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
 
 		if (write(STDOUT_FILENO, sysGetEnv.val, e - sysGetEnv.val) < 0) {
 			ex |= 1;
-			report(prog, NULL);
+			reportStdErr(prog, NULL);
 		}
 	} while (++i < argc);
 

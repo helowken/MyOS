@@ -1,4 +1,4 @@
-#include "string.h"
+#include <string.h>
 
 size_t strspn(const char *s, const char *accept) {
 	register const char *s1, *s2;

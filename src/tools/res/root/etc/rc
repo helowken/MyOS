@@ -174,4 +174,7 @@ esac
 test -f /usr/etc/rc && sh /usr/etc/rc $action
 test -f /usr/local/etc/rc && sh /usr/local/etc/rc $action
 
+# Any messages?
+test "$action" = start -a -f /etc/issue && cat /etc/issue
+
 exit 0

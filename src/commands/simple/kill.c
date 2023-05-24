@@ -1,9 +1,9 @@
-#include "sys/types.h"
-#include "errno.h"
-#include "signal.h"
-#include "stdlib.h"
-#include "string.h"
-#include "stdio.h"
+#include <sys/types.h>
+#include <errno.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
 /* Table of signal names. */
 struct SigNames {

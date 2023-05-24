@@ -1,6 +1,6 @@
 #include "fs.h"
-#include "sys/stat.h"
-#include "minix/com.h"
+#include <sys/stat.h>
+#include <minix/com.h>
 #include "param.h"
 
 static int statInode(Inode *ip, Filp *filp, char *userAddr) {

@@ -1,9 +1,9 @@
 #include "pm.h"
-#include "minix/callnr.h"
-#include "signal.h"
-#include "stdlib.h"
-#include "sys/resource.h"
-#include "string.h"
+#include <minix/callnr.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <sys/resource.h>
+#include <string.h>
 #include "mproc.h"
 #include "param.h"
 

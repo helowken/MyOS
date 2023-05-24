@@ -1,7 +1,7 @@
 #include "at_wini.h"
 #include "../libpci/pci.h"
-#include "minix/sysutil.h"
-#include "sys/ioc_disk.h"
+#include <minix/sysutil.h>
+#include <sys/ioc_disk.h>
 
 #define ATAPI_DEBUG			1		/* To debug ATAPI code. */
 

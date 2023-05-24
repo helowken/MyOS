@@ -1,7 +1,7 @@
 #ifndef _IMAGE_H
 #define _IMAGE_H
 
-#include "elf.h"
+#include <elf.h>
 
 #define IMG_NAME_MAX	63
 #define isRX(p)			(((p)->p_flags & PF_R) && ((p)->p_flags & PF_X))

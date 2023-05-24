@@ -1,12 +1,12 @@
-#include "errno.h"
-#include "sys/types.h"
-#include "fcntl.h"
-#include "string.h"
-#include "unistd.h"
-#include "stdlib.h"
-#include "sys/stat.h"
-#include "minix/minlib.h"
-#include "stdio.h"
+#include <errno.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <minix/minlib.h>
+#include <stdio.h>
 
 #define CHUNK_SIZE	(2048 * sizeof(char *))
 
@@ -56,10 +56,10 @@ static void copyOut(char *file, int fd) {
 
 			bytesLeft = &outBuf[CHUNK_SIZE] - outp;
 			if (n <= bytesLeft) {
-				memcpy(outBuf, inBuf, (size_t) n);
+				memcpy(outp, inBuf, (size_t) n);
 				outp += n;
 			} else {
-				memcpy(outBuf, inBuf, (size_t) bytesLeft);
+				memcpy(outp, inBuf, (size_t) bytesLeft);
 				output(outBuf, CHUNK_SIZE);
 				n -= bytesLeft;
 				memcpy(outBuf, inBuf + bytesLeft, (size_t) n);
@@ -107,11 +107,11 @@ int main(int argc, char **argv) {
 				fd = open(file, O_RDONLY);
 				if (fd < 0) {
 					exitCode = errno;
-					report(prog, file);
+					reportStdErr(prog, file);
 				} else {
 					if (fstat(fd, &st) != 0) {
 						exitCode = errno;
-						report(prog, file);
+						reportStdErr(prog, file);
 					}
 					if (S_ISREG(st.st_mode)) {
 						copyOut(file, fd);

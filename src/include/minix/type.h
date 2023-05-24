@@ -2,11 +2,11 @@
 #define _MINIX_TYPE_H
 
 #ifndef _MINIX_SYS_CONFIG_H
-#include "minix/sys_config.h"
+#include <minix/sys_config.h>
 #endif
 
 #ifndef _TYPES_H
-#include "sys/types.h"
+#include <sys/types.h>
 #endif
 
 typedef enum { false, true } bool;

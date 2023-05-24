@@ -1,5 +1,5 @@
 #include "../system.h"
-#include "minix/type.h" 
+#include <minix/type.h>
 
 int doCopy(register Message *msg) {
 /* Handle sysVirCopy() and sysPhysCopy(). Copy data using virtual or
@@ -38,7 +38,7 @@ int doCopy(register Message *msg) {
 	/* Check for overflow. */
 	if (bytes != (vir_bytes) bytes)
 	  return E2BIG;
-	
+
 	/* Now try to make the actual virtual copy. */
 	return virtualCopy(&virAddr[_SRC_], &virAddr[_DST_], bytes);
 }

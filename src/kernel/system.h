@@ -81,7 +81,10 @@ int doNewMap(Message *msg);
 int doSegCtl(Message *msg);
 
 /* Write char to memory area. */
-int doMemset(Message *msg);
+int doMemSet(Message *msg);
+
+/* Abort MINIX */
+int doAbort(Message *msg);
 
 
 /*=====================================================================*

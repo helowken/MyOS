@@ -1,6 +1,6 @@
-#include "lib.h"
-#include "sys/stat.h"
-#include "string.h"
+#include <lib.h>
+#include <sys/stat.h>
+#include <string.h>
 
 int mkdir(const char *path, mode_t mode) {
 	Message msg;

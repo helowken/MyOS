@@ -1,21 +1,29 @@
 #include "pm.h"
-#include "sys/stat.h"
-#include "minix/callnr.h"
-#include "minix/com.h"
-#include "fcntl.h"
-#include "signal.h"
+#include <sys/stat.h>
+#include <minix/callnr.h>
+#include <minix/com.h>
+#include <fcntl.h>
+#include <signal.h>
 #include "mproc.h"
 #include "param.h"
 
-#include "string.h"
+#include <string.h>
 #include "../../kernel/const.h"
 #include "../../kernel/config.h"
 #include "../../kernel/type.h"
 #include "../../kernel/proc.h"
 
 void panic(char *who, char *msg, int num) {
-	//TODO
-	printf("%s: %s, %d\n", who, msg, num);
+/* An unrecoverable error has occurred. Panics are caused when an internal
+ * inconsistency is detected, e.g., a programming error or illegal value of a
+ * defined constant. The process manager decides to shut down. This results
+ * in a HARD_STOP notification to all system processes to allow local cleanup.
+ */
+	printf("PM panic (%s): %s", who, msg);
+	if (num != NO_NUM)
+	  printf(": %d", num);
+	printf("\n");
+	sysAbort(RBT_PANIC);
 }
 
 char *findParam(const char *name) {

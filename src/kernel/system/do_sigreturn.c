@@ -1,7 +1,7 @@
 #include "../system.h" 
-#include "string.h"
-#include "signal.h"
-#include "sys/sigcontext.h"
+#include <string.h>
+#include <signal.h>
+#include <sys/sigcontext.h>
 
 int doSigReturn(Message *msg) {
 /* POSIX style signals require sysSigReturn() to put things in order before

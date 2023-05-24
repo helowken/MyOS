@@ -1,4 +1,4 @@
-#include "dirent.h"
+#include <dirent.h>
 #include "chmod.h"
 
 static int rflag, errors;

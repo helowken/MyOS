@@ -1,9 +1,9 @@
 #include "pm.h"
-#include "minix/callnr.h"
-#include "minix/com.h"
-#include "signal.h"
-#include "sys/sigcontext.h"
-#include "string.h"
+#include <minix/callnr.h>
+#include <minix/com.h>
+#include <signal.h>
+#include <sys/sigcontext.h>
+#include <string.h>
 #include "mproc.h"
 #include "param.h"
 
@@ -100,9 +100,7 @@ void signalProc(register MProc *rmp, int sigNum) {
 		sm.sm_stack_ptr = newSp;
 
 		/* Make room for the sigcontext and sigframe struct. */
-		/* TODO what's the computation? */
-		newSp -= sizeof(struct sigcontext) + 3 *sizeof(char *) + 
-							2 * sizeof(int);
+		newSp -= sizeof(struct sigcontext) + sizeof(struct sigframe);
 		if (adjust(rmp, rmp->mp_seg[D].len, newSp) != OK)
 		  goto doTerminate;
 		
@@ -173,7 +171,7 @@ int checkSig(pid_t procId, int sigNum) {
 	count = 0;
 	errCode = ESRCH;
 	for (rmp = &mprocTable[0]; rmp < &mprocTable[NR_PROCS]; ++rmp) {
-		if ( !(rmp->mp_flags & IN_USE) ||
+		if (! (rmp->mp_flags & IN_USE) ||
 			((rmp->mp_flags & ZOMBIE) && sigNum != 0) )
 		  continue;
 
@@ -186,10 +184,10 @@ int checkSig(pid_t procId, int sigNum) {
 
 		/* Check for permission. */
 		if (currMp->mp_euid != SUPER_USER &&
-			currMp->mp_ruid != rmp->mp_ruid &&
-			currMp->mp_euid != rmp->mp_ruid &&
-			currMp->mp_ruid != rmp->mp_euid &&
-			currMp->mp_euid != rmp->mp_euid) {
+				currMp->mp_ruid != rmp->mp_ruid &&
+				currMp->mp_euid != rmp->mp_ruid &&
+				currMp->mp_ruid != rmp->mp_euid &&
+				currMp->mp_euid != rmp->mp_euid) {
 			errCode = EPERM;
 			continue;
 		}

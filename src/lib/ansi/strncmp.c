@@ -1,5 +1,5 @@
-#include "code.h"
-#include "string.h"
+#include <code.h>
+#include <string.h>
 
 int strncmp(register const char *s1, register const char *s2, register size_t n) {
 	if (n) {

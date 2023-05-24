@@ -1,4 +1,4 @@
-#include "stdio.h"
+#include <stdio.h>
 
 char *fgets(char *s, register int size, register FILE *stream) {
 	register int ch;

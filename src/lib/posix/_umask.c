@@ -1,5 +1,5 @@
-#include "lib.h"
-#include "sys/stat.h"
+#include <lib.h>
+#include <sys/stat.h>
 
 mode_t umask(mode_t mask) {
 	Message msg;

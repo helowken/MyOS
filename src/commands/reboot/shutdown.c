@@ -1,17 +1,17 @@
 #define _POSIX_SOURCE	1
-#include "sys/types.h"
-#include "sys/stat.h"
-#include "stdio.h"
-#include "ctype.h"
-#include "fcntl.h"
-#include "time.h"
-#include "stdlib.h"
-#include "signal.h"
-#include "string.h"
-#include "unistd.h"
-#include "utmp.h"
-#include "errno.h"
-#include "minix/minlib.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <fcntl.h>
+#include <time.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <string.h>
+#include <unistd.h>
+#include <utmp.h>
+#include <errno.h>
+#include <minix/minlib.h>
 
 static char SHUT_PID[] = "/usr/run/shutdown.pid";
 static char NO_LOGIN[] = "/etc/nologin";	/* see login.c */
@@ -54,7 +54,7 @@ static int crashCheck() {
 
 	crashed = (lseek(fd, - (off_t) sizeof(last), SEEK_END) == -1 ||
 				read(fd, (void *) &last, sizeof(last)) != sizeof(last) ||
-				last.ut_line[0] != '-' ||
+				last.ut_line[0] != '~' ||
 				(strncmp(last.ut_user, "shutdown", sizeof(last.ut_user)) &&
 					strncmp(last.ut_user, "halt", sizeof(last.ut_user))));
 	close(fd);
@@ -75,7 +75,7 @@ static void parseTime(char *arg) {
 	}
 
 	hours = strtoul(p, &p, 10);
-	if (*p == 0 && delta) {		/* +5 */
+	if (*p == 0 && delta) {		
 		minutes = hours;
 		hours = 0;
 	} else {
@@ -153,7 +153,7 @@ static void getMessage() {
 	while (fgets(line, 80, stdin) != (char *) 0) {
 		strcat(message, line);
 		bzero(line, strlen(line));
-		fputs("shutdown >", stdout);
+		fputs("shutdown> ", stdout);
 		fflush(stdout);
 	}
 	putc('\n', stdout);
@@ -294,12 +294,12 @@ void main(int argc, char **argv) {
 	if (! now) {
 		/* Daemonize. */
 		switch (fork()) {
-			case 0:
+			case 0:		/* Child */
 				break;
 			case -1:
 				fprintf(stderr, "%s: can't fork", prog);
 				exit(1);
-			default:
+			default:	/* Parent */
 				exit(0);
 		}
 		/* Detach from the terminal (if any). */
@@ -312,7 +312,7 @@ void main(int argc, char **argv) {
 
 	for (;;) {
 		if (waitTime <= 5 * 60 && ! noLogin && ! now) {
-			close(creat(NO_LOGIN, 00644));
+			close(creat(NO_LOGIN, 00644));	/* create NO_LOGIN file */
 			noLogin = 1;
 		}
 		if (waitTime <= 60)

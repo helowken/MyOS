@@ -1,7 +1,7 @@
-#include "lib.h"
-#include "stddef.h"
-#include "sys/sigcontext.h"
-#include "signal.h"
+#include <lib.h>
+#include <stddef.h>
+#include <sys/sigcontext.h>
+#include <signal.h>
 
 int sigreturn(register struct sigcontext *sigCtx) {
 	sigset_t set;

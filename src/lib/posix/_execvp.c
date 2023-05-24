@@ -1,11 +1,11 @@
 #define _MINIX_SOURCE
 
 #define nil	0
-#include "stdlib.h"
-#include "string.h"
-#include "unistd.h"
-#include "errno.h"
-#include "sys/stat.h"
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/stat.h>
 
 extern char * const **_penviron;	/* The default environment. */
 

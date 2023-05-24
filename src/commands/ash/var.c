@@ -1,5 +1,5 @@
 
-#include "unistd.h"
+#include <unistd.h>
 #include "shell.h"
 #include "nodes.h"
 #include "expand.h"
@@ -190,7 +190,7 @@ void setVarEq(char *s, int flags) {
 }
 
 void shProcVar() {
-	//TODO
+	// no need
 }
 
 /* Search the environment of a builtin command. If the second argument

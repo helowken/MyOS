@@ -1,5 +1,5 @@
-#include "lib.h"
-#include "signal.h"
+#include <lib.h>
+#include <signal.h>
 
 int sigsuspend(const sigset_t *set) {
 	Message msg;

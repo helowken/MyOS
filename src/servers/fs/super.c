@@ -1,7 +1,7 @@
 #include "fs.h"
-#include "string.h"
-#include "minix/com.h"
 #include "const.h"
+#include <string.h>
+#include <minix/com.h>
 
 #define SECTOR_SIZE		512
 

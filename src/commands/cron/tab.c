@@ -1,16 +1,16 @@
 #define nil	((void *) 0)
-#include "sys/types.h"
-#include "assert.h"
-#include "stdio.h"
-#include "unistd.h"
-#include "fcntl.h"
-#include "stdlib.h"
-#include "string.h"
-#include "errno.h"
-#include "limits.h"
-#include "time.h"
-#include "dirent.h"
-#include "sys/stat.h"
+#include <sys/types.h>
+#include <assert.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <limits.h>
+#include <time.h>
+#include <dirent.h>
+#include <sys/stat.h>
 #include "misc.h"
 #include "tab.h"
 
@@ -133,7 +133,7 @@ static int rangeParse(char *file, char *data, bitmap_t map, int min,
 		}
 		if (*p == 0)
 		  break;
-		if (*p++ != ',')	/* e.g, 2,3,4,5 */
+		if (*p++ != ',')	/* e.g., 2,3,4,5 */
 		  goto syntax;
 	}
 	*p = end;
@@ -197,9 +197,9 @@ void tabReschedule(CronJob *job) {
 		 * directly. However, certain dates (such as Feb, 29th) do
 		 * not occur every year. We limit the difference between
 		 * nextTm.tm_year and prevTm.tm_year to detect impossible dates
-		 * (e.g, Feb, 31st). In theory every date occurs within a
+		 * (e.g., Feb, 31st). In theory every date occurs within a
 		 * period of 4 years. However, some years at the end of a
-		 * century are not leap years (e.g, the year 2100). An extra
+		 * century are not leap years (e.g., the year 2100). An extra
 		 * factor of 2 should be enough.
 		 */
 		if (nextTm.tm_year - prevTm.tm_year > 2 * 4) {

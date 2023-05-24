@@ -1,6 +1,6 @@
 #include "rs.h"
-#include "sys/wait.h"
-#include "minix/dmap.h"
+#include <sys/wait.h>
+#include <minix/dmap.h>
 
 #define EXEC_FAILED		49		/* Arbitrary, recognizable status */
 #define MAX_PATH_LEN	256		/* Maximum path string length */

@@ -1,6 +1,6 @@
 #include "../system.h"
 #include "../ipc.h"
-#include "signal.h"
+#include <signal.h>
 
 #define FILLED_MASK	(~0)
 

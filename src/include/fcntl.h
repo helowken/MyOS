@@ -2,7 +2,7 @@
 #define _FCNTL_H
 
 #ifndef _TYPES_H
-#include "sys/types.h"
+#include <sys/types.h>
 #endif
 
 /* These values are used for cmd in fcntl(). */

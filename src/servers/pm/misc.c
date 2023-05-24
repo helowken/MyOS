@@ -1,10 +1,10 @@
 #include "pm.h"
-#include "minix/callnr.h"
-#include "signal.h"
-#include "sys/svrctl.h"
-#include "sys/resource.h"
-#include "minix/com.h"
-#include "string.h"
+#include <minix/callnr.h>
+#include <signal.h>
+#include <sys/svrctl.h>
+#include <sys/resource.h>
+#include <minix/com.h>
+#include <string.h>
 #include "mproc.h"
 #include "param.h"
 
@@ -232,7 +232,48 @@ int doSvrCtl() {
 
 #define REBOOT_CODE		"delay; boot"
 int doReboot() {
-	printf("===TODO pm reboot\n");
-	return 0;
+	char monitorCode[32 * sizeof(char*)];
+	int codeLen;
+	int abortFlag;
+
+	if (currMp->mp_euid != SUPER_USER)
+	  return EPERM;
+
+	switch (inMsg.m_reboot_flag) {
+		case RBT_HALT:
+		case RBT_PANIC:
+		case RBT_RESET:
+			abortFlag = inMsg.m_reboot_flag;
+			break;
+		case RBT_REBOOT:
+			codeLen = strlen(REBOOT_CODE) + 1;
+			strncpy(monitorCode, REBOOT_CODE, codeLen);
+			abortFlag = RBT_MONITOR;
+			break;
+		case RBT_MONITOR:
+			codeLen = inMsg.m_reboot_str_len + 1;
+			if (codeLen > sizeof(monitorCode))
+			  return EINVAL;
+			if (sysDataCopy(who, (vir_bytes) inMsg.m_reboot_code, 
+					PM_PROC_NR, (vir_bytes) monitorCode, (phys_bytes) codeLen) != OK)
+			  return EFAULT;
+			if (monitorCode[codeLen - 1] != 0)
+			  return EINVAL;
+			abortFlag = RBT_MONITOR;
+			break;
+		default:
+			return EINVAL;
+	}
+
+	checkSig(-1, SIGKILL);		/* Kill all processes except init */
+	tellFS(REBOOT, 0, 0, 0);	/* Tell FS to prepare for shutdown */
+
+	/* Ask the kernel to abort. All system services, including the PM, will
+	 * get a HARD_STOP notification. Await the notification in the main loop.
+	 */
+	sysAbort(abortFlag, PM_PROC_NR, monitorCode, codeLen);
+	return SUSPEND;				/* Don't reply to killed process */
 }
+
+
 

@@ -4,6 +4,8 @@ MAKEFLAGS += --no-print-directory
 1kw_bins = update
 
 4kw_bins = sysenv \
+	       env \
+		   printenv \
 		   sleep \
 		   intr \
 		   date \
@@ -23,7 +25,15 @@ MAKEFLAGS += --no-print-directory
 		   at \
 		   kill \
 		   mail \
+		   getty \
+		   login \
+		   pwdauth \
+		   which \
+		   basename \
+		   dirname \
 		   testAAA
+
+5kw_bins = last
 
 20kw_bins = ls \
 			dd
@@ -32,6 +42,7 @@ MAKEFLAGS += --no-print-directory
 
 all_bins = $(1kw_bins) \
 		   $(4kw_bins) \
+		   $(5kw_bins) \
 		   $(20kw_bins) \
 		   $(4096k_bins)
 include ../../funcs.mk
@@ -39,6 +50,7 @@ include ../../funcs.mk
 all: 
 	$(call mkBins,$(1kw_bins),1kw)
 	$(call mkBins,$(4kw_bins),4kw)
+	$(call mkBins,$(5kw_bins),5kw)
 	$(call mkBins,$(20kw_bins),20kw)
 	$(call mkBins,$(4096k_bins),4096k)
 

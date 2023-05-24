@@ -185,11 +185,11 @@
  *	  1 1: read ISR next pulse
  */
 
-#include "stddef.h"
 #include "kernel.h"
-#include "ibm/portio.h"
 #include "proc.h"
-#include "minix/com.h"
+#include <stddef.h>
+#include <ibm/portio.h>
+#include <minix/com.h>
 
 #define ICW1_AT			0x11	/* edge triggered, cascade, need ICW4 */
 #define ICW1_PC			0x13	/* edge triggered, no cascade, need ICW4 */
@@ -200,31 +200,37 @@
 #define ICW4_PC_MASTER	0x0D	/* not SFNM, buffered, normal EOI, 8086 */
 
 
-void initInterrupts() {
+void initInterrupts(int mine) {
+/* Initialize the 8259s, finishing with all interrupts disabled. This is
+ * only done in protected mode, in real mode we don't touch the 8259s, but
+ * use the BIOS locations instead. The flag "mine" is set if the 8259s are
+ * to be programmed for MINIX, or to be reset to what the BIOS expects.
+ */
+
 	disableInterrupt();
 
 	/* The AT and newer PS/2 have two interrupt controllers, one master, one slaved at IRQ2. */
 
 	/* Settings for master. */
 	outb(INT_CTL, machine.ps_mca ? ICW1_PS : ICW1_AT);
-	outb(INT_CTL_MASK, IRQ0_VECTOR);		/* ICW2 for master, set up interrupt vector number for IRQ0. */
-	outb(INT_CTL_MASK, (1 << CASCADE_IRQ));	/* Use these lines to tell slaves. (only 1 slave here) */
+	outb(INT_CTL_MASK, mine ? IRQ0_VECTOR : BIOS_IRQ0_VEC);		/* ICW2 for master, set up interrupt vector number for IRQ0. */
+	outb(INT_CTL_MASK, (1 << CASCADE_IRQ));		/* Use these lines to tell slaves. (only 1 slave here) */
 	outb(INT_CTL_MASK, ICW4_AT_MASTER);
 	/* IRQ 0-7 mask. Masking IRQ2 will cause the Slave PIC to stop raising IRQs. */
 	outb(INT_CTL_MASK, ~(1 << CASCADE_IRQ));
 
 	/* Settings for slave. */
 	outb(INT2_CTL, machine.ps_mca ? ICW1_PS : ICW1_AT);
-	outb(INT2_CTL_MASK, IRQ8_VECTOR);		/* ICW2 for slave, set up interrupt vector number for IRQ8. */
-	outb(INT2_CTL_MASK, CASCADE_IRQ);		/* Set up slave id. */
+	outb(INT2_CTL_MASK, mine ? IRQ8_VECTOR : BIOS_IRQ8_VEC);	/* ICW2 for slave, set up interrupt vector number for IRQ8. */
+	outb(INT2_CTL_MASK, CASCADE_IRQ);			/* Set up slave id. */
 	outb(INT2_CTL_MASK, ICW4_AT_MASTER);
 	outb(INT2_CTL_MASK, ~0);					/* IRQ 8-15 mask */
 	
 	/* Copy the BIOS vectors from the BIOS to the Minix location, so we can still make BIOS 
 	 * calls without reprogramming the i8259s. (See BIOS interrupt vectors aboved.)
 	 */
-	physCopy(BIOS_VECTOR(0) * 4L, VECTOR(0) * 4L, 8 * 4L);	/* IRQ 0-7 */
-	physCopy(BIOS_VECTOR(8) * 4L, VECTOR(8) * 4L, 8 * 4L);	/* IRQ 8-15 */
+	physCopy(BIOS_VECTOR(0) * 4L, VECTOR(0) * 4L, 8 * 4L);		/* IRQ 0-7 */
+	physCopy(BIOS_VECTOR(8) * 4L, VECTOR(8) * 4L, 8 * 4L);		/* IRQ 8-15 */
 }
 
 /* Register an interrupt handler. */

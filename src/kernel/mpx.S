@@ -1,6 +1,6 @@
-#include "minix/config.h"
-#include "minix/com.h"
-#include "ibm/interrupt.h"
+#include <minix/config.h>
+#include <minix/com.h>
+#include <ibm/interrupt.h>
 #include "const.h"
 #include "protect.h"	
 .include "sconst.inc"
@@ -9,13 +9,16 @@
 
 	.text
 /* Set up a C stack frame on the monitor stack. */
-	pushl	%ebp
-	movl	%esp, %ebp
-	pushl	%esi
+
+	pushl	%ebp				
+	movl	%esp, %ebp			
+	pushl	%esi				
 	pushl	%edi
+	movl	%esp, monSp			/* Save stack pointer for later return */
 
 /* Copy the monitor GDT to the address space of kernel 
- * and switch over to it. */
+ * and switch over to it.  protectInit() can then update it with immediate effect. */
+
 	sgdt	gdt+GDT_SELECTOR			/* Get the monitor GDTR (GDT Register) */
 	movl	gdt+GDT_SELECTOR+2, %esi	/* Absolute address of GDT */
 	movl	$gdt, %ebx					/* Address of kernel GDT */
@@ -34,6 +37,7 @@
 	lgdt	gdt+GDT_SELECTOR			/* Switch over to kernel GDT */
 
 /* Locate boot parameters, set up kernel segment registers and stack. */
+
 	movl	8(%ebp), %ebx		/* Boot parameters offset (ss relative) */
 	movl	12(%ebp), %edx		/* Boot parameters length */
 	movl	16(%ebp), %eax		/* Address of image headers */
@@ -46,6 +50,7 @@
 	movl	$kStackTop, %esp	/* Set sp to point to the top of kernel stack */
 
 /* Call C startup code to set up a proper environment to run main(). */
+
 	pushl	%edx
 	pushl	%ebx
 	pushl	$SS_SELECTOR
@@ -56,6 +61,7 @@
 
 /* Reload GDTR, IDTR and the segment registers to global descriptor table 
  * set up by protectInit(). */
+
 	lgdt	gdt+GDT_SELECTOR
 	lidt	gdt+IDT_SELECTOR
 	
@@ -73,9 +79,6 @@
 	popfl						/* Clear nested task and interrupt enable */
 
 	jmp	main					/* main() */
-
-aa:	/*TODO*/
-	jmp aa
 
 
 

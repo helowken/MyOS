@@ -4,10 +4,10 @@
 
 #define main	exprCmd
 
-#include "unistd.h"
-#include "sys/types.h"
-#include "sys/stat.h"
-#include "stdlib.h"
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdlib.h>
 #include "bltin.h"
 #include "operators.h"
 
@@ -48,6 +48,8 @@ extern char *matchBegin[10];	/* Matched string */
 extern short matchLength[10];	/* Defined in regexp.c */
 extern short numberParens;		/* Number of \( \) pairs */
 
+char *reCompile(char *);		/* Defined in regexp.c */
+int reMatch(char *, char *);	/* Defined in regexp.c */
 
 static int lookupOp(char *name, char *const *table) {
 	register char *const *tp;
@@ -233,8 +235,32 @@ fileBit:
 			break;
 		case MATCH_PAT:
 			{
-				printf("=== expr match TODO\n");
-				//TODO
+				char *pat;
+				pat = reCompile((sp + 1)->u.string);
+				if (0) {	/* Print the token sequence. */
+					printf("tokens: ");
+					char *q;
+					for (q = pat; *q; ++q) {
+						printf("%u ", (unsigned) *q);
+					}
+					printf("\n");
+				}
+				if (reMatch(pat, sp->u.string)) {
+					if (numberParens > 0) {
+						sp->u.string = matchBegin[1];
+						sp->u.string[matchLength[1]] = '\0';
+					} else {
+						sp->u.num = matchLength[0];
+						sp->type = INTEGER;
+					}
+				} else {
+					if (numberParens > 0) {
+						sp->u.string[0] = '\0';
+					} else {
+						sp->u.num = 0;
+						sp->type = INTEGER;
+					}
+				}
 			}
 			break;
 

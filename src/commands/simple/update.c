@@ -1,6 +1,6 @@
-#include "sys/types.h"
-#include "signal.h"
-#include "unistd.h"
+#include <sys/types.h>
+#include <signal.h>
+#include <unistd.h>
 
 int main() {
 	/* Release all (?) open file descriptiors. */

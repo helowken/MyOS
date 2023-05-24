@@ -1,5 +1,5 @@
 #include "../system.h"
-#include "sys/resource.h"
+#include <sys/resource.h>
 
 int doNice(Message *msg) {
 	int pNum, priority, newQueue;

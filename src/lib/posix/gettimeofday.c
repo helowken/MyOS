@@ -1,6 +1,6 @@
-#include "lib.h"
-#include "sys/time.h"
-#include "time.h"
+#include <lib.h>
+#include <sys/time.h>
+#include <time.h>
 
 int gettimeofday(struct timeval *tv, void *tz) {
 	Message msg;

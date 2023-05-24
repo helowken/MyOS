@@ -1,16 +1,16 @@
 #define _POSIX_C_SOURCE	2
-#include "ctype.h"
-#include "sys/types.h"
-#include "sys/stat.h"
-#include "errno.h"
-#include "stdlib.h"
-#include "stdio.h"
-#include "string.h"
-#include "time.h"
-#include "fcntl.h"
-#include "unistd.h"
-#include "utime.h"
-#include "minix/minlib.h"
+#include <ctype.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <utime.h>
+#include <minix/minlib.h>
 
 #define val2(string)	((string)[0] * 10 + (string)[1] - '0' * 11)
 #define val4(string)	(val2(string) * 100 + val2(string + 2))

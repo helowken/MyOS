@@ -1,12 +1,15 @@
 #include "pm.h"
-#include "sys/wait.h"
-#include "minix/callnr.h"
-#include "minix/com.h"
-#include "signal.h"
+#include <sys/wait.h>
+#include <minix/callnr.h>
+#include <minix/com.h>
+#include <signal.h>
 #include "mproc.h"
 #include "param.h"
 
 #define LAST_FEW	2	/* Last few slots reserved for superuser */
+
+static int printFree = 0;
+static int printFork = 0;
 
 static void cleanup(register MProc *child) {
 /* Finish off the exit of a process. The process has exited or been killed
@@ -70,13 +73,23 @@ void pmExit(register MProc *rmp, int exitStatus) {
 	/* Pending reply messages for the dead process cannot be delivered. */
 	rmp->mp_flags &= ~REPLY;
 
+	if (printFree) 
+	  printf("Free: %s(%d), ", rmp->mp_name, (int) (rmp - mprocTable));
 	/* Release the memory ocuupied by the child. */
 	if (findShare(rmp, rmp->mp_ino, rmp->mp_dev, rmp->mp_ctime) == NULL) {
 		/* No other process shares the text segment, so free it. */
 		freeMemory(rmp->mp_seg[T].physAddr, rmp->mp_seg[T].len);
+		if (printFree) 
+		  printf("text: 0x%x, len: 0x%x, ",
+					rmp->mp_seg[T].physAddr << CLICK_SHIFT,
+					rmp->mp_seg[T].len << CLICK_SHIFT);
 	}
 	/* Free the data and stack segments. */
 	freeMemory(PM_ACT_DATA_PADDR(rmp), PM_ACT_DATA_CLICKS(rmp));
+	if (printFree) 
+	  printf("data: 0x%x, len: 0x%x\n",
+				PM_ACT_DATA_PADDR(rmp) << CLICK_SHIFT,
+				PM_ACT_DATA_CLICKS(rmp) << CLICK_SHIFT);
 
 	/* The process slot can only be freed if the parent has done a WAIT. */
 	rmp->mp_exit_status = (char) exitStatus;
@@ -177,7 +190,7 @@ int doFork() {
 	register MProc *parentMp;
 	register MProc *childMp;
 	int s, childNum;
-	phys_clicks dataClicks, copyClicks, childBase, offsetClicks;
+	phys_clicks copyClicks, childBase, offsetClicks;
 	phys_bytes copyBytes, parentAbs, childAbs;
 	pid_t newPid;
 
@@ -195,10 +208,6 @@ int doFork() {
 	 * be copied, because the text segment is either shared or of zero length.
 	 */
 	offsetClicks = parentMp->mp_seg[D].offset;
-	/* Since brk will change [D].len, [S].virAddr and [S].len
-	 * dataClicks = [S].virAddr - [D].virAddr + [S].len
-	 */
-	dataClicks = PM_DATA_CLICKS(parentMp);
 	copyClicks = PM_ACT_DATA_CLICKS(parentMp);
 	if ((childBase = allocMemory2(offsetClicks, copyClicks)) == NO_MEM)
 	  return ENOMEM;
@@ -230,13 +239,30 @@ int doFork() {
 	 * refer to the new copy. 
 	 */
 	childMp->mp_seg[D].physAddr = childBase - offsetClicks;
-	childMp->mp_seg[S].physAddr = childMp->mp_seg[D].physAddr + dataClicks;
+	/* From newMem() in exec.c:
+	 *  [S].physAddr = [D].physAddr + dataClicks + gapClicks
+	 *  [S].virAddr = [D].virAddr + dataClicks + gapClicks
+	 * then
+	 *  dataClicks + gapClicks = [S].virAddr - [D].virAddr
+	 * then
+	 *  [S].physAddr = [D].physAddr + ([S].virAddr - [D].virAddr)
+	 */
+	childMp->mp_seg[S].physAddr = childMp->mp_seg[D].physAddr + 
+				(parentMp->mp_seg[S].virAddr - parentMp->mp_seg[D].virAddr);
 	childMp->mp_exit_status = 0;
 	childMp->mp_sig_status = 0;
 
 	/* Find a free pid for the child and put it in the table. */
 	newPid = getFreePid();
 	childMp->mp_pid = newPid;	/* Assign pid to child */
+
+	if (printFork) 
+	  printf("Fork child(%d) data: 0x%x, len: 0x%x, parent(%d): 0x%x\n", 
+				(int) childNum,
+				PM_ACT_DATA_PADDR(childMp) << CLICK_SHIFT,
+				PM_ACT_DATA_CLICKS(childMp) << CLICK_SHIFT,
+				(int) (parentMp - mprocTable),
+				PM_ACT_DATA_PADDR(parentMp) << CLICK_SHIFT);
 
 	/* Tell kernel and file system about the (now successful) FORK. */
 	sysFork(who, childNum);

@@ -1,13 +1,13 @@
 #include "../drivers.h"
-#include "termios.h"
-#include "sys/ioc_tty.h"
-#include "signal.h"
-#include "minix/callnr.h"
-#include "minix/keymap.h"
+#include <termios.h>
+#include <sys/ioc_tty.h>
+#include <signal.h>
+#include <minix/callnr.h>
+#include <minix/keymap.h>
 #include "tty.h"
 
-#include "sys/time.h"
-#include "sys/select.h"
+#include <sys/time.h>
+#include <sys/select.h>
 
 extern int irqHookId;
 
@@ -49,6 +49,7 @@ clock_t ttyNextTimeout;	/* Time that the next alarm is due */
 Machine machine;		/* Kernel environment variables */
 
 static void setAttr(TTY *tp);
+static void ttyInputCancel(register TTY *tp);
 
 int ttyDevNop(TTY *tp, int try) {
 /* Some functions need not be implemented at the device level. */
@@ -86,7 +87,26 @@ static void ttyInit() {
 }
 
 static void devIoctl(TTY *tp) {
-	// TODO
+/* The ioctl's TCSETSW, TCSETSF and TCDRAIN wait for output to finish to make
+ * sure that an attribute change doesn't affect the processing of current
+ * output. Once output finishes the ioctl is executed as in doIoctl().
+ */
+	int result;
+
+	if (tp->tty_out_left > 0)	/* Output not finished. */
+	  return;
+
+	if (tp->tty_io_req != TCDRAIN) {
+		if (tp->tty_io_req == TCSETSF)
+		  ttyInputCancel(tp);
+
+		result = sysVirCopy(tp->tty_io_proc, D, tp->tty_io_vir,
+					SELF, D, (vir_bytes) &tp->tty_termios,
+					(vir_bytes) sizeof(tp->tty_termios));
+		setAttr(tp);
+	}
+	tp->tty_io_req = 0;
+	ttyReply(REVIVE, tp->tty_io_caller, tp->tty_io_proc, result);
 }
 
 void ttyReply(int code, int replyee, int pNum, int status) {
@@ -179,7 +199,7 @@ void handleEvents(TTY *tp) {
  *  to avoid swamping the TTY task. Messages may be overwritten when the
  *  lines are fast or when there are races between different lines, input
  *  and output, because MINIX only provides single buffering for interrupt
- *  messages (in proc.c). This is handled by explicityly checking each line
+ *  messages (in proc.c). This is handled by explicitly checking each line
  *  for fresh input and completed output on each interrupt.
  */
 	do {
@@ -578,8 +598,101 @@ int inProcess(register TTY *tp, char *buf, int count) {
 	return ct;
 }
 
+static int selectTry(TTY *tp, int ops) {
+	int readyOps = 0;
+
+	/* Special case. If line is hung up, no operations will block.
+	 * (and it can be seen as an exceptional condition.)
+	 */
+	if (tp->tty_termios.c_ospeed == B0) 
+	  readyOps |= ops;
+
+	if (ops & SEL_RD) {
+		/* Will I/O not block on read? */
+		if (tp->tty_in_left > 0) {
+			readyOps |= SEL_RD;		/* EIO - no blocking */
+		} else if (tp->tty_in_count > 0) {
+			/* Is a regular read possible? tty_in_count
+			 * says there is data. But a read will only succeed
+			 * in canonical mode if a newline has been seen.
+			 */
+			if (! (tp->tty_termios.c_lflag & ICANON) ||
+					tp->tty_eot_count > 0) {
+				readyOps |= SEL_RD;
+			}
+		}
+	}
+
+	if (ops & SEL_WR) {
+		if (tp->tty_out_left > 0) 
+		  readyOps |= SEL_WR;
+		else if ((*tp->tty_dev_write)(tp, 1))
+		  readyOps |= SEL_WR;
+	}
+
+	return readyOps;
+}
+
 static void doStatus(Message *msg) {
-//TODO
+	register TTY *tp;
+	int eventFound;
+	int status;
+	int ops;
+
+	/* Check for select or revive events on any of the ttys. If we found
+	 * an, event return a single status message for it. The FS will make
+	 * another call to see if there is more.
+	 */
+	eventFound = 0;
+	for (tp = FIRST_TTY; tp < END_TTY; ++tp) {
+		if ((ops = selectTry(tp, tp->tty_select_ops)) &&
+				tp->tty_select_proc == msg->m_source) {
+			/* I/O for a selected minor device is ready. */
+			msg->m_type = DEV_IO_READY;
+			msg->DEV_MINOR = tp->tty_index;
+			msg->DEV_SEL_OPS = ops;
+
+			tp->tty_select_ops &= ~ops;	/* Unmark select event */
+			eventFound = 1;
+			break;
+		} else if (tp->tty_in_revived && 
+					tp->tty_in_caller == msg->m_source) {
+			/* Suspended request finished. Send a REVIVE. */
+			msg->m_type = DEV_REVIVE;
+			msg->REP_PROC_NR = tp->tty_in_proc;
+			msg->REP_STATUS = tp->tty_in_cum;
+
+			tp->tty_in_left = tp->tty_in_cum = 0;
+			tp->tty_in_revived = 0;		/* Unmark revive event */
+			eventFound = 1;
+			break;
+		} else if (tp->tty_out_revived &&
+					tp->tty_out_caller == msg->m_source) {
+			/* Suspended request finished. Send a REVIVE. */
+			msg->m_type = DEV_REVIVE;
+			msg->REP_PROC_NR = tp->tty_out_proc;
+			msg->REP_STATUS = tp->tty_out_cum;
+
+			tp->tty_out_cum = 0;
+			tp->tty_out_revived = 0;	/* Unmark revive event */
+			eventFound = 1;
+			break;
+		}
+	}
+
+#if NR_PTYS > 0
+	if (! eventFound) 
+	  eventFound = ptyStatus(msg);
+#endif
+
+	if (! eventFound) {
+		/* No events of interest were found. Return an empty message. */
+		msg->m_type = DEV_NO_STATUS;
+	}
+
+	/* Almost done. Send back the reply message to the caller. */
+	if ((status = send(msg->m_source, msg)) != OK) 
+	  panic("TTY", "send in doStatus failed, status\n", status);
 }
 
 static void doRead(register TTY *tp, register Message *msg) {
@@ -711,50 +824,50 @@ static void doIoctl(register TTY *tp, Message *msg) {
 
 	/* Size of the ioctl parameter. */
 	switch (msg->TTY_REQUEST) {
-		case TC_GET:			/* Posix tcgetattr function */
-		case TC_SET_NOW:		/* Posix tcsetattr function, TCSANOW option */
-		case TC_SET_DRAIN:		/* Posix tcsetattr function, TCSADRAIN option */
-		case TC_SET_FLUSH:		/* Posix tcsetattr function, TCSAFLUSH option */
+		case TCGETS:		/* Posix tcgetattr function */
+		case TCSETS:		/* Posix tcsetattr function, TCSANOW option */
+		case TCSETSW:		/* Posix tcsetattr function, TCSADRAIN option */
+		case TCSETSF:		/* Posix tcsetattr function, TCSAFLUSH option */
 			size = sizeof(struct termios);
 			break;
 
-		case TC_SEND_BREAK:		/* Posix tcsendbreak function */
-		case TC_FLOW:			/* Posix tcflow function */
-		case TC_FLUSH:			/* Posix tcflush function */
-		case TIOC_GET_PGRP:		/* Posix tcgetpgrp function */
-		case TIOC_SET_PGRP:		/* Posix tcsetpgrp function */
+		case TCSBRK:		/* Posix tcsendbreak function */
+		case TCFLOW:		/* Posix tcflow function */
+		case TCFLUSH:		/* Posix tcflush function */
+		case TIOCGPGRP:		/* Posix tcgetpgrp function */
+		case TIOCSPGRP:		/* Posix tcsetpgrp function */
 			size = sizeof(int);
 			break;
 
-		case TIOC_GET_WINSZ:	/* Get window size (not Posix) */
-		case TIOC_SET_WINSZ:	/* Set window size (not Posix) */
+		case TIOCGWINSZ:	/* Get window size (not Posix) */
+		case TIOCSWINSZ:	/* Set window size (not Posix) */
 			size = sizeof(WinSize);
 			break;
 
-		case KIOC_SET_MAP:		/* Load keymap (Minix extension) */
+		case KIOCSMAP:		/* Load keymap (Minix extension) */
 			size = sizeof(keymap_t);
 			break;
-		case TIOC_SET_FONT:		/* Load font (Minix extension) */
+		case TIOCSFON:		/* Load font (Minix extension) */
 			size = sizeof(u8_t [8192]);
 			break;
 
-		case TC_DRAIN:			/* Posix tcdrain function -- no -parameter */
+		case TCDRAIN:		/* Posix tcdrain function -- no -parameter */
 		default: 
 			size = 0;
 	}
 
 	r = OK;
 	switch (msg->TTY_REQUEST) {
-		case TC_GET:
+		case TCGETS:
 			/* Get the termios attributes. */
 			r = sysVirCopy(SELF, D, (vir_bytes) &tp->tty_termios,
 					msg->PROC_NR, D, (vir_bytes) msg->ADDRESS,
 					(vir_bytes) size);
 			break;
 
-		case TC_SET_DRAIN:
-		case TC_SET_FLUSH:
-		case TC_DRAIN:
+		case TCSETSW:
+		case TCSETSF:
+		case TCDRAIN:
 			if (tp->tty_out_left > 0) {
 				/* Wait for all ongoing output processing to finish. */
 				tp->tty_io_caller = msg->m_source;
@@ -764,12 +877,12 @@ static void doIoctl(register TTY *tp, Message *msg) {
 				r = SUSPEND;
 				break;
 			}
-			if (msg->TTY_REQUEST == TC_DRAIN)
+			if (msg->TTY_REQUEST == TCDRAIN)
 			  break;
-			if (msg->TTY_REQUEST == TC_SET_FLUSH)
+			if (msg->TTY_REQUEST == TCSETSF)
 			  ttyInputCancel(tp);
 			/* Fall through */
-		case TC_SET_NOW:
+		case TCSETS:
 			/* Set the termios attributes. */
 			r = sysVirCopy(msg->PROC_NR, D, (vir_bytes) msg->ADDRESS,
 				SELF, D, (vir_bytes) &tp->tty_termios, (vir_bytes) size);
@@ -778,7 +891,7 @@ static void doIoctl(register TTY *tp, Message *msg) {
 			setAttr(tp);
 			break;
 
-		case TC_FLUSH:
+		case TCFLUSH:
 			r = sysVirCopy(msg->PROC_NR, D, (vir_bytes) msg->ADDRESS,
 				SELF, D, (vir_bytes) &param, (vir_bytes) size);
 			if (r != OK)
@@ -799,7 +912,7 @@ static void doIoctl(register TTY *tp, Message *msg) {
 			}
 			break;
 
-		case TC_FLOW:
+		case TCFLOW:
 			r = sysVirCopy(msg->PROC_NR, D, (vir_bytes) msg->ADDRESS,
 				SELF, D, (vir_bytes) &param, (vir_bytes) size);
 			if (r != OK)
@@ -821,31 +934,31 @@ static void doIoctl(register TTY *tp, Message *msg) {
 			}
 			break;
 
-		case TC_SEND_BREAK:
+		case TCSBRK:
 			if (tp->tty_break != NULL)
 			  (*tp->tty_break)(tp, 0);
 			break;
 
-		case TIOC_GET_WINSZ:
+		case TIOCGWINSZ:
 			r = sysVirCopy(SELF, D, (vir_bytes) &tp->tty_win_size,
 						msg->PROC_NR, D, (vir_bytes) msg->ADDRESS,
 						(vir_bytes) size);
 			break;
 		
-		case TIOC_SET_WINSZ:
+		case TIOCSWINSZ:
 			r = sysVirCopy(msg->PROC_NR, D, (vir_bytes) msg->ADDRESS,
 						SELF, D, (vir_bytes) &tp->tty_win_size, 
 						(vir_bytes) size);
 			/* SIGWINCH... */
 			break;
 
-		case KIOC_SET_MAP:
+		case KIOCSMAP:
 			/* Load a new keymap (only /dev/console). */
 			if (isConsole(tp))
 			  r = kbdLoadMap(msg);
 			break;
 
-		case TIOC_SET_FONT:
+		case TIOCSFON:
 			/* Load a font into an EGA or VGA card. */
 			if (isConsole(tp))
 			  r = consoleLoadFont(msg);
@@ -854,8 +967,8 @@ static void doIoctl(register TTY *tp, Message *msg) {
 /* These Posix functions are allowed to fail if _POSIX_JOB_CONTROL is
  * not defined.
  */		
-		case TIOC_GET_PGRP:
-		case TIOC_SET_PGRP:
+		case TIOCGPGRP:
+		case TIOCSPGRP:
 			r = ENOTTY;
 			break;
 	}
@@ -950,8 +1063,19 @@ static void doClose(register TTY *tp, Message *msg) {
 	ttyReply(TASK_REPLY, msg->m_source, msg->PROC_NR, OK);
 }
 
-static void doSelect(TTY *tp, Message *msg) {
-//TODO
+static void doSelect(register TTY *tp, register Message *msg) {
+	int ops, readyOps = 0, watch;
+
+	ops = msg->PROC_NR & (SEL_RD | SEL_WR | SEL_ERR);
+	watch = (msg->PROC_NR & SEL_NOTIFY ? 1 : 0);
+
+	readyOps = selectTry(tp, ops);
+
+	if (! readyOps && ops && watch) {
+		tp->tty_select_ops |= ops;
+		tp->tty_select_proc = msg->m_source;
+	}
+	ttyReply(TASK_REPLY, msg->m_source, msg->PROC_NR, readyOps);
 }
 
 static void doCancel(register TTY *tp, Message *msg) {
@@ -983,7 +1107,8 @@ static void doCancel(register TTY *tp, Message *msg) {
 }
 
 int selectRetry(TTY *tp) {
-//TODO
+	if (selectTry(tp, tp->tty_select_ops))
+	  notify(tp->tty_select_proc);
 	return OK;
 }
 

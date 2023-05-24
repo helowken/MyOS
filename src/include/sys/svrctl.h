@@ -2,11 +2,11 @@
 #define _SYS__SVRCTL_H
 
 #ifndef _TYPES_H
-#include "sys/types.h"
+#include <sys/types.h>
 #endif
 
 /* Server control commands have the same encoding as the commands for ioctls. */
-#include "minix/ioctl.h"
+#include <minix/ioctl.h>
 
 /* MM controls. */
 #define MM_SWAP_ON		_IOW('M', 5, MmSwapOn)

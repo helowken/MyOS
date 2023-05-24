@@ -1,14 +1,14 @@
-#include "sys/types.h"
-#include "time.h"
-#include "fcntl.h"
-#include "unistd.h"
-#include "stdlib.h"
-#include "string.h"
-#include "sys/stat.h"
-#include "stdio.h"
-#include "limits.h"
-#include "signal.h"
-#include "errno.h"
+#include <sys/types.h>
+#include <time.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <stdio.h>
+#include <limits.h>
+#include <signal.h>
+#include <errno.h>
 
 #define START_DAY	0	/* See ctime(3) */
 #define LEAP_DAY	START_DAY + 59
@@ -112,7 +112,7 @@ int main(int argc, char **argv, char **envp) {
 	currTimeNum = tm->tm_hour * 100 + tm->tm_min;
 	if (lday == NO_DAY) {	/* No [month day] given */
 		lday = tm->tm_yday;
-		/* e.g, "14:30" -> 14 * 100 + 30 = 1430 */
+		/* e.g., "14:30" -> 14 * 100 + 30 = 1430 */
 		if (ltime <= currTimeNum) {	
 			/* Expired, execute at the next day */
 			++lday;

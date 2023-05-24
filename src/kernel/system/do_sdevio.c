@@ -1,5 +1,5 @@
 #include "../system.h"
-#include "minix/devio.h"
+#include <minix/devio.h>
 
 int doStrDevIO(register Message *msg) {
 	int pNum = msg->DIO_VEC_PROC;

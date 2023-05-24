@@ -1,6 +1,6 @@
-#include "lib.h"
-#include "string.h"
-#include "stdio.h"
+#include <lib.h>
+#include <string.h>
+#include <stdio.h>
 
 int rename(const char *oldPath, const char *newPath) {
 	Message msg;

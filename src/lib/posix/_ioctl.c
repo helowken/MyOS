@@ -1,6 +1,6 @@
-#include "lib.h"
-#include "minix/com.h"
-#include "sys/ioctl.h"
+#include <lib.h>
+#include <minix/com.h>
+#include <sys/ioctl.h>
 
 int ioctl(int fd, int request, void *data) {
 	Message msg;

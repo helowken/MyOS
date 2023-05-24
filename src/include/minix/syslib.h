@@ -2,15 +2,15 @@
 #define	_SYSLIB_H
 
 #ifndef _TYPES_H
-#include "sys/types.h"
+#include <sys/types.h>
 #endif
 
 #ifndef _IPC_H
-#include "minix/ipc.h"
+#include <minix/ipc.h>
 #endif
 
 #ifndef _DEVIO_H
-#include "minix/devio.h"
+#include <minix/devio.h>
 #endif
 
 #define SYSTASK	SYSTEM

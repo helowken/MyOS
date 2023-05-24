@@ -1,16 +1,16 @@
 #define _MINIX	1
 #define	_POSIX_SOURCE	1
 
-#include "sys/types.h"
-#include "sys/svrctl.h"
-#include "fcntl.h"
-#include "errno.h"
-#include "limits.h"
-#include "minix/minlib.h"
-#include "stdlib.h"
-#include "string.h"
-#include "unistd.h"
-#include "stdio.h"
+#include <sys/types.h>
+#include <sys/svrctl.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <limits.h>
+#include <minix/minlib.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdio.h>
 
 static char *prog;
 static char mountPoint[PATH_MAX + 1];

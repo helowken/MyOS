@@ -1,5 +1,5 @@
 #include "sysutil.h"
-#include "timers.h"
+#include <timers.h>
 
 int tickDelay(clock_t ticks) {
 /* This function uses the synchronous alarm to delay for a while. This works

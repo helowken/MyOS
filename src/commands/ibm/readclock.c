@@ -1,11 +1,11 @@
-#include "stdlib.h"
-#include "unistd.h"
-#include "fcntl.h"
-#include "stdio.h"
-#include "string.h"
-#include "time.h"
-#include "errno.h"
-#include "sys/ioc_cmos.h"
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <errno.h>
+#include <sys/ioc_cmos.h>
 
 #define MAX_RETRIES		1
 #define CMOS_DEV		"/dev/cmos"

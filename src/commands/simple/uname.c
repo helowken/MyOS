@@ -1,10 +1,10 @@
-#include "sys/types.h"
-#include "sys/utsname.h"
-#include "stdarg.h"
-#include "stdlib.h"
-#include "string.h"
-#include "unistd.h"
-#include "minix/minlib.h"
+#include <sys/types.h>
+#include <sys/utsname.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <minix/minlib.h>
 
 /* Define the uname components. */
 #define ALL			((unsigned) 0x1F)

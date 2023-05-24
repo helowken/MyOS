@@ -1,8 +1,8 @@
 #define nil	0
-#include "lib.h"
-#include "sys/types.h"
-#include "dirent.h"
-#include "errno.h"
+#include <lib.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <errno.h>
 
 off_t telldir(DIR *dp) {
 	if (dp == nil) {

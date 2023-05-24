@@ -1,5 +1,5 @@
-#include "code.h"
-#include "string.h"
+#include <code.h>
+#include <string.h>
 
 void *memset(void *s, register int c, register size_t n) {
 	register char *s1 = s;

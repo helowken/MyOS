@@ -1,6 +1,6 @@
-#include "lib.h"
-#include "fcntl.h"
-#include "unistd.h"
+#include <lib.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 int dup2(int fd, int fd2) {
 /* The behavior of dup2 is defined by POSIX as almost, 

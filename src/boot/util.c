@@ -1,6 +1,6 @@
-#include "code.h"
-#include "sys/types.h"
-#include "limits.h"
+#include <code.h>
+#include <sys/types.h>
+#include <limits.h>
 #include "util.h"
 
 const char *destE820 = (char *) 0x8000;

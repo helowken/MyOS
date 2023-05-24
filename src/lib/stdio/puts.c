@@ -1,4 +1,4 @@
-#include "stdio.h"
+#include <stdio.h>
 
 int puts(register const char *s) {
 	register FILE *file = stdout;

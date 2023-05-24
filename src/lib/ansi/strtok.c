@@ -1,4 +1,4 @@
-#include "string.h"
+#include <string.h>
 
 char *strtok(register char *str, const char *delim) {
 	register char *s1, *s2;

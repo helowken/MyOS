@@ -1,6 +1,6 @@
 #include "fs.h"
-#include "string.h"
-#include "minix/callnr.h"
+#include <string.h>
+#include <minix/callnr.h>
 
 char dot1[2] = ".";		/* Used for searchDir to bypass the access */
 char dot2[3] = "..";	/* permissions for . and .. */

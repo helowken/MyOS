@@ -1,6 +1,6 @@
-#include "lib.h"
-#include "stddef.h"
-#include "signal.h"
+#include <lib.h>
+#include <stddef.h>
+#include <signal.h>
 
 int sigprocmask(int how, const sigset_t *set, sigset_t *oldSet) {
 	Message msg;

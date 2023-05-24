@@ -1,15 +1,15 @@
 
 
-#include "stdlib.h"
-#include "unistd.h"
+#include <stdlib.h>
+#include <unistd.h>
 #include "shell.h"
 #include "main.h"
 #include "options.h"
 #include "output.h"
 #include "error.h"
-#include "signal.h"
-#include "stdarg.h"
-#include "errno.h"
+#include <signal.h>
+#include <stdarg.h>
+#include <errno.h>
 
 /* Code to handle exceptions in C.
  */
@@ -68,9 +68,8 @@ void error(char *msg, ...) {
 		out2Char('\n');
 	}
 	va_end(ap);
-	printf("=== TODO error() raise error\n");
 	flushAll();
-	//TODO exRaise(EX_ERROR);
+	exRaise(EX_ERROR);
 }
 
 void error2(char *a, char *b) {

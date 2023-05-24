@@ -16,7 +16,7 @@ operators.c operators.h: mkexpr.sh unary_op binary_op
 
 sys_expr.o: operators.h
 
-expr.bin: $(CRT_ENTRY) sys_expr.o operators.o stalloc.o error.o
+expr.bin: $(CRT_ENTRY) sys_expr.o operators.o stalloc.o error.o regexp.o
 	$(call mkbin,$^,$@,$(STACK_SIZE),debug_expr.bin)
 
 echo.bin: $(CRT_ENTRY) sys_echo.o 

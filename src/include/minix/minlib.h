@@ -3,11 +3,12 @@
 
 /* Miscellaneous BSD. */
 char *itoa(int n);
+char *getpass(const char *prompt);
 
 /* Miscellaneous MINIX. */
 ssize_t stdErr(const char *s);
 ssize_t tell(const char *s);
-void report(const char *prog, const char *s);
+void reportStdErr(const char *prog, const char *s);
 void fatal(const char *prog, const char *s);
 void usage(const char *prog, const char *s);
 int getProcessor(void);

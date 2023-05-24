@@ -1,8 +1,8 @@
 #ifndef _DEVIO_H
 #define _DEVIO_H
 
-#include "minix/sys_config.h"
-#include "sys/types.h"
+#include <minix/sys_config.h>
+#include <sys/types.h>
 
 typedef u16_t port_t;
 

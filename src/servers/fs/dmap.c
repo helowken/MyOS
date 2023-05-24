@@ -1,10 +1,10 @@
 #include "fs.h"
-#include "string.h"
-#include "stdlib.h"
-#include "ctype.h"
-#include "unistd.h"
-#include "minix/com.h"
 #include "param.h"
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <unistd.h>
+#include <minix/com.h>
 
 /* Some devices may or may not be there in the next table. */
 #define DT(enable, openClose, io, driver, flags) \

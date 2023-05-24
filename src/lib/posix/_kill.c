@@ -1,5 +1,5 @@
-#include "lib.h"
-#include "signal.h"
+#include <lib.h>
+#include <signal.h>
 
 int kill(int proc, int sig) {
 	Message msg;

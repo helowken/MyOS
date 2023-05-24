@@ -1,6 +1,6 @@
 #include "pm.h"
-#include "minix/callnr.h"
-#include "signal.h"
+#include <minix/callnr.h>
+#include <signal.h>
 #include "mproc.h"
 #include "param.h"
 

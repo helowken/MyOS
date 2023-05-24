@@ -1,14 +1,14 @@
 #define _POSIX_SOURCE	1
-#include "sys/types.h"
-#include "fcntl.h"
-#include "pwd.h"
-#include "string.h"
-#include "stdio.h"
-#include "time.h"
-#include "utmp.h"
-#include "unistd.h"
-#include "sys/utsname.h"
-#include "sys/stat.h"
+#include <sys/types.h>
+#include <fcntl.h>
+#include <pwd.h>
+#include <string.h>
+#include <stdio.h>
+#include <time.h>
+#include <utmp.h>
+#include <unistd.h>
+#include <sys/utsname.h>
+#include <sys/stat.h>
 
 static void crnlCat(char *message, char *more) {
 	char *p = message;

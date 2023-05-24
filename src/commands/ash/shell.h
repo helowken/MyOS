@@ -17,10 +17,6 @@ typedef void *	pointer;
 
 #define MKINIT
 
-#include "sys/types.h"
+#include <sys/types.h>
 
 extern char nullStr[1];		/* Null string */
-
-#ifndef AAA
-#include "stdio.h"//TODO
-#endif

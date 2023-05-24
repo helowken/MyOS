@@ -437,5 +437,54 @@ physOutsw:
 	popl	%ebp
 	retl
 
+/*=====================================================================*
+ *                monitor                *
+ *=====================================================================*/
+
+/* void monitor();
+ * 
+ * Return to monitor.
+ */
+	.globl	monitor
+	.type	monitor, @function
+monitor:
+	movl	monSp, %esp			/* Restore monitor stack pointer */
+	movw	$SS_SELECTOR, %dx	/* Monitor data segment */
+	movw	%dx, %ds
+	movw	%dx, %es
+	movw	%dx, %fs
+	movw	%dx, %gs
+	movw	%dx, %ss
+	popl	%edi			/* Restore ebp, esi, edi (see the top of mpx.S) */
+	popl	%esi
+	popl	%ebp
+	retfw					/* Return to the monitor, cs and ip are 16-bits.
+							   (see "push MCS_SELECTOR and ret386" in boothead.s) */
+					
+/*=====================================================================*
+ *                reset                *
+ *=====================================================================*/
+
+/* void reset();
+ *
+ * Reset the system by loading IDT with offset 0 and interrupting.
+ */
+	.globl	reset
+	.type	reset, @function
+reset:
+	lidt	idtZero
+	int	$3					/* Anything goes, the 386 will not like it */
+
+	
+	.section	.data
+	.type	idtZero, @object
+	.align	8
+idtZero:
+	.zero	8
+
+
+
+
+
 
 

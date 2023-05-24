@@ -1,8 +1,8 @@
 #include "fs.h"
-#include "sys/stat.h"
-#include "fcntl.h"
-#include "minix/callnr.h"
-#include "minix/com.h"
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <minix/callnr.h>
+#include <minix/com.h>
 #include "param.h"
 
 static dev_t nameToDev(char *path) {

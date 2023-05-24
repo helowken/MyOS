@@ -1,7 +1,7 @@
-#include "lib.h"
-#include "fcntl.h"
-#include "stdarg.h"
-#include "string.h"
+#include <lib.h>
+#include <fcntl.h>
+#include <stdarg.h>
+#include <string.h>
 
 int open(const char *name, int flags, ...) {
 	va_list argp;

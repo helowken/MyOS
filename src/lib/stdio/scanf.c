@@ -1,5 +1,5 @@
-#include "stdio.h"
-#include "stdarg.h"
+#include <stdio.h>
+#include <stdarg.h>
 #include "loc_incl.h"
 
 int scanf(const char *format, ...) {

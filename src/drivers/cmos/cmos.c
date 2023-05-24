@@ -1,8 +1,8 @@
 #include "../drivers.h"
-#include "sys/ioc_cmos.h"
-#include "time.h"
-#include "ibm/cmos.h"
-#include "ibm/bios.h"
+#include <sys/ioc_cmos.h>
+#include <time.h>
+#include <ibm/cmos.h>
+#include <ibm/bios.h>
 
 static void reply(int code, int replyee, int pNum, int status) {
 	Message msg;

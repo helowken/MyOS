@@ -1,7 +1,7 @@
 #ifndef _BOOT_H
 #define _BOOT_H
 
-#include "sys/types.h"
+#include <sys/types.h>
 
 #define	SECTOR_SIZE		512
 #define RATIO(b)		((b) / SECTOR_SIZE)
@@ -57,6 +57,7 @@ typedef struct {				/* One chunk of free memory. */
 
 EXTERN Memory memList[3];		/* List of available memory. */
 
+extern int fsOK;				/* True if the boot device contains an FS. */
 EXTERN u32_t lowSector;			/* Offset to the file system on the boot device. */
 
 /* Sticky attributes. */
@@ -133,6 +134,9 @@ extern void putch(int ch);
 
 /* Read a keypress. */
 extern int getch();
+
+/* Read keypress directly from keyboard controller. */
+void scanKeyboard();
 
 /* Undo a keypress. */
 extern void ungetch();

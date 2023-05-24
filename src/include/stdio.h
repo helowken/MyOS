@@ -1,7 +1,7 @@
 #ifndef _STDIO_H
 #define _STDIO_H
 
-#include "stdarg.h"
+#include <stdarg.h>
 
 typedef struct __iobuf {
 	int	_count;
@@ -44,7 +44,7 @@ typedef struct __iobuf {
 
 #define FOPEN_MAX	20
 
-#include "sys/dir.h"
+#include <sys/dir.h>
 #define FILENAME_MAX	DIRSIZ
 
 #define TMP_MAX		999

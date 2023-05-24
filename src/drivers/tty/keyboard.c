@@ -1,12 +1,12 @@
 #include "../drivers.h"
-#include "sys/time.h"
-#include "sys/select.h"
-#include "termios.h"
-#include "signal.h"
-#include "unistd.h"
-#include "minix/callnr.h"
-#include "minix/com.h"
-#include "minix/keymap.h"
+#include <sys/time.h>
+#include <sys/select.h>
+#include <termios.h>
+#include <signal.h>
+#include <unistd.h>
+#include <minix/callnr.h>
+#include <minix/com.h>
+#include <minix/keymap.h>
 #include "tty.h"
 #include "keymaps/us-std.src"
 #include "../../kernel/const.h"
@@ -317,6 +317,7 @@ static int kbRead(TTY *tp, int try) {
 		scanCode = *inTail++;	/* Take one key scan code */
 		if (inTail == inBuf + KB_IN_BYTES) 
 		  inTail = inBuf;
+
 		--inCount;
 
 		/* Function keys are being used for debug dumps. */

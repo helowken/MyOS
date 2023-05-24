@@ -1,10 +1,10 @@
 #define nil	0
-#include "sys/types.h"
-#include "stdlib.h"
-#include "string.h"
-#include "fcntl.h"
-#include "unistd.h"
-#include "minix/minlib.h"
+#include <sys/types.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <minix/minlib.h>
 
 static char *msg = "reboot call failed\n";
 

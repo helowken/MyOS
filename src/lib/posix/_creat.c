@@ -1,5 +1,5 @@
-#include "lib.h"
-#include "fcntl.h"
+#include <lib.h>
+#include <fcntl.h>
 
 int creat(const char *path, mode_t mode) {
 	Message msg;

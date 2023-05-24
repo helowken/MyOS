@@ -1,7 +1,7 @@
 #include "pm.h"
-#include "minix/com.h"
-#include "sys/ptrace.h"
-#include "signal.h"
+#include <minix/com.h>
+#include <sys/ptrace.h>
+#include <signal.h>
 #include "mproc.h"
 #include "param.h"
 

@@ -12,6 +12,7 @@ void initDataSeg(register SegDesc *sdPtr, phys_bytes base,
 
 /* clock.c */
 void clockTask();
+void clockStop();
 clock_t getUptime();
 void setTimer(struct Timer *tp, clock_t expTime, TimerFunc watchDog);
 void resetTimer(struct Timer *tp);
@@ -34,7 +35,8 @@ int sys_call(int function, int srcDst, Message *msg);
 void cstart(u16_t cs, u16_t ds,	u16_t mds, u16_t paramOffset,u16_t paramSize);	
 
 /* exception.c */
-void handleException(unsigned vectorNum);
+void handleException(unsigned exVec, unsigned trapErrno, 
+			unsigned long eip, unsigned cs, unsigned eflags);
 
 /* i8259.c */
 void initInterrupts();
@@ -70,6 +72,8 @@ void physInsb(u16_t port, phys_bytes buf, size_t count);
 void physInsw(u16_t port, phys_bytes buf, size_t count);
 void physOutsb(u16_t port, phys_bytes buf, size_t count);
 void physOutsw(u16_t port, phys_bytes buf, size_t count);
+void monitor();
+void reset();
 
 
 /* mpx.S */

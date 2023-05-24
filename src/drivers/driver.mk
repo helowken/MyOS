@@ -1,6 +1,7 @@
 MY_HOME = ../..
 include $(MY_HOME)/common.mk
 
+LIBS = $(SYS_LIBS)
 DRIVER_DIR = ../libdriver
 LIB_DRIVER = $(DRIVER_DIR)/driver.o $(DRIVER_DIR)/drvlib.o
 DRIVER = $(NAME).bin

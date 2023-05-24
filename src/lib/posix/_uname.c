@@ -3,15 +3,15 @@
  * release and version become wrong if not recompiled.
  * More chip types and Minix versions need to be added.
  */
-#include "sys/types.h"
-#include "sys/utsname.h"
-#include "unistd.h"
-#include "fcntl.h"
-#include "string.h"
-#include "errno.h"
-#include "minix/config.h"
-#include "minix/com.h"
-#include "minix/minlib.h"
+#include <sys/types.h>
+#include <sys/utsname.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <string.h>
+#include <errno.h>
+#include <minix/config.h>
+#include <minix/com.h>
+#include <minix/minlib.h>
 
 int uname(struct utsname *name) {
 	int fd, n, err;

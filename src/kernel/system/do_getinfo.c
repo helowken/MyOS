@@ -1,5 +1,5 @@
 #include "../system.h"
-#include "stddef.h"
+#include <stddef.h>
 
 int doGetInfo(Message *msg) {
 /* Request system information to be copied to caller's address space. This

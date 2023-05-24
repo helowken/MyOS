@@ -1,10 +1,10 @@
-#include "lib.h"
-#include "sys/stat.h"
-#include "dirent.h"
-#include "fcntl.h"
-#include "stddef.h"
-#include "string.h"
-#include "unistd.h"
+#include <lib.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <fcntl.h>
+#include <stddef.h>
+#include <string.h>
+#include <unistd.h>
 
 static char base[] = "/dev";
 static char path[sizeof(base) + 1 + NAME_MAX];

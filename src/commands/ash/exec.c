@@ -9,15 +9,15 @@
 #include "var.h"
 #include "options.h"
 #include "error.h"
-#include "sys/stat.h"
-#include "fcntl.h"
-#include "errno.h"
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
 #include "mystring.h"
 #include "memalloc.h"
 #include "builtins.h"
 #include "output.h"
-#include "unistd.h"
-#include "errno.h"
+#include <unistd.h>
+#include <errno.h>
 #include "limits.h"
 
 
@@ -35,7 +35,7 @@ typedef struct TableEntry {
 
 static TableEntry *cmdTable[CMD_TABLE_SIZE];
 static int builtinLoc = -1;		/* Index in path of %builtin, or -1 */
-static char *pathOpt;
+char *pathOpt;
 
 static void deleteCmdEntry(void);
 

@@ -2,7 +2,7 @@
 #define _STDINT_H
 
 #ifndef _MINIX__TYPES_H
-#include "sys/types.h"
+#include <sys/types.h>
 #endif
 
 typedef i8_t	int8_t;

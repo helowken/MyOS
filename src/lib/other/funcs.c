@@ -1,7 +1,7 @@
-#include "lib.h"
-#include "unistd.h"
-#include "string.h"
-#include "stdlib.h"
+#include <lib.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
 
 ssize_t stdErr(const char *s) {
 	return write(STDERR_FILENO, s, strlen(s));
@@ -11,7 +11,7 @@ ssize_t tell(const char *s) {
 	return write(STDOUT_FILENO, s, strlen(s));
 }
 
-void report(const char *prog, const char *s) {
+void reportStdErr(const char *prog, const char *s) {
 	int err = errno;
 	stdErr(prog);
 	stdErr(": ");
@@ -25,7 +25,7 @@ void report(const char *prog, const char *s) {
 }
 
 void fatal(const char *prog, const char *s) {
-	report(prog, s);
+	reportStdErr(prog, s);
 	exit(1);
 }
 

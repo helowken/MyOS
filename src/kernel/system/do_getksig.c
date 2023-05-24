@@ -1,5 +1,5 @@
 #include "../system.h"
-#include "signal.h"
+#include <signal.h>
 
 int doGetKernelSig(Message *msg) {
 /* PM is ready to accept signals and repeatedly does a kernel call to get

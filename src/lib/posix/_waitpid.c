@@ -1,5 +1,5 @@
-#include "lib.h"
-#include "sys/wait.h"
+#include <lib.h>
+#include <sys/wait.h>
 
 pid_t waitpid(pid_t pid, int *status, int options) {
 	Message msg;

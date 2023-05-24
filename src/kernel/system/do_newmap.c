@@ -23,8 +23,7 @@ int doNewMap(Message *msg) {
 					sizeof(rp->p_memmap));
 	if (srcPhys == 0)
 	  return EFAULT;
-	physCopy(srcPhys, vir2Phys(rp->p_memmap), 
-				(phys_bytes) sizeof(rp->p_memmap));
+	physCopy(srcPhys, vir2Phys(rp->p_memmap), (phys_bytes) sizeof(rp->p_memmap));
 	allocSegments(rp);
 	
 	oldFlags = rp->p_rts_flags;

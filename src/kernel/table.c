@@ -3,17 +3,19 @@
 #include "kernel.h"
 #include "proc.h"
 #include "ipc.h"
-#include "minix/com.h"
+#include <minix/com.h>
 
 /* define Define stack sizes for the kernel tasks included in the system image. */
 #define NO_STACK	0
 #define SMALL_STACK	(128 * sizeof(char *))
 #define IDL_S		SMALL_STACK		
-#define HRD_S		NO_STACK		/* dummy task, uses kernel stack */
-#define TSK_S		SMALL_STACK		/* system and clock task */
+#define HRD_S		NO_STACK			/* dummy task, uses kernel stack */
+#define CLK_S		SMALL_STACK			/* clock task */
+#define SYS_S		(2 * SMALL_STACK)	/* system task  (Note: if the STACK_GUARD is 
+										   overwritten, this size needs to be increased) */
 
 /* Stack space for all the task stacks. Declared as (char *) to align it. */
-#define TOTAL_STACK_SPACE	(IDL_S + HRD_S + (2 * TSK_S))	
+#define TOTAL_STACK_SPACE	(IDL_S + HRD_S + (CLK_S + SYS_S))	
 char *taskStack[TOTAL_STACK_SPACE / sizeof(char *)];
 
 /* Define flags for the various process types. */
@@ -57,8 +59,8 @@ char *taskStack[TOTAL_STACK_SPACE / sizeof(char *)];
 BootImage images[] = {
 /*	  process nr,   pc, flags, qs,  queue, stack, traps, ipcTo,  call, name	    */
 	{ IDLE,   idleTask, IDL_F,  8, IDLE_Q, IDL_S,	  0,	 0,	    0, "IDLE"   },
-	{ CLOCK, clockTask,	TSK_F, 64, TASK_Q, TSK_S, TSK_T,	 0,	    0, "CLOCK"  },
-	{ SYSTEM,  sysTask, TSK_F, 64, TASK_Q, TSK_S, TSK_T,     0,     0, "SYSTEM" },
+	{ CLOCK, clockTask,	TSK_F, 64, TASK_Q, CLK_S, TSK_T,	 0,	    0, "CLOCK"  },
+	{ SYSTEM,  sysTask, TSK_F, 64, TASK_Q, SYS_S, TSK_T,     0,     0, "SYSTEM" },
 	{ HARDWARE,		 0, TSK_F, 64, TASK_Q, HRD_S,     0,     0,	    0, "KERNEL" },
 	{ PM_PROC_NR,    0, SRV_F, 32,      3, 0,     SRV_T, SRV_M,  PM_C, "pm"	    }, 
 	{ FS_PROC_NR,    0, SRV_F, 32,      4, 0,     SRV_T, SRV_M,  FS_C, "fs"		}, 
@@ -67,8 +69,7 @@ BootImage images[] = {
 	{ MEM_PROC_NR,   0, SRV_F,  4,      2, 0,     SRV_T, DRV_M, MEM_C, "memory"	}, 
 	{ LOG_PROC_NR,   0, SRV_F,  4,      2, 0,     SRV_T, SYS_M, DRV_C, "log"	}, 
 	{ DRVR_PROC_NR,  0, SRV_F,  4,      2, 0,     SRV_T, SYS_M, DRV_C, "driver"	}, 
-	//TODO{ INIT_PROC_NR,  0, USR_F,  8, USER_Q, 0,     USR_T, USR_M,		0, "init"	}
-	{ INIT_PROC_NR,  0, USR_F,  8, USER_Q, 0,     SRV_T, SYS_M,		0, "init"	}
+	{ INIT_PROC_NR,  0, USR_F,  8, USER_Q, 0,     USR_T, USR_M,		0, "init"	}
 };
 
 

@@ -1,8 +1,8 @@
 #include "pm.h"
 
-#include "timers.h"
-#include "minix/syslib.h"
-#include "minix/com.h"
+#include <timers.h>
+#include <minix/syslib.h>
+#include <minix/com.h>
 
 static Timer *pmTimers = NULL;
 

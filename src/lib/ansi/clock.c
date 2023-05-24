@@ -1,5 +1,5 @@
-#include "time.h"
-#include "sys/times.h"
+#include <time.h>
+#include <sys/times.h>
 
 clock_t clock() {
 	struct tms tms;

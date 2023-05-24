@@ -9,10 +9,10 @@
 #include "exec.h"
 #include "error.h"
 #include "mystring.h"
-#include "sys/types.h"
-#include "sys/stat.h"
-#include "errno.h"
-#include "unistd.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <errno.h>
 
 static char *currDir;	/* Current working directory. */
 static char *cdCompPath;

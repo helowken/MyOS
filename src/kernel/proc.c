@@ -1,4 +1,4 @@
-#include "minix/com.h"
+#include <minix/com.h>
 #include "kernel.h"
 #include "proc.h"
 
@@ -377,8 +377,8 @@ int sys_call(int callNum, int srcDst, Message *msg) {
 	 */
 	if (function & CHECK_DST) {
 		if (! getSysBit(priv(caller)->s_ipc_to, procNumToPrivId(srcDst))) {
-			kprintf("sys_call: ipc mask denied %d sending to %d\n",
-						procNum(caller), srcDst);
+			kprintf("sys_call: ipc mask denied %d(%s) sending to %d\n",
+						procNum(caller), caller->p_name, srcDst);
 			return ECALLDENIED;
 		}
 

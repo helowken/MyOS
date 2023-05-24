@@ -1,5 +1,5 @@
-#include "stdlib.h"
-#include "string.h"
+#include <stdlib.h>
+#include <string.h>
 
 #define ENTRY_INC	10
 #define rounded(x)	(((x / ENTRY_INC) + 1) * ENTRY_INC)
@@ -26,7 +26,9 @@ int putenv(const char *string) {
 		if (v != NULL) {
 			while ((p = *v) != NULL) {
 				q = string;
-				while (*q && (*q++ == *p++)) {
+				while (*q && (*q == *p)) {
+					++q;
+					++p;
 				}
 				if (*q || *p != '=') {
 					++v;

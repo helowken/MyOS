@@ -1,21 +1,21 @@
 #define _MINIX_SOURCE
 
 #define nil	((void *) 0)
-#include "sys/types.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
-#include "signal.h"
-#include "limits.h"
-#include "dirent.h"
-#include "time.h"
-#include "errno.h"
-#include "unistd.h"
-#include "fcntl.h"
-#include "pwd.h"
-#include "grp.h"
-#include "sys/stat.h"
-#include "sys/wait.h"
+#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <limits.h>
+#include <dirent.h>
+#include <time.h>
+#include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <pwd.h>
+#include <grp.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 #include "misc.h"
 #include "tab.h"
 

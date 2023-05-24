@@ -1,4 +1,4 @@
-#include "stdio.h"
+#include <stdio.h>
 
 char *gets(char *s) {
 	register FILE *stream = stdin;

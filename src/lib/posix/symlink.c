@@ -1,5 +1,5 @@
-#include "errno.h"
-#include "unistd.h"
+#include <errno.h>
+#include <unistd.h>
 
 int symlink(const char *target, const char *linkpath) {
 	errno = ENOSYS;

@@ -1,11 +1,11 @@
 #define nil	0
-#include "sys/types.h"
-#include "sys/stat.h"
-#include "errno.h"
-#include "unistd.h"
-#include "dirent.h"
-#include "limits.h"
-#include "string.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <limits.h>
+#include <string.h>
 
 static int recover(char *p) {
 /* Undo all those chdir("..")'s that have been recorded by addpath. This

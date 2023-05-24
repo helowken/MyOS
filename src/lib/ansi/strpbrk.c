@@ -1,4 +1,4 @@
-#include "string.h"
+#include <string.h>
 
 char *strpbrk(register const char *s, register const char *accept) {
 	register const char *s1;

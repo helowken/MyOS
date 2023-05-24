@@ -1,8 +1,8 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
-#include "stdint.h"
-#include "string.h"
+#include <stdint.h>
+#include <string.h>
 
 #define HEX_BUF_LEN	11		/* '0x' + 4B (each byte 2 bits) + '\0' */
 #define BYTE_BITS	2

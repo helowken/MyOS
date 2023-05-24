@@ -1,13 +1,13 @@
-#include "stdlib.h"
-#include "stdio.h"
-#include "string.h"
-#include "errno.h"
-#include "sys/stat.h"
-#include "minix/ipc.h"
-#include "minix/const.h"
-#include "minix/com.h"
-#include "minix/type.h"
-#include "minix/syslib.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <minix/ipc.h>
+#include <minix/const.h>
+#include <minix/com.h>
+#include <minix/type.h>
+#include <minix/syslib.h>
 
 /* This array defines all known requests. */
 static char *knownRequests[] = {

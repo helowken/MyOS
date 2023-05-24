@@ -2,12 +2,12 @@
 #define _POSIX_SOURCE	1
 #define _MINIX	1
 
-#include "code.h"
-#include "sys/types.h"
-#include "stdint.h"
-#include "sys/stat.h"
-#include "errno.h"
-#include "string.h"
+#include <code.h>
+#include <sys/types.h>
+#include <stdint.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <string.h>
 #else
 #include "common.h"
 #endif

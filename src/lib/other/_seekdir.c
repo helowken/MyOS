@@ -1,9 +1,9 @@
 #define nil	0
-#include "lib.h"
-#include "sys/types.h"
-#include "dirent.h"
-#include "unistd.h"
-#include "errno.h"
+#include <lib.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <errno.h>
 
 int seekdir(DIR *dp, off_t pos) {
 /* Seek to position pos in a directory. */

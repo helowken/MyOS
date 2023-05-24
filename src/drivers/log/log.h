@@ -1,10 +1,10 @@
 #include "../drivers.h"
 #include "../libdriver/driver.h"
-#include "minix/type.h"
-#include "minix/const.h"
-#include "minix/com.h"
-#include "sys/types.h"
-#include "minix/ipc.h"
+#include <minix/type.h>
+#include <minix/const.h>
+#include <minix/com.h>
+#include <sys/types.h>
+#include <minix/ipc.h>
 
 #define LOG_SIZE	(50*1024)
 #define SUSPENDABLE		1

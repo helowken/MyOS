@@ -1,18 +1,18 @@
 
 
 
-#include "stdio.h"	/* Defines BUFSIZ */
-#include "unistd.h"
+#include <stdio.h>	/* Defines BUFSIZ */
+#include <unistd.h>
 #include "shell.h"
-#include "fcntl.h"
-#include "errno.h"
+#include <fcntl.h>
+#include <errno.h>
 #include "syntax.h"
 #include "input.h"
 #include "output.h"
 #include "memalloc.h"
 #include "error.h"
 #include "redir.h"
-#include "string.h"
+#include <string.h>
 
 #define EOF_NLEFT	-99		/* Value of parseNumLeft when EOF pushed back */
 

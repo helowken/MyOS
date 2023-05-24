@@ -1,9 +1,9 @@
 #ifndef _SYS_DIR_H
 #define _SYS_DIR_H
 
-#include "sys/types.h"
+#include <sys/types.h>
 
-#define DIR_BLOCK_SIZE	512		// size of directory block
+#define DIR_BLOCK_SIZE	512		/* size of directory block */
 
 #ifndef DIRSIZ 
 #define DIRSIZ	60

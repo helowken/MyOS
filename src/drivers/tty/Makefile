@@ -1,6 +1,7 @@
 MY_HOME = ../..
 include $(MY_HOME)/common.mk
 
+LIBS = $(SYS_LIBS)
 OBJS = $(ENTRY) tty.o console.o vidcopy.o keyboard.o rs232.o pty.o
 DRIVER = tty.bin
 STACK_SIZE = 256w

@@ -1,7 +1,7 @@
-#include "sys/types.h"
-#include "stdlib.h"
-#include "unistd.h"
-#include "minix/minlib.h"
+#include <sys/types.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <minix/minlib.h>
 
 int main(int argc, char **argv) {
 	register int seconds;

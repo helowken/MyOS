@@ -1,9 +1,9 @@
 #include "fs.h"
-#include "sys/stat.h"
-#include "string.h"
-#include "minix/com.h"
-#include "minix/callnr.h"
 #include "param.h"
+#include <sys/stat.h>
+#include <string.h>
+#include <minix/com.h>
+#include <minix/callnr.h>
 
 #define SAME	1000
 

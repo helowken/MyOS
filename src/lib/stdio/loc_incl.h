@@ -1,8 +1,8 @@
-#include "stdio.h"
+#include <stdio.h>
 
 #define ioTestFlag(p, x)	((p)->_flags & (x))
 
-#include "stdarg.h"
+#include <stdarg.h>
 
 int _doPrint(const char *format, va_list ap, FILE *stream);
 int _doScan(FILE *stream, const char *format, va_list ap);

@@ -1,7 +1,7 @@
 #include "../drivers.h"
-#include "termios.h"
-#include "minix/callnr.h"
-#include "minix/com.h"
+#include <termios.h>
+#include <minix/callnr.h>
+#include <minix/com.h>
 #include "tty.h"
 
 #include "../../kernel/const.h"
@@ -331,8 +331,13 @@ static int consoleWrite(register TTY *tp, int try) {
 }
 
 static int consoleIoctl(register TTY *tp, int try) {
-//TODO
-return 0;
+/* Set the screen dimensions. */
+	
+	tp->tty_win_size.ws_row = screenLines;
+	tp->tty_win_size.ws_col = screenWidth;
+	tp->tty_win_size.ws_xpixel = screenWidth * 8;
+	tp->tty_win_size.ws_ypixel = screenLines * fontLines;
+	return 0;
 }
 
 void screenInit(TTY *tp) {
@@ -422,7 +427,7 @@ void screenInit(TTY *tp) {
 		 * c_cursor is updated automatically later.
 		 */
 		scrollScreen(console, SCROLL_UP);
-		console->c_row = screenLines - 15; //TODO -1
+		console->c_row = screenLines - 1;
 		console->c_column = 0;
 	}
 	selectConsole(0);

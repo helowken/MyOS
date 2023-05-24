@@ -1,7 +1,7 @@
 #ifndef _PORTIO_H
 #define _PORTIO_H
 
-#include "sys/types.h"
+#include <sys/types.h>
 
 unsigned inb(u16_t port);
 unsigned inw(u16_t port);

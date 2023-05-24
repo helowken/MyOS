@@ -1,10 +1,10 @@
 #if defined(_POSIX_SOURCE)
-#include "sys/types.h"
+#include <sys/types.h>
 #endif
 
-#include "stdio.h"
-#include "errno.h"
-#include "string.h"
+#include <stdio.h>
+#include <errno.h>
+#include <string.h>
 #include "loc_incl.h"
 
 ssize_t write(int fd, const char *buf, size_t bytes);

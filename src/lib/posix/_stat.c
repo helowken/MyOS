@@ -1,6 +1,6 @@
-#include "lib.h"
-#include "sys/stat.h"
-#include "string.h"
+#include <lib.h>
+#include <sys/stat.h>
+#include <string.h>
 
 int stat(const char *path, struct stat *buf) {
 	Message msg;

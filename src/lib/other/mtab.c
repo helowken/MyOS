@@ -13,14 +13,14 @@
  *
  */
 
-#include "sys/types.h"
-#include "minix/minlib.h"
-#include "ctype.h"
-#include "fcntl.h"
-#include "stdlib.h"
-#include "string.h"
-#include "unistd.h"
-#include "stdio.h"
+#include <sys/types.h>
+#include <minix/minlib.h>
+#include <ctype.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdio.h>
 
 #define BUF_SIZE	512		/* Size of the /etc/mtab buffer */
 

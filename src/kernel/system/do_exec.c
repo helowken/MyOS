@@ -1,5 +1,5 @@
 #include "../system.h"
-#include "string.h"
+#include <string.h>
 
 int doExec(register Message *msg) {
 	register Proc *rp;

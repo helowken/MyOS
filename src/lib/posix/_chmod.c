@@ -1,5 +1,5 @@
-#include "lib.h"
-#include "sys/stat.h"
+#include <lib.h>
+#include <sys/stat.h>
 
 int chmod(const char *path, mode_t mode) {
 	Message msg;

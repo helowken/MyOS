@@ -1,9 +1,10 @@
 #ifndef CONST_H 
 #define CONST_H
 
-#include "ibm/interrupt.h"
-#include "ibm/ports.h"
-#include "minix/config.h"
+#include <ibm/interrupt.h>	/* Interrupt numbers and hardware vectors */
+#include <ibm/ports.h>		/* Port addresses and magic numbers */
+#include <ibm/bios.h>		/* BIOS addresses, sizes and magic numbers */
+#include <minix/config.h>	/* BIOS addresses, sizes and magic numbers */
 #include "config.h"
 
 /* To translate an address in kernel space to a physical address. */

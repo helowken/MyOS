@@ -1,6 +1,6 @@
-#include "stdio.h"
-#include "stdarg.h"
-#include "limits.h"
+#include <stdio.h>
+#include <stdarg.h>
+#include <limits.h>
 #include "loc_incl.h"
 
 int sprintf(char *s, const char *format, ...) {

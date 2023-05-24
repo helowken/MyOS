@@ -17,6 +17,8 @@ typedef struct {
 	} u;
 } CmdEntry;
 
+extern char *pathOpt;		/* Set by pathAdvance() */
+
 void shellExec(char **, char **, char *, int);
 char *pathAdvance(char **, char *);
 void changePath(char *);

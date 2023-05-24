@@ -11,8 +11,8 @@
 #include "memalloc.h"
 #include "error.h"
 #include "mystring.h"
-#include "sys/stat.h"
-#include "unistd.h"
+#include <sys/stat.h>
+#include <unistd.h>
 
 int readCmd(int argc, char **argv) {
 	char **ap;
@@ -47,9 +47,7 @@ int readCmd(int argc, char **argv) {
 	backslash = 0;
 	START_STACK_STR(p);
 	for (;;) {
-			printf("=== xxx11\n");
 		if (read(STDIN_FILENO, &c, 1) != 1) {
-			printf("=== xxx22\n");
 			status = 1;
 			break;
 		}

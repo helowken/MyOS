@@ -26,7 +26,7 @@ typedef struct {
 } Priv;
 
 /* Guard word for task stacks. */
-#define STACK_GUARD		((reg_t) (sizeof(reg_t) == 2 ? 0xBEEF : 0xDEADBEEF))
+#define STACK_GUARD		((reg_t) 0xDEADBEEF)
 
 /* Bits for the system property flags. */
 #define PREEMPTIBLE		0x01	/* Kernel tasks are not preemptilble */

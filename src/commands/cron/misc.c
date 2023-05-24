@@ -1,9 +1,9 @@
 #define nil	((void *) 0)
-#include "sys/types.h"
-#include "stdio.h"
-#include "stdarg.h"
-#include "stdlib.h"
-#include "time.h"
+#include <sys/types.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <time.h>
 #include "misc.h"
 
 char *progName;		/* Name of this program. */

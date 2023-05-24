@@ -2,15 +2,15 @@
 #define _POSIX_SOURCE	1
 #endif
 
-#include "sys/types.h"
-#include "errno.h"
-#include "fcntl.h"
-#include "signal.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
-#include "unistd.h"
-#include "minix/minlib.h"
+#include <sys/types.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <minix/minlib.h>
 
 #if __minix
 static char DEV_LOG[] = "/dev/log";

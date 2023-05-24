@@ -1,12 +1,12 @@
-#include "sys/types.h"
-#include "stdint.h"
-#include "minix/config.h"
-#include "minix/const.h"
-#include "minix/minlib.h"
-#include "minix/type.h"
-#include "fcntl.h"
-#include "unistd.h"
-#include "stdio.h"
+#include <sys/types.h>
+#include <stdint.h>
+#include <minix/config.h>
+#include <minix/const.h>
+#include <minix/minlib.h>
+#include <minix/type.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
 
 #include "fs/const.h"
 #include "fs/type.h"

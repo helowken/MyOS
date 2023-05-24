@@ -1,15 +1,19 @@
 #include "pm.h"
-#include "sys/stat.h"
-#include "minix/callnr.h"
-#include "minix/com.h"
-#include "signal.h"
-#include "string.h"
+#include <sys/stat.h>
+#include <minix/callnr.h>
+#include <minix/com.h>
+#include <signal.h>
+#include <string.h>
+#include <image.h>
 #include "mproc.h"
 #include "param.h"
-#include "image.h"
 
 #define ESCRIPT		(-2000)			/* Returned by readHeader for a '#!' script. */
 #define PTR_SIZE	sizeof(char *)	/* Size of pointers in argv[[ and envp[]. */
+
+
+static int printFree = 0;
+static int printExec = 0;
 
 MProc *findShare(MProc *rmp, ino_t ino, dev_t dev, time_t ctime) {
 /* Look for a process that is the file <ino, dev, ctime> in execute. Don't
@@ -128,7 +132,10 @@ static int newMem(MProc *shareMp, vir_bytes textBytes, vir_bytes dataBytes,
 								stackBytes + stackFrameBytes);
 	stackFrameClicks = SIZE_TO_CLICKS(stackFrameBytes);
 	offsetClicks = dataVirAddr >> CLICK_SHIFT;
-	gapClicks = totalClicks - dataClicks - stackFrameClicks;
+#ifdef _NO_COMPACT
+	offsetClicks = 0;
+#endif
+	gapClicks = totalClicks - dataClicks - stackFrameClicks;	/* Stack clicks */
 	if ((int) gapClicks < 0)	/* Check if no stack */
 	  return ENOMEM;
 
@@ -137,13 +144,24 @@ static int newMem(MProc *shareMp, vir_bytes textBytes, vir_bytes dataBytes,
 	if (newBase == NO_MEM)
 	  return ENOMEM;
 
+	if (printFree) 
+	  printf("\n  Free fork(%d), ", (int) (rmp - mprocTable));
+
 	/* We're got memory for the new core image. Release the old one. */
 	if (findShare(rmp, rmp->mp_ino, rmp->mp_dev, rmp->mp_ctime) == NULL) {
 		/* No other process shares the text segment, so free it. */
 		freeMemory(rmp->mp_seg[T].physAddr, rmp->mp_seg[T].len);
+		if (printFree) 
+		  printf("text: 0x%x, len: 0x%x, ",
+					rmp->mp_seg[T].physAddr << CLICK_SHIFT,
+					rmp->mp_seg[T].len << CLICK_SHIFT);
 	}
 	/* Free the data and stack segments. */
 	freeMemory(PM_ACT_DATA_PADDR(rmp), PM_ACT_DATA_CLICKS(rmp));
+	if (printFree) 
+	  printf("data: 0x%x, len: 0x%x\n",
+			PM_ACT_DATA_PADDR(rmp) << CLICK_SHIFT,
+			PM_ACT_DATA_CLICKS(rmp) << CLICK_SHIFT);
 
 	/* We have now passed the point of no return. The old core image has been
 	 * forever lost, memory for a new core image has been allocated. Set up
@@ -164,8 +182,14 @@ static int newMem(MProc *shareMp, vir_bytes textBytes, vir_bytes dataBytes,
 	rmp->mp_seg[S].physAddr = rmp->mp_seg[D].physAddr + dataClicks + gapClicks;
 	rmp->mp_seg[S].virAddr = rmp->mp_seg[D].virAddr + dataClicks + gapClicks;
 	rmp->mp_seg[S].len = stackFrameClicks;
-	//TODO printf("=== pm exec text addr: %x\n", rmp->mp_seg[T].physAddr << CLICK_SHIFT);
-
+	if (printExec) 
+	  printf(" Alloc text: 0x%x, len: 0x%x, data: 0x%x, len: 0x%x, stack: 0x%x, vir: 0x%x\n", 
+			rmp->mp_seg[T].physAddr << CLICK_SHIFT,
+			rmp->mp_seg[T].len << CLICK_SHIFT,
+			PM_ACT_DATA_PADDR(rmp) << CLICK_SHIFT,
+			PM_ACT_DATA_CLICKS(rmp) << CLICK_SHIFT,
+			rmp->mp_seg[S].physAddr << CLICK_SHIFT,
+			rmp->mp_seg[S].virAddr << CLICK_SHIFT);
 	sysNewMap(who, rmp->mp_seg);		/* Report new map to the kernel */
 
 	/* The old memory may have been swapped out, but the new memory is real. */
@@ -355,7 +379,7 @@ int doExec() {
 	if ((r = sysDataCopy(who, src, PM_PROC_NR, dst,
 				(phys_bytes) inMsg.m_exec_len)) != OK)
 	  return r;		/* File name not in user data segment */
-	
+
 	/* Fetch the stack from the user before destroying the old core image. */
 	src = (vir_bytes) inMsg.m_stack_ptr;
 	dst = (vir_bytes) mBuf;
@@ -369,7 +393,7 @@ int doExec() {
 		stp = &stBuf[r];
 		tellFS(CHDIR, who, false, 0);	/* Switch to the user's FS environ */
 		fd = checkAllowed(name, stp, X_BIT);	/* Is file executable? */
-		if (fd < 0) 
+		if (fd < 0)  
 		  return fd;	/* File was not executable */
 		
 		/* Read the file header and extract the segment sizes. */
@@ -387,6 +411,8 @@ int doExec() {
 	/* Can the process' text be shared with that of one already running? */
 	shareMp = findShare(rmp, stp->st_ino, stp->st_dev, stp->st_ctime);
 
+	if (printExec) 
+	  printf("Exec %s(%d): ", name, (int) (rmp - mprocTable));
 	/* Allocate new memory and release old memory. Fix map and tell kernel. */
 	r = newMem(shareMp, textBytes, dataBytes, bssBytes, stackBytes, 
 				dataVirAddr, stackFrameBytes);

@@ -1,9 +1,9 @@
 #ifndef _DMAP_H
 #define _DMAP_H
 
-#include "minix/sys_config.h"
-#include "minix/ipc.h"
-#include "minix/dmap_nr.h"
+#include <minix/sys_config.h>
+#include <minix/ipc.h>
+#include <minix/dmap_nr.h>
 
 /*=====================================================================*
  *                Device <-> Driver Table                *

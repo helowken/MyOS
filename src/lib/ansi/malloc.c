@@ -1,6 +1,6 @@
-#include "stdlib.h"
-#include "string.h"
-#include "errno.h"
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 #define PtrInt		long
 #define BRK_SIZE	4096

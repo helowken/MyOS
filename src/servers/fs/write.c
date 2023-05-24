@@ -1,5 +1,5 @@
 #include "fs.h"
-#include "string.h"
+#include <string.h>
 
 int doWrite() {
 /* Perform the write(fd, buffer, count) system call. */

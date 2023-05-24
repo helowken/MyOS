@@ -1,14 +1,14 @@
 #define _POSIX_SOURCE	1
-#include "sys/types.h"
-#include "stdio.h"
-#include "utmp.h"
-#include "pwd.h"
-#include "fcntl.h"
-#include "time.h"
-#include "string.h"
-#include "unistd.h"
-#include "sys/stat.h"
-#include "sys/utsname.h"
+#include <sys/types.h>
+#include <stdio.h>
+#include <utmp.h>
+#include <pwd.h>
+#include <fcntl.h>
+#include <time.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/utsname.h>
 
 static char SHUT_LOG[] = "/usr/adm/log";
 

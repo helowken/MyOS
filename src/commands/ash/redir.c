@@ -1,7 +1,7 @@
 
 
-#include "unistd.h"
-#include "stdlib.h"
+#include <unistd.h>
+#include <stdlib.h>
 #include "shell.h"
 #include "nodes.h"
 #include "redir.h"
@@ -9,12 +9,12 @@
 #include "memalloc.h"
 #include "mystring.h"
 #include "error.h"
-#include "signal.h"
-#include "fcntl.h"
-#include "errno.h"
+#include <signal.h>
+#include <fcntl.h>
+#include <errno.h>
 #include "output.h"
 #include "limits.h"
-#include "fcntl.h"
+#include <fcntl.h>
 
 
 #define EMPTY		-2		/* Marks an unused slot in RedirTable */

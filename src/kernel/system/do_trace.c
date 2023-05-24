@@ -1,5 +1,5 @@
 #include "../system.h"
-#include "sys/ptrace.h"
+#include <sys/ptrace.h>
 
 #define TR_VALUE_SIZE	((vir_bytes) sizeof(long))
 

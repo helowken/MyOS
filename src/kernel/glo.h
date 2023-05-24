@@ -33,6 +33,9 @@ EXTERN IrqHook *irqHandlers[NR_IRQ_VECTORS];	/* List of IRQ handlers */
 EXTERN int irqActiveIds[NR_IRQ_VECTORS];	/* IRQ ID bits active */
 EXTERN int irqInUse;			/* Map of all in-use irq's */
 
+/* Miscellaneous. */
+EXTERN reg_t monSp;				/* Boot monitor stack pointer */
+
 EXTERN void (*level0Func)();
 
 /* Variables that are initialized elsewhere are just extern here. */

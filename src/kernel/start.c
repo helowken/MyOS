@@ -1,8 +1,8 @@
 #include "kernel.h"
 #include "protect.h"
 #include "proc.h"
-#include "stdlib.h"
-#include "string.h"
+#include <stdlib.h>
+#include <string.h>
 
 static char *getValue(char *params, char *name) {
 	register const size_t len = strlen(name);
@@ -18,7 +18,7 @@ static char *getValue(char *params, char *name) {
 	return NULL;
 }
 
-void cstart(u16_t cs, u16_t ds,	/* Kernel code and data segment. */
+void cstart(u16_t cs, u16_t ds,			/* Kernel code and data segment. */
 			u16_t mds,					/* Moniotr data/stack segment. */
 			u16_t paramOffset,			/* Boot parameters offset. */
 			u16_t paramSize)			/* Boot parameters size. */

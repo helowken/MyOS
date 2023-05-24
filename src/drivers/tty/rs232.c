@@ -1,8 +1,8 @@
-#include "minix/config.h"
+#include <minix/config.h>
 
 #include "../drivers.h"
-#include "termios.h"
-#include "signal.h"
+#include <termios.h>
+#include <signal.h>
 #include "tty.h"
 
 

@@ -1,24 +1,25 @@
 #define _POSIX_SOURCE	1
 #define _MINIX	1
 
-#include "code.h"
-#include "debug.h"
-#include "stdarg.h"
-#include "stdlib.h"
-#include "limits.h"
+#include <code.h>
+#include <debug.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <errno.h>
+#include <minix/dmap.h>
+#include <ibm/partition.h>
+#include <sys/stat.h>
 #include "util.h"
-#include "errno.h"
-#include "minix/dmap.h"
-#include "ibm/partition.h"
-#include "sys/stat.h"
 #include "rawfs.h"
 
 #undef EXTERN
-#define EXTERN			/* Empty, allocate space for variables */
+#define EXTERN		/* Empty, allocate space for variables */
 #include "boot.h"
 
+int fsOK = -1;		/* File system state. Initially unknown. */
+
 static char *version = "2.20";
-static int fsOK = -1;	/* File system state. Initially unknown. */
 static int blockSize;
 static int activate;
 
@@ -418,7 +419,7 @@ enum ReservedNameEnum {
 
 char ReservedNames[][6] = {
 	"", "boot", "ctty", "delay", "echo", "exit", "help",
-	"ls", "stat", "menu", "off", "save", "set", "trap", "test", "unset", 
+	"ls", "stat", "menu", "off", "save", "set", "trap", "test", "unset"
 };
 
 int reserved(char *s) {
@@ -690,7 +691,7 @@ static Token **tokenize(Token **acmds, char *line) {
 	return acmds;
 }
 
-static u32_t getProcessor() {
+u32_t getProcessor() {
 	/* TODO */
 	return 586;
 }
@@ -808,7 +809,7 @@ static void voidToken() {
 }
 
 static u32_t milliTime() {
-	return getTick() * MSEC_PER_TICK;	//TODO, see tryclk */
+	return getTick() * MSEC_PER_TICK;	
 }
 
 static u32_t milliTimeSince(u32_t base) {
@@ -1284,7 +1285,7 @@ static void execute() {
 				ok = true;
 				break;
 			case R_TEST:
-				// For testing */
+				//TODO For testing */
 				printf("dev: %d\n", name2Dev("c0d0p0s0"));
 				ok = true;
 				break;

@@ -210,17 +210,16 @@ void allocSegments(Proc *rp) {
  * The code has a separate function because of all hardware-dependencies.
  * Note that IDLE is part of the kernel and gets TASK_PRIVILEGE here.
  */
-	phys_bytes codeBytes;
-	phys_bytes dataBytes;
+	phys_bytes codeAddr, dataAddr, codeBytes, dataBytes;
 	int privilege;
 
+	codeAddr = rp->p_memmap[T].physAddr << CLICK_SHIFT;
+	dataAddr = rp->p_memmap[D].physAddr << CLICK_SHIFT;
 	codeBytes = rp->p_memmap[T].len << CLICK_SHIFT;
 	dataBytes = (phys_bytes) (rp->p_memmap[S].virAddr + rp->p_memmap[S].len) << CLICK_SHIFT;
 	privilege = isKernelProc(rp) ? TASK_PRIVILEGE : USER_PRIVILEGE;	/* Both need to switch stack. */
-	initCodeSeg(&rp->p_ldt[CS_LDT_INDEX], rp->p_memmap[T].physAddr << CLICK_SHIFT,
-				codeBytes, privilege);
-	initDataSeg(&rp->p_ldt[DS_LDT_INDEX], (rp->p_memmap[D].physAddr) << CLICK_SHIFT,
-				dataBytes, privilege);
+	initCodeSeg(&rp->p_ldt[CS_LDT_INDEX], codeAddr, codeBytes, privilege);
+	initDataSeg(&rp->p_ldt[DS_LDT_INDEX], dataAddr, dataBytes, privilege);
 	rp->p_reg.cs = (CS_LDT_INDEX * DESC_SIZE) | T1 | privilege; 
 
 	/* All are in the same data segment.

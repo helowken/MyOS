@@ -1,8 +1,8 @@
 #include "fs.h"
-#include "sys/stat.h"
-#include "fcntl.h"
-#include "minix/callnr.h"
-#include "minix/com.h"
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <minix/callnr.h>
+#include <minix/com.h>
 #include "param.h"
 
 static char modeMap[] = {R_BIT, W_BIT, R_BIT | W_BIT, 0};
@@ -76,7 +76,7 @@ static int commonOpen(register int oFlags, mode_t oMode) {
 	bits = (mode_t) modeMap[oFlags & O_ACCMODE];
 
 	/* See if file descriptor and filp slots are available. */
-	if ((r = getFd(0, bits, &inMsg.m_fd, &filp)) != OK)
+	if ((r = getFd(0, bits, &inMsg.m_fd, &filp)) != OK) 
 	  return r;
 
 	/* If O_CREAT is set, try to make the file. */
@@ -97,7 +97,7 @@ static int commonOpen(register int oFlags, mode_t oMode) {
 		}
 	} else {
 		/* Scan path name. */
-		if ((ip = eatPath(userPath)) == NIL_INODE)
+		if ((ip = eatPath(userPath)) == NIL_INODE) 
 		  return errCode;
 	}
 

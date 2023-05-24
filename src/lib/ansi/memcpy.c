@@ -1,5 +1,5 @@
-#include "code.h"
-#include "string.h"
+#include <code.h>
+#include <string.h>
 
 void *
 memcpy(void *s1, const void *s2, register size_t n) {

@@ -1,4 +1,4 @@
-#include "time.h"
+#include <time.h>
 
 double difftime(time_t time1, time_t time0) {
 	/* Be careful: time_t may be unsigned */

@@ -1,4 +1,4 @@
-#include "stdio.h"
+#include <stdio.h>
 
 int fputs(register const char *s, register FILE *stream) {
 	register int i = 0;

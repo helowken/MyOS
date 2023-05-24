@@ -65,8 +65,6 @@ EXTERN struct MProc {
 #define DONT_SWAP		0x1000	/* Never swap out this process */
 #define	PRIV_PROC		0x2000	/* System process, special privileges */
 
-
-#define PM_DATA_CLICKS(p)			DATA_CLICKS((p)->mp_seg)
 #define PM_ACT_DATA_CLICKS(p)		ACT_DATA_CLICKS((p)->mp_seg)
 #define PM_ACT_DATA_PADDR(p)		ACT_DATA_PADDR((p)->mp_seg)
 

@@ -8,10 +8,10 @@
 #define _DIRENT_H
 
 #ifndef _TYPES_H
-#include "sys/types.h"
+#include <sys/types.h>
 #endif
 
-#include "sys/dir.h"
+#include <sys/dir.h>
 
 /* FlexDir is a flexible directory entry. Actually it's a union of 8
  * characters and the 3 fields defined below.

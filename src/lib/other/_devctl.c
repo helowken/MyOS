@@ -1,5 +1,5 @@
-#include "lib.h"
-#include "unistd.h"
+#include <lib.h>
+#include <unistd.h>
 
 int devCtl(int ctlReq, int pNum, int device, int style) {
 	Message msg;

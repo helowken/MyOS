@@ -1,7 +1,7 @@
 #ifndef PROC_H
 #define PROC_H
 
-#include "minix/com.h"
+#include <minix/com.h>
 #include "protect.h"
 #include "const.h"
 #include "priv.h"

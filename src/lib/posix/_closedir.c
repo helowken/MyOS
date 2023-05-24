@@ -1,10 +1,10 @@
 #define nil	0
-#include "lib.h"
-#include "sys/types.h"
-#include "dirent.h"
-#include "unistd.h"
-#include "stdlib.h"
-#include "errno.h"
+#include <lib.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <errno.h>
 
 int closedir(DIR *dp) {
 /* Finish reading a directory. */

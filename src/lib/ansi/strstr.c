@@ -1,5 +1,5 @@
-#include "code.h"
-#include "string.h"
+#include <code.h>
+#include <string.h>
 
 char *
 strstr(register const char *s, register const char *wanted) {

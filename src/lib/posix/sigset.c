@@ -1,5 +1,5 @@
-#include "signal.h"
-#include "errno.h"
+#include <signal.h>
+#include <errno.h>
 
 /* Low bit of signal masks. */
 #define SIGBIT_0	((sigset_t) 1)

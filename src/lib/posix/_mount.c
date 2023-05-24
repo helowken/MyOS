@@ -1,6 +1,6 @@
-#include "lib.h"
-#include "string.h"
-#include "unistd.h"
+#include <lib.h>
+#include <string.h>
+#include <unistd.h>
 
 int mount(char *special, char *name, int rwFlag) {
 	Message msg;

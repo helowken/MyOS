@@ -4,9 +4,8 @@
 #include "../../kernel/config.h"
 #include "../../kernel/type.h"
 
-#include "assert.h"
+#include <assert.h>
 #include "random.h"
-#include "stdio.h"//TODO
 
 #define NR_DEVS			1	/* Number of minor devices */
 #define   RANDOM_DEV	0	/* Minor device for /dev/random */

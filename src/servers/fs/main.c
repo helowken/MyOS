@@ -1,15 +1,15 @@
 #include "fs.h"
-#include "fcntl.h"
-#include "string.h"
-#include "stdio.h"
-#include "signal.h"
-#include "stdlib.h"
-#include "sys/ioc_memory.h"
-#include "sys/svrctl.h"
-#include "minix/callnr.h"
-#include "minix/com.h"
-#include "minix/keymap.h"
-#include "minix/const.h"
+#include <fcntl.h>
+#include <string.h>
+#include <stdio.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <sys/ioc_memory.h>
+#include <sys/svrctl.h>
+#include <minix/callnr.h>
+#include <minix/com.h>
+#include <minix/keymap.h>
+#include <minix/const.h>
 #include "param.h"
 
 #define KB	1024

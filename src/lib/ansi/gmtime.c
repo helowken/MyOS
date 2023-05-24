@@ -1,5 +1,5 @@
-#include "time.h"
-#include "limits.h"
+#include <time.h>
+#include <limits.h>
 #include "loc_time.h"
 
 struct tm *gmtime(const time_t *tp) {

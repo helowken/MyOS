@@ -1,5 +1,5 @@
-#include "lib.h"
-#include "unistd.h"
+#include <lib.h>
+#include <unistd.h>
 
 int pipe(int fds[2]) {
 	Message msg;

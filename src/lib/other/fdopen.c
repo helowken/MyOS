@@ -1,7 +1,7 @@
-#include "stdlib.h"
+#include <stdlib.h>
 #include "../stdio/loc_incl.h"
-#include "stdio.h"
-#include "sys/stat.h"
+#include <stdio.h>
+#include <sys/stat.h>
 
 FILE *fdopen(int fd, const char *mode) {
 	register int i;

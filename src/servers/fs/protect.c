@@ -1,6 +1,6 @@
 #include "fs.h"
-#include "unistd.h"
-#include "minix/callnr.h"
+#include <unistd.h>
+#include <minix/callnr.h>
 #include "param.h"
 
 int checkReadOnly(Inode *ip) {

@@ -12,15 +12,15 @@
  *	   file field1: f1val, field2: f2val, etc
  */
 
-#include "sys/types.h"
-#include "errno.h"
-#include "limits.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
-#include "time.h"
-#include "sys/stat.h"
-#include "minix/minlib.h"
+#include <sys/types.h>
+#include <errno.h>
+#include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <sys/stat.h>
+#include <minix/minlib.h>
 
 #define addr(x)		((void *) &sb.x)
 #define size(x)		sizeof(sb.x)

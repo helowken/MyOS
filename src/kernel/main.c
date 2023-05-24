@@ -1,9 +1,10 @@
 #include "kernel.h"
-#include "string.h"
-#include "unistd.h"
-#include "image.h"
-#include "minix/com.h"
 #include "proc.h"
+#include <signal.h>
+#include <string.h>
+#include <unistd.h>
+#include <image.h>
+#include <minix/com.h>
 
 static void announce() {
 	kprintf("\nMINIX %s.%s. ", OS_RELEASE, OS_VERSION);
@@ -23,13 +24,13 @@ void main() {
 	Elf32_Phdr *hdr;
 
 	/* Initialize the interrupt controller. */
-	initInterrupts();
+	initInterrupts(1);
 
 	/* Clear the process table. Anounce each slot as empty.
 	 * Do the same for the table with privilege structures for the system processes.
 	 */
 	for (rp = BEG_PROC_ADDR, i = -NR_TASKS; rp < END_PROC_ADDR; ++rp, ++i) {
-		rp->p_rts_flags = SLOT_FREE;				/* Initialize free slot. */
+		rp->p_rts_flags = SLOT_FREE;			/* Initialize free slot. */
 		rp->p_nr = i;							/* Proc number from ptr. */
 		(procAddrTable + NR_TASKS)[i] = rp;		/* Proc ptr from number. */
 	}
@@ -44,7 +45,7 @@ void main() {
 
 	for (i = 0; i < NR_BOOT_PROCS; ++i) { 
 		ip = &images[i];					/* Process' attributes */			
-		rp = procAddr(ip->pNum);	/* Get process pointer */
+		rp = procAddr(ip->pNum);			/* Get process pointer */
 		rp->p_max_priority = ip->priority;	/* Max scheduling priority */
 		rp->p_priority = ip->priority;		/* Current priority */
 		rp->p_quantum_size = ip->quantum;	/* Quantum size in ticks */
@@ -138,6 +139,94 @@ void main() {
 	restart();
 }
 
-void prepareShutdown(int how) {
-//TODO
+static void shutdown(Timer *tp) {
+/* This function is called from prepareShutdown to bring down MINIX. 
+ * How to shutdown is in the argument: RBT_HALT (return to the
+ * monitor), RBT_MONITOR (execute given code), RBT_RESET (hard reset).
+ */
+	int how = timerArg(tp)->ta_int;
+	u16_t magic;
+
+	/* Now mask all interrupts, including the clock, and stop the clock. */
+	outb(INT_CTL_MASK, ~0);
+	clockStop();
+
+	if (how != RBT_RESET) {
+		/* Reinitialize the interrupt controllers to the BIOS defaults. */
+		initInterrupts(0);
+		outb(INT_CTL_MASK, 0);
+		outb(INT2_CTL_MASK, 0);
+
+		/* Return to the boot monitor. Set the program if not already done. */
+		if (how != RBT_MONITOR) {
+			/* Before calling minix(), we copy the params from boot envs, and
+			 * call name2Dev() to transform the dev to a number. 
+			 * After returning to monitor, we call parseCode(params), now the 
+			 * params contains a number for the dev, it's incorrect, and can
+			 * not boot again.
+			 * So if we need to make the params to be a empty string.
+			 */
+			physCopy(vir2Phys(""), kernelInfo.paramsBase, 1);	
+		}
+
+		level0(monitor);
+	}
+
+	/* Reset the system by jumping to the reset address (real mode), or by
+	 * forcing a processor shutdown (protected mode). First stop the BIOS
+	 * memory test by setting a soft reset flag.
+	 */
+	magic = STOP_MEM_CHECK;
+	physCopy(vir2Phys(&magic), SOFT_RESET_FLAG_ADDR, SOFT_RESET_FLAG_SIZE);
+	level0(reset);
 }
+
+void prepareShutdown(int how) {
+/* This function prepares to shutdown MINIX. */
+	static Timer shutdownTimer;
+	register Proc *rp;
+	Message msg;
+
+	/* Show debugging dumps on panics. Make sure that the TTY driver is still
+	 * available to handle them. This is done with help of a non-blocking send.
+	 * We rely on TTY to call sysAbort() when it is done with the dumps.
+	 */
+	if (how == RBT_PANIC) {
+		msg.m_type = PANIC_DUMPS;
+		if (nbSend(TTY_PROC_NR, &msg) == OK)	/* Don't block if TTY isn't ready */
+		  return;				/* Await sysAbort() from TTY */
+	}
+
+	/* Send a signal to all system processes that are still alive to inform
+	 * them that the MINIX kernel is shutting down. A proper shutdown sequence
+	 * should be implemented by a user-space server. This mechanism is useful
+	 * as a backup in caes of system panics, so that system processes can stll
+	 * run their shutdown code, e.g, to synchronize the FS or to let the TTY
+	 * switch to the first console.
+	 */
+	kprintf("Sending SIGKSTOP to system processes ...\n");
+	for (rp = BEG_PROC_ADDR; rp < END_PROC_ADDR; ++rp) {
+		if (! isEmptyProc(rp) && 
+					(priv(rp)->s_flags & SYS_PROC) && 
+					! isKernelProc(rp))
+			sendSig(procNum(rp), SIGKSTOP);
+	}
+
+	/* We're shutting down. Diagnostics may behave differently now. */
+	shutdownStarted = 1;
+
+	/* Notify system processes of the upcoming shutdown and allow them to be
+	 * scheduled by setting a watchdog timer that calls shutdown(). The timer
+	 * argument passes the shutdown status.
+	 */
+	kprintf("MINIX will now be shut down ...\n");
+	timerArg(&shutdownTimer)->ta_int = how;
+
+	/* Continue after 1 second, to give processes a chance to get
+	 * scheduled to do shutdown work.
+	 */
+	setTimer(&shutdownTimer, getUptime() + HZ, shutdown);
+}
+
+
+

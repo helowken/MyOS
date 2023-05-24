@@ -1,6 +1,6 @@
-#include "lib.h"
-#include "unistd.h"
-#include "stdarg.h"
+#include <lib.h>
+#include <unistd.h>
+#include <stdarg.h>
 
 int reboot(int how, ...) {
 	Message msg;

@@ -1,9 +1,9 @@
 #if defined(_POSIX_SOURCE)
-#include "sys/types.h"
+#include <sys/types.h>
 #endif
 
-#include "stdio.h"
-#include "string.h"
+#include <stdio.h>
+#include <string.h>
 #include "loc_incl.h"
 
 pid_t getpid(void);

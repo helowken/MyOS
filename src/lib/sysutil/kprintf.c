@@ -1,7 +1,7 @@
-#include "code.h"
-#include "stdarg.h"
-#include "stddef.h"
-#include "limits.h"
+#include <code.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <limits.h>
 
 #define isdigit(c)	((unsigned) ((c) - '0') < (unsigned) 10)
 #define count_kputc(c)	do { charCount++; kputc(c); } while(0)

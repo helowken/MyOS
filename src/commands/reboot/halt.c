@@ -1,15 +1,15 @@
 #define	_POSIX_SOURCE	1
-#include "sys/types.h"
-#include "fcntl.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "signal.h"
-#include "string.h"
-#include "errno.h"
-#include "unistd.h"
-#include "sys/stat.h"
-#include "sys/wait.h"
-#include "minix/minlib.h"
+#include <sys/types.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <string.h>
+#include <errno.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <minix/minlib.h>
 
 char *prog;
 
@@ -101,11 +101,11 @@ int main(int argc, char **argv) {
 			case -1:
 				fprintf(stderr, "%s: can't fork(): %s\n", prog, strerror(errno));
 				exit(1);
-			case 0:
-				//TODO execl("/bin/sh", "sh", "/etc/rc", "down", (char *) NULL);
+			case 0:		/* Child */
+				execl("/bin/sh", "sh", "/etc/rc", "down", (char *) NULL);
 				fprintf(stderr, "%s: can't execute: /bin/sh: %s\n", prog, strerror(errno));
 				exit(1);
-			default:
+			default:	/* Parent */
 				while (waitpid(pid, NULL, 0) != pid) {
 				}
 		}

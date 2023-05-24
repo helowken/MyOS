@@ -1,17 +1,17 @@
-#include "sys/types.h"
-#include "sys/stat.h"
-#include "errno.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <errno.h>
 #undef EOF			/* Temporary hack */
-#include "signal.h"
-#include "pwd.h"
-#include "time.h"
-#include "setjmp.h"
-#include "string.h"
-#include "stdlib.h"
-#include "fcntl.h"
-#include "unistd.h"
-#include "sys/wait.h"
-#include "stdio.h"
+#include <signal.h>
+#include <pwd.h>
+#include <time.h>
+#include <setjmp.h>
+#include <string.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <stdio.h>
 
 #ifdef DEBUG
 #define D(Q)	(Q)
@@ -388,7 +388,7 @@ static void readBox() {
 
 	firstLet = lastLet = NULL;
 
-	if (access(mailbox, R_OK | X_OK) < 0 || (boxFp = fopen(mailbox, "r")) == NULL) {
+	if (access(mailbox, R_OK) < 0 || (boxFp = fopen(mailbox, "r")) == NULL) {
 		if (useDrop && errno == ENOENT)
 		  return;
 		fprintf(stderr, "Can't access mailbox ");

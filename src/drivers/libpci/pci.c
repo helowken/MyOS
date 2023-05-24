@@ -1,15 +1,15 @@
 #include "../drivers.h"
-#include "minix/com.h"
-#include "minix/syslib.h"
+#include <minix/com.h>
+#include <minix/syslib.h>
 
 #include "pci.h"
 #include "pci_intel.h"
 
-#include "stdlib.h"
-#include "stdio.h"
+#include <stdlib.h>
+#include <stdio.h>
 
-#include "string.h"
-#include "minix/sysutil.h"
+#include <string.h>
+#include <minix/sysutil.h>
 
 #define NR_PCI_BUS	4
 #define NR_PCI_DEV	40
@@ -328,7 +328,7 @@ static int doPiix(int devInd) {
 				if (debug)
 				  printf("(warning) IRQ %d is not level triggered\n", irq);
 			}
-			// irqModePci(irq);
+			//TODO irqModePci(irq);
 		}
 	}
 	return 0;

@@ -1,7 +1,7 @@
-#include "ctype.h"
-#include "stdio.h"
-#include "stdarg.h"
-#include "string.h"
+#include <ctype.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
 #include "loc_incl.h"
 
 /* getNum() is used to get the width and precision fields of a format. */

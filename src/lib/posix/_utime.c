@@ -1,6 +1,6 @@
-#include "lib.h"
-#include "string.h"
-#include "utime.h"
+#include <lib.h>
+#include <string.h>
+#include <utime.h>
 
 int utime(const char *path, const struct utimbuf *times) {
 	Message msg;

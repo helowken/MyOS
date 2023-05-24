@@ -1,7 +1,7 @@
 #include "fs.h"
-#include "fcntl.h"
-#include "minix/callnr.h"
-#include "minix/com.h"
+#include <fcntl.h>
+#include <minix/callnr.h>
+#include <minix/com.h>
 #include "param.h"
 
 int doSTime() {

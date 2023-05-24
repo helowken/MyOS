@@ -1,0 +1,32 @@
+#!/bin/sh
+#
+# daily - daily cleanup of the system.
+
+# Doesn't make sense when running from CD
+if [ -f /CD ]
+then
+	exit
+fi
+
+case "$#:$1" in
+1:cron|1:boot)
+	caller=$1
+	;;
+*)	echo >&2 "Usage: $0 cron|boot"
+	exit 1
+esac
+
+test -d /usr/adm || exit
+cd /usr/adm || exit
+
+# Last run must have been on a previous day.
+timestamp=daily.lasttime
+if test -f $timestamp
+then
+	set -- `ls -lT $timestamp`
+	test "$6 $7 $9" = "$(date '+%b %d %Y')" && exit
+fi
+>$timestamp
+
+# Remove three day old files from various tmp dirs.
+#TODO cleantmp -3 /tmp /usr/tmp /usr/preserve /usr/spool/lpd /usr/spool/at/past

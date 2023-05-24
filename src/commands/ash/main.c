@@ -1,10 +1,10 @@
 
 
 
-#include "stdlib.h"
-#include "signal.h"
-#include "fcntl.h"
-#include "unistd.h"
+#include <stdlib.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "shell.h"
 #include "main.h"
 #include "mail.h"
@@ -13,9 +13,10 @@
 #include "parser.h"
 #include "nodes.h"
 #include "eval.h"
+#include "jobs.h"
 #include "input.h"
 #include "trap.h"
-#include "stdio.h"
+#include <stdio.h>
 #if ATTY
 #include "var.h"
 #endif
@@ -61,7 +62,7 @@ void cmdLoop(int top) {
 		inter = 0;
 		if (iflag && top) {
 			++inter;
-			//TODO showJobs(1);
+			showJobs(1);
 			checkMail(0);
 			flushOut(&output);
 		}
@@ -190,8 +191,6 @@ state3:
 state4:
 		cmdLoop(1);
 	}
-	if (true)
-	  return;	//TODO
 
 	exitShell(exitStatus);
 }

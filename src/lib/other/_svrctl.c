@@ -1,6 +1,6 @@
-#include "lib.h"
-#include "stdio.h"
-#include "sys/svrctl.h"
+#include <lib.h>
+#include <stdio.h>
+#include <sys/svrctl.h>
 
 int svrctl(int request, void *data) {
 	Message msg;

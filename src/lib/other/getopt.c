@@ -1,6 +1,6 @@
-#include "stdlib.h"
-#include "string.h"
-#include "stdio.h"
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
 #define ERR(s, c)	if (opterr) {\
 	fputs(argv[0], stderr);\

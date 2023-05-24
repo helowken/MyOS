@@ -1,5 +1,5 @@
-#include "sys/types.h"
-#include "stdio.h"
+#include <sys/types.h>
+#include <stdio.h>
 #include "loc_incl.h"
 
 ssize_t write(int fd, const char *buf, size_t bytes);

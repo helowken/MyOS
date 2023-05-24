@@ -1,12 +1,12 @@
 #define nil	0
-#include "lib.h"
-#include "sys/types.h"
-#include "sys/stat.h"
-#include "dirent.h"
-#include "unistd.h"
-#include "stdlib.h"
-#include "fcntl.h"
-#include "errno.h"
+#include <lib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <errno.h>
 
 DIR *opendir(const char *name) {
 /* Open a directory for reading. */
@@ -37,6 +37,8 @@ DIR *opendir(const char *name) {
 		errno = err;
 		return nil;
 	}
+
+	errno = 0;	/* Not to affect the caller's logic. */
 
 	dp->_fd = fd;
 	dp->_v7 = -1;

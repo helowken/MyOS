@@ -1,7 +1,7 @@
-#include "lib.h"
-#include "signal.h"
-#include "unistd.h"
-#include "time.h"
+#include <lib.h>
+#include <signal.h>
+#include <unistd.h>
+#include <time.h>
 
 static void handler(int sig) {
 	/* Dummy signal handler. */

@@ -102,16 +102,30 @@ start)
 	fi
 	echo .
 
+	#TODO net
+
+    #TODO net
+
+	# Recover files being edited when the system crashed.
+	# TODO
+
+	# Run the daily cleanup on systems that are not on at night.
+	test -f /usr/etc/daily && sh /usr/etc/daily boot &	
+	
 
 #	echo "echo aaa" > test.sh
 #	chmod +x test.sh
 #at 1200 test.sh
 
-
+#	echo "xxx
+#." > /usr/mail1
+#	mail -tv -s aaa root < /usr/mail1
+#	mail -p
 
 #echo "1 1 1 * * * echo aaa" > /usr/spool/crontabs/root
 #echo --------------
 #crontab -l
+
 ;;
 stop|down)
 	# Save random data.

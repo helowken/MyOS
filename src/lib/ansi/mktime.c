@@ -1,5 +1,5 @@
-#include "time.h"
-#include "limits.h"
+#include <time.h>
+#include <limits.h>
 #include "loc_time.h"
 
 /* The code assumes that unsigned long can be converted to time_t.

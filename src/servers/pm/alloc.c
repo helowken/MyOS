@@ -1,8 +1,8 @@
 #include "pm.h"
-#include "minix/com.h"
-#include "minix/callnr.h"
-#include "signal.h"
-#include "stdlib.h"
+#include <minix/com.h>
+#include <minix/callnr.h>
+#include <signal.h>
+#include <stdlib.h>
 #include "mproc.h"
 #include "../../kernel/const.h"
 #include "../../kernel/config.h"
@@ -25,7 +25,7 @@ static int swapFd = -1;		/* File descriptor of open swap file/device */
 static phys_clicks swapBase;		/* Memory offset chosen as swap base */
 static phys_clicks swapMaxSize;		/* Maximum amount of swap "memory" possible */
 static MProc *inQueue;		/* Queue of processes wanting to swap in */
-//static MProc *outSwap = &mprocTable[0];		/* Outswap candidate? */
+//TODO static MProc *outSwap = &mprocTable[0];		/* Outswap candidate? */
 
 static void deleteSlot(Hole *prevHp, Hole *hp) {
 /* Remove an entry from the hole list. This procedure is called when a

@@ -1,19 +1,19 @@
 #define nil	0
-#include "stdio.h"
-#include "sys/types.h"
-#include "stdlib.h"
-#include "string.h"
-#include "stddef.h"
-#include "unistd.h"
-#include "fcntl.h"
-#include "time.h"
-#include "sys/stat.h"
-#include "utime.h"
-#include "dirent.h"
-#include "errno.h"
-#include "sys/dir.h"
-#include "limits.h"
-#include "minix/const.h"
+#include <stdio.h>
+#include <sys/types.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stddef.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <time.h>
+#include <sys/stat.h>
+#include <utime.h>
+#include <dirent.h>
+#include <errno.h>
+#include <sys/dir.h>
+#include <limits.h>
+#include <minix/const.h>
 
 #define CHUNK	(1024 << (sizeof(int) + sizeof(char *)))
 

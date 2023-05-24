@@ -1,11 +1,11 @@
-#include "minix/com.h"
 #include "kernel.h"
-#include "stdarg.h"
-#include "unistd.h"
-#include "stddef.h"
-#include "stdlib.h"
-#include "signal.h"
 #include "proc.h"
+#include <minix/com.h>
+#include <stdarg.h>
+#include <unistd.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <signal.h>
 
 #define END_OF_KMESS	-1
 

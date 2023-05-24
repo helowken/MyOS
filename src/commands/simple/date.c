@@ -1,10 +1,10 @@
-#include "sys/types.h"
-#include "ctype.h"
-#include "stddef.h"
-#include "stdlib.h"
-#include "time.h"
-#include "string.h"
-#include "unistd.h"
+#include <sys/types.h>
+#include <ctype.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
+#include <unistd.h>
 
 #define MIN		60L			/* Seconds in a minute */
 #define HOUR	(60 * MIN)	/* Seconds in an hour */

@@ -1,6 +1,6 @@
 #include "../system.h"
 
-int doMemset(Message *msg) {
+int doMemSet(Message *msg) {
 /* Handle sys_memset(). This writes a pattern into the specified memory. */
 	unsigned long p;
 	unsigned char c = msg->MEM_PATTERN;

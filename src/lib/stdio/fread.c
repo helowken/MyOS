@@ -1,4 +1,4 @@
-#include "stdio.h"
+#include <stdio.h>
 
 size_t fread(void *ptr, size_t size, size_t nmemb, register FILE *stream) {
 	register char *cp = ptr;

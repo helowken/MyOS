@@ -1,8 +1,8 @@
-#include "sys/types.h"
-#include "fcntl.h"
-#include "unistd.h"
-#include "stdlib.h"
-#include "stdio.h"
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 static int bFlag, cFlag, dFlag, oFlag, xFlag, hFlag, vFlag;
 static int lineNum, width, state, ever;

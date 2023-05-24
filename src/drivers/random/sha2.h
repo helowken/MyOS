@@ -57,10 +57,10 @@ extern "C" {
 #define SHA512_DIGEST_STRING_LENGTH	(SHA512_DIGEST_LENGTH * 2 + 1)
 
 #ifdef __minix
-#include "assert.h"
-#include "string.h"
-#include "sys/types.h"
-#include "minix/u64.h"
+#include <assert.h>
+#include <string.h>
+#include <sys/types.h>
+#include <minix/u64.h>
 
 typedef u8_t u_int8_t;	/* 1-byte  (8-bits)  */
 typedef u32_t u_int32_t;	/* 4-bytes (32-bits) */

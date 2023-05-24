@@ -1,16 +1,16 @@
 #define nil ((void *) 0)
-#include "sys/types.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
-#include "signal.h"
-#include "time.h"
-#include "errno.h"
-#include "unistd.h"
-#include "fcntl.h"
-#include "pwd.h"
-#include "limits.h"
-#include "sys/stat.h"
+#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <time.h>
+#include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <pwd.h>
+#include <limits.h>
+#include <sys/stat.h>
 #include "misc.h"
 #include "tab.h"
 

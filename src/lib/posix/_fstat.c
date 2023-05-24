@@ -1,5 +1,5 @@
-#include "lib.h"
-#include "sys/stat.h"
+#include <lib.h>
+#include <sys/stat.h>
 
 int fstat(int fd, struct stat *buf) {
 	Message msg;

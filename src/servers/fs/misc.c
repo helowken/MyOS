@@ -1,9 +1,9 @@
 #include "fs.h"
-#include "fcntl.h"
-#include "unistd.h"
-#include "minix/callnr.h"
-#include "minix/com.h"
-#include "sys/svrctl.h"
+#include <fcntl.h>
+#include <unistd.h>
+#include <minix/callnr.h>
+#include <minix/com.h>
+#include <sys/svrctl.h>
 #include "param.h"
 
 int doExit() {
@@ -248,7 +248,41 @@ int doExec() {
 	return OK;
 }
 
+int doReboot() {
+/* Perform the FS side of the reboot call. */
+	int i;
+	SuperBlock *sp;
+	Inode dummy;
 
+	/* Only PM may make this call directly. */
+	if (who != PM_PROC_NR)
+	  return EGENERIC;
+
+	/* Do exit processing for all leftover processes and servers. */
+	for (i = 0; i < NR_PROCS; ++i) {
+		inMsg.m_slot1 = i;
+		doExit();
+	}
+
+	/* The root file system is mounted onto itself, which keeps it from being
+	 * unmounted. Pull an inode out of the thin air and put the root on it.
+	 */
+	putInode(superBlocks[0].s_inode_mount);
+	superBlocks[0].s_inode_mount = &dummy;
+	dummy.i_count = 2;			/* Expect one "put" */
+
+	/* Unmount all filesystems. File systems are mounted on other file systems,
+	 * so you have to pull off the loose bits repeatedly to get it all undone.
+	 */
+	for (i = 0; i < NR_SUPERS; ++i) {
+		/* Unmount at least one. */
+		for (sp = &superBlocks[0]; sp < &superBlocks[NR_SUPERS]; ++sp) {
+			if (sp->s_dev != NO_DEV)
+			  unmount(sp->s_dev);
+		}
+	}
+	return OK;
+}
 
 
 

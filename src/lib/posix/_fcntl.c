@@ -1,6 +1,6 @@
-#include "lib.h"
-#include "fcntl.h"
-#include "stdarg.h"
+#include <lib.h>
+#include <fcntl.h>
+#include <stdarg.h>
 
 int fcntl(int fd, int cmd, ...) {
 	va_list argp;

@@ -35,6 +35,7 @@ typedef struct Job {
 extern pid_t backgndPid;		/* Pid of last background process */
 
 void freeJob(Job *);
+void showJobs(int);
 Job *makeJob(int);
 int forkShell(Job *, Node *, int);
 int waitForJob(Job *);

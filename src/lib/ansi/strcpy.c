@@ -1,5 +1,5 @@
-#include "code.h"
-#include "string.h"
+#include <code.h>
+#include <string.h>
 
 char *strcpy(char *ret, const char *s2) {
 	char *s1 = ret;

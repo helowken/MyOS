@@ -44,6 +44,7 @@ OBJS_M32 = \
 		_lseek.o \
 		_isatty.o \
 		_tcgetattr.o \
+		_tcsetattr.o \
 		_ioctl.o \
 		_kill.o \
 		_umask.o \

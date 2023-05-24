@@ -1,11 +1,11 @@
-#include "code.h"
-#include "debug.h"
-#include "stdarg.h"
-#include "stdlib.h"
-#include "limits.h"
+#include <code.h>
+#include <debug.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <ibm/partition.h>
 #include "util.h"
 #include "boot.h"
-#include "ibm/partition.h"
 
 #if DEBUG
 static void testPrint() {

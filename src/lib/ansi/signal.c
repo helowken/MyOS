@@ -1,5 +1,5 @@
-#include "lib.h"
-#include "signal.h"
+#include <lib.h>
+#include <signal.h>
 
 sighandler_t signal(int sig, sighandler_t disp) {
 	struct sigaction sa, osa;

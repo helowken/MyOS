@@ -1,4 +1,4 @@
-#include "time.h"
+#include <time.h>
 #include "loc_time.h"
 
 /* We must be careful, since an int can't represent all the seconds in a day.

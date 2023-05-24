@@ -1,7 +1,7 @@
 #include "../system.h"
-#include "signal.h"
-#include "string.h"
-#include "sys/sigcontext.h"
+#include <signal.h>
+#include <string.h>
+#include <sys/sigcontext.h>
 
 /* Note: we assume stack is downwards, then the sigcontext and 
  *       sigframe in stack is as follows:

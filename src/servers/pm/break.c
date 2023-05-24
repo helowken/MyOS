@@ -1,5 +1,5 @@
 #include "pm.h"
-#include "signal.h"
+#include <signal.h>
 #include "mproc.h"
 #include "param.h"
 

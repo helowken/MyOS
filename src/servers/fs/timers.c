@@ -1,7 +1,7 @@
 #include "fs.h"
-#include "timers.h"
-#include "minix/syslib.h"
-#include "minix/com.h"
+#include <timers.h>
+#include <minix/syslib.h>
+#include <minix/com.h>
 
 static Timer *fsTimers = NULL;
 

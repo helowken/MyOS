@@ -1,6 +1,6 @@
 #include "driver.h"
 #include "drvlib.h"
-#include "unistd.h"
+#include <unistd.h>
 
 #define extPart(s)		((s) == 0x05 || (s) == 0x0F)	/* Extended partition? */
 

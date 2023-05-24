@@ -1,6 +1,7 @@
 MY_HOME = ../..
 include $(MY_HOME)/common.mk
 
+LIBS = $(SYS_LIBS)
 SERVER = $(NAME).bin
 build: $(SERVER)
 

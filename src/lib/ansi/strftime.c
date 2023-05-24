@@ -1,4 +1,4 @@
-#include "time.h"
+#include <time.h>
 #include "loc_time.h"
 
 /* The width can be -1 in both sPrint() as in uPrint(). This

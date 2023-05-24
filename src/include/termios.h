@@ -114,6 +114,7 @@ struct termios {
 #define TCION			4	/* Transmit a START character on the line */
 
 int tcgetattr(int fd, struct termios *termios_p);
+int tcsetattr(int fd, int opt_actions, const struct termios *termios_p);
 
 
 #ifdef _MINIX

@@ -1,7 +1,7 @@
 #define	nil	0
 
-#include "unistd.h"
-#include "stdarg.h"
+#include <unistd.h>
+#include <stdarg.h>
 
 int execle(const char *path, const char *arg, ...) {
 /* execle("/bin/sh", "sh", "-c", "example", (char *) 0, my_env_array); */

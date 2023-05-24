@@ -38,9 +38,9 @@
 
 
 #include "kernel.h"
-#include "stddef.h"
 #include "proc.h"
-#include "minix/com.h"
+#include <stddef.h>
+#include <minix/com.h>
 
 /* Clock parameters. */
 #define LATCH_COUNT		0x00	/* Channel=0, Access=Latch count value command,
@@ -193,3 +193,12 @@ unsigned long readClock() {
 
 	return count;
 }
+
+void clockStop() {
+/* Reset the clock to the BIOS rate. (For rebooting) */
+	outb(TIMER_MODE, SQUARE_WAVE);
+	outb(TIMER0, 0);
+	outb(TIMER0, 0);
+}
+
+

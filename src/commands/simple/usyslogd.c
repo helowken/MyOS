@@ -1,12 +1,12 @@
-#include "stdio.h"
-#include "sys/select.h"
-#include "sys/utsname.h"
-#include "sys/types.h"
-#include "time.h"
-#include "stdlib.h"
-#include "fcntl.h"
-#include "unistd.h"
-#include "string.h"
+#include <stdio.h>
+#include <sys/select.h>
+#include <sys/utsname.h>
+#include <sys/types.h>
+#include <time.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
 
 static char *nodeName;
 

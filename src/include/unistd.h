@@ -2,14 +2,14 @@
 #define _UNISTD_H
 
 #ifndef _TYPES_H
-#include "sys/types.h"
+#include <sys/types.h>
 #endif
 
 /* Values used by access(void). */
 #define F_OK			0	/* Test if file exists */
 #define X_OK			1	/* Test if file is executable */
 #define W_OK			2	/* Test if file is writable */
-#define R_OK			3	/* Test if file is readable */
+#define R_OK			4	/* Test if file is readable */
 
 /* Values used for whence in lseek(fd, offset, whence). POSIX table 2-9. */
 #define SEEK_SET		0	/* Offset is absolute */
@@ -96,7 +96,7 @@ int usleep(useconds_t useconds);
 
 #ifdef _MINIX
 #ifndef _TYPE_H
-#include "minix/type.h"
+#include <minix/type.h>
 #endif
 
 int brk(char *addr);
@@ -110,6 +110,9 @@ int sync(void);
 int fsync(int fd);
 int umount(const char *name);
 int reboot(int how, ...);
+int ttyslot(void);
+int fttyslot(int fd);
+char *crypt(const char *key, const char *salt);
 int getSysInfo(int who, int what, void *where);
 int getProcNum(void);
 int findProc(char *procName, int *pNum);

@@ -1,5 +1,5 @@
-#include "lib.h"
-#include "minix/minlib.h"
+#include <lib.h>
+#include <minix/minlib.h>
 
 static int next;
 static char qBuf[8];
