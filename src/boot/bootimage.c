@@ -1,3 +1,6 @@
+#define _POSIX_SOURCE	1
+#define _MINIX			1
+
 #include <code.h>
 #include <errno.h>
 #include <stdlib.h>

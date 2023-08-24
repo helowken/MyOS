@@ -25,9 +25,12 @@ static void cleanup(register MProc *child) {
 	parent->mp_flags &= ~WAITING;		/* Parent no longer waiting */
 
 	/* Release the process table entry and reinitialize some fields. */
-	child->mp_pid = 0;
-	child->mp_flags = 0;
-	child->mp_child_utime = 0;
+	child->mp_pid = 
+	child->mp_flags = 
+	child->mp_ino =		/* ino, dev and ctime use to find shareMp */
+	child->mp_dev =
+	child->mp_ctime =
+	child->mp_child_utime = 
 	child->mp_child_stime = 0;
 	--procsInUse;
 }

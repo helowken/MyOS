@@ -21,7 +21,8 @@ MProc *findShare(MProc *rmp, ino_t ino, dev_t dev, time_t ctime) {
  * call is made.
  */
 	MProc *shareMp;
-	for (shareMp = &mprocTable[0]; shareMp < &mprocTable[NR_PROCS]; ++ shareMp) {
+
+	for (shareMp = &mprocTable[0]; shareMp < &mprocTable[NR_PROCS]; ++shareMp) {
 		if (shareMp == rmp ||
 			shareMp->mp_ino != ino ||
 			shareMp->mp_dev != dev ||
@@ -393,7 +394,7 @@ int doExec() {
 		stp = &stBuf[r];
 		tellFS(CHDIR, who, false, 0);	/* Switch to the user's FS environ */
 		fd = checkAllowed(name, stp, X_BIT);	/* Is file executable? */
-		if (fd < 0)  
+		if (fd < 0)    
 		  return fd;	/* File was not executable */
 		
 		/* Read the file header and extract the segment sizes. */

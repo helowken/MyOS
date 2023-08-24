@@ -13,6 +13,7 @@
 #include <minix/devio.h>
 #include <minix/syslib.h>
 #include <minix/sysutil.h>
+#include <minix/bitmap.h>
 
 #include <ibm/interrupt.h>
 #include <ibm/bios.h>

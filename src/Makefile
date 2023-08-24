@@ -1,10 +1,11 @@
-DIRS = tools \
-	   lib \
+DIRS = lib \
+	   tools \
 	   kernel \
 	   servers \
 	   drivers \
 	   boot \
-	   commands
+	   commands \
+	   test
 
 DIR_ENTRY = entry
 

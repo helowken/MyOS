@@ -334,6 +334,11 @@ static Node *command() {
 			 * do
 			 *    commands
 			 * done
+			 * ----------
+			 * for variable
+			 * do
+			 *	  commands
+			 * done
 			 */
 			if (readToken() != TWORD || quoteFlag || ! goodName(wordText))
 			  syntaxError("Bad for loop variable");
@@ -789,20 +794,20 @@ checkEnd: {
 			while (c == '\t') { 
 				c = pGetChar();
 			}
-			if (c == *eofMark) {
-				if (pfGetStr(line, sizeof(line)) != NULL) {
-					register char *p, *q;
+		}
+		if (c == *eofMark) {
+			if (pfGetStr(line, sizeof(line)) != NULL) {
+				register char *p, *q;
 
-					p = line;
-					for (q = eofMark + 1; *q && *p == *q; ++p, ++q) {
-					}
-					if (*p == '\n' && *q == '\0') {
-						c = PEOF;
-						++parseLineNum;
-						needPrompt = doPrompt;
-					} else {
-						pPushback(line, strlen(line));
-					}
+				p = line;
+				for (q = eofMark + 1; *q && *p == *q; ++p, ++q) {
+				}
+				if (*p == '\n' && *q == '\0') {
+					c = PEOF;
+					++parseLineNum;
+					needPrompt = doPrompt;
+				} else {
+					pPushback(line, strlen(line));
 				}
 			}
 		}

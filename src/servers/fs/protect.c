@@ -28,7 +28,8 @@ int checkForbidden(register Inode *ip, mode_t accessDesired) {
 	if (ip->i_mount == I_MOUNT) {	/* The inode is mounted on. */
 		for (sp = &superBlocks[0]; sp < &superBlocks[NR_SUPERS]; ++sp) {
 			if (sp->s_inode_mount == ip) {
-				ip = getInode(sp->s_dev, ROOT_INODE);
+				ip = sp->s_inode_super;
+				dupInode(ip);
 				break;
 			}
 		}
@@ -59,16 +60,16 @@ int checkForbidden(register Inode *ip, mode_t accessDesired) {
 	
 	/* If access desired is not a subset of what is allowed, it is refused. */
 	r = OK;
-	if ((permBits | accessDesired) != permBits)
+	if ((permBits | accessDesired) != permBits)   
 	  r = EACCES;
 
 	/* Check to see if someone is trying to write on a file system that is 
 	 * mounted read-only.
 	 */
-	if (r == OK && accessDesired & W_BIT)
+	if (r == OK && (accessDesired & W_BIT))
 	  r = checkReadOnly(ip);
 
-	if (ip != oldIp)
+	if (ip != oldIp)	/* Now 'ip' is the mounted inode. */
 	  putInode(ip);
 
 	return r;
@@ -87,7 +88,7 @@ int doAccess() {
 	/* Temporarily open the file whose access is to be checked. */
 	if (fetchName(inMsg.m_name, inMsg.m_name_length, M3) != OK)
 	  return errCode;
-	if ((ip = eatPath(userPath)) == NIL_INODE)
+	if ((ip = eatPath(userPath)) == NIL_INODE) 
 	  return errCode;
 
 	/* Now check the permissions. */

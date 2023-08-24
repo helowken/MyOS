@@ -103,7 +103,7 @@ Inode *getInode(dev_t dev, ino_t num) {
 				return ip;	
 			}
 		} else {
-			xp = ip;
+			xp = ip;	/* Remember this free slot for later */
 		}
 	}
 

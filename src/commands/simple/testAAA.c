@@ -1,17 +1,13 @@
-#include "setjmp.h"
-#include "signal.h"
+#include <setjmp.h>
+#include <signal.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 jmp_buf env;
 
-int main() {
-	sigset_t set;
+void testJmp() {
 	int i;
-
-	sigemptyset(&set);
-	sigaddset(&set, SIGUSR1);
-	sigaddset(&set, SIGALRM);
-	sigprocmask(SIG_SETMASK, &set, NULL);
 
 	switch (setjmp(env)) {
 		case 0:
@@ -29,11 +25,21 @@ int main() {
 			longjmp(env, 3);
 		case 3:
 			printf("=== long jump with 3\n");
-			return 0;
+			return;
 	}
 
 	printf("============\n");
 	longjmp(env, 1); 
+}
 
+int main() {
+	int fd;
+
+	if ((fd = open("/dev/tty", O_RDWR)) == -1) {
+		perror("open failed");
+		return 1;
+	}
+	printf("fd: %d\n", fd); 
+	close(fd);
 	return 0;
 }

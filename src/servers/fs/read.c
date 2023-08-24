@@ -374,7 +374,7 @@ block_t readMap(Inode *ip, off_t pos) {
 		idxInDblInd = (int) (excess / indZones);
 		zoneNum = readIndirZone(bp, idxInDblInd);	/* Zone for single indirect */
 		putBlock(bp, INDIRECT_BLOCK);	/* Release double indirect block */
-		idxInInd = excess % indZones;	/* Index into single indirect block */
+		excess = excess % indZones;		/* Index into single indirect block */
 	}
 
 	/* 'zoneNum' is zone num for single indirect block;

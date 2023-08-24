@@ -64,13 +64,37 @@ static Inode *newNode(char *path, mode_t bits, zone_t z0) {
 	return ip;
 }
 
+static int pipeOpen(register Inode *rip, register mode_t bits, 
+			register int oFlags) {
+/* This function is called from commonOpen. It checks if
+ * there is at least one reader/writer pair for the pipe, if not
+ * it suspends the caller, otherwise it revives all other blocked
+ * processes hanging on the pipe.
+ */
+	rip->i_pipe = I_PIPE;
+	if (findFilp(rip, (bits & W_BIT ? R_BIT : W_BIT)) == NIL_FILP) {
+		if (oFlags & O_NONBLOCK) {
+			if (bits & W_BIT)
+			  return ENXIO;
+		} else {
+			suspend(XPOPEN);	/* Suspend caller */
+			return SUSPEND;
+		}
+	} else if (suspendedCount > 0) {	/* Revive blocked processes */
+		release(rip, OPEN, suspendedCount);
+		release(rip, CREAT, suspendedCount);
+	}
+	return OK;
+}
+
 static int commonOpen(register int oFlags, mode_t oMode) {
 /* Common code from doCreat and doOpen. */
 	register Inode *ip;
 	mode_t bits;
 	dev_t dev;
-	Filp *filp;
-	int r, exist = true;
+	Filp *filp, *filp2;
+	off_t pos;
+	int r, b, exist = true;
 
 	/* Remap the bottom two bits of oFlags. */
 	bits = (mode_t) modeMap[oFlags & O_ACCMODE];
@@ -97,7 +121,7 @@ static int commonOpen(register int oFlags, mode_t oMode) {
 		}
 	} else {
 		/* Scan path name. */
-		if ((ip = eatPath(userPath)) == NIL_INODE) 
+		if ((ip = eatPath(userPath)) == NIL_INODE)  
 		  return errCode;
 	}
 
@@ -138,7 +162,39 @@ static int commonOpen(register int oFlags, mode_t oMode) {
 					r = devOpen(dev, who, bits | (oFlags & ~O_ACCMODE));
 					break;
 				case I_NAMED_PIPE:
-					printf("=== TODO fs pipe commonOpen\n");
+					oFlags |= O_APPEND;	/* Force append mode */
+					filp->filp_flags = oFlags;
+					r = pipeOpen(ip, bits, oFlags);
+					if (r != ENXIO) {
+						/* See if someone else is doing a read or write on
+						 * the FIFO. If so, use its filp entry so the file
+						 * position will be automatically shared.
+						 */
+						b = (bits & R_BIT ? R_BIT : W_BIT);
+						filp->filp_count = 0;	/* Don't find self by findFilp() */
+						if ((filp2 = findFilp(ip, b)) != NIL_FILP) {
+							/* Co-reader or writer found. Use it. */
+							currFp->fp_filp[inMsg.m_fd] = filp2;
+							++filp2->filp_count;
+							filp2->filp_inode = ip;
+							filp2->filp_flags = oFlags;
+
+							/* i_count was incremented incorrectly by 
+							 * eatPath above, not knowing that we were
+							 * going to use an existing filp entry. Correct
+							 * this error.
+							 */
+							--ip->i_count;
+						} else {
+							/* Nobody else found. Restore filp. */
+							filp->filp_count = 1;
+							if (b == R_BIT)
+							  pos = ip->i_zone[NR_DIRECT_ZONES];
+							else
+							  pos = ip->i_zone[NR_DIRECT_ZONES + 1];
+							filp->filp_pos = pos;
+						}
+					}
 					break;
 			}
 		}
@@ -235,7 +291,8 @@ int doClose() {
 /* Perform the close(fd) system call. */
 	register Filp *filp;
 	register Inode *ip;
-	int rw, mode;
+	FileLock *flckp;
+	int rw, mode, lockCount;
 	dev_t dev;
 
 	/* First locate the inode that belongs to the file descriptor. */
@@ -289,9 +346,17 @@ int doClose() {
 	/* Check to see if the file is locked. If so, release all locks. */
 	if (numLocks == 0)
 	  return OK;
-
-	printf("=== fs TODO doClose 444\n");
-	//TODO
+	lockCount = numLocks;	/* Save count of locks */
+	for (flckp = &fileLockTable[0]; flckp < &fileLockTable[NR_LOCKS]; ++flckp) {
+		if (flckp->lock_type == 0)	/* Slot not in use */
+		  continue;
+		if (flckp->lock_inode == ip && flckp->lock_pid == currFp->fp_pid) {
+			flckp->lock_type = 0;
+			--numLocks;
+		}
+	}
+	if (numLocks < lockCount)	/* Lock released */
+	  lockRevive();
 	
 	return OK;
 }
@@ -331,6 +396,10 @@ int doLseek() {
 	  return EINVAL;
 	if (((long) inMsg.m_offset < 0) && ((long) (pos + inMsg.m_offset) > (long) pos))
 	  return EINVAL;
+	/* Check for nagetive. */
+	if (((long) inMsg.m_offset < 0) && ((long) (pos + inMsg.m_offset) < 0))
+	  return EINVAL;
+
 	pos += inMsg.m_offset;
 
 	if (pos != filp->filp_pos)

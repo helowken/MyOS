@@ -15,7 +15,7 @@ typedef struct FProc {
 	int fp_fd;				/* Place to save fd if rd/wr can't finish */
 	char *fp_buffer;		/* Place to save buffer if rd/wr can't finish */
 	int fp_nbytes;			/* Place to save bytes if rd/wr can't finish */
-	int fp_cum_io_partial;	/* Partial byte ount if rd/wr can't finish */
+	int fp_cum_io_partial;	/* Partial byte count if rd/wr can't finish */
 	char fp_suspended;		/* Set to indicate process hanging */
 	char fp_revived;		/* Set to indicate process being revived */
 	char fp_task;			/* Which task is proc suspended on */

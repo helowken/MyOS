@@ -14,6 +14,7 @@ char *strchr(const char *s, int c);
 int strncmp(const char *s1, const char *s2, size_t n);
 int strcmp(const char *s1, const char *s2);
 char *strcpy(char *ret, const char *s2);
+size_t strcspn(const char *s, const char *reject);
 char *strerror(int errnum);
 size_t strlen(const char *s);
 char *strncpy(char *ret, const char *s2, size_t n);
@@ -33,7 +34,10 @@ char *strdup(const char *s);
 /* For backward compatibility. */
 #define index(s, c)		strchr((s), (c))
 #define rindex(s, c)	strrchr((s), (c))
+void bcopy(const void *src, void *dst, size_t n);
+int bcmp(const void *s1, const void *s2, size_t n);
 void bzero(void *s, size_t n);
+void *memccpy(void *dst, const void *src, int c, size_t n);
 #endif
 
 #endif

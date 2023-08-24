@@ -16,6 +16,9 @@
 #define SEEK_CUR		1	/* Offset is relative to current position */
 #define SEEK_END		2	/* Offset is relative to end of file */
 
+/* This value is required by POSIX. */
+#define _POSIX_VERSION	199009L	/* Which standard is being conformed to */
+
 /* These three definitions are required by POSIX */
 #define STDIN_FILENO	0	/* File descriptor for stdin */
 #define STDOUT_FILENO	1	/* File descriptor for stdout */
@@ -34,11 +37,43 @@
 #define SI_KINFO		0	/* Get kernle info via PM. */
 #define SI_PROC_ADDR	1	/* Address of process table */
 #define SI_PROC_TAB		2	/* Copy of entire process table */
+#define SI_DMAP_TAB		3	/* Get device <-> driver mappings */
 
 /* NULL must be defined in <unistd.h> according to POSIX. */
 #ifndef NULL
 #define NULL	((void *) 0)
 #endif
+
+/* The following relate to configurable system variables. */
+#define _SC_ARG_MAX			1
+#define _SC_CHILD_MAX		2
+#define _SC_CLOCKS_PER_SEC	3
+#define _SC_CLK_TCK			3
+#define _SC_NGROUPS_MAX		4
+#define _SC_OPEN_MAX		5
+#define _SC_JOB_CONTROL		6
+#define _SC_SAVED_IDS		7
+#define _SC_VERSION			8
+#define _SC_STREAM_MAX		9
+#define _SC_TZNAME_MAX		10
+
+/* The following relate to configurable pathname variables. */
+#define _PC_LINK_MAX		1	/* Link count */
+#define _PC_MAX_CANON		2	/* Size of the canonical input queue */
+#define _PC_MAX_INPUT		3	/* Type-ahead buffer size */
+#define _PC_NAME_MAX		4	/* File name size */
+#define _PC_PATH_MAX		5	/* Pathname size */
+#define _PC_PIPE_BUF		6	/* Pipe size */
+#define _PC_NO_TRUNC		7	/* Treatment of long name components */
+#define _PC_VDISABLE		8	/* Tty disable */
+#define _PC_CHOWN_RESTRICTED	9	/* Chown restricted or not */
+
+/* POSIX defines several options that may be implemented or not, at the
+ * implementer's whim.
+ */
+#define _POSIX_NO_TRUNC		(-1)
+#define _POSIX_CHOWN_RESTRICTED	1
+
 
 void _exit(int status);
 int access(const char *path, int mode);
@@ -47,6 +82,8 @@ int chdir(const char *path);
 int fchdir(int fd);
 int chown(const char *path, uid_t owner, gid_t group);
 int close(int fd);
+char *ctermid(char *s);
+char *cuserid(char *s);
 int dup(int fd);
 int dup2(int fd, int fd2);
 int execl(const char *path, const char *arg, ...);
@@ -102,7 +139,6 @@ int usleep(useconds_t useconds);
 int brk(char *addr);
 int chroot(const char *path);
 int mknod(const char *path, mode_t mode, dev_t dev);
-int mknod4(const char *path, mode_t mode, dev_t dev, long size);
 char *mktemp(char *template);
 int mount(char *special, char *name, int flag);
 char *sbrk(int incr);

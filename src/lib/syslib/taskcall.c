@@ -1,4 +1,5 @@
-#include "syslib.h"
+#include <lib.h>
+#include <minix/syslib.h>
 
 int taskCall(int who, int sysCallNum, register Message *msg) {
 	int status;

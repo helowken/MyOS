@@ -125,7 +125,7 @@ void suspend(
 	currFp->fp_fd = TO_SUSP(inMsg.m_fd, callNum);
 	currFp->fp_task = -task;
 	if (task == XLOCK) {
-		currFp->fp_buffer = (char *) inMsg.m_name1;	/* Third arg to fcntl() */
+		currFp->fp_buffer = (char *) inMsg.m_buffer;	/* Third arg to fcntl() */
 		currFp->fp_nbytes = inMsg.m_request;	/* Second arg to fcntl() */
 	} else {
 		currFp->fp_buffer = inMsg.m_buffer;		/* For reads and writes */
@@ -188,6 +188,9 @@ int pipeCheck(
  * and there is no writer, return 0 bytes. If a process is writing to a
  * pipe and no one is reading from it, give a broken pipe error.
  */
+	int scale;
+	zone_t zoneSize;
+
 	/* If reading, check for empty pipe. */
 	if (rwFlag == READING) {
 		if (position >= ip->i_size) {
@@ -212,12 +215,14 @@ int pipeCheck(
 		/* Process is writing to a pipe. */
 		if (findFilp(ip, R_BIT) == NIL_FILP) {
 			/* Tell kernel to generate a SIGPIPE signal. */
-			if (! noTouch)
+			if (! noTouch) 
 			  sysKill((int) (currFp - fprocTable), SIGPIPE);
 			return EPIPE;
 		}
 
-		size_t pipeSize = PIPE_SIZE(ip->i_sp->s_block_size);
+		scale = ip->i_sp->s_log_zone_size;
+		zoneSize = (zone_t) ip->i_sp->s_block_size << scale;
+		size_t pipeSize = PIPE_SIZE(zoneSize);
 		if (position + bytes > pipeSize) {
 			if ((oFlags & O_NONBLOCK) && bytes < pipeSize) { 
 				return EAGAIN;

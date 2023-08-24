@@ -22,7 +22,6 @@
 #include "dirent.h"
 #include "pwd.h"
 
-
 /* Structure specifying which parts of the string should be searched
  * for IFS characters.
  */
@@ -50,6 +49,13 @@ int didUserDir;
 static char *expDir;
 
 static void argStr(char *p, int full);
+
+
+void expandHere(Node *arg, int fd) {
+	hereFd = fd;
+	expandArg(arg, NULL, 0);
+	xwrite(fd, stackBlock(), expDest - stackBlock());
+}
 
 
 /* Remove any CTL_ESC characters from a string. */
@@ -238,9 +244,9 @@ again:	/* Jump here after setting a variable with ${var=text} */
 	}
 	if (subType == VS_PLUS)
 	  set = ! set;
-	if (((flags & VS_QUOTE) == 0 || (*var == '@' && shellParam.numParam != 1)) &&
+	if (((flags & VS_QUOTE) == 0 || (*var == '@' && shellParam.numParam != 1)) &&   /* see argVars */
 			(set || subType == VS_NORMAL))
-	  recordRegion(startLoc, expDest - stackBlock(), flags & VS_QUOTE);
+	  recordRegion(startLoc, expDest - stackBlock(), flags & VS_QUOTE);		
 	if (! set && subType != VS_NORMAL) {
 		if (subType == VS_PLUS || subType == VS_MINUS) {
 			argStr(p, full);

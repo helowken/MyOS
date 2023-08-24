@@ -49,8 +49,8 @@
 
 
 #define m_pm_stime		m1_i1
-
-
+#define m_info_what		m1_i1
+#define m_info_where	m1_p1
 #define m_offset		m2_l1
 /* The following names are synonums for the variables in the output message. */
 #define m_reply_type	m_type

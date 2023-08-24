@@ -13,26 +13,30 @@ int main(int argc, char **argv) {
 	register char c;
 	int count;
 	int nflag = 0;
-#ifndef eflag
 	int eflag = 0;		/* Enable interpretation of backslash escapes. */
-#endif
 
 	ap = argv;
 	if (argc)
 	  ++ap;
 	if ((p = *ap) != NULL) {
-		if (equal(p, "--"))
-		  ++ap;
-		if (equal(p, "-n")) {
-			++nflag;
+		if (equal(p, "--")) {
 			++ap;
-		} else if (equal(p, "-e")) {
-#ifndef eflag
-			++eflag;
-#endif
+		} else if (*p == '-') {
+			while (*++p) {
+				if (*p == 'n') 
+				  ++nflag;
+				else if (*p == 'e') 
+				  ++eflag;
+				else {
+					nflag = 0;
+					eflag = 0;
+					goto noOpt;
+				}
+			}
 			++ap;
 		}
 	}
+noOpt:
 	while ((p = *ap++) != NULL) {
 		while ((c = *p++) != '\0') {
 			if (c == '\\' && eflag) {

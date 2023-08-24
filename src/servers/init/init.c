@@ -195,6 +195,18 @@ static void startup(int lineNum, struct ttyent *ttyp) {
 		close(err[0]);
 		fcntl(err[1], F_SETFD, fcntl(err[1], F_GETFD) | FD_CLOEXEC);
 
+		/* Make child to be a session leader, and map the line to 
+		 * /dev/tty as the ctty.
+		 * 
+		 *	line0 fp_tty = /dev/console
+		 *	line1 fp_tty = /dev/ttyc1
+		 *	line2 fp_tty = /dev/ttyc2
+		 *	line3 fp_tty = /dev/ttyc3
+		 *
+		 * When read/write /dev/tty, since it is a ctty, it calls cttyIO() 
+		 * which uses the line's fp_tty as the actual tty.
+		 */
+
 		/* A new session */
 		setsid();
 		
@@ -337,13 +349,13 @@ void main() {
 
 	/* Execute the /etc/rc file. */
 	if ((pid = fork()) != 0) {
-		/* Parent(init) just waits. */
+		/* Parent(init) just waits for shell init. */
 		while (wait(NULL) != pid) {
 			if (gotAbort) 
 			  reboot(RBT_HALT);
 		}
 	} else {	
-		/* Child(sh) */
+		/* Child(sh) init shell. */
 		SysGetEnv sysGetEnv;
 		char bootOpts[16];
 		static char *rcCommand[] = { "sh", "/etc/rc", NULL, NULL, NULL }; 

@@ -171,6 +171,7 @@ static int isFuncKey(int scanCode) {
  * in kbInit, where NONE is set to indicate there is no interest in the key.
  * Returns FALSE on a key release or if the key is not observable.
  */
+	Message msg;
 	int key;
 	int pNum;
 
@@ -200,7 +201,8 @@ static int isFuncKey(int scanCode) {
 
 	/* See if an observer is registered and send it a message. */
 	if (pNum != NONE) {
-		notify(pNum);
+		msg.m_type = FKEY_PRESSED;
+		send(pNum, &msg);
 	}
 
 	return true;
@@ -299,7 +301,34 @@ static unsigned makeBreak(int scanCode) {
 }
 
 static void showKeyMappings() {
-//TODO
+	int i, s;
+	Proc proc;
+
+	printf("\n");
+	printf("System information.   Known function key mappings to request debug dumps:\n");
+	for (i = 0; i < 12; ++i) {
+		printf(" %sF%d: ", (i + 1 < 10 ? " " : ""), i + 1);
+		if (fKeyObs[i].pNum != NONE) {
+			if ((s = sysGetProc(&proc, fKeyObs[i].pNum)) != OK)
+			  printf("sysGetProc: %d\n", s);
+			printf("%-14.14s", proc.p_name);
+		} else {
+			printf("%-14.14s", "<none>");
+		}
+
+		printf("    %sShift-F%d: ", (i + 1 < 10 ? " " : ""), i + 1);
+		if (sfKeyObs[i].pNum != NONE) {
+			if ((s = sysGetProc(&proc, sfKeyObs[i].pNum)) != OK)
+			  printf("sysGetProc: %d\n", s);
+			printf("%-14.14s", proc.p_name);
+		} else {
+			printf("%-14.14s", "<none>");
+		}
+		printf("\n");
+	}
+	printf("\n");
+	printf("Press one of the registered function keys to trigger a debug dump.\n");
+	printf("\n");
 }
 
 static int kbRead(TTY *tp, int try) {
@@ -397,7 +426,7 @@ void kbInitOnce() {
 	setLeds();			/* Turn off numlock led */
 	scanKeyboard();		/* Discard leftover keystroke */
 
-	/* Clear the function key observers array. Also see funcKey(). */
+	/* Clear the function key observers array. Also see isFuncKey(). */
 	for (i = 0; i < 12; ++i) {
 		fKeyObs[i].pNum = NONE;		/* F1-F12 observers */		
 		fKeyObs[i].events = 0;
@@ -440,7 +469,88 @@ void doPanicDumps(Message *msg) {
 }
 
 void doFKeyCtl(Message *msg) {
-//TODO
+/* This procedure allows processes to register a function key to receive
+ * notifications if it is pressed. At most one binding per key can exist.
+ */
+	int i, result;
+
+	switch (msg->FKEY_REQUEST) {	/* See what we must do */
+		case FKEY_MAP:		/* Request for new mapping */
+			result = OK;	/* Assume everything will be OK */
+			for (i = 0; i < 12; ++i) {
+				if (bitIsSet(msg->FKEY_FKEYS, i + 1)) {
+					if (fKeyObs[i].pNum == NONE) {
+						fKeyObs[i].pNum = msg->m_source;
+						fKeyObs[i].events = 0;
+						bitUnset(msg->FKEY_FKEYS, i + 1);
+					} else {
+						printf("WARNING, fKeyMap failed F%d\n", i + 1);
+						result = EBUSY;		/* Report failure, but try rest */
+					}
+				}
+			}
+			for (i = 0; i < 12; ++i) {		/* Check Shift+F1-F12 keys */
+				if (bitIsSet(msg->FKEY_SFKEYS, i + 1)) {
+					if (sfKeyObs[i].pNum == NONE) {
+						sfKeyObs[i].pNum = msg->m_source;
+						sfKeyObs[i].events = 0;
+						bitUnset(msg->FKEY_SFKEYS, i + 1);
+					} else {
+						printf("WARNING, fKeyMap failed Shift F%d\n", i + 1);
+						result = EBUSY;		/* Report failure, but try rest */
+					}
+				}
+			}
+			break;
+		case FKEY_UNMAP:	
+			result = OK;
+			for (i = 0; i < 12; ++i) {		/* Check F1-F12 keys */
+				if (bitIsSet(msg->FKEY_FKEYS, i + 1)) {
+					if (fKeyObs[i].pNum == msg->m_source) {
+						fKeyObs[i].pNum = NONE;
+						fKeyObs[i].events = 0;
+						bitUnset(msg->FKEY_FKEYS, i + 1);
+					} else {
+						result = EPERM;		/* Report failure, but try rest */
+					}
+				}
+			}
+			for (i = 0; i < 12; ++i) {		/* Check Shift+F1-F12 keys */
+				if (bitIsSet(msg->FKEY_SFKEYS, i + 1)) {
+					if (sfKeyObs[i].pNum == msg->m_source) {
+						sfKeyObs[i].pNum = NONE;
+						sfKeyObs[i].events = 0;
+						bitUnset(msg->FKEY_SFKEYS, i + 1);
+					} else {
+						result = EPERM;		/* Report failure, but try rest */
+					}
+				}
+			}
+			break;
+		case FKEY_EVENTS:
+			msg->FKEY_FKEYS = msg->FKEY_SFKEYS = 0;
+			for (i = 0; i < 12; ++i) {		/* Check (Shift+) F1-F12 keys */
+				if (fKeyObs[i].pNum == msg->m_source) {
+					if (fKeyObs[i].events) {
+						bitSet(msg->FKEY_FKEYS, i + 1);
+						fKeyObs[i].events = 0;
+					}
+				} 
+				if (sfKeyObs[i].pNum == msg->m_source) {
+					if (sfKeyObs[i].events) {
+						bitSet(msg->FKEY_SFKEYS, i + 1);
+						sfKeyObs[i].events = 0;
+					}
+				}
+			}
+			break;
+		default:
+			result = EINVAL;		/* Key cannot be observed */
+	}
+
+	/* Almost done, return result to caller. */
+	msg->m_type = result;
+	send(msg->m_source, msg);
 }
 
 int kbdLoadMap(Message *msg) {

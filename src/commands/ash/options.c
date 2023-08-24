@@ -188,6 +188,7 @@ void procArgs(int argc, char **argv) {
 int setCmd(int argc, char **argv) {
 	if (argc == 1)
 	  return showVarsCmd(argc, argv);
+
 	INTOFF;
 	options(0);
 	setInteractive(iflag);

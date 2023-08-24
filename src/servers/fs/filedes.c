@@ -26,7 +26,7 @@ int getFd(int start, mode_t bits, int *fdPtr, Filp **fpp) {
 
 	/* Check to see if a file descriptor has bee found. */
 	if (*fdPtr < 0)
-	  return ENFILE;	
+	  return EMFILE;	
 
 	if (fpp == NULL)	/* Dup no need to find a filp slot */
 	  return OK;

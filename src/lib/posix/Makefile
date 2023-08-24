@@ -78,7 +78,11 @@ OBJS_M32 = \
 		_select.o \
 		_setgid.o \
 		_setuid.o \
-		_pause.o
+		_pause.o \
+		_getgroups.o \
+		_mkfifo.o \
+		_fstatfs.o \
+		_chroot.o
 
 
 all: build

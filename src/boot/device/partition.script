@@ -4,4 +4,4 @@ device: testOS.img
 unit: sectors
 
 testOS.img1 : start=        2048, size=      197953, type=81, bootable
-testOS.img2 : start=      200704, size=        3920, type=81
+testOS.img2 : start=      200704, size=      413168, type=81

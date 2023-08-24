@@ -5,6 +5,7 @@
 #define NR_FILPS				128	/* # slots in filp table */
 #define NR_INODES				64	/* # slots in "in core" inode table */
 #define NR_SUPERS				8	/* # slots in super block table */
+#define NR_LOCKS				8	/* # slots in the file locking table */
 
 /* File system types. */
 #define SUPER_V3				0x4d5a	/* magic # for file system */

@@ -10,6 +10,16 @@
 #include "../servers/fs/super.h"
 #include "files.h"
 
+#ifdef OTHER_OS
+#include "fs.h"
+#else	/* MINIX */
+#include "../include/sys/types.h"
+#include "../include/sys/ioc_disk.h"
+#include "../include/minix/u64.h"
+#include "../include/minix/partition.h"
+#include "../include/minix/ioctl.h"
+#endif
+
 #define UMAP_SIZE		(ULONG_MAX / MAX_BLOCK_SIZE)		
 #define BLOCK_OFF(n)	(OFFSET(lowSector) + (n) * blockSize)
 #define SUPER_OFFSET	BLOCK_OFF(0) + SUPER_OFFSET_BYTES
@@ -20,6 +30,7 @@ static uint32_t reservedSectors = 0;
 static uint32_t sectorCount;
 static long currentTime;
 static char *device;
+static FileInfo *fsInfo;
 static int deviceFd;
 static uint32_t lowSector;
 static unsigned int blockSize;
@@ -36,7 +47,9 @@ static char timeBuf[26];
 static char homeDir[PATH_MAX + 1];
 
 static char *progName;
+static int printOnly = 0;
 static char *units[] = {"bytes", "KB", "MB", "GB"};
+static FileInfo emptyRoot = { NULL, I_D | 0755, ROOT, GOP, 0 };
 
 static void usage() {
 	usageErr("%s [-b blocks] [-i inodes] [-B blocksize] device fs\n", progName);
@@ -131,7 +144,7 @@ static bool readAndSet(Block_t n) {
 
 static void getBlock(Block_t n, char *buf) {
 	/* First access returns a zero block. */
-	if (!readAndSet(n)) {
+	if (! printOnly && !readAndSet(n)) {
 		memcpy(buf, zero, blockSize);
 		return;
 	}
@@ -183,6 +196,16 @@ static DiskInode *getInode(Ino_t n, DiskInode *inodes, Block_t *bptr) {
 	return &inodes[off];
 }
 
+void initBySp(SuperBlock *sup) {
+	inodeOffset = IMAP_OFFSET + sup->s_imap_blocks + sup->s_zmap_blocks;
+	zoneOffset = sup->s_first_data_zone - 1;
+	/* number of blocks per zone */
+	blocksPerZone = 1 << ZONE_SHIFT;		
+	nextZone = sup->s_first_data_zone;
+	nextInode = 1;
+	zoneMap = IMAP_OFFSET + sup->s_imap_blocks;
+}
+
 static void initSuperBlock(Zone_t zones, Ino_t inodes) {
 	int inodeBlocks, initBlocks;
 	Zone_t indirectZones, doubleIndirectZones;
@@ -195,12 +218,10 @@ static void initSuperBlock(Zone_t zones, Ino_t inodes) {
 	sup->s_zones = zones;
 	sup->s_imap_blocks = bitmapSize(inodes + 1, blockSize);
 	sup->s_zmap_blocks = bitmapSize(zones, blockSize);
-	inodeOffset = IMAP_OFFSET + sup->s_imap_blocks + sup->s_zmap_blocks;
 	inodeBlocks = (inodes + inodesPerBlock - 1) / inodesPerBlock;
 	initBlocks = inodeOffset + inodeBlocks;
 
 	sup->s_first_data_zone = (initBlocks + (1 << ZONE_SHIFT) - 1) >> ZONE_SHIFT;
-	zoneOffset = sup->s_first_data_zone - 1;
 	sup->s_log_zone_size = ZONE_SHIFT;
 	sup->s_magic = SUPER_V3;
 	sup->s_block_size = blockSize;
@@ -211,9 +232,7 @@ static void initSuperBlock(Zone_t zones, Ino_t inodes) {
 	totalZones = NR_DIRECT_ZONES + indirectZones + doubleIndirectZones;
 	sup->s_max_size = (MAX_MAX_SIZE / blockSize < totalZones) ? 
 						MAX_MAX_SIZE : totalZones * blockSize;
-
-	/* number of blocks per zone */
-	blocksPerZone = 1 << ZONE_SHIFT;		
+	initBySp(sup);
 
 	/* Write super block. */
 	Lseek(device, deviceFd, SUPER_OFFSET);
@@ -223,10 +242,6 @@ static void initSuperBlock(Zone_t zones, Ino_t inodes) {
 	for (i = IMAP_OFFSET; i < initBlocks; ++i) {
 		putBlock(i, zero);
 	}
-
-	nextZone = sup->s_first_data_zone;
-	nextInode = 1;
-	zoneMap = IMAP_OFFSET + sup->s_imap_blocks;
 
 	insertBit(zoneMap, 0);		/* bit zero must always be allocated */
 	insertBit(IMAP_OFFSET, 0);	/* inode zero not used but must be allocated */
@@ -353,10 +368,6 @@ static void printSize(char *format, size_t size) {
 }
 
 static void printSuperBlock(SuperBlock *sup) {
-	memset((char *) sup, 0, blockSize);
-	Lseek(device, deviceFd, SUPER_OFFSET);
-	Read(device, deviceFd, (char *) sup, SUPER_BLOCK_BYTES);
-
 	printf("\nSuperBlock:\n");
 	printf("  magic: 0x%x\n", sup->s_magic);
 	printSize("  inode size: %d %s\n", INODE_SIZE);
@@ -445,7 +456,12 @@ static char *getModeString(Mode_t mode) {
 	  modeString[i] = 'd';
 	else if (fileType == I_CHAR_SPECIAL)
 	  modeString[i] = 'c';
-	//TODO others
+	else if (fileType == I_REGULAR)
+	  modeString[i] = '-';
+	else if (fileType == I_NAMED_PIPE)
+	  modeString[i] = 'p';
+	else
+	  modeString[i] = '?';
 
 
 	/* owner bits */
@@ -563,6 +579,11 @@ static void printFS() {
 	SuperBlock *sup;
 
 	sup = Malloc(blockSize);
+	memset((char *) sup, 0, blockSize);
+	Lseek(device, deviceFd, SUPER_OFFSET);
+	Read(device, deviceFd, (char *) sup, SUPER_BLOCK_BYTES);
+	initBySp(sup);
+
 	printSuperBlock(sup);
 
 	printf("\n\nInode-Map:\n");
@@ -600,10 +621,9 @@ static Ino_t doMkdir(Ino_t pINum, FileInfo *fi) {
 
 	enterDir(iNum, ".", iNum);
 	enterDir(iNum, "..", pINum);
-	increaseLink(iNum);
-	if (pINum != iNum) 
-	  increaseLink(iNum);
-	increaseLink(pINum);
+	increaseLink(iNum);		/* . */
+	increaseLink(iNum);		/* parent/childName */
+	increaseLink(pINum);	/* .. */
 
 	if (fi->name) 
 	  enterDir(pINum, fi->name, iNum);
@@ -745,7 +765,7 @@ static void installFile(Ino_t pINum, FileInfo *fi) {
 	free(inodes);
 }
 
-static void doMk(Ino_t pINum, FileInfo *fi) {
+void doMk(Ino_t pINum, FileInfo *fi) {
 	Ino_t iNum;
 	Mode_t fileType;
 	FileInfo **cff;
@@ -765,28 +785,65 @@ static void doMk(Ino_t pINum, FileInfo *fi) {
 	  installFile(pINum, fi);
 }
 
-static FileInfo *getFsInfo(char *type) {
+#ifdef OTHER_OS
+static void init(int argc, char **argv, int i) {
+	PartitionEntry pe;
 	FS *fsp;
+	char *type;
 
-	for (fsp = fsList; fsp->fs_type; ++fsp) {
-		if (strcmp(fsp->fs_type, type) == 0)
-		  return fsp->fs_info;
+	device = parseDevice(argv[i++], NULL, &pe);
+	if (i < argc) {
+		type = argv[i];
+		fsInfo = NULL;
+		for (fsp = fsList; fsp->fs_type; ++fsp) {
+			if (strcmp(fsp->fs_type, type) == 0) {
+				fsInfo = fsp->fs_info;
+				break;
+			}
+		}
+		if (fsInfo == NULL)
+		  fatal("invalid fs type: %s", argv[i]);
+	} else {
+		fsInfo = &emptyRoot;
 	}
-	return NULL;
+	deviceFd = RWOpen(device);
+	lowSector = pe.lowSector;
+	sectorCount = pe.sectorCount;
 }
+#else	/* MINIX */
+static void init(int argc, char **argv, int i) {
+	Partition pe;
+	struct stat st;
+
+	device = argv[i++];
+	deviceFd = RWOpen(device);
+	if (ioctl(deviceFd, DIOC_GET_PART, &pe) == -1) {
+		perror("init ioctl");
+		if (fstat(deviceFd, &st) < 0) {
+			perror("fstat");
+			pe.size = cvu64(0);
+		} else {
+			fprintf(stderr, "used fstat instead\n");
+			pe.size = cvu64(st.st_size);
+		}
+	}
+	sectorCount = div64u(pe.size, SECTOR_SIZE);
+	fsInfo = &emptyRoot;
+	lowSector = 0;
+}
+#endif
 
 int main(int argc, char *argv[]) {
-	PartitionEntry pe;
 	Zone_t zones;
 	Block_t blocks;
 	Ino_t inodes;
 	int ch;
-	FileInfo *fsInfo;
+	int i;
 
 	progName = argv[0];
 	blocks = 0;
 	inodes = 0;
-	while ((ch = getopt(argc, argv, "b:i:B:r:ch")) != EOF) {
+	while ((ch = getopt(argc, argv, "b:i:B:r:chp")) != EOF) {
 		switch (ch) {
 			case 'b':
 				blocks = strtoul(optarg, (char **) NULL, 0);
@@ -800,41 +857,41 @@ int main(int argc, char *argv[]) {
 			case 'r':
 				reservedSectors = atoi(optarg);
 				break;
+			case 'p':
+				printOnly = 1;
+				break;
 			default:
 				usage();
 		}
 	}
-	if (argc - optind < 2)
+	i = optind;
+	if (i >= argc)
 	  usage();
 
-	device = parseDevice(argv[optind++], NULL, &pe);
-	fsInfo = getFsInfo(argv[optind]);
-	if (fsInfo == NULL)
-	  fatal("invalid fs type: %s", argv[optind]);
-	lowSector = pe.lowSector;
-	sectorCount = pe.sectorCount;
-	deviceFd = RWOpen(device);
+	init(argc, argv, i);
 	currentTime = time(NULL);
 
 	calibrateBlockSize();
 	inodesPerBlock = INODES_PER_BLOCK(blockSize);
+
 	blocks = computeBlocks(blocks);
-    inodes = computeInodes(blocks, inodes);
+	inodes = computeInodes(blocks, inodes);
 
 	numBlocks = blocks;
 	numInodes = inodes;
 
 	zero = allocBlock();
-	putBlock(BOOT_BLOCK, zero);		/* Write a null boot block. */
-
 	zones = numBlocks >> ZONE_SHIFT;
-	initSuperBlock(zones, numInodes);
 
-	doMk(0, fsInfo);
+	if (printOnly) {
+		printFS();
+	} else {
+		putBlock(BOOT_BLOCK, zero);		/* Write a null boot block. */
+		initSuperBlock(zones, numInodes);
+		doMk(0, fsInfo);
+	} 
 
-	printFS();
 	free(zero);
-
 	Close(device, deviceFd);
 
 	return EXIT_SUCCESS;

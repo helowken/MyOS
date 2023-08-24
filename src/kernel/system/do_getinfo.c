@@ -34,10 +34,10 @@ int doGetInfo(Message *msg) {
 			 * at once, otherwise the scheduling information may be incorrect.
 			 * Copy the queue heads and fall through to copy the process table.
 			 */
-			length = sizeof(Proc) * NR_SCHED_QUEUES;
+			length = sizeof(Proc *) * NR_SCHED_QUEUES;
 			src = vir2Phys(readyProcHead);
 			dst = nUMapLocal(msg->m_source, (vir_bytes) msg->I_VAL_PTR2, length);
-			if (src == 0 || dst == 0)
+			if (src == 0 || dst == 0) 
 			  return EFAULT;
 			physCopy(src, dst, length);
 			/* Fall through */

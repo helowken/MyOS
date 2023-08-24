@@ -1,7 +1,8 @@
 MY_HOME = ../..
 LIB_NAME = myc
 
-OBJS_M32 = fltpr.o
+OBJS_M32 = fltpr.o \
+		   strtod.o
 
 all: build
 

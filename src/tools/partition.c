@@ -9,13 +9,14 @@
 static char *progName;
 static bool showPrimary = false, showSubPart = false, quiet = false;
 static int nPart = 0;
-static PartitionEntry primary, table[2 * NR_PARTITIONS + 1];
+static PartitionEntry selectedPart, table[2 * NR_PARTITIONS + 1];
 static char *device;
+static int partIdx;
 static const unsigned heads = 255;
 static const unsigned sectors = 63;
 
 static void usage() {
-	usageErr("%s [-psq] device [type:]length[+*]", progName);
+	usageErr("%s [-psq] device partIdx [type:]length[+*]\n", progName);
 }
 
 static void parse(char *desc) {
@@ -138,8 +139,8 @@ static void distribute() {
 
 	do {
 		exp = NULL;
-		base = primary.lowSector;
-		count = primary.sectorCount;
+		base = selectedPart.lowSector;
+		count = selectedPart.sectorCount;
 
 		for (pe = table; pe < arrayLimit(table); ++pe) {
 			oldBase = base;
@@ -181,11 +182,11 @@ static void geometry() {
 
 	fd = ROpen(device);
 	getPartitionTable(device, fd, PART_TABLE_OFF, table);
-	findActivePartition(table, &primary);
+	selectedPart = table[partIdx];
 
 	if (showPrimary) {
 		printf("\n");
-		printf("==== Primary Partition Table ====\n");
+		printf("==== Partition %d Table ====\n", partIdx);
 		for (i = 0; i < NR_PARTITIONS; ++i) {
 			showPart(&table[i], i);
 		}
@@ -194,8 +195,8 @@ static void geometry() {
 	if (showSubPart) {
 		printf("\n");
 		memset(table, 0, sizeof(table));
-		getPartitionTable(device, fd, OFFSET(primary.lowSector) + PART_TABLE_OFF, table);
-		printf("==== Sub Partition Table ====\n");
+		getPartitionTable(device, fd, OFFSET(selectedPart.lowSector) + PART_TABLE_OFF, table);
+		printf("==== Sub Partition %d Table ====\n", partIdx);
 		for (i = 0; i < NR_PARTITIONS; ++i) {
 			showPart(&table[i], i);
 		}
@@ -216,7 +217,7 @@ static void writeTable() {
 	}
 
 	fd = WOpen(device);
-	Lseek(device, fd, OFFSET(primary.lowSector) + PART_TABLE_OFF);
+	Lseek(device, fd, OFFSET(selectedPart.lowSector) + PART_TABLE_OFF);
 	Write(device, fd, (char *) newTable, sizeof(newTable));
 	Write(device, fd, (char *) &signature, sizeof(signature));
 	Close(device, fd);
@@ -224,38 +225,32 @@ static void writeTable() {
 
 int main(int argc, char **argv) {
 	int i;
-	char *opt;
+	int opt;
 
-	progName = argv[0];
-	i = 1;
-	while (i < argc && argv[i][0] == '-') {
-		opt = argv[i++] + 1;
+    progName = getProgName(argv);
 
-		if (opt[0] == '-' && opt[1] == 0)
-		  break;
-
-		while (*opt != 0) {
-			switch (*opt++) {
-				case 'p':
-					showPrimary = true;
-					break;
-				case 's':
-					showSubPart = true;
-					break;
-				case 'q':
-					quiet = true;
-					break;
-				default:
-					usage();
-			}
+	while ((opt = getopt(argc, argv, "psq")) != EOF) {
+		switch (opt) {
+			case 'p':
+				showPrimary = true;
+				break;
+			case 's':
+				showSubPart = true;
+				break;
+			case 'q':
+				quiet = true;
+				break;
+			default:
+				usage();
 		}
 	}
+	i = optind;
 
-
-	if (argc - i < 1)
+	if (argc - i < 2)
 	  usage();
 
 	device = argv[i++];
+	partIdx = getPartIdx(argv[i++]);
 	geometry();
 	while (i < argc) {
 		parse(argv[i++]);

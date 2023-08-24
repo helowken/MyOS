@@ -1,5 +1,6 @@
 #include "fs.h"
 #include <sys/stat.h>
+#include <sys/statfs.h>
 #include <minix/com.h>
 #include "param.h"
 
@@ -148,7 +149,30 @@ int doStat() {
 	return r;
 }
 
+int doFStatfs() {
+	struct statfs st;
+	register Filp *rfilp;
+	int r;
 
+	/* Is the file descriptor valid? */
+	if ((rfilp = getFilp(inMsg.m_fd)) == NIL_FILP)
+	  return errCode;
+
+	st.f_bsize = rfilp->filp_inode->i_sp->s_block_size;
+	
+	r = sysDataCopy(FS_PROC_NR, (vir_bytes) &st,
+			who, (vir_bytes) inMsg.m_buffer, (phys_bytes) sizeof(st));
+	return r;
+}
+
+int doChroot() {
+	register int r;
+
+	if (! superUser)
+	  return EPERM;		/* Only su may chroot() */
+	r = changeDir(&currFp->fp_root_dir, inMsg.m_name, inMsg.m_name_length);
+	return r;
+}
 
 
 

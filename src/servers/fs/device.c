@@ -45,8 +45,10 @@ int ttyOpCl(int op, dev_t dev, int proc, int flags) {
 		flags |= O_NOCTTY;
 	} else {
 		for (rfp = &fprocTable[0]; rfp < &fprocTable[NR_PROCS]; ++rfp) {
-			if (rfp->fp_tty == dev)
-			  flags |= O_NOCTTY;
+			if (rfp->fp_tty == dev) {
+				flags |= O_NOCTTY;
+				break;
+			}
 		}
 	}
 

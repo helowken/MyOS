@@ -58,7 +58,11 @@ typedef struct {
 	unsigned c_cursor;	/* Current position of cursor in video RAM */
 	unsigned c_attr;	/* Character attribute */
 	unsigned c_blank;	/* Blank attribute */
+	char c_reverse;		/* Reverse video */
 	char c_esc_state;	/* 0=normal, 1=ESC, 2=ESC[ */
+	char c_esc_intro;	/* Distinguishing character following ESC */
+	int *c_esc_curr_param;	/* Pointer to current escape parameter */
+	int c_esc_params[MAX_ESC_PARAMS];	/* List of escape parameters */
 	u16_t c_ram_queue[CONS_RAM_WORDS];	/* Buffer for video RAM */
 } Console;
 
@@ -68,6 +72,12 @@ static Console *currConsole;	/* Currently visible */
 
 /* Color if using a color controller. */
 #define isColor	(vidPort == PORT_C_6845)
+
+/* Map from ANSI colors to the attributes used by the PC */
+static int ansiColors[8] = {0, 4, 2, 6, 1, 5, 3, 7};
+
+static void scrollScreen(Console *console, int dir); 
+
 
 static void set6845(int reg, unsigned val) {
 /* Set a register pair inside the 6845.
@@ -123,8 +133,280 @@ static void beep() {
 //TODO
 }
 
+static void doEscape(register Console *console, char c) {
+	int value, n;
+	unsigned src, dst, count;
+	int *param;
+
+	/* Some of these things hack on screen RAM, so it had better be up to date */
+	flush(console);
+
+	if (console->c_esc_intro == '\0') {
+		/* Handle a sequence beginning with just ESC */
+		switch (c) {
+			case 'M':		/* Reverse Index */
+				if (console->c_row == 0) 
+				  scrollScreen(console, SCROLL_DOWN);
+				else
+				  --console->c_row;
+				flush(console);
+				break;
+			default:
+				break;
+		}
+	} else if (console->c_esc_intro == '[') {
+		/* Handle a sequence beginning with ESC [ and parameters */
+		value = console->c_esc_params[0];
+		switch (c) {
+			case 'A':		/* ESC [nA Move up n lines */
+				n = (value == 0 ? 1: value);
+				console->c_row -= n;
+				flush(console);
+				break;
+			case 'B':		/* ESC [nB Move down n lines */
+				n = (value == 0 ? 1: value);
+				console->c_row += n;
+				flush(console);
+				break;
+			case 'C':		/* ESC [nC Move right n spaces */
+				n = (value == 0 ? 1: value);
+				console->c_column += n;
+				flush(console);
+				break;
+			case 'D':		/* ESC [nD Move left n spaces */
+				n = (value == 0 ? 1: value);
+				console->c_column -= n;
+				flush(console);
+				break;
+			case 'H':		/* ESC [m;nH Move cursor to (m,n) */
+				console->c_row = console->c_esc_params[0] - 1;
+				console->c_column = console->c_esc_params[1] - 1;
+				flush(console);
+				break; 
+			case 'J':		/* ESC [sJ Clear in display */
+				switch (value) {
+					case 0:		/* Clear from cursor to end of screen */
+						count = screenSize - (console->c_cursor - console->c_origin);
+						dst = console->c_cursor;
+						break;
+					case 1:		/* Clear from start of screen to cursor */
+						count = console->c_cursor - console->c_origin;
+						dst = console->c_origin;
+						break;
+					case 2:		/* Clear entire screen */
+						count = screenSize;
+						dst = console->c_origin;
+						break;
+					default:	/* Do nothing */
+						count = 0;
+						dst = console->c_origin;
+				}
+				blankColor = console->c_blank;
+				mem2VidCopy(BLANK_MEM, dst, count);
+				break;
+			case 'K':		/* ESC [sK Clear line from cursor */
+				switch (value) {
+					case 0:		/* Clear from cursor to end of line */
+						count = screenWidth - console->c_column;
+						dst = console->c_cursor;
+						break;
+					case 1:		/* Clear from beginning of line to cursor */
+						count = console->c_column;
+						dst = console->c_cursor - console->c_column;
+						break;
+					case 2:		/* Clear entire line */
+						count = screenWidth;
+						dst = console->c_cursor - console->c_column;
+						break;
+					default:	/* Do nothing */
+						count = 0;
+						dst = console->c_cursor;
+				}
+				blankColor = console->c_blank;
+				mem2VidCopy(BLANK_MEM, dst, count);
+				break;
+			case 'L':		/* ESC [nL Insert n lines at cursor */
+				n = value;
+				if (n < 1) 
+				  n = 1;
+				if (n > (screenLines - console->c_row))
+				  n = screenLines - console->c_row;
+
+				src = console->c_origin + console->c_row * screenWidth;
+				dst = src + n * screenWidth;
+				count = (screenLines - console->c_row - n) * screenWidth;
+				vid2VidCopy(src, dst, count);
+				blankColor = console->c_blank;
+				mem2VidCopy(BLANK_MEM, src, n * screenWidth);
+				break;
+			case 'M':		/* ESC [nM Delete n lines at cursor */
+				n = value;
+				if (n < 1) 
+				  n = 1;
+				if (n > (screenLines - console->c_row))
+				  n = screenLines - console->c_row;
+
+				dst = console->c_origin + console->c_row * screenWidth;
+				src = dst + n * screenWidth;
+				count = (screenLines - console->c_row - n) * screenWidth;
+				vid2VidCopy(src, dst, count);
+				blankColor = console->c_blank;
+				mem2VidCopy(BLANK_MEM, dst + count, n * screenWidth);
+				break;
+			case '@':		/* ESC [n@ Insert n chars at cursor */
+				n = value;
+				if (n < 1)
+				  n = 1;
+				if (n > (screenWidth - console->c_column))
+				  n = screenWidth - console->c_column;
+				
+				src = console->c_cursor;
+				dst = src + n;
+				count = screenWidth - console->c_column - n;
+				vid2VidCopy(src, dst, count);
+				blankColor = console->c_blank;
+				mem2VidCopy(BLANK_MEM, src, n);
+				break;
+			case 'P':		/* ESC [nP deletes n chars at cursor */
+				n = value;
+				if (n < 1)
+				  n = 1;
+				if (n > (screenWidth - console->c_column))
+				  n = screenWidth - console->c_column;
+
+				dst = console->c_cursor;
+				src = dst + n;
+				count = screenWidth - console->c_column - n;
+				vid2VidCopy(src, dst, count);
+				blankColor = console->c_blank;
+				mem2VidCopy(BLANK_MEM, dst + count, n);
+				break;
+			case 'm':		/* ESC [nm enable rendition n */
+				for (param = console->c_esc_params; 
+						param <= console->c_esc_curr_param && 
+							param < bufEnd(console->c_esc_params);
+						++param) {
+					if (console->c_reverse) {
+						/* Unswap fg and bg colors */
+						console->c_attr = ((console->c_attr & 0x7000) >> 4) |
+										((console->c_attr & 0x0700) << 4) |
+										((console->c_attr & 0x8800));
+					}
+					switch (n = *param) {
+						case 0:		/* NORMAL */
+							console->c_attr = console->c_blank = BLANK_COLOR;
+							console->c_reverse = FALSE;
+							break;
+						case 1:		/* BOLD */
+							/* Set intensity bit */
+							console->c_attr |= 0x0800;
+							break;
+						case 4:		/* UNDERLINE */
+							if (isColor) {
+								/* Change white to cyan, i.e. lose red */
+								console->c_attr = console->c_attr & 0xBBFF;
+							} else {
+								/* Set underline attribute */
+								console->c_attr = console->c_attr & 0x99FF;
+							}
+							break;
+						case 5:		/* BLINKING */
+							/* Set the blink bit */
+							console->c_attr |= 0x8000;
+							break;
+						case 7:		/* REVERSE */
+							console->c_reverse = TRUE;
+							break;
+						default:	/* COLOR */
+							if (n == 39)	/* Set default color */
+							  n = 37;		
+							else if (n == 49)
+							  n = 40;
+
+							if (! isColor) {
+								/* Don't mess up a monochrome screen */
+							} else if (30 <= n && n <= 37) {
+								/* Foreground color */
+								console->c_attr = (console->c_attr & 0xF8FF) |
+												(ansiColors[(n - 30)] << 8);
+								console->c_blank = (console->c_blank & 0xF8FF) |
+												(ansiColors[(n - 30)] << 8);
+							} else if (40 <= n && n <= 47) {
+								/* Background color */
+								console->c_attr = (console->c_attr & 0x8FFF) |
+												(ansiColors[(n - 40)] << 12);
+								console->c_blank = (console->c_blank & 0x8FFF) |
+												(ansiColors[(n - 40)] << 12);
+							}
+					}
+					if (console->c_reverse) {
+						/* Swap fg and bg colors */
+						console->c_attr = ((console->c_attr & 0x7000) >> 4) |
+										((console->c_attr & 0x0700) << 4) |
+										((console->c_attr & 0x8800));
+					}
+				}
+				break;
+		}
+	}
+	console->c_esc_state = 0;
+}
+
+/* For example: (in terminal or shell)
+ *  printf "\033[10A"
+ *   or
+ *  echo -e "\033[5B"
+ */
 static void parseEscape(register Console *console, char c) {
-//TODO
+/* The following ANSI escape sequences are currently supported.
+ * If n and/or m are omitted, they default to 1.
+ *   ESC [nA Move up n lines
+ *   ESC [nB Move down n lines
+ *   ESC [nC Move right n spaces
+ *   ESC [nD Move left n spaces
+ *   ESC [m;nH Move cursor to (m,n)
+ *   ESC [sJ Clear screen from cursor (0 to end, 1 from start, 2 all)
+ *   ESC [sK Clear line from cursor (0 to end, 1 from start, 2 all)
+ *   ESC [nL Insert n lines at cursor
+ *   ESC [nM Delete n lines at cursor
+ *   ESC [nP Delete n chars at cursor
+ *   ESC [n@ Insert n chars at cursor
+ *   ESC [nm Enable rendition n (0=normal, 1=bold, 5=blinking, 7=reverse) 
+ *   ESC M   Scroll the screen backwards if the cursor is on the top line
+ */
+	switch (console->c_esc_state) {
+		case 1:		/* ESC seen */
+			console->c_esc_intro = '\0';
+			/* Clear the c_esc_params */
+			console->c_esc_curr_param = bufEnd(console->c_esc_params);
+			do {
+				*--console->c_esc_curr_param = 0;
+			} while (console->c_esc_curr_param > console->c_esc_params);
+			/* Check state */
+			switch (c) {
+				case '[':	/* Control Sequence Introducer */
+					console->c_esc_intro = c;
+					console->c_esc_state = 2;
+					break;
+				case 'M':	/* Reverse Index */
+					doEscape(console, c);
+					break;
+				default:
+					console->c_esc_state = 0;
+			}
+			break;
+		case 2:		/* ESC [ seen */
+			if (c >= '0' && c <= '9') {
+				if (console->c_esc_curr_param < bufEnd(console->c_esc_params))
+				  *console->c_esc_curr_param = *console->c_esc_curr_param * 10 + (c - '0');
+			} else if (c == ';') {
+				if (console->c_esc_curr_param < bufEnd(console->c_esc_params)) 
+				  ++console->c_esc_curr_param;	
+			} else {
+				doEscape(console, c);
+			}
+			break;
+	}
 }
 
 static void scrollScreen(
@@ -235,7 +517,7 @@ static void outChar(register Console *console, int c) {
 			flush(console);
 			return;
 		case 033:		/* ESC - start of an escape sequence */
-			flush(console);		/* Print an y chars queued for output */
+			flush(console);		/* Print any chars queued for output */
 			console->c_esc_state = 1;	/* Mark ESC as seen */
 			return;
 		default:		/* Printable chars are stored in ramqueue */

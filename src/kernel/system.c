@@ -157,7 +157,7 @@ phys_bytes umapLocal(Proc *rp, int seg, vir_bytes virAddr, vir_bytes bytes) {
 
 	segEndClicks = rp->p_memmap[seg].virAddr + rp->p_memmap[seg].len;
 
-	if ((virAddr >> CLICK_SHIFT) >= segEndClicks || virAddrClicks >= segEndClicks)
+	if ((virAddr >> CLICK_SHIFT) >= segEndClicks || virAddrClicks >= segEndClicks) 
 	  return (phys_bytes) 0;
 
 	return (rp->p_memmap[seg].physAddr << CLICK_SHIFT) + virAddr -
@@ -263,7 +263,11 @@ int virtualCopy(VirAddr *srcAddr, VirAddr *dstAddr, vir_bytes bytes) {
 				physAddr[i] = umapLocal(procAddr(virAddr[i]->pNum), segIdx,
 							virAddr[i]->offset, bytes);
 				break;
-			// case REMOTE_SEG: TODO
+			case REMOTE_SEG: 
+				segIdx = virAddr[i]->segment & SEGMENT_INDEX;
+				physAddr[i] = umapRemote(procAddr(virAddr[i]->pNum), segIdx,
+							virAddr[i]->offset, bytes);
+				break;
 			case BIOS_SEG:
 				physAddr[i] = umapBios(procAddr(virAddr[i]->pNum), 
 								virAddr[i]->offset, bytes);

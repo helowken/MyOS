@@ -12,11 +12,7 @@
 #include <unistd.h>
 #include <minix/minlib.h>
 
-#if __minix
 static char DEV_LOG[] = "/dev/log";
-#else
-static char DEV_LOG[] = "/dev/console";
-#endif
 static char *prog;
 
 static void usageErr() {

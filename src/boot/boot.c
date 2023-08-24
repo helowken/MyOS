@@ -782,7 +782,7 @@ static void help() {
 		{ "echo word",					"Display the words" },
 		{ "ls [directory]",				"List contents of directory" },
 		{ "menu",						"Show menu and choose menu option" },
-		{ "save /set",					"Save or show environment" },
+		{ "save / set",					"Save or show environment" },
 		{ "trap msec command",			"Schedule command " },
 		{ "unset name ...",				"Unset variable or set to default" },
 		{ "exit / off",					"Exit the Monitor / Power off" },

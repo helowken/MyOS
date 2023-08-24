@@ -62,6 +62,7 @@ typedef struct Proc {
 
 #define NIL_PROC		((Proc *) 0)
 #define NIL_SYS_PROC	((Proc *) 1)
+#define cprocAddr(n)	(&(procTable + NR_TASKS)[(n)])
 #define procAddr(n)		(procAddrTable + NR_TASKS)[(n)]
 #define procNum(p)		((p)->p_nr)
 

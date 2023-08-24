@@ -59,7 +59,7 @@ start)
 	then echo -n " floppy" #TODO up floppy "" /dev/fd0
 	else echo -n " at_wini" #TODO up at_wini "" /dev/c0d0
 	fi
-#TODO up is ""
+	up is ""
 	up cmos "" /dev/cmos
 	echo .	
 
@@ -173,5 +173,8 @@ esac
 # Further initialization.
 test -f /usr/etc/rc && sh /usr/etc/rc $action
 test -f /usr/local/etc/rc && sh /usr/local/etc/rc $action
+
+# Any messages?
+test "$action" = start -a -f /etc/issue && cat /etc/issue
 
 exit 0

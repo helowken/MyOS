@@ -37,7 +37,7 @@ int setpwent() {
 	if (pwFile == nil)
 	  pwFile = PASSWD;
 
-	if ((pwFd = open(pwFile, O_RDONLY)) < 0)
+	if ((pwFd = open(pwFile, O_RDONLY)) < 0) 
 	  return -1;
 
 	fcntl(pwFd, F_SETFD, fcntl(pwFd, F_GETFD) | FD_CLOEXEC);
@@ -92,7 +92,7 @@ struct passwd *getpwent() {
 	char *p;
 
 	/* Open the file if mot yet open. */
-	if (pwFd < 0 && setpwent() < 0)
+	if (pwFd < 0 && setpwent() < 0) 
 	  return nil;
 
 	/* Until a good line is read. */

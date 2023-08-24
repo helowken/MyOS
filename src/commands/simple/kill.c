@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
 	struct sigaction sa;
 	int i, doIt;
 
-	if (argc > 1 && argv[1][0] == '1') {
+	if (argc > 1 && argv[1][0] == '-') {
 		sig = -1;
 		for (snp = sigNames; snp->name != NULL; ++snp) {	/* Symbolic? */
 			if (strcmp(snp->name, argv[1] + 1) == 0) {

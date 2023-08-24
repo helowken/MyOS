@@ -48,7 +48,9 @@ OBJS_M32 = \
 		strftime.o \
 		tzset.o \
 		assert.o \
-		rand.o
+		rand.o \
+		system.o \
+		strcspn.o
 
 		
 OBJS_M16 = \

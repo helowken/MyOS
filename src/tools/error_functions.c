@@ -4,7 +4,9 @@
 #include "ename.c.inc"
 
 #ifdef __GNUC__
+#ifdef OTHER_OS
 __attribute__ ((__noreturn__))
+#endif	/* OTHER_OS end*/
 #endif
 
 static void terminate(bool useExit3) {

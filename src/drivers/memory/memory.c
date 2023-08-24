@@ -162,13 +162,13 @@ static int mTransfer(int pNum, int opCode, off_t pos,
 			case RAM_DEV:
 			case KMEM_DEV:
 			case BOOT_DEV:
-				if (pos >= dvSize)
+				if (pos >= dvSize) 
 				  return OK;	/* Check for EOF */
 				if (pos + count > dvSize)
 				  count = dvSize - pos;
 				segSel = mSegSels[mCurrDev];
 
-				if (opCode == DEV_GATHER) 	/* Copy actual data */
+				if (opCode == DEV_GATHER) 	/* Copy actual data */ 
 				  sysVirCopy(SELF, segSel, pos, 
 							  pNum, D, userAddr, count);	
 				else 

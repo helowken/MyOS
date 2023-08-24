@@ -158,8 +158,9 @@ int doFcntl() {
 		case F_GETLK:
 		case F_SETLK:
 		case F_SETLKW:
-			printf("=== fs TODO doFnctl\n");
-			//TODO
+		/* Set or clear a file lock. */
+			r = lockOp(filp, inMsg.m_request);
+			return r;
 		default:
 			return EINVAL;
 	}
@@ -284,6 +285,34 @@ int doReboot() {
 	return OK;
 }
 
+int doGetSysInfo() {
+	FProc *procAddr;
+	vir_bytes srcAddr, dstAddr;
+	size_t len;
+	int s;
 
+	switch (inMsg.m_info_what) {
+		case SI_PROC_ADDR:
+			procAddr = &fprocTable[0];
+			srcAddr = (vir_bytes) &procAddr;
+			len = sizeof(FProc *);
+			break;
+		case SI_PROC_TAB:
+			srcAddr = (vir_bytes) fprocTable;
+			len = sizeof(FProc) * NR_PROCS;
+			break;
+		case SI_DMAP_TAB:
+			srcAddr = (vir_bytes) dmapTable;
+			len = sizeof(DMap) * NR_DEVICES;
+			break;
+		default:
+			return EINVAL;
+	}
+
+	dstAddr = (vir_bytes) inMsg.m_info_where;
+	if ((s = sysDataCopy(SELF, srcAddr, who, dstAddr, len)) != OK)
+	  return s;
+	return OK;
+}
 
 

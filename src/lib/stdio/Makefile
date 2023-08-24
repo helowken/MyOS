@@ -41,6 +41,7 @@ OBJS_M32 = \
 		rewind.o \
 		perror.o \
 		doprnt.o \
+		doscan.o \
 		mktemp.o
 
 

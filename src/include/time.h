@@ -1,6 +1,8 @@
 #ifndef _TIME_H
 #define _TIME_H
 
+#define CLOCKS_PER_SEC	60	/* MINIX always uses 60 Hz, even in Europe */
+
 #ifndef _SIZE_T
 #define _SIZE_T
 typedef unsigned int size_t;

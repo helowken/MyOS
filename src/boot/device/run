@@ -1,10 +1,10 @@
 #!/bin/bash
 
 img=testOS.img
-size=100
+size=300
 
 rm -f $img
-$BOCHS_NORMAL/bin/bximage -func=create -hd=100M -imgmode=flat $img -q
+$BOCHS_NORMAL/bin/bximage -func=create -hd=${size}M -imgmode=flat $img -q
 
 fdisk $img<<EOF
 I

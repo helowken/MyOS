@@ -5,6 +5,7 @@ struct Inode;
 #include "super.h"
 #include "inode.h"
 #include "file.h"
+#include "lock.h"
 
 /* device.c */
 int devOpen(dev_t dev, int proc, int flags);
@@ -52,6 +53,8 @@ int doChdir(void);
 int doFchdir(void);
 int doFstat(void);
 int doStat(void);
+int doFStatfs(void);
+int doChroot(void);
 
 /* super.c */
 bit_t allocBit(SuperBlock *sp, int map, bit_t origin);
@@ -106,6 +109,7 @@ int doFcntl(void);
 int doFork(void);
 int doSet(void);
 int doExec(void);
+int doGetSysInfo(void);
 
 /* mount.c */
 int doMount(void);
@@ -141,6 +145,10 @@ int doLink(void);
 int doUnlink(void);
 int doRename(void);
 void truncate(Inode *ip);
+
+/* lock.c */
+int lockOp(Filp *filp, int req);
+void lockRevive(void);
 
 /* select.c */
 int doSelect(void);

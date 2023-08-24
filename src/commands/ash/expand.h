@@ -15,3 +15,4 @@ void expandArg(Node *, ArgList *, int);
 void rmEscapes(char *);
 int patternMatch(char *, char *);
 int caseMatch(Node *, char *);
+void expandHere(Node *, int);

@@ -28,7 +28,7 @@ void truncate(Inode *ip) {
 	/* Pipe can shrink, so adjust size to make sure all zones are removed. */
 	wasPipe = (ip->i_pipe == I_PIPE);	/* True is this was a pipe */
 	if (wasPipe)
-	  ip->i_size = PIPE_SIZE(ip->i_sp->s_block_size);
+	  ip->i_size = PIPE_SIZE(zoneSize);
 
 	/* Step through the file a zone at a time, finding and freeing the zones. */
 	for (position = 0; position < ip->i_size; position += zoneSize) {
@@ -38,7 +38,7 @@ void truncate(Inode *ip) {
 		}
 	}
 
-	/* All the data zones have bee freed. Now free the indirect zones. */
+	/* All the data zones have been freed. Now free the indirect zones. */
 	ip->i_dirty = DIRTY;
 	if (wasPipe) {
 		wipeInode(ip);		/* Clear out inode for pipes. */
@@ -208,7 +208,7 @@ int doLink() {
 }
 
 int doUnlink() {
-/* Perform he unlink(name) or rmdir(name0 system call. The code for these two
+/* Perform he unlink(name) or rmdir(name) system call. The code for these two
  * is almost the same. They differ only in some condition testing. Unlink()
  * may be used by the superuser to do dangerous things; rmdir() may not.
  */
@@ -327,7 +327,7 @@ int doRename() {
 			strcmp(newName, ".") == 0 || strcmp(newName, "..") == 0)
 		  r = EINVAL;
 
-		/* Both parent directories mus be on he same device. */
+		/* Both parent directories must be on he same device. */
 		if (oldDirp->i_dev != newDirp->i_dev)
 		  r = EXDEV;
 
@@ -341,12 +341,11 @@ int doRename() {
 			/* Don't rename a file with a file system mounted on it. */
 			if (oldIp->i_dev != oldDirp->i_dev)
 			  r = EXDEV;
-			if (isOldDir && newDirp->i_nlinks >= SHRT_MAX &&
-				! sameParentDir && r == OK)
+			if (isOldDir && newDirp->i_nlinks >= SHRT_MAX && ! sameParentDir && r == OK)
 			  r = EMLINK;
 	 	} else {
 			if (oldIp == newIp)
-			  r = SAME;		/* Old = new */
+			  r = SAME;		/* Old = new, both are hard links, does nothing (POSIX) */
 
 			/* Has the old file or new file a file system mounted on it? */
 			if (oldIp->i_dev != newIp->i_dev)
@@ -404,10 +403,10 @@ int doRename() {
 			  searchDir(oldDirp, oldName, (ino_t *) 0, DELETE);
 		}
 	}
+
 	/* If r is OK, the ctime and mtime of oldDirp and newDirp have been marked
 	 * for update in searchDir.
 	 */
-
 	if (r == OK && isOldDir && ! sameParentDir) {
 		/* Update the .. entry in the directory (still points to oldDirp). */
 		num = newDirp->i_num;

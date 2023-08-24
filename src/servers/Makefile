@@ -1,6 +1,7 @@
 DIRS = pm \
 	   fs \
 	   rs \
+	   is \
 	   init
 include ../funcs.mk
 

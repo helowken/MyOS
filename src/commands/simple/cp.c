@@ -15,7 +15,7 @@
 #include <limits.h>
 #include <minix/const.h>
 
-#define CHUNK	(1024 << (sizeof(int) + sizeof(char *)))
+#define CHUNK	(8192 * sizeof(char *))
 
 #ifndef CONFORMING
 #define	CONFORMING	1	/* Precisely POSIX conforming. */
@@ -24,12 +24,13 @@
 #define arraySize(a)	(sizeof(a) / sizeof((a)[0]))
 #define arrayLimit(a)	((a) + arraySize(a))
 
-#define PATH_NAME(pp)		( (pp)->path)
+#define PATH_NAME(pp)		((pp)->path)
 #define PATH_LENGTH(pp)		((pp)->idx)
 #define PATH_DROP(pp)		deallocate((void *) (pp)->path)
 
 #define exists(stp)		((stp)->st_ino != 0)
 #define isDir(stp)		(exists(stp) && S_ISDIR((stp)->st_mode))
+#define isFile(stp)		(exists(stp) && ! S_ISDIR((stp)->st_mode))
 
 typedef struct {
 	char *path;		/* The actual pathname. */
@@ -292,7 +293,7 @@ static int checkRecurseDir(char *path, EntryList **dlpp) {
 
 static int checkReplaceFile(char *path, struct stat *stp, EntryList *dlp, 
 				int chkForce) {
-	if (! isDir(stp)) {
+	if (isFile(stp)) {
 		if (chkForce && ! fflag) {
 			errno = ENOTDIR;
 			report(path);
@@ -380,7 +381,7 @@ static int checkRmdir(char *srcPath, int prompt) {
 		  return 0;
 	}
 	if (rmdir(srcPath) < 0) {
-		if (errno != ENOTEMPTY)
+		if (errno != ENOTEMPTY) 
 		  report(srcPath);
 		return 0;
 	}
@@ -1092,13 +1093,14 @@ static void recurseDir(PathName *src, PathName *dst, EntryList **dlpp,
 
 	while (*dlpp != nil) {
 		pathAdd(src, (*dlpp)->name);
-		if (action != REMOVE)
+		if (dst != NULL)
 		  pathAdd(dst, (*dlpp)->name);
 		
 		do1(src, dst, depth + 1);
 
 		pathTrunc(src, slashSrc);
-		pathTrunc(dst, slashDst);
+		if (dst != NULL) 
+		  pathTrunc(dst, slashDst);
 		chopDList(dlpp);
 	}
 }
@@ -1121,6 +1123,9 @@ static void copyAction(PathName *src, PathName *dst, struct stat *srcStp,
 		  return;
 
 		recurseDir(src, dst, &dlp, depth);
+
+		srcPath = PATH_NAME(src);
+		dstPath = PATH_NAME(dst);
 		setDirAttrs(dstPath, srcStp, dstStp);
 	}
 }
@@ -1137,7 +1142,7 @@ static void moveAction(PathName *src, PathName *dst, struct stat *srcStp,
 		if (dstStp->st_ino != 0 && srcStp->st_dev != dstStp->st_dev) {
 			/* It's a cross-device rename, i.e. copy and remove. */
 			xDev = 1;
-		} else if (! mflag || ! exists(dstStp) || ! isDir(dstStp)) {
+		} else if (! mflag || ! isDir(dstStp)) {
 			/* Try to simply rename the file (not merging trees). */
 			if (! checkMoveToItself(srcPath, srcStp, dstStp))
 			  return;
@@ -1161,6 +1166,9 @@ static void moveAction(PathName *src, PathName *dst, struct stat *srcStp,
 		  return;
 
 		recurseDir(src, dst, &dlp, depth);
+
+		srcPath = PATH_NAME(src);
+		dstPath = PATH_NAME(dst);
 		if (! checkRmdir(srcPath, 0))
 		  return;
 		setDirAttrs(dstPath, srcStp, dstStp);
@@ -1184,8 +1192,11 @@ static void removeAction(PathName *src, struct stat *srcStp, int depth) {
 		if (! checkRemoveContents(srcPath))
 		  return;
 		recurseDir(src, NULL, &dlp, depth);
-		if (! checkRmdir(srcPath, iflag))
+
+		srcPath = PATH_NAME(src);
+		if (! checkRmdir(srcPath, iflag)) {
 		  return;
+		}
 	}
 }
 
@@ -1198,7 +1209,7 @@ static void linkAction(PathName *src, PathName *dst, struct stat *srcStp,
 
 	if (! checkInit(srcPath, dstPath, srcStp, dstStp, depth, chkSrc, 1))
 	  return;
-	if (srcStp->st_ino == 0 || ! isDir(srcStp)) {
+	if (! isDir(srcStp)) {
 		doLink(srcPath, dstPath, srcStp, dstStp);
 	} else {
 		if (! checkRecurseDir(srcPath, &dlp) ||
@@ -1208,6 +1219,9 @@ static void linkAction(PathName *src, PathName *dst, struct stat *srcStp,
 		  return;
 
 		recurseDir(src, dst, &dlp, depth);
+
+		srcPath = PATH_NAME(src);
+		dstPath = PATH_NAME(dst);
 		setDirAttrs(dstPath, srcStp, dstStp);
 	}
 }
@@ -1363,10 +1377,8 @@ void main(int argc, char **argv) {
 	pathInit(&src);
 	pathInit(&dst);
 
-	if (action != REMOVE && 
-			! mflag && 
-			stat(argv[argc - 1], &st) >= 0 &&
-			isDir(&st)) {
+	if (action != REMOVE && ! mflag && 
+			stat(argv[argc - 1], &st) >= 0 && isDir(&st)) {
 		/* The last argument is a directory, this means we have to
 		 * throw the whole lot into this directory. This is the
 		 * Right Thing unless you use -r.

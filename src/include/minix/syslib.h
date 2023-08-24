@@ -50,9 +50,13 @@ int sysStrDevIO(int req, long port, int type, int pNum, void *buffer, int count)
 #define sysGetKernelMsgs(dst)	sysGetInfo(GET_KMESSAGES, dst, 0, 0, 0)
 #define sysGetKernelInfo(dst)	sysGetInfo(GET_KINFO, dst, 0, 0, 0)
 #define sysGetMachine(dst)		sysGetInfo(GET_MACHINE, dst, 0, 0, 0)
+#define sysGetProcTab(dst)		sysGetInfo(GET_PROCTAB, dst, 0, 0, 0)
+#define sysGetPrivTab(dst)		sysGetInfo(GET_PRIVTAB, dst, 0, 0, 0)
 #define sysGetProc(dst, num)	sysGetInfo(GET_PROC, dst, 0, 0, num)
 #define sysGetRandomness(dst)	sysGetInfo(GET_RANDOMNESS, dst, 0, 0, 0)
 #define sysGetImage(dst)		sysGetInfo(GET_IMAGE, dst, 0, 0, 0)
+#define sysGetIrqHooks(dst)		sysGetInfo(GET_IRQHOOKS, dst, 0, 0, 0)
+#define sysGetSchedInfo(v1,v2)	sysGetInfo(GET_SCHEDINFO, v1, 0, v2, 0)
 int sysGetInfo(int request, void *valPtr, int valLen, void *valPtr2, int valLen2);
 
 /* Signal control. */

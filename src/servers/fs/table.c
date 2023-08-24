@@ -3,7 +3,6 @@
 #include "fs.h"
 #include <minix/callnr.h>
 #include <minix/com.h>
-#include "lock.h"
 
 
 #define map(callNum, handler)	callVec[callNum] = (handler)
@@ -27,7 +26,7 @@ void initSysCalls() {
 	map(LINK, doLink);		/* 9 = link */
 	map(UNLINK, doUnlink);	/* 10 = unlink */
 	map(CHDIR, doChdir);	/* 12 = chdir */
-							/* 14 = mknod TODO */
+	map(MKNOD, doMknod);	/* 14 = mknod */
 	map(CHMOD, doChmod);	/* 15 = chmod */
 	map(CHOWN, doChown);	/* 16 = chown */
 	map(STAT, doStat);		/* 18 = stat */
@@ -50,15 +49,15 @@ void initSysCalls() {
 	map(FCNTL, doFcntl);	/* 55 = fcntl */
 	map(EXEC, doExec);		/* 59 = execve */
 	map(UMASK, doUmask);	/* 60 = umask */
-							/* 61 = chroot TODO */
+	map(CHROOT, doChroot);	/* 61 = chroot */
 	map(SETSID, doSetSid);	/* 62 = setsid */
 	map(UNPAUSE, doUnpause);	/* 65 = UNPAUSE */
 							/* 67 = REVIVE TODO */
 	map(REBOOT, doReboot);	/* 76 = reboot */
 							/* 77 = svrctl TODO */
-							/* 79 = getsysinfo TODO */
+	map(GETSYSINFO, doGetSysInfo);	/* 79 = getsysinfo */
 	map(DEVCTL, doDevCtl);	/* 81 = devctl */
-							/* 82 = fstatfs TODO */
+	map(FSTATFS, doFStatfs);	/* 82 = fstatfs */
 	map(SELECT, doSelect);	/* 85 = select */
 	map(FCHDIR, doFchdir);	/* 86 = fchdir */
 	map(FSYNC, doFsync);	/* 87 = fsync */

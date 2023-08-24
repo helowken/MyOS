@@ -49,6 +49,7 @@ INIT {
 	extern char baseBuf[];
 
 	baseParseFile.nextChar = baseParseFile.buf = baseBuf;
+	baseParseFile.fd = 0;	/* Use stdin */
 }
 
 RESET {

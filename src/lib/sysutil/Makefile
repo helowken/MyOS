@@ -9,7 +9,8 @@ OBJS_M32 = \
 		panic.o \
 		getuptime.o \
 		tickdelay.o \
-		env_get_param.o
+		env_get_param.o \
+		fkey_ctl.o
 	
 
 OBJS_M16 = \

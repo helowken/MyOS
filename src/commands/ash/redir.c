@@ -5,7 +5,9 @@
 #include "shell.h"
 #include "nodes.h"
 #include "redir.h"
+#include "expand.h"
 #include "eval.h"
+#include "jobs.h"
 #include "memalloc.h"
 #include "mystring.h"
 #include "error.h"
@@ -87,6 +89,41 @@ void clearRedir() {
 	}
 }
 
+/* Handle here documents. Normally we fork off a process to write the
+ * data to a pipe. If the document is short, we can stuff the data in
+ * the pipe without forking.
+ */
+static int openHere(Node *redir) {
+	int pip[2];
+	int len;
+
+	if (pipe(pip) < 0)
+	  error("Pipe call failed");
+	if (redir->type == NHERE) {
+		len = strlen(redir->nHere.doc->nArg.text);
+		if (len <= PIPE_SIZE) {
+			xwrite(pip[1], redir->nHere.doc->nArg.text, len);
+			goto out;
+		}
+	}
+	if (forkShell(NULL, NULL, FORK_NO_JOB) == 0) {
+		close(pip[0]);
+		signal(SIGINT, SIG_IGN);
+		signal(SIGQUIT, SIG_IGN);
+		signal(SIGHUP, SIG_IGN);
+		signal(SIGTSTP, SIG_IGN);
+		signal(SIGPIPE, SIG_DFL);
+		if (redir->type == NHERE) 
+		  xwrite(pip[1], redir->nHere.doc->nArg.text, len);
+		else
+		  expandHere(redir->nHere.doc, pip[1]);
+		_exit(0);
+	}
+out:
+	close(pip[1]);
+	return pip[0];
+}
+
 static void openRedirect(Node *redir, char memory[RENAME_SIZE]) {
 	int fd = redir->nFile.fd;
 	char *fileName;
@@ -133,7 +170,7 @@ moveFd:
 			break;
 		case NHERE:
 		case NXHERE:
-			//TODO f = openHere(redir);
+			f = openHere(redir);
 			goto moveFd;
 		default:
 			abort();

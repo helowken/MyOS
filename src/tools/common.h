@@ -16,15 +16,15 @@
 #include "../include/ibm/partition.h"
 #include "util.h"
 
-typedef enum { false, true } bool;
-
-#define min(m,n) ((m) < (n) ? (m) : (n))
-#define max(m,n) ((m) > (n) ? (m) : (n))
-
 #define KB				1024
 #define KB_SHIFT		10
 
+#define min(m,n) ((m) < (n) ? (m) : (n))
+#define max(m,n) ((m) > (n) ? (m) : (n))
 #define EXTERN	extern
+
+#ifdef OTHER_OS
+typedef enum { false, true } bool;
 
 /* Mapping Linux types to Minix types. */
 typedef	int16_t			Uid_t;		/* User id */
@@ -39,5 +39,6 @@ typedef uint16_t		Bitchunk_t;	/* Collection of bits in a bitmap */
 typedef int16_t			Dev_t;		/* Holds (major|minor) device pair */
 typedef int16_t			Nlink_t;	/* Number of links to a file */
 typedef int32_t			Time_t;
+#endif	/* OTHER_OS end */
 
 #endif

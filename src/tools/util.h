@@ -12,9 +12,9 @@
 #define arrayLimit(a)		((a) + arraySize(a))
 #define between(a, c, z)	((unsigned) ((c) - (a)) <= ((z) - (a)))
 
-void getActivePartition(char *device, int fd, PartitionEntry *pe);
+char *getProgName(char **argv);
 
-void findActivePartition(PartitionEntry *table, PartitionEntry *pe);
+int getPartIdx(char *s);
 
 void getPartitionTable(char *device, int fd, off_t off, PartitionEntry *table);
 

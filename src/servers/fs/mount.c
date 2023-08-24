@@ -129,6 +129,7 @@ int doMount() {
 	sp->s_inode_mount = rip;
 	sp->s_inode_super = rootIp;
 	sp->s_readonly = inMsg.m_rd_only;
+
 	return OK;
 }
 

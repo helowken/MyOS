@@ -128,17 +128,17 @@ int checkAllowed(char *pathName, struct stat *st, int mask) {
 	/* TellFS(DO_CHDIR, ...) has set PM's real ids to the user's effective 
 	 * ids, so access() works right for setuid programs.
 	 */
-	if (access(pathName, mask) < 0)
+	if (access(pathName, mask) < 0)  
 	  return -errno;
 
-	/* The file is accessible but might not be readable. Make it readble. */
+	/* The file is accessible but might not be readable. Make it readable. */
 	tellFS(SETUID, PM_PROC_NR, (int) SUPER_USER, (int) SUPER_USER);
 
 	/* Open the file and fstat it. Restore the ids early to handle errors. */
 	fd = open(pathName, O_RDONLY | O_NONBLOCK);
 	savedErrno = errno;		/* Open might fail, e.g. from ENFILE */
 	tellFS(SETUID, PM_PROC_NR, (int) currMp->mp_euid, (int) currMp->mp_euid);
-	if (fd < 0)
+	if (fd < 0) 
 	  return -savedErrno;
 	if (fstat(fd, st) < 0)
 	  panic(__FILE__, "checkAllowed: fstat failed", NO_NUM);

@@ -13,10 +13,10 @@ ROOT_MB = 16
 PART_TYPE=81
 
 # Make FS
-PRIMARY = p0
-DEV_ROOT = $(PRIMARY)s0
-DEV_HOME = $(PRIMARY)s1
-DEV_USR = $(PRIMARY)s2
+PART_0 = p0
+DEV_ROOT = $(PART_0)s0
+DEV_HOME = $(PART_0)s1
+DEV_USR = $(PART_0)s2
 FS_ROOT = ROOT
 FS_HOME = HOME
 FS_USR = USR
@@ -26,6 +26,7 @@ LIBS = -L$(MY_HOME)/lib/m16 -lmyc -lmysysutil
 INSTALL = $(DIR_TOOLS)/installboot.bin
 MKFS = $(DIR_TOOLS)/mkfs.bin
 PARTITION = $(DIR_TOOLS)/partition.bin
+PARTSIZE = $(DIR_TOOLS)/partsize.bin
 MASTER_BOOT = masterboot.bin
 BOOT_BLOCK = bootblock.bin
 BOOT = boot.bin
@@ -81,27 +82,37 @@ compile: $(MASTER_BOOT) $(BOOT_BLOCK) $(BOOT)
 install: install_masterboot install_device 
 
 partition: $(DISK_IMAGE)
-	$(eval DEV_SIZE := $(shell stat -c%s $(DISK_IMAGE)))
+	$(eval PART_0_SIZE := $(shell $(PARTSIZE) $(DISK_IMAGE) 0))
 	$(eval ROOT_SECTORS := $(shell expr $(ROOT_MB) '*' 1024 '*' 2))
-	$(eval HOME_SECTORS := $(shell expr $(DEV_SIZE) '/' 5 '/' 512))
+	$(eval HOME_SECTORS := $(shell expr $(PART_0_SIZE) '/' 5 '/' 512))
 	$(eval ROOT_PART := $(PART_TYPE):$(ROOT_SECTORS)*)
 	$(eval HOME_PART := $(PART_TYPE):$(HOME_SECTORS))
 	$(eval USR_PART := $(PART_TYPE):0+)
-	$(PARTITION) -q $(DISK_IMAGE) $(ROOT_PART) $(HOME_PART) $(USR_PART)
-	$(PARTITION) -ps $(DISK_IMAGE)
+	$(PARTITION) -q $(DISK_IMAGE) 0 $(ROOT_PART) $(HOME_PART) $(USR_PART)
+
+	$(eval PART_1_SIZE := $(shell $(PARTSIZE) $(DISK_IMAGE) 1))
+	$(eval SUB_SECTORS := $(shell expr $(PART_1_SIZE) '/' 512 '/' 2))
+	$(eval SUB_0_PART := $(PART_TYPE):$(SUB_SECTORS))
+	$(eval SUB_1_PART := $(PART_TYPE):0+)
+	$(PARTITION) -q $(DISK_IMAGE) 1 $(SUB_0_PART) $(SUB_1_PART)
+
+	$(PARTITION) -ps $(DISK_IMAGE) 0
+	$(PARTITION) -s $(DISK_IMAGE) 1
 
 mkfs: partition
 	@echo --------------------------------------------
 	$(MKFS) -r$(BOOT_IMG_SECTORS) $(DEV_ROOT):$(DISK_IMAGE) $(FS_ROOT)
+	$(MKFS) -p $(DEV_ROOT):$(DISK_IMAGE)
 	@echo --------------------------------------------
 	$(MKFS) $(DEV_HOME):$(DISK_IMAGE) $(FS_HOME)
+	$(MKFS) -p $(DEV_HOME):$(DISK_IMAGE)
 	@echo --------------------------------------------
 	$(MKFS) $(DEV_USR):$(DISK_IMAGE) $(FS_USR)
-	@echo --------------------------------------------
+	$(MKFS) -p $(DEV_USR):$(DISK_IMAGE)
 
 install_masterboot: $(MASTER_BOOT) mkfs
 	$(INSTALL) -m $(DISK_IMAGE) $<
-	$(INSTALL) -m $(PRIMARY):$(DISK_IMAGE) $<
+	$(INSTALL) -m $(PART_0):$(DISK_IMAGE) $<
 
 install_device: $(BOOT_BLOCK) $(BOOT) mkfs
 	$(INSTALL) -d $(DEV_ROOT):$(DISK_IMAGE) $(BOOT_BLOCK) $(BOOT) \

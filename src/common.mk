@@ -10,12 +10,12 @@ INC_HEADERS = *.h \
 CFLAGS = -g -c -m32 \
 		 -ffreestanding -nostdinc -nostartfiles -nodefaultlibs \
 		 -fno-asynchronous-unwind-tables -I$(INC) \
-		 -Wall -Werror 
+		 -Wall -Werror
 		 #-D_NO_COMPACT
 		 
 C_SOURCE = $(wildcard *.c)
 HEADERS = $(wildcard $(INC_HEADERS))
-SYS_LIBS = -L$(MY_HOME)/lib -lmysys -lmysysutil -lmytimers -lmyc
+SYS_LIBS = -L$(MY_HOME)/lib -lmysysutil -lmysys -lmytimers -lmyc
 LIBS = -L$(MY_HOME)/lib -lmyc
 DEBUG = debug.bin
 ENTRY = $(MY_HOME)/entry/entry.o

@@ -32,7 +32,16 @@ OBJS_M32 = \
 		getttyent.o \
 		crypt.o \
 		getpass.o \
-		ttyslot.o
+		ttyslot.o \
+		getlogin.o \
+		ctermid.o \
+		sysconf.o \
+		cuserid.o \
+		memccpy.o \
+		bcopy.o \
+		bcmp.o \
+		v8regexp \
+		v8regsub 
 
 
 OBJS_M16 = \

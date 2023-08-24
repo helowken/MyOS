@@ -2,29 +2,26 @@
 #include "image.h"
 #include "util.h"
 
-void getActivePartition(char *device, int fd, PartitionEntry *pep) {
-	PartitionEntry table[NR_PARTITIONS];
+char *getProgName(char **argv) {
+	char *progName;
 
-	getPartitionTable(device, fd, PART_TABLE_OFF, table);
-	findActivePartition(table, pep);	
+	if ((progName = strrchr(argv[0], '/')) == NULL)
+	  progName = argv[0];
+	else
+	  ++progName;
+
+	return progName;
 }
 
-void findActivePartition(PartitionEntry *table, PartitionEntry *pep) {
-	int i, activeCount = 0;
-	bool found = false;
+int getPartIdx(char *v) {
+	char *s;
+	int partIdx;
 
-	for (i = 0; i < NR_PARTITIONS; ++i) {
-		if (BOOTABLE(&table[i])) {
-			if (!found) {
-				*pep = table[i];
-				found = true;
-			}
-			if (activeCount++ > 0)
-			  fatal("more than 1 active partition");
-		}
-	}
-	if (activeCount == 0)
-	  fatal("no active partition found");
+	partIdx = strtol(v, &s, 10);
+	if (*s != '\0' || partIdx < 0 || partIdx > 3)
+	  fatal("invalid partition index: %s", v);
+
+	return partIdx;
 }
 
 void getPartitionTable(char *device, int fd, off_t off, PartitionEntry *table) {
@@ -40,16 +37,13 @@ char *parseDevice(char *device, uint32_t *bootSecPtr, PartitionEntry *pep) {
 	int fd;
 	char *s, *path;
 	int len, part, subPart;
-	PartitionEntry pe, table[NR_PARTITIONS];
 	uint32_t lowSector;
+	PartitionEntry table[NR_PARTITIONS];
 
 	s = strchr(device, ':');
 	if (s == NULL) {
-		fd = ROpen(device);
-		getActivePartition(device, fd, &pe);
 		if (bootSecPtr) 
 		  *bootSecPtr = 0;
-		lowSector = pe.lowSector;
 	} else {
 		path = device;
 		device = s + 1;

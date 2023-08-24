@@ -11,5 +11,5 @@ clock_t times(struct tms *buf) {
 	buf->tms_stime = msg.m4_l2;
 	buf->tms_cutime = msg.m4_l3;
 	buf->tms_cstime = msg.m4_l4;
-	return 0;
+	return msg.m4_l5;
 }

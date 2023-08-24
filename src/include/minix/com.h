@@ -54,6 +54,7 @@
 #	define SYS_SIG		NOTIFY_FROM(SYSTEM)		/* System signal */
 #	define HARD_INT		NOTIFY_FROM(HARDWARE)	/* Hardware interrupt */
 #	define NEW_KSIG		NOTIFY_FROM(HARDWARE)	/* New kernel signal */
+#	define FKEY_PRESSED		NOTIFY_FROM(TTY_PROC_NR)	/* Function key press */
 
 /* Shorthands for message parameters passed with notifications. */
 #define NOTIFY_SOURCE	m_source

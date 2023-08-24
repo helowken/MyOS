@@ -51,7 +51,7 @@ static void readProfile(char *name) {
 void cmdLoop(int top) {
 	Node *n;
 	StackMark stackMark;
-	int inter;
+	int interact;
 	int numEOF;
 
 	setStackMark(&stackMark);
@@ -59,21 +59,21 @@ void cmdLoop(int top) {
 	for (;;) {
 		if (pendingSigs)
 		  doTrap();
-		inter = 0;
+		interact = 0;
 		if (iflag && top) {
-			++inter;
+			++interact;
 			showJobs(1);
 			checkMail(0);
 			flushOut(&output);
 		}
-		n = parseCmd(inter);
+		n = parseCmd(interact);
 		if (n == NEOF) {
 			if (Iflag == 0 || numEOF >= 50)
 				break;
 			out2Str("\nUse \"exit\" to leave shell.\n");
 			++numEOF;
 		} else if (n != NULL && nflag == 0) {
-			if (inter) {
+			if (interact) {
 				INTOFF;
 				if (prevCmd)
 				  freeFunc(prevCmd);
@@ -143,13 +143,14 @@ void main(int argc, char **argv) {
 	  eflag = 2;	/* Truely enable [ex]flag after init. */
 	if (xflag)
 	  xflag = 2;
-	if (argv[0] && argv[0][0] == '-') {
+	if (argv[0] && argv[0][0] == '-') {	/* login.c will set argv[0]="-sh" */
 		state = 1;
 		readProfile("/etc/profile");
 state1:
 		state = 2;
 		if ((home = getenv("HOME")) != NULL &&
 				(profile = (char *) malloc(strlen(home) + 10)) != NULL) {
+			/* $HOME/.profile will run $HOME/.ashrc too */
 			strcpy(profile, home);
 			strcat(profile, "/.profile");
 			readProfile(profile);

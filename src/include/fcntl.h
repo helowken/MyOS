@@ -18,6 +18,11 @@
 /* File descriptor flags used for fcntl(). */
 #define FD_CLOEXEC		1	/* Close on exec flag for third arg of fcntl */
 
+/* L_type values for record locking with fcntl(). */
+#define F_RDLCK			1	/* Shared or read lock */
+#define F_WRLCK			2	/* Exclusive or write lock */
+#define F_UNLCK			3	/* Unlock */
+
 /* Oflag values for open() */
 #define O_CREAT		00100	/* Create file if it doesn't exist */
 #define O_EXCL		00200	/* Exclusive use flag */

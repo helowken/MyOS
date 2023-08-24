@@ -18,7 +18,9 @@ void *malloc(size_t size);
 void *realloc(void *op, size_t size);
 int rand(void);
 void srand(unsigned int seed);
+double strtod(const char *nptr, char **endptr);
 long int strtol(const char *nptr, char **endptr, int base);
+int system(const char *command);
 unsigned long int strtoul(const char *nptr, char **endptr, int base);
 
 #ifdef _POSIX_SOURCE

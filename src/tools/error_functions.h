@@ -6,9 +6,11 @@ void errMsg(const char *format, ...);
 void printErrMsg(int errnum, const char *format, ...);
 
 #ifdef __GNUC__
+#ifdef OTHER_OS
 #define NORETURN __attribute__ ((__noreturn__))
 #else
 #define NORETURN
+#endif	/* OTHER_OS end */
 #endif
 
 void errExit(const char *format, ...) NORETURN;

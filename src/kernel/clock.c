@@ -83,10 +83,14 @@ static int clockHandler(IrqHook *hook) {
 	currProc->p_user_time += ticks;
 	if (priv(currProc)->s_flags & PREEMPTIBLE) {
 		currProc->p_ticks_left -= ticks;
+		if (currProc->p_ticks_left < 0) 
+		  currProc->p_ticks_left = 0;
 	}
 	if (! (priv(currProc)->s_flags & BILLABLE)) {
 		billProc->p_sys_time += ticks;
 		billProc->p_ticks_left -= ticks;
+		if (billProc->p_ticks_left < 0)
+		  billProc->p_ticks_left = 0;
 	}
 	
 	/* Check if doClickTick() must be called. Done for alarms and scheduling.

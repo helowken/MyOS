@@ -21,7 +21,7 @@ typedef unsigned int vir_clicks;	/* Virtual addr/length in clicks */
 #define DATA_CLICKS(mm)			((mm)[S].virAddr + (mm)[S].len - (mm)[D].virAddr)
 #define ACT_DATA_CLICKS(mm)		(DATA_CLICKS(mm) - (mm)[D].offset)
 #define ACT_DATA_PADDR(mm)		((mm)[D].physAddr + (mm)[D].offset)
-#define TOTAL_CLICKS(mm)		((mm)[S].physAddr + (mm)[S].len - (mm)[T].physAddr)
+#define TOTAL_CLICKS(mm)		(ACT_DATA_CLICKS(mm) + (mm)[T].len)
 
 typedef struct {
 	phys_clicks physAddr;			/* Physical address */

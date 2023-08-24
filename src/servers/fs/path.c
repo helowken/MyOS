@@ -25,14 +25,15 @@ static char *getName(char *oldName, char string[NAME_MAX]) {
 
 	/* Copy the unparsed path, 'oldName', to the array, 'string'. */
 	while (rnp < &oldName[PATH_MAX] && c != '/' && c != '\0') {
-		if (np < &string[NAME_MAX])
+		if (np < &string[NAME_MAX])		/* Truncate, since _POSIX_NO_TRUNC == -1 */
 		  *np++ = c;
 		c = *++rnp;		/* Advance to next character */
 	}
 
 	/* To make /usr/ast/ equivalent to /usr/ast, skip trailing slashes. */
-	while (c == '/' && rnp < &oldName[PATH_MAX])
-	  c = *++rnp;
+	while (c == '/' && rnp < &oldName[PATH_MAX]) {
+		c = *++rnp;
+	}
 
 	if (np < &string[NAME_MAX])
 	  *np = '\0';		/* Terminate string */
@@ -154,7 +155,7 @@ Inode *advance(Inode *dirIp, char string[NAME_MAX]) {
 	 * mounted file system. The super block provides the linkage between the
 	 * inode mounted on and the root directory of the mounted file system.
 	 */
-	while (ip->i_mount == I_MOUNT) {
+	while (ip != NIL_INODE && ip->i_mount == I_MOUNT) {
 		/* The inode is indeed mounted on. */
 		for (sp = &superBlocks[0]; sp < &superBlocks[NR_SUPERS]; ++sp) {
 			if (sp->s_inode_mount == ip) {
@@ -202,10 +203,10 @@ int searchDir(register Inode *dirIp, char string[NAME_MAX], ino_t *iNum, int fla
 		if (string == dot1 || string == dot2) {		
 			if (flag != LOOK_UP) 
 			  r = checkReadOnly(dirIp); /* Only a writable device is required. */
-		} else 
+		} else  
 		  r = checkForbidden(dirIp, bits); /* Check access permissions. */
 	}
-	if (r != OK)
+	if (r != OK) 
 	  return r;
 
 	/* Step through the directory one block at a time. */
@@ -309,7 +310,7 @@ int searchDir(register Inode *dirIp, char string[NAME_MAX], ino_t *iNum, int fla
 	if (newSlots > oldSlots) {
 		dirIp->i_size = (off_t) newSlots * DIR_ENTRY_SIZE;
 		/* Send the change to disk if the directory is extended. */
-		if (extended)
+		if (extended) 
 		  rwInode(dirIp, WRITING);
 	}
 

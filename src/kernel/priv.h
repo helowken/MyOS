@@ -47,7 +47,7 @@ typedef struct {
 EXTERN Priv privTable[NR_SYS_PROCS];		/* System properties table */
 EXTERN Priv *privAddrTable[NR_SYS_PROCS];
 
-/* Unprivileged user processes all share the smae privilege structure.
+/* Unprivileged user processes all share the same privilege structure.
  * This id must be fixed because it is used to check send mask entries.
  */
 #define USER_PRIV_ID	0

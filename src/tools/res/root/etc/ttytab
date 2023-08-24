@@ -1,4 +1,3 @@
-# ttytab - terminals
 #
 # Device	Type		Program		Init
 console		minix		getty	

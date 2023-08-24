@@ -38,6 +38,8 @@ EXTERN int bufsInUse;			/* # bufs currenly in use (not on free list) */
 
 EXTERN Filp filpTable[NR_FILPS];
 
+EXTERN FileLock fileLockTable[NR_LOCKS];
+
 /* Data initialized elsewhere */
 extern int (*callVec[])();		/* Sys call table */
 extern char dot1[2];			/* dot1 (&dot1[0]) and dot2 (&dot2[0]) have a special */
