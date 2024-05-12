@@ -81,6 +81,9 @@ typedef struct Environment {
 
 EXTERN Environment *env;		/* Lists the environment. */
 
+/* Given a description text for some Unix errors. */
+char *unixErr(int err);
+
 /* Get value of env variable. */
 char *getVarValue(char *name);
 

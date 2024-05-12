@@ -34,8 +34,7 @@ static char *progName;
 static char *device;
 static int deviceFd;
 static uint32_t bootSector, lowSector;
-static int imgCount;
-static uint32_t maxSize;
+static char zero[SECTOR_SIZE];
 
 static char *paramsTpl = 
 	"rootdev=%s;"
@@ -57,8 +56,9 @@ static char *imgTpl = "image=%d:%d;";
 
 static void usage() {
 	fprintf(stderr,
-	  "Usage: installboot -m(aster) device masterboot\n"
-	  "       installboot -d(evice) device bootBlock boot memPosFile images...\n");
+	  "Usage: installboot -i(mage) image kernel pm fs ... init\n"
+	  "       installboot -m(aster) device masterboot\n"
+	  "       installboot -d(evice) device bootBlock boot [images ...]\n");
 	exit(1);
 }
 
@@ -157,63 +157,52 @@ static size_t readHeader(char *fileName, FILE *imgFile, ImgHdr *imgHdr, bool pri
 	return sizeInMemory;
 }
 
-static char *imgBuf = NULL;
-static size_t bufLen = 512;
-static off_t bufOff = 0;
+static off_t imageTotalSize = 0;
 
-#define currBuf	(imgBuf + bufOff)
-
-static void adjustBuf(size_t len) {
-	if (bufOff + len > bufLen) {
-		while ((bufLen *= 2) < bufOff + len) {
-		}
-		imgBuf = realloc(imgBuf, bufLen);
-		memset(currBuf, 0, bufLen - bufOff);
-	}
+static void bwrite(char *dstName, int dstFd, void *buf, size_t len) {
+	imageTotalSize += len;
+	Write(dstName, dstFd, buf, len);
 }
 
-static void bwrite(void *srcBuf, size_t len) {
-	adjustBuf(len);
-	memcpy(currBuf, srcBuf, len);
-	bufOff += len;
+static void padImage(char *dstName, int dstFd, size_t len) {
+	imageTotalSize += len;
+	Write(dstName, dstFd, zero, len);
 }
 
-static void padImage(size_t len) {
-	adjustBuf(len);
-	memset(currBuf, 0, len);
-	bufOff += len;
-}
-
-static void copyExec(char *progName, FILE *imgFile, Elf32_Phdr *hdr) {
+static void copyExec(char *progName, FILE *imgFile, Elf32_Phdr *hdr,
+					char *dstName, int dstFd) {
 	size_t size = hdr->p_filesz;
 	int padLen;
+	char buf[BUFSIZ];
+	int chunk;
 
 	if (size == 0)
 	  return;
 	
 	padLen = ALIGN_SECTOR(size) - size;
+	imageTotalSize += size;
 
-	adjustBuf(size);
 	Fseek(progName, imgFile, hdr->p_offset);
-	Fread(progName, imgFile, currBuf, size);
-	bufOff += size;
-
-	padImage(padLen);
+	
+	while (size) {
+		chunk = size;
+		if (chunk > BUFSIZ)
+		  chunk = BUFSIZ;
+		Fread(progName, imgFile, buf, chunk);
+		Write(dstName, dstFd, buf, chunk);
+		size -= chunk;
+	}
+	padImage(dstName, dstFd, padLen);
 }
 
-static void installImages(char **imgNames, int imgAddr, off_t bootSize, 
-						off_t *imgSizePtr, size_t *memSizes) {
+static void doInstallImgs(char *dstName, int dstFd, char **imgNames) {
 	FILE *imgFile;
 	char *imgName, *file;
-	imgBuf = Malloc(bufLen);
 	ImgHdr imgHdr;
 	Exec *proc;
 	Elf32_Phdr *hdr;
-	int i;
-	size_t memSize, stackSize;
 
-	for (i = 0; i < imgCount; ++i) {
-		imgName = imgNames[i];
+	while ((imgName = *imgNames++)) {
 		if ((file = strrchr(imgName, ':')) != NULL)
 		  ++file;
 		else
@@ -222,41 +211,44 @@ static void installImages(char **imgNames, int imgAddr, off_t bootSize,
 		imgFile = RFopen(file);
 		/* Use on sector to store exec header */
 		readHeader(imgName, imgFile, &imgHdr, true);
-		bwrite(&imgHdr, sizeof(imgHdr));
-		padImage(SECTOR_SIZE - sizeof(imgHdr));
+		bwrite(dstName, dstFd, &imgHdr, sizeof(imgHdr));
+		padImage(dstName, dstFd, SECTOR_SIZE - sizeof(imgHdr));
 
-		memSize = 0;
 		proc = &imgHdr.process;
 		/* text */
 		hdr = &proc->codeHdr;
-		copyExec(imgName, imgFile, hdr);
-		memSize = hdr->p_vaddr + hdr->p_memsz;
+		copyExec(imgName, imgFile, hdr, dstName, dstFd);
 		/* data */
 		hdr = &proc->dataHdr;
-		copyExec(imgName, imgFile, hdr);
-		memSize = max(memSize, hdr->p_vaddr + hdr->p_memsz);
+		copyExec(imgName, imgFile, hdr, dstName, dstFd);
 		/* stack */
 		hdr = &proc->stackHdr;
-		stackSize = hdr->p_memsz;
 
-		/* Compute memory size for each image */
-		memSizes[i] = memSize == 0 ? memSize : ALIGN(memSize + stackSize, CLICK_SIZE); 
-	
 		Fclose(file, imgFile);
-
-		if (bootSize + bufOff > maxSize)
-		  fatal("Total size of (boot + images) excceeds %dMB", 
-					  (maxSize >> KB_SHIFT) >> KB_SHIFT);
 	}
 	printf("   ------   ------   ------   ------   ------\n");
 	printf(" %8ld %8ld %8ld %8ld %8ld	total\n", totalText, totalData, totalBss, totalStack,
 				totalText + totalData + totalBss);
+}
+
+static void installImages(char **imgNames, int imgAddr, off_t bootSize, off_t *imgSizePtr) {
+	uint32_t maxSize = OFFSET(RESERVED_SECTORS);
 
 	sPart(OFFSET(imgAddr));
-	wDev(imgBuf, bufOff);
-	free(imgBuf);
+	doInstallImgs(device, deviceFd, imgNames);
 
-	*imgSizePtr = bufOff;
+	if (bootSize + imageTotalSize > maxSize)
+	  fatal("Total size of (boot + images) excceeds %dMB", (maxSize >> KB_SHIFT) >> KB_SHIFT);
+
+	*imgSizePtr = imageTotalSize;
+}
+
+static void makeImage(char *image, char **imgNames) {
+	int fd;
+
+	fd = Open(image, O_CREAT | O_WRONLY | O_TRUNC);
+	doInstallImgs(image, fd, imgNames);
+	Close(image, fd);
 }
 
 static void checkBootMemSize(char *boot) {
@@ -281,8 +273,6 @@ static void checkBootMemSize(char *boot) {
 
 	bootFile = RFopen(bootElf);
 	size = readHeader(bootElf, bootFile, &imgHdr, false);
-	//printf("size: %x\n", size);
-	//printf("size: %x\n", size + STACK_SIZE);
 	if (size + STACK_SIZE > (BOOT_MAX << KB_SHIFT))
 	  fatal("Boot size > %d KB.", BOOT_MAX);
 }
@@ -322,64 +312,19 @@ static void installBoot(char *boot, off_t *bootSizePtr, int *bootAddrPtr) {
 static void installParams(char *params, int imgAddr, off_t imgSectors) {
 #define IMG_STR_LEN	50
 	char imgStr[IMG_STR_LEN];
-	int n;
+	int n = 0;
 
-	if ((n = snprintf(imgStr, IMG_STR_LEN, imgTpl, imgAddr, imgSectors)) < 0)
-	  errExit("create image param");
+	if (imgAddr > 0 && imgSectors > 0) {
+		if ((n = snprintf(imgStr, IMG_STR_LEN, imgTpl, imgAddr, imgSectors)) < 0)
+		  errExit("create image param");
+	}
 	imgStr[n] = 0;
 	memset(params, ';', PARAM_SIZE);
 	if (snprintf(params, PARAM_SIZE, paramsTpl, DEVICE, DEVICE, imgStr) < 0)
 	  errExit("snprintf params");
 }
 
-static void saveMemPos(char *fileName, char *boot, char **imgNames, size_t *memSizes) {
-#define MEM_BOOT	0x80000
-#define MEM_BASE_0	0x800
-#define MEM_BASE_1	0x100000
-#define BUF_LEN		100
-	int fd;
-	const char *format = "export %s=0x%x\n";
-	char buf[BUF_LEN];
-	char *name;
-	off_t pos;
-	int n;
-
-	fd = Open(fileName, O_WRONLY | O_TRUNC);
-
-	for (int i = -1; i < imgCount; ++i) {
-		if (i == -1) {
-			name = boot;
-			pos = MEM_BOOT;
-		} else if (i == 0) {
-			name = imgNames[i];
-		    pos = MEM_BASE_0;
-		} else if (i == 1) {
-			name = imgNames[i];
-		    pos = MEM_BASE_1;
-		} else {
-			name = imgNames[i];
-		    pos += memSizes[i - 1];
-		}
-
-		name = formatName(name);
-		//printf("%s: %d, 0x%lx\n", name, memSizes[i], pos);
-
-		if ((n = snprintf(buf, BUF_LEN, format, name, pos)) < 0)
-		  errExit("sprintf params");
-		Write(fileName, fd, buf, n);
-	}
-	Close(fileName, fd);
-}
-
-static void computeImgCount(char **img) {
-	/* Get image count */
-	while (*img != NULL) {
-		++imgCount;
-		img += 1;
-	}
-}
-
-static void installDevice(char *bootBlock, char *boot, char *memPosFile, char **imgNames) {
+static void installDevice(char *bootBlock, char *boot, char **imgNames) {
 /* Install bootBlock to the boot sector with boot's disk addresses and sizes patched 
  * into the data segment of bootBlock. 
  */
@@ -390,8 +335,6 @@ static void installDevice(char *bootBlock, char *boot, char *memPosFile, char **
 	int bootAddr, imgAddr;
 	off_t bootSize, imgSize;
 	int bootSectors, imgSectors;
-
-	computeImgCount(imgNames);
 
 	/* Install boot to device. */
 	installBoot(boot, &bootSize, &bootAddr);
@@ -421,12 +364,14 @@ static void installDevice(char *bootBlock, char *boot, char *memPosFile, char **
 	buf[SIGNATURE_POS + 1] = (SIGNATURE >> 8) & 0xFF;
 
 	/* Install images to device. */
-	printf("\n");
-	size_t memSizes[imgCount];
-	installImages(imgNames, imgAddr, bootSize, &imgSize, memSizes);
-	saveMemPos(memPosFile, boot, imgNames, memSizes);
-	printf("\n");
-	imgSectors = SECTORS(imgSize);
+	if (*imgNames != NULL) {
+		printf("\n");
+		installImages(imgNames, imgAddr, bootSize, &imgSize);
+		printf("\n");
+		imgSectors = SECTORS(imgSize);
+	} else {
+		imgAddr = imgSectors = 0;
+	}
 
 	/* Install params. */
 	installParams(&buf[SECTOR_SIZE], imgAddr, imgSectors);
@@ -452,27 +397,33 @@ static bool isOpt(char *opt, char *test) {
 	return false;
 }
 
-int main(int argc, char *argv[]) {
+static void devInit(char *devStr) {
 	PartitionEntry pe;
 
+	device = parseDevice(devStr, &bootSector, &pe);
+	lowSector = pe.lowSector;
+	deviceFd = RWOpen(device);
+}
+
+int main(int argc, char *argv[]) {
 	if (argc < 4 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)
 	  usage();
 
 	progName = argv[0];
-	device = parseDevice(argv[2], &bootSector, &pe);
-	lowSector = pe.lowSector;
-	deviceFd = RWOpen(device);
 
-	if (isOpt(argv[1], "-master")) {
+	if (argc >= 4 && isOpt(argv[1], "-image")) {
+		makeImage(argv[2], argv + 3);
+	} else if (argc >= 4 && isOpt(argv[1], "-master")) {
+		devInit(argv[2]);
 	    installMasterboot(argv[3]);
-	} else if (argc >= 8 && isOpt(argv[1], "-device")) {
-		maxSize = OFFSET(atoi(argv[5]));
-	    installDevice(argv[3], argv[4], argv[6], argv + 7); 
+	} else if (argc >= 5 && isOpt(argv[1], "-device")) {
+		devInit(argv[2]);
+	    installDevice(argv[3], argv[4], argv + 5); 
 	} else {
-	  usage();
+		usage();
 	}
 
 	Close(device, deviceFd);
 
-	exit(EXIT_SUCCESS);
+	return 0;
 }

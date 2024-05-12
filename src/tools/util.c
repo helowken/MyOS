@@ -206,5 +206,15 @@ void findGNUStackHeader2(char *path, FILE *file, Elf32_Ehdr *ehdr,
 	fatal("No GNU_STACK program header found.");
 }
 
+void CopyTo(char *fileName, int fd, int dstFd) {
+	char buf[BUFSIZ];
+	ssize_t off;
 
+	while ((off = read(fd, buf, BUFSIZ)) > 0) {
+		if (write(dstFd, buf, off) != off) 
+		  errExit("write");
+	}
+	if (off == -1)
+	  errExit("read %s", fileName);
+}
 

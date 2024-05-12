@@ -11,7 +11,12 @@ typedef long ptrdiff_t;
 
 #ifndef _SIZE_T
 #define _SIZE_T
-typedef unsigned int size_t;
+typedef unsigned int size_t;	/* Type returned by sizeof */
+#endif
+
+#ifndef _WCHAR_T
+#define	_WCHAR_T
+typedef char wchar_t;	/* Type expanded character set */
 #endif
 
 #endif

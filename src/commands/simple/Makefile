@@ -44,6 +44,7 @@ MAKEFLAGS += --no-print-directory
 		   chroot \
 		   mknod \
 		   tr \
+		   head \
 		   testAAA
 
 5kw_bins = last
@@ -52,7 +53,9 @@ MAKEFLAGS += --no-print-directory
 
 16kw_bins = cp \
 			chown \
-			du
+			du \
+			tail \
+			xargs
 
 20kw_bins = ls \
 			dd 
@@ -63,6 +66,8 @@ MAKEFLAGS += --no-print-directory
 
 4096k_bins = fsck
 
+2M_bins = writeisofs
+
 all_bins = $(1kw_bins) \
 		   $(4kw_bins) \
 		   $(5kw_bins) \
@@ -71,7 +76,9 @@ all_bins = $(1kw_bins) \
 		   $(20kw_bins) \
 		   $(25kw_bins) \
 		   $(32kw_bins) \
-		   $(4096k_bins)
+		   $(4096k_bins) \
+		   $(2M_bins)
+
 include $(MY_HOME)/funcs.mk
 
 all: 
@@ -84,6 +91,7 @@ all:
 	$(call mkBins,$(25kw_bins),25kw)
 	$(call mkBins,$(32kw_bins),32kw)
 	$(call mkBins,$(4096k_bins),4096k)
+	# $(call mkBins,$(2M_bins),2M)
 
 clean: 
 	$(call cleanBins,$(all_bins))

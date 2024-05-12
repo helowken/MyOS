@@ -2,7 +2,6 @@
 
 ETC=/etc
 USRETC=/usr/etc
-#TODO FILES1
 FILES1="fstab group hostname.file motd mtab passwd profile rc ttytab utmp"
 FILES2=shadow
 FILES3="daily rc"

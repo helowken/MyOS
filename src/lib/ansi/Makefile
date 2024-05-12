@@ -50,7 +50,12 @@ OBJS_M32 = \
 		assert.o \
 		rand.o \
 		system.o \
-		strcspn.o
+		strcspn.o \
+		bsearch.o \
+		qsort.o \
+		abs.o \
+		atexit.o \
+		labs.o
 
 		
 OBJS_M16 = \

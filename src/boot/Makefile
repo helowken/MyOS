@@ -6,7 +6,6 @@ CFLAGS += -D_M16
 DIR_DEVICE = device
 DIR_TOOLS = $(MY_HOME)/tools
 DISK_IMAGE = $(DIR_DEVICE)/testOS.img
-BOOT_IMG_SECTORS = 2048
 
 # Partition
 ROOT_MB = 16
@@ -23,14 +22,13 @@ FS_USR = USR
 
 # Program
 LIBS = -L$(MY_HOME)/lib/m16 -lmyc -lmysysutil
-INSTALL = $(DIR_TOOLS)/installboot.bin
+INSTALL_BOOT = $(DIR_TOOLS)/installboot.bin
 MKFS = $(DIR_TOOLS)/mkfs.bin
 PARTITION = $(DIR_TOOLS)/partition.bin
 PARTSIZE = $(DIR_TOOLS)/partsize.bin
 MASTER_BOOT = masterboot.bin
 BOOT_BLOCK = bootblock.bin
 BOOT = boot.bin
-ENV_MODULES_FILE=$(MY_HOME)/env_modules
 
 PROGRAMS = ../kernel/kernel.bin \
 		   ../servers/pm/pm.bin \
@@ -79,7 +77,7 @@ $(BOOT): boot.elf
 
 compile: $(MASTER_BOOT) $(BOOT_BLOCK) $(BOOT)
 
-install: install_masterboot install_device 
+install: compile install_masterboot install_device 
 
 partition: $(DISK_IMAGE)
 	$(eval PART_0_SIZE := $(shell $(PARTSIZE) $(DISK_IMAGE) 0))
@@ -101,7 +99,7 @@ partition: $(DISK_IMAGE)
 
 mkfs: partition
 	@echo --------------------------------------------
-	$(MKFS) -r$(BOOT_IMG_SECTORS) $(DEV_ROOT):$(DISK_IMAGE) $(FS_ROOT)
+	$(MKFS) -r $(DEV_ROOT):$(DISK_IMAGE) $(FS_ROOT)
 	$(MKFS) -p $(DEV_ROOT):$(DISK_IMAGE)
 	@echo --------------------------------------------
 	$(MKFS) $(DEV_HOME):$(DISK_IMAGE) $(FS_HOME)
@@ -111,12 +109,11 @@ mkfs: partition
 	$(MKFS) -p $(DEV_USR):$(DISK_IMAGE)
 
 install_masterboot: $(MASTER_BOOT) mkfs
-	$(INSTALL) -m $(DISK_IMAGE) $<
-	$(INSTALL) -m $(PART_0):$(DISK_IMAGE) $<
+	$(INSTALL_BOOT) -m $(DISK_IMAGE) $<
+	$(INSTALL_BOOT) -m $(PART_0):$(DISK_IMAGE) $<
 
 install_device: $(BOOT_BLOCK) $(BOOT) mkfs
-	$(INSTALL) -d $(DEV_ROOT):$(DISK_IMAGE) $(BOOT_BLOCK) $(BOOT) \
-		$(BOOT_IMG_SECTORS) $(ENV_MODULES_FILE) $(PROGRAMS)
+	$(INSTALL_BOOT) -b $(DEV_ROOT):$(DISK_IMAGE) $(BOOT_BLOCK) $(BOOT) $(PROGRAMS)
 
 disasm: $(DEBUG)
 	$(call disasmCode,$<,16)

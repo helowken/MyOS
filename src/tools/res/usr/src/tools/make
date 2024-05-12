@@ -1,0 +1,64 @@
+#!/bin/sh
+
+PROGRAMS="/usr/src/kernel/kernel \
+		 /usr/sbin/pm \
+		 /usr/sbin/fs \
+		 /usr/sbin/rs \
+		 /usr/sbin/tty \
+		 /usr/sbin/memory \
+		 /usr/sbin/log \
+		 AT:/sbin/at_wini \
+		 /usr/sbin/init"
+
+make_bootable()
+{
+	exec su root mkboot bootable
+}
+
+make_image()
+{
+	installboot -image image $PROGRAMS
+}
+
+make_hdboot() 
+{
+	make_image
+	exec sh mkboot hdboot
+	sync
+}
+
+make_clean()
+{
+	rm -f image *.iso *.iso.gz cdfdimage rootimage
+}
+
+usage()
+{
+	echo " " >&2
+	echo "Master Makefile to create new MINIX configuration." >&2
+	echo "Root privileges are required." >&2
+	echo " " >&2
+	echo "Usage:" >&2
+	echo " make_image      # Make needed services and create boot image" >&2
+	echo " make_hdboot     # Make image, and install to hard disk" >&2
+	echo " make_clean      # Remove all compiler results, except libs" >&2
+	echo " " >&2
+}
+
+case $#:$1 in
+1:bootable)
+	make_bootable
+	;;
+1:image)
+	make_image
+	;;
+1:hdboot)
+	make_hdboot
+	;;
+1:clean)
+	make_clean
+	;;
+*)
+	usage
+esac
+

@@ -18,7 +18,7 @@ static FileInfo commonBinFiles[] = {
 	{ "pwd",		  I_R | 0755,  BIN,  GOP,   0, "commands/simple/pwd.bin" },
 	{ "fsck",		  I_R | 0755,  BIN,  GOP,   0, "commands/simple/fsck.bin" },
 	{ "getty",		  I_R | 0755,  BIN,  GOP,   0, "commands/simple/getty.bin" },
-	{ "sed",		  I_R | 0755,  BIN,  GOP,   0, "commands/simple/sed.bin" },
+	{ "sed",		  I_R | 0755,  BIN,  GOP,   0, "commands/simple/sed.bin" },	//TODO
 	{ NULL }
 };
 
@@ -77,6 +77,7 @@ static FileInfo rootDevFiles[] = {
 static FileInfo rootSbinFiles[] = {
 	{ "is",           I_R | 0755,  ROOT, GOP,   0, "servers/is/is.bin" },
 	{ "cmos",         I_R | 0755,  ROOT, GOP,   0, "drivers/cmos/cmos.bin" },
+	{ "at_wini",      I_R | 0755,  ROOT, GOP,   0, "drivers/at_wini/at_wini.bin" },
 	{ NULL }
 };
 
@@ -112,13 +113,21 @@ static FileInfo commonUserFiles[] = {
 	{ NULL }
 };
 
+/* '/boot' */
+static FileInfo rootBootFiles[] = {
+	{ "image",         I_D | 0755,  ROOT, GOP,   0 },
+	{ NULL }
+};
+
 /* '/' */
 static FileInfo rootDirs[] = {
 	{ "dev",          I_D | 0755,  ROOT, GOP,   0, NULL, NULL, { rootDevFiles, NULL } },
 	{ "sbin",         I_D | 0755,  BIN,  GOP,   0, NULL, NULL, { rootSbinFiles, NULL } },
 	{ "bin",          I_D | 0755,  BIN,  GOP,   0, NULL, NULL, { commonBinFiles, rootBinFiles,  NULL } },
 	{ "etc",          I_D | 0755,  ROOT, GOP,   0, NULL, NULL, { rootEtcFiles, NULL } },
+	{ "boot",         I_D | 0755,  ROOT, GOP,   0, NULL, NULL, { rootBootFiles, NULL } },
 	{ "tmp",          I_D | 0777,  ROOT, GOP,   0 },
+	{ "mnt",          I_D | 0777,  ROOT, GOP,   0 },
 	{ "usr",          I_D | 0755,  ROOT, GOP,   0 },
 	{ "home",         I_D | 0755,  ROOT, GOP,   0 },
 	/* user dirs */
@@ -168,9 +177,13 @@ static FileInfo usrBinFiles[] = {
 	{ "mknod",		  I_R | 0755,  BIN,  GOP,   0, "commands/simple/mknod.bin" },
 	{ "tr",			  I_R | 0755,  BIN,  GOP,   0, "commands/simple/tr.bin" },
 	{ "find",		  I_R | 0755,  BIN,  GOP,   0, "commands/simple/find.bin" },
+	{ "head",		  I_R | 0755,  BIN,  GOP,   0, "commands/simple/head.bin" },
+	{ "tail",		  I_R | 0755,  BIN,  GOP,   0, "commands/simple/tail.bin" },
+	{ "xargs",		  I_R | 0755,  BIN,  GOP,   0, "commands/simple/xargs.bin" },
 	{ "testAAA",	  I_R | 0755,  BIN,  GOP,   0, "commands/simple/testAAA.bin" },	//TODO
 
 	{ "mkfs",         I_R | 0755,  ROOT, GOP,   0, "tools/minix/mkfs.bin" },
+	{ "installboot",  I_R | 0755,  BIN,  GOP,   0, "tools/minix/installboot.bin" },
 
 	{ "rotate",       I_R | 0755,  BIN,  GOP,   0, "commands/scripts/rotate.sh" },
 	{ "whereis",      I_R | 0755,  BIN,  GOP,   0, "commands/scripts/whereis.sh" },
@@ -186,6 +199,13 @@ static FileInfo usrBinFiles[] = {
 
 /* '/usr/sbin' */
 static FileInfo usrSbinFiles[] = {
+	{ "pm",           I_R | 0755,  ROOT, GOP,   0, "servers/pm/pm.bin" },
+	{ "fs",           I_R | 0755,  ROOT, GOP,   0, "servers/fs/fs.bin" },
+	{ "init",         I_R | 0755,  ROOT, GOP,   0, "servers/init/init.bin" },
+	{ "rs",           I_R | 0755,  ROOT, GOP,   0, "servers/rs/rs.bin" },
+	{ "tty",          I_R | 0755,  ROOT, GOP,   0, "drivers/tty/tty.bin" },
+	{ "log",          I_R | 0755,  ROOT, GOP,   0, "drivers/log/log.bin" },
+	{ "memory",       I_R | 0755,  ROOT, GOP,   0, "drivers/memory/memory.bin" },
 	{ "random",       I_R | 0755,  ROOT, GOP,   0, "drivers/random/random.bin" },
 	{ NULL }
 };
@@ -262,7 +282,10 @@ static FileInfo usrTestFiles[] = {
 static FileInfo usrSrcToolsFiles[] = {
 	{ "release.sh",   I_R | 0644,  BIN,  GOP,	0, "tools/res/usr/src/tools/release.sh" },
 	{ "chrootmake.sh",I_R | 0644,  BIN,  GOP,	0, "tools/res/usr/src/tools/chrootmake.sh" },
+	{ "mkboot",		  I_R | 0644,  BIN,  GOP,	0, "tools/res/usr/src/tools/mkboot" },
+	{ "make",		  I_R | 0644,  BIN,  GOP,	0, "tools/res/usr/src/tools/make" },
 	{ "revision",     I_R | 0644,  BIN,  GOP,	0, "tools/res/usr/src/tools/revision" },
+	{ "version",      I_R | 0644,  BIN,  GOP,	0, "tools/res/usr/src/tools/version" },
 	{ NULL }
 };
 
@@ -282,14 +305,14 @@ static FileInfo usrSrcEtcUsrFiles[] = {
 
 /* '/usr/src/etc' */
 static FileInfo usrSrcEtcFiles[] = {
-	{ "make.sh",      I_R | 0644,  BIN,  GOP,	0, "tools/res/usr/src/etc/make.sh" },
+	{ "make",         I_R | 0644,  BIN,  GOP,	0, "tools/res/usr/src/etc/make" },
 	{ "mtab",		  I_R | 0644,  BIN,  GOP,	0, "tools/res/usr/src/etc/mtab" },
 	{ "ttytab",       I_R | 0644,  BIN,  GOP,	0, "tools/res/usr/src/etc/ttytab" },
 	{ "utmp",         I_R | 0644,  BIN,  GOP,	0, "tools/res/usr/src/etc/utmp" },
 	{ "mtree.sh",     I_R | 0644,  BIN,  GOP,	0, "tools/res/usr/src/etc/mtree.sh" },
+	{ "fstab",        I_R | 0644,  BIN,  GOP,   0, "tools/res/usr/src/etc/fstab" },
 
 	{ "rc",           I_R | 0644,  BIN,  GOP,   0, "tools/res/root/etc/rc" },
-	{ "fstab",        I_R | 0644,  BIN,  GOP,   0, "tools/res/root/etc/fstab" },
 	{ "passwd",       I_R | 0644,  BIN,  GOP,   0, "tools/res/root/etc/passwd" },
 	{ "shadow",       I_R | 0600,  BIN,  GOP,   0, "tools/res/root/etc/shadow" },
 	{ "group",        I_R | 0644,  BIN,  GOP,   0, "tools/res/root/etc/group" },
@@ -315,11 +338,35 @@ static FileInfo usrSrcCommandsFiles[] = {
 	{ NULL }
 };
 
+/* '/usr/src/kernel' */
+static FileInfo usrSrcKernelFiles[] = {
+	{ "kernel",       I_R | 0755,  BIN,  GOP,   0, "kernel/kernel.bin" },
+	{ NULL }
+};
+
+/* '/usr/src/boot' */
+static FileInfo usrSrcBootFiles[] = {
+	{ "masterboot",   I_R | 0755,  BIN,  GOP,   0, "boot/masterboot.bin" },
+	{ "bootblock",    I_R | 0755,  BIN,  GOP,   0, "boot/bootblock.bin" },
+	{ "boot",         I_R | 0755,  BIN,  GOP,   0, "boot/boot.bin" },
+	{ NULL }
+};
+
 /* '/usr/src' */
 static FileInfo usrSrcFiles[] = {
 	{ "tools",        I_D | 0755,  BIN,  GOP,	0, NULL, NULL, { usrSrcToolsFiles, NULL } },
 	{ "etc",          I_D | 0755,  BIN,  GOP,	0, NULL, NULL, { usrSrcEtcFiles, NULL } },
 	{ "commands",     I_D | 0755,  BIN,  GOP,	0, NULL, NULL, { usrSrcCommandsFiles, NULL } },
+	{ "kernel",       I_D | 0755,  BIN,  GOP,	0, NULL, NULL, { usrSrcKernelFiles, NULL } },
+	{ "boot",         I_D | 0755,  BIN,  GOP,	0, NULL, NULL, { usrSrcBootFiles, NULL } },
+	{ NULL }
+};
+
+/* '/usr/mdec' */
+static FileInfo usrMdecFiles[] = {
+	{ "masterboot",   I_R | 0755,  BIN,  GOP,   0, "boot/masterboot.bin" },
+	{ "bootblock",    I_R | 0755,  BIN,  GOP,   0, "boot/bootblock.bin" },
+	{ "boot",         I_R | 0755,  BIN,  GOP,   0, "boot/boot.bin" },
 	{ NULL }
 };
 
@@ -338,6 +385,7 @@ static FileInfo usrDirs[] = {
 	{ "test",         I_D | 0755,  BIN,  GOP,   0, NULL, NULL, { usrTestFiles, NULL } },
 	{ "ast",          I_D | 0755,  AST,  OTHER, 0, NULL, NULL, { commonUserFiles, NULL } },
 	{ "src",          I_D | 0755,  BIN,  GOP,	0, NULL, NULL, { usrSrcFiles, NULL } },
+	{ "mdec",         I_D | 0755,  BIN,  GOP,	0, NULL, NULL, { usrMdecFiles, NULL } },
 	{ NULL }
 };
 

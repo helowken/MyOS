@@ -30,7 +30,7 @@ static int blockSize;
 static SuperBlock super;				/* Superblock of file system */
 
 static Inode currInode;					/* Inode of file under examination */
-static char indBuf[MIN_BLOCK_SIZE];		/* Single indirect block. */
+static char indBuf[MAX_BLOCK_SIZE];		/* Single indirect block. */
 static char dblIndBuf[MIN_BLOCK_SIZE];	/* Double indirect block. */
 static char dirBuf[MAX_BLOCK_SIZE];		/* Scratch/Directory block. */
 #define scratch	dirBuf
@@ -43,6 +43,7 @@ static Off_t dirPos;
 #define zoneShift	(super.s_log_zone_size)	/* Zone to block ratio */
 
 extern void readBlock(Off_t blockNum, char *buf, int bs);
+extern void exit(int status);
 
 Off_t rawSuper(int *bs) {
 /* Initialize variables return the size of a valid Minix file system blocks, 
@@ -204,9 +205,8 @@ Off_t rawVir2Abs(Off_t virBlockNum) {
 /* Translate a block number in a file to an absolute disk block number.
  * Returns 0 for a hole and -1 if block is past end of file.
  */
-	Block_t b;
+	Block_t b, blkIdxInZone;
 	Zone_t zone, indZone;
-	Block_t blkIdxInZone;
 	int i;
 
 	if (!blockSize)
@@ -234,15 +234,15 @@ Off_t rawVir2Abs(Off_t virBlockNum) {
 
 	/* Is it single indirect? */
 	if (zone < (Zone_t) numIndZones) {	/* Single indirect block */
-		indZone = currInode.i_zone[INDIR_ZONE_IDX];
+		indZone = currInode.i_zone[numDZones];
 	} else {	/* Double indirect block */
 		/* Fetch the double indirect block */
-		if ((indZone = currInode.i_zone[DBL_IND_ZONE_IDX]) == 0)
+		if ((indZone = currInode.i_zone[numDZones + 1]) == 0) 
 		  return 0;
 		
 		b = (Block_t) indZone << zoneShift;
 		if (dblIndAddr != b) {
-			readBlock(b, dblIndBuf, MIN_BLOCK_SIZE);	/* Note: blockSize is too big */
+			readBlock(b, dblIndBuf, blockSize);	/* Note: blockSize is too big */
 			dblIndAddr = b;
 		}
 		/* Extract the indirect zone number from it */
@@ -252,13 +252,13 @@ Off_t rawVir2Abs(Off_t virBlockNum) {
 		indZone = fsBuf(dblIndBuf).b_inds[i];
 		zone %= (Zone_t) numIndZones;
 	}
-	if (indZone == 0)
+	if (indZone == 0) 
 	  return 0;
 	
 	/* Extract the datablock number from the indirect zone */
 	b = (Block_t) indZone << zoneShift;
 	if (indAddr != b) {
-		readBlock(b, indBuf, MIN_BLOCK_SIZE);	/* Note: blockSize is too big */
+		readBlock(b, indBuf, blockSize);	
 		indAddr = b;
 	}
 	zone = fsBuf(indBuf).b_inds[zone];

@@ -4,8 +4,9 @@
 #include "image.h"
 
 #define SECTOR_SIZE			512
-#define SECTORS(n)			(((n) + ((SECTOR_SIZE) - 1)) / (SECTOR_SIZE))
-#define OFFSET(n)			((n) * (SECTOR_SIZE))
+#define RESERVED_SECTORS	2048
+#define SECTORS(n)			(((n) + SECTOR_SIZE - 1) / SECTOR_SIZE)
+#define OFFSET(n)			((n) * SECTOR_SIZE)
 #define RATIO(n)			((n) / SECTOR_SIZE)
 
 #define arraySize(a)		(sizeof(a) / sizeof((a)[0]))
@@ -34,6 +35,8 @@ void Write(char *fileName, int fd, char *buf, size_t len);
 void Lseek(char *fileName, int fd, off_t offset);
 
 void Close(char *fileName, int fd);
+
+void CopyTo(char *fileName, int fd, int dstFd);
 
 #define RFopen(file)		Fopen(file, "r")
 #define WFopen(file)		Fopen(file, "r+")

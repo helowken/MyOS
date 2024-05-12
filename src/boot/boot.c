@@ -941,7 +941,7 @@ void parseCode(char *code) {
 	tokenize(&cmds, code);
 }
 
-static char *unixErr(int err) {
+char *unixErr(int err) {
 	switch (err) {
 		case ENOENT: 
 			return "No such file or directory";

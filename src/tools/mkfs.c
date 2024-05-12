@@ -843,7 +843,7 @@ int main(int argc, char *argv[]) {
 	progName = argv[0];
 	blocks = 0;
 	inodes = 0;
-	while ((ch = getopt(argc, argv, "b:i:B:r:chp")) != EOF) {
+	while ((ch = getopt(argc, argv, "b:i:B:rchp")) != EOF) {
 		switch (ch) {
 			case 'b':
 				blocks = strtoul(optarg, (char **) NULL, 0);
@@ -855,7 +855,7 @@ int main(int argc, char *argv[]) {
 				blockSize = atoi(optarg);
 				break;
 			case 'r':
-				reservedSectors = atoi(optarg);
+				reservedSectors = RESERVED_SECTORS;
 				break;
 			case 'p':
 				printOnly = 1;

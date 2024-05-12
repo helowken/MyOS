@@ -2,14 +2,14 @@ MY_HOME = ../..
 include $(MY_HOME)/common.mk
 CFLAGS += -D_MINIX -D_POSIX_SOURCE 
 LIBS = -L$(MY_HOME)/lib -lmyc -le
-NAME = mkfs
-BIN = $(NAME).bin
-STACK_SIZE = 20kw
 
-all: $(BIN)
+all: mkfs.bin installboot.bin
 
-$(BIN): $(CRT_ENTRY) ../minix_mkfs.o ../minix_util.o ../minix_error_functions.o
-	$(call mkbin,$^,$@,$(STACK_SIZE),$(DEBUG))
+mkfs.bin: $(CRT_ENTRY) ../minix_mkfs.o ../minix_util.o ../minix_error_functions.o
+	$(call mkbin,$^,$@,20kw,$(DEBUG))
+
+installboot.bin: $(CRT_ENTRY) ../minix_installboot.o ../minix_util.o ../minix_error_functions.o rawfs.o
+	$(call mkbin,$^,$@,6kw,$(DEBUG))
 
 clean:
 	rm -f *.bin ../minix_*.o

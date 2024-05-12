@@ -7,8 +7,10 @@
 #include <sys/dir.h>
 #include <limits.h>
 #include <image.h>
+#include <sys/stat.h>
 #include "util.h"
 #include "boot.h"
+#include "rawfs.h"
 
 #define BUFFERED_SECTORS	16
 #define PROCESS_MAX			16	
@@ -24,32 +26,116 @@ typedef struct {
 Process procs[PROCESS_MAX];
 
 static off_t imgOff, imgSize;
-static u32_t (*vir2Sec)(u32_t vsec);		
+static u32_t (*vir2Sec)(u32_t vsec);
+static int blockSize = 0;
 
 /* Simply add an absolute sector offset to vsec. */
 static u32_t flatVir2Sec(u32_t vsec) {
 	return lowSector + imgOff + vsec;
 }
 
+/* Translate a virtual sector number to an absolute disk sector. */
+u32_t fileVir2Sec(u32_t vsec) {
+	off_t block;
+	int secsPerBlk;
+
+	if (! blockSize) {
+		errno = 0;
+		return -1;
+	}
+
+	secsPerBlk = RATIO(blockSize);
+	if ((block = rawVir2Abs(vsec / secsPerBlk)) == -1) {
+		errno = EIO;
+		return -1;
+	}
+	return block == 0 ? 
+		0 : 
+		lowSector + block * secsPerBlk + vsec % secsPerBlk;
+}
+
+static ino_t latestVersion(char *version, struct stat *stp) {
+/* Recursively read the current directory, selecting the newest image on
+ * the way up. (One can't use rawStat while reading a directory.)
+ */
+	char name[NAME_MAX + 1];
+	ino_t ino, newest;
+	time_t mtime;
+
+	if ((ino = rawReadDir(name)) <= 0) {
+		stp->st_mtime = 0;
+		return 0;
+	}
+
+	newest = latestVersion(version, stp);
+	mtime = stp->st_mtime;
+	rawStat(ino, stp);
+
+	if (S_ISREG(stp->st_mode) && stp->st_mtime > mtime) {
+		newest = ino;
+		strcpy(version, name);
+	} else {
+		stp->st_mtime = mtime;
+	}
+	return newest;
+}
+
 static char *selectImage(char *image) {
+/* Look imag eup on the filesystem, if it is a file then we're done, but
+ * if it's a directory then we want the newest file in that directory. If
+ * it doesn't exist at all, thn see if it is 'number:number' and get the
+ * image from that absolute offset off the disk.
+ */
 	size_t len;
-	char *size;
+	ino_t imageIno;
+	struct stat st;
 	
 	len = (strlen(image) + 1 + NAME_MAX + 1) * sizeof(char);
 	image = strcpy(malloc(len), image);
 
-	/* TODO lookup from file system */
-	
-	if (numPrefix(image, &size) && 
-				*size++ == ':' &&
-				numeric(size)) {
-		vir2Sec = flatVir2Sec;
-		imgOff = a2l(image);
-		imgSize = a2l(size);
-		strcpy(image, "Minix/3.0.1r10");
-		return image;
+	fsOK = rawSuper(&blockSize) != 0;
+	if (! fsOK || (imageIno = rawLookup(ROOT_INO, image)) == 0) {
+		char *size;
+
+		if (numPrefix(image, &size) && *size++ == ':' && numeric(size)) {
+			vir2Sec = flatVir2Sec;
+			imgOff = a2l(image);
+			imgSize = a2l(size);
+			strcpy(image, "Minix");
+			return image;
+		}
+		if (! fsOK) 
+		  printf("No image selected\n");
+		else
+		  printf("Can't load %s: %s\n", image, unixErr(errno));
+		goto bailOut;
 	}
 
+	rawStat(imageIno, &st);
+	if (! S_ISREG(st.st_mode)) {
+		char *version = image + strlen(image);
+		char dots[NAME_MAX + 1];
+
+		if (! S_ISDIR(st.st_mode)) {
+			printf("%s: %s\n", image, unixErr(ENOTDIR));
+			goto bailOut;
+		}
+
+		rawReadDir(dots);
+		rawReadDir(dots);	/* "." & ".." */
+		*version++ = '/';
+		*version = '\0';
+		if ((imageIno = latestVersion(version, &st)) == 0) {
+			printf("There are no images in %s\n", image);
+			goto bailOut;
+		}
+		rawStat(imageIno, &st);
+	}
+	vir2Sec = fileVir2Sec;
+	imgSize = (st.st_size + SECTOR_SIZE - 1) >> SECTOR_SHIFT;
+	return image;
+	
+bailOut:
 	free(image);
 	return NULL;
 }
